@@ -43,12 +43,18 @@ impl std::ops::AddAssign for Currency {
 }
 
 #[derive(Debug, Clone)]
-struct Budget {
+pub struct Budget {
     id: Id,
     name: String,
     description: Option<String>,
     total_value: Currency,
     timespan: Recourung,
+}
+
+impl std::fmt::Display for Budget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.name)
+    }
 }
 
 pub mod account {
