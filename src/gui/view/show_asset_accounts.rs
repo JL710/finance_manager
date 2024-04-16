@@ -1,6 +1,6 @@
 use crate::finance;
 
-use super::super::AppMessage;
+use super::super::{utils, AppMessage};
 use super::View;
 
 #[derive(Debug, Clone)]
@@ -80,22 +80,11 @@ impl AssetAccountOverview {
     }
 }
 
-fn entry_row_container_style(theme: &iced::Theme) -> iced::widget::container::Style {
-    match theme {
-        iced::Theme::Dark => iced::widget::container::Style::default().with_background(
-            iced::Background::Color(iced::Color::from_rgb8(100, 100, 100)),
-        ),
-        _ => iced::widget::container::Style::default().with_background(iced::Background::Color(
-            iced::Color::from_rgb8(100, 100, 100),
-        )),
-    }
-}
-
 fn asset_account_overview_entry(
     account: &finance::account::AssetAccount,
 ) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
     iced::widget::container(iced::widget::text(account.name().to_owned()))
-        .style(entry_row_container_style)
+        .style(utils::entry_row_container_style)
         .padding(10)
         .width(iced::Length::Fill)
         .into()
