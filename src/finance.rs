@@ -302,6 +302,26 @@ impl FinanceManager {
             .collect()
     }
 
+    pub fn create_budget(&mut self, name: String, description: Option<String>, total_value: Currency, timespan: Recourung) -> Budget {
+        let id = uuid::Uuid::new_v4().as_u128();
+
+        let new_budget = Budget {
+            id,
+            name,
+            description,
+            total_value,
+            timespan,
+        };
+
+        if self.budgets.contains_key(&id) {
+            panic!("ID ALREADY EXISTS");
+        }
+
+        self.budgets.insert(id, new_budget.clone());
+
+        new_budget
+    }
+
     pub fn get_budgets(&self) -> Vec<Budget> {
         self.budgets
             .iter()
