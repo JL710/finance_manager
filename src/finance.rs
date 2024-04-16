@@ -5,7 +5,15 @@ pub type Id = u128;
 
 #[derive(Debug, Clone)]
 pub enum Currency {
-    Eur(f32),
+    Eur(f64),
+}
+
+impl Currency {
+    pub fn to_num_string(&self) -> String {
+        match self {
+            Currency::Eur(num) => num.to_string(),
+        }
+    }
 }
 
 impl std::fmt::Display for Currency {
