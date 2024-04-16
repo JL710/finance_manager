@@ -15,6 +15,8 @@ pub enum AppMessage {
     BudgetOverview,
     CreateTransactionView,
     CreateTransactionViewMessage(view::create_transaction::Message),
+    BudgetOverViewMessage(view::budget_overview::Message),
+    CreateBudgetViewMessage(view::create_budget::Message),
 }
 
 pub struct App {
@@ -54,13 +56,17 @@ impl Application for App {
                 ))
             }
             AppMessage::BudgetOverview => {
-                self.current_view = Box::new(view::comming_soon_view::EmptyView {})
+                self.current_view = Box::new(view::budget_overview::BudgetOverview::new(
+                    &self.finance_manager,
+                ))
             }
             AppMessage::TransactionOverview => {
                 self.current_view = Box::new(view::comming_soon_view::EmptyView {})
             }
             AppMessage::CreateTransactionView => {
-                self.current_view = Box::new(view::create_transaction::CreateTransactionView::new())
+                self.current_view = Box::new(view::create_transaction::CreateTransactionView::new(
+                    &self.finance_manager,
+                ))
             }
             _ => {
                 if let Some(new_view) = self
