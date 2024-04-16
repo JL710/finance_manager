@@ -12,6 +12,7 @@ pub enum Message {
     DescriptionInput(String),
     DateInput(String),
     SourceInput(String),
+    BudgetSelected(finance::Budget),
     Submit,
 }
 
@@ -22,7 +23,7 @@ pub struct CreateTransactionView {
     description_input: String,
     source_input: String,
     destination_input: String,
-    budget_input: u8,
+    budget_state: widget::combo_box::State<finance::Budget>,
     date_input: String,
 }
 
@@ -48,14 +49,14 @@ impl super::View for CreateTransactionView {
 }
 
 impl CreateTransactionView {
-    pub fn new() -> Self {
+    pub fn new(finance_manager: &finance::FinanceManager) -> Self {
         Self {
             amount_input: String::new(),
             title_input: String::new(),
             description_input: String::new(),
             source_input: String::new(),
             destination_input: String::new(),
-            budget_input: 0,
+            budget_state: widget::combo_box::State::new(finance_manager.get_budgets()),
             date_input: String::new(),
         }
     }
@@ -72,6 +73,7 @@ impl CreateTransactionView {
             Message::DescriptionInput(content) => self.description_input = content,
             Message::DateInput(content) => self.date_input = content,
             Message::SourceInput(content) => self.source_input = content,
+            Message::BudgetSelected(_) => {}
         }
     }
 
@@ -88,6 +90,11 @@ impl CreateTransactionView {
             widget::row![
                 widget::text("Source"),
                 widget::text_input("Source", &self.source_input).on_input(Message::SourceInput)
+            ]
+            .spacing(10),
+            widget::row![
+                widget::text("Budget"),
+                widget::ComboBox::new(&self.budget_state, "Budget", None, Message::BudgetSelected)
             ]
             .spacing(10),
             widget::button("Submit").on_press_maybe(if self.submittable() {
@@ -107,6 +114,14 @@ impl CreateTransactionView {
         }
         // check if amount is a valid number
         if self.amount_input.parse::<f64>().is_err() {
+            return false;
+        }
+        // check if date is empty
+        if self.date_input.is_empty() {
+            return false;
+        }
+        // check if source and destination are empty
+        if self.source_input.is_empty() && self.destination_input.is_empty() {
             return false;
         }
         true
