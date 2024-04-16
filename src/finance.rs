@@ -51,6 +51,27 @@ pub struct Budget {
     timespan: Recourung,
 }
 
+impl Budget {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn description(&self) -> Option<&str> {
+        match &self.description {
+            Some(desc) => Some(desc),
+            None => None,
+        }
+    }
+
+    pub fn total_value(&self) -> Currency {
+        self.total_value.clone()
+    }
+
+    pub fn timespan(&self) -> &Recourung {
+        &self.timespan
+    }
+}
+
 impl std::fmt::Display for Budget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", &self.name)
@@ -204,7 +225,7 @@ pub struct FinanceManager {
 }
 
 #[derive(Debug, Clone)]
-enum Recourung {
+pub enum Recourung {
     Days(DateTime, usize), // start time and days
     DayInMonth(u16),       // i.e. 3. of each month
     Yearly(u8, u16),       // month and day
@@ -302,7 +323,13 @@ impl FinanceManager {
             .collect()
     }
 
-    pub fn create_budget(&mut self, name: String, description: Option<String>, total_value: Currency, timespan: Recourung) -> Budget {
+    pub fn create_budget(
+        &mut self,
+        name: String,
+        description: Option<String>,
+        total_value: Currency,
+        timespan: Recourung,
+    ) -> Budget {
         let id = uuid::Uuid::new_v4().as_u128();
 
         let new_budget = Budget {
