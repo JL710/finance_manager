@@ -1,5 +1,7 @@
 use crate::finance;
 
+use super::View;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     NameInput(String),
@@ -15,6 +17,31 @@ pub struct CreateAssetAccountDialog {
     note_input: String,
     iban_input: String,
     bic_input: String,
+}
+
+impl View for CreateAssetAccountDialog {
+    type ParentMessage = super::super::AppMessage;
+
+    fn view_view(&self) -> iced::Element<'_, Self::ParentMessage, iced::Theme, iced::Renderer> {
+        self.view()
+            .map(super::super::AppMessage::CreateAssetAccountMessage)
+    }
+
+    fn update_view(
+        &mut self,
+        message: Self::ParentMessage,
+        finance_manager: &mut finance::FinanceManager,
+    ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
+        if let super::super::AppMessage::CreateAssetAccountMessage(m) = message {
+            if let Some(acc) = self.update(m, finance_manager) {
+                return Some(Box::new(super::view_account::ViewAccount::new(
+                    &finance_manager,
+                    acc.into(),
+                )));
+            }
+        }
+        None
+    }
 }
 
 impl CreateAssetAccountDialog {
