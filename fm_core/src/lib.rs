@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 pub mod account;
+pub mod ram_finance_manager;
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 pub type Id = u128;
@@ -108,13 +107,6 @@ impl Transaction {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct FinanceManager {
-    accounts: HashMap<Id, account::Account>,
-    transactions: Vec<Transaction>,
-    budgets: HashMap<Id, Budget>,
-}
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Recourung {
     Days(DateTime, usize), // start time and days
@@ -124,141 +116,38 @@ pub enum Recourung {
 
 type Timespan = (Option<DateTime>, Option<DateTime>);
 
-impl FinanceManager {
-    pub fn new() -> Self {
-        Self {
-            accounts: HashMap::new(),
-            transactions: Vec::new(),
-            budgets: HashMap::new(),
-        }
-    }
-
-    pub fn create_asset_account(
+pub trait FinanceManager {
+    async fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> account::AssetAccount {
-        let id = uuid::Uuid::new_v4().as_u128();
+    ) -> account::AssetAccount;
 
-        let new_account = account::AssetAccount::new(id, name, note, iban, bic);
+    async fn get_accounts(&self) -> Vec<account::Account>;
 
-        if self.accounts.contains_key(&id) {
-            panic!("ID ALREADY EXISTS");
-        }
+    async fn get_account(&self, id: Id) -> Option<account::Account>;
 
-        self.accounts.insert(id, new_account.clone().into());
+    async fn get_account_sum(&self, account: &account::Account, date: DateTime) -> Currency;
 
-        new_account
-    }
+    async fn get_transaction(&self, id: Id) -> Option<Transaction>;
 
-    pub fn get_accounts(&self) -> Vec<account::Account> {
-        return self
-            .accounts
-            .iter()
-            .map(|x| x.1.clone())
-            .collect::<Vec<account::Account>>();
-    }
-
-    pub fn get_account(&self, id: Id) -> Option<account::Account> {
-        if let Some(acc) = self.accounts.get(&id) {
-            return Some(acc.clone());
-        }
-        None
-    }
-
-    pub fn get_account_sum(&self, account: &account::Account, date: DateTime) -> Currency {
-        // sum up all transactions from start to end date
-        let transactions = self.get_transactions_of_account(account, (None, Some(date)));
-        let mut total = Currency::Eur(0.0);
-        for transaction in transactions {
-            total += transaction.amount;
-        }
-        total
-    }
-
-    pub fn get_transaction(&self, id: Id) -> Option<Transaction> {
-        for transaction in &self.transactions {
-            if transaction.id == id {
-                return Some(transaction.clone());
-            }
-        }
-        None
-    }
-
-    pub fn get_transactions_of_account(
+    async fn get_transactions_of_account(
         &self,
         account: &account::Account,
         timespan: Timespan,
-    ) -> Vec<Transaction> {
-        self.transactions
-            .iter()
-            .filter(|transaction| {
-                if !transaction.connection_with_account(account) {
-                    return false;
-                }
-                if let Some(begin) = timespan.0 {
-                    if transaction.date < begin {
-                        return false;
-                    }
-                }
-                if let Some(end) = timespan.1 {
-                    if transaction.date > end {
-                        return false;
-                    }
-                }
-                true
-            })
-            .cloned()
-            .collect()
-    }
+    ) -> Vec<Transaction>;
 
-    pub fn create_budget(
+    async fn create_budget(
         &mut self,
         name: String,
         description: Option<String>,
         total_value: Currency,
         timespan: Recourung,
-    ) -> Budget {
-        let id = uuid::Uuid::new_v4().as_u128();
+    ) -> Budget;
 
-        let new_budget = Budget {
-            id,
-            name,
-            description,
-            total_value,
-            timespan,
-        };
+    async fn get_budgets(&self) -> Vec<Budget>;
 
-        if self.budgets.contains_key(&id) {
-            panic!("ID ALREADY EXISTS");
-        }
-
-        self.budgets.insert(id, new_budget.clone());
-
-        new_budget
-    }
-
-    pub fn get_budgets(&self) -> Vec<Budget> {
-        self.budgets
-            .iter()
-            .map(|x| x.1.clone())
-            .collect::<Vec<Budget>>()
-    }
-
-    pub fn get_transactions_of_budget(&self, budget: &Budget) -> Vec<Transaction> {
-        self.transactions
-            .iter()
-            .filter(|x| {
-                if let Some(b) = x.budget {
-                    if b == budget.id {
-                        return true;
-                    }
-                }
-                false
-            })
-            .cloned()
-            .collect()
-    }
+    async fn get_transactions_of_budget(&self, budget: &Budget) -> Vec<Transaction>;
 }
