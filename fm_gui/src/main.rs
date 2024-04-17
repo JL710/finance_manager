@@ -107,6 +107,6 @@ impl Application for App {
     }
 }
 
-pub fn run() {
+fn main() {
     App::run(iced::Settings::default()).unwrap();
 }
