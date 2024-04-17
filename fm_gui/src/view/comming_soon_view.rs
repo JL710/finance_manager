@@ -9,7 +9,7 @@ impl View for EmptyView {
     fn update_view(
         &mut self,
         _message: Self::ParentMessage,
-        _finance_manager: &mut crate::finance::FinanceManager,
+        _finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
         None
     }

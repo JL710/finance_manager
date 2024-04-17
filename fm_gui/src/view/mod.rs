@@ -1,4 +1,4 @@
-use crate::finance;
+use fm_core;
 use std::fmt::Debug;
 
 pub mod budget_overview;
@@ -15,7 +15,7 @@ pub trait View {
     fn update_view(
         &mut self,
         message: Self::ParentMessage,
-        finance_manager: &mut finance::FinanceManager,
+        finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>>;
 
     fn view_view(&self) -> iced::Element<'_, Self::ParentMessage, iced::Theme, iced::Renderer>;

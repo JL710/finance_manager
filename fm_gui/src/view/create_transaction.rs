@@ -1,4 +1,4 @@
-use crate::finance;
+use fm_core;
 
 use iced::widget;
 
@@ -12,7 +12,7 @@ pub enum Message {
     DescriptionInput(String),
     DateInput(String),
     SourceInput(String),
-    BudgetSelected(finance::Budget),
+    BudgetSelected(fm_core::Budget),
     Submit,
 }
 
@@ -23,7 +23,7 @@ pub struct CreateTransactionView {
     description_input: String,
     source_input: String,
     destination_input: String,
-    budget_state: widget::combo_box::State<finance::Budget>,
+    budget_state: widget::combo_box::State<fm_core::Budget>,
     date_input: String,
 }
 
@@ -33,7 +33,7 @@ impl super::View for CreateTransactionView {
     fn update_view(
         &mut self,
         message: Self::ParentMessage,
-        finance_manager: &mut finance::FinanceManager,
+        finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn super::View<ParentMessage = Self::ParentMessage>>> {
         if let AppMessage::CreateTransactionViewMessage(m) = message {
             self.update(m, finance_manager);
@@ -49,7 +49,7 @@ impl super::View for CreateTransactionView {
 }
 
 impl CreateTransactionView {
-    pub fn new(finance_manager: &finance::FinanceManager) -> Self {
+    pub fn new(finance_manager: &fm_core::FinanceManager) -> Self {
         Self {
             amount_input: String::new(),
             title_input: String::new(),
@@ -61,7 +61,7 @@ impl CreateTransactionView {
         }
     }
 
-    pub fn update(&mut self, message: Message, _finance_manager: &finance::FinanceManager) {
+    pub fn update(&mut self, message: Message, _finance_manager: &fm_core::FinanceManager) {
         match message {
             Message::Submit => {
                 todo!()

@@ -1,13 +1,13 @@
 use super::super::AppMessage;
-use crate::finance;
+use fm_core;
 
 use super::View;
 
 #[derive(Debug, Clone)]
 pub struct ViewAccount {
-    account: finance::account::Account,
-    transactions: Vec<finance::Transaction>,
-    current_value: finance::Currency,
+    account: fm_core::account::Account,
+    transactions: Vec<fm_core::Transaction>,
+    current_value: fm_core::Currency,
 }
 
 impl View for ViewAccount {
@@ -16,7 +16,7 @@ impl View for ViewAccount {
     fn update_view(
         &mut self,
         _message: Self::ParentMessage,
-        _finance_manager: &mut finance::FinanceManager,
+        _finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
         None
     }
@@ -28,8 +28,8 @@ impl View for ViewAccount {
 
 impl ViewAccount {
     pub fn new(
-        finance_manager: &finance::FinanceManager,
-        account: finance::account::Account,
+        finance_manager: &fm_core::FinanceManager,
+        account: fm_core::account::Account,
     ) -> Self {
         Self {
             current_value: finance_manager.get_account_sum(&account, chrono::Utc::now()),
@@ -40,7 +40,7 @@ impl ViewAccount {
 
     pub fn view(&self) -> iced::Element<'_, AppMessage, iced::Theme, iced::Renderer> {
         match &self.account {
-            finance::account::Account::AssetAccount(acc) => {
+            fm_core::account::Account::AssetAccount(acc) => {
                 asset_account_view(acc, &self.transactions, &self.current_value)
             }
             _ => iced::widget::text("comming soon").into(),
@@ -49,9 +49,9 @@ impl ViewAccount {
 }
 
 fn asset_account_view<'a>(
-    account: &finance::account::AssetAccount,
-    transactions: &[finance::Transaction],
-    current_value: &finance::Currency,
+    account: &fm_core::account::AssetAccount,
+    transactions: &[fm_core::Transaction],
+    current_value: &fm_core::Currency,
 ) -> iced::Element<'a, AppMessage, iced::Theme, iced::Renderer> {
     let mut transactions_table = super::super::table::Table::<'_, AppMessage>::new(2);
 
