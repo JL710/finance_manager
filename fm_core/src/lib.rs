@@ -3,7 +3,7 @@ use std::collections::HashMap;
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 pub type Id = u128;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub enum Currency {
     Eur(f64),
 }
@@ -42,7 +42,7 @@ impl std::ops::AddAssign for Currency {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Budget {
     id: Id,
     name: String,
@@ -218,13 +218,14 @@ impl Transaction {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct FinanceManager {
     accounts: HashMap<Id, account::Account>,
     transactions: Vec<Transaction>,
     budgets: HashMap<Id, Budget>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Recourung {
     Days(DateTime, usize), // start time and days
     DayInMonth(u16),       // i.e. 3. of each month
