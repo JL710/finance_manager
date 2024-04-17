@@ -1,4 +1,4 @@
-use crate::finance;
+use fm_core;
 
 use super::View;
 
@@ -30,7 +30,7 @@ impl View for CreateAssetAccountDialog {
     fn update_view(
         &mut self,
         message: Self::ParentMessage,
-        finance_manager: &mut finance::FinanceManager,
+        finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
         if let super::super::AppMessage::CreateAssetAccountMessage(m) = message {
             if let Some(acc) = self.update(m, finance_manager) {
@@ -57,8 +57,8 @@ impl CreateAssetAccountDialog {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: &mut finance::FinanceManager,
-    ) -> Option<finance::account::AssetAccount> {
+        finance_manager: &mut fm_core::FinanceManager,
+    ) -> Option<fm_core::account::AssetAccount> {
         match message {
             Message::NameInput(input) => self.name_input = input,
             Message::NoteInput(input) => self.note_input = input,

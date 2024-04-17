@@ -1,4 +1,4 @@
-use crate::finance;
+use fm_core;
 
 use iced::advanced::Application;
 
@@ -20,7 +20,7 @@ pub enum AppMessage {
 }
 
 pub struct App {
-    finance_manager: finance::FinanceManager,
+    finance_manager: fm_core::FinanceManager,
     current_view: Box<dyn view::View<ParentMessage = AppMessage>>,
 }
 
@@ -32,7 +32,7 @@ impl Application for App {
     type Renderer = iced::Renderer;
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let finance_manager = finance::FinanceManager::new();
+        let finance_manager = fm_core::FinanceManager::new();
         (
             App {
                 current_view: Box::new(view::show_asset_accounts::AssetAccountOverview::new(
@@ -105,4 +105,8 @@ impl Application for App {
         ]
         .into()
     }
+}
+
+pub fn run() {
+    App::run(iced::Settings::default()).unwrap();
 }

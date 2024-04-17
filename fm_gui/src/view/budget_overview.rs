@@ -1,6 +1,6 @@
 use super::super::{utils, AppMessage};
 use super::View;
-use crate::finance;
+use fm_core;
 use iced::widget;
 
 #[derive(Debug, Clone)]
@@ -9,7 +9,7 @@ pub enum Message {
 }
 
 pub struct BudgetOverview {
-    budgets: Vec<finance::Budget>,
+    budgets: Vec<fm_core::Budget>,
 }
 
 impl View for BudgetOverview {
@@ -18,7 +18,7 @@ impl View for BudgetOverview {
     fn update_view(
         &mut self,
         message: Self::ParentMessage,
-        finance_manager: &mut finance::FinanceManager,
+        finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
         if let AppMessage::BudgetOverViewMessage(m) = message {
             return self.update(m, finance_manager);
@@ -33,7 +33,7 @@ impl View for BudgetOverview {
 }
 
 impl BudgetOverview {
-    pub fn new(finance_manager: &finance::FinanceManager) -> Self {
+    pub fn new(finance_manager: &fm_core::FinanceManager) -> Self {
         Self {
             budgets: finance_manager.get_budgets(),
         }
@@ -42,7 +42,7 @@ impl BudgetOverview {
     fn update(
         &mut self,
         message: Message,
-        _finance_manager: &mut finance::FinanceManager,
+        _finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = AppMessage>>> {
         match message {
             Message::CreateBudget => {
@@ -62,7 +62,7 @@ impl BudgetOverview {
 }
 
 fn generate_budget_entry(
-    budget: &finance::Budget,
+    budget: &fm_core::Budget,
 ) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
     widget::container(widget::text(budget.name()))
         .style(utils::entry_row_container_style)
@@ -70,7 +70,7 @@ fn generate_budget_entry(
 }
 
 fn generate_budget_list(
-    budgets: &Vec<finance::Budget>,
+    budgets: &Vec<fm_core::Budget>,
 ) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
     let mut column = widget::Column::new();
 

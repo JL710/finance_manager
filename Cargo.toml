@@ -1,4 +1,4 @@
-workspace = { members = ["iced-dynamic"] }
+workspace = { members = [ "fm_core", "fm_gui", "fm_server", "iced-dynamic"] }
 [package]
 name = "finance_manager"
 version = "0.1.0"
@@ -7,8 +7,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.82"
-chrono = "0.4.38"
-iced = { version = "0.1.0", path = "iced-dynamic", package = "iced-dynamic" }
-uuid = { version = "1.8.0", features = ["v4"] }
-#iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", features = ["advanced"]}
+fm_core = { path = "./fm_core" }
+fm_gui = { path = "./fm_gui" }
+fm_server = { path = "./fm_server" }

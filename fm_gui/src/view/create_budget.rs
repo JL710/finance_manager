@@ -1,8 +1,8 @@
 use super::super::utils;
 use super::super::AppMessage;
 use super::View;
-use crate::finance;
 use chrono::TimeZone;
+use fm_core;
 use iced::widget;
 
 #[derive(Debug, Clone)]
@@ -30,15 +30,15 @@ fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>
     Ok(chrono::Utc.from_utc_datetime(&date))
 }
 
-impl Into<finance::Recourung> for Recourung {
-    fn into(self) -> finance::Recourung {
+impl Into<fm_core::Recourung> for Recourung {
+    fn into(self) -> fm_core::Recourung {
         match self {
             Recourung::Days(start, days) => {
-                finance::Recourung::Days(parse_to_datetime(&start).unwrap(), days.parse().unwrap())
+                fm_core::Recourung::Days(parse_to_datetime(&start).unwrap(), days.parse().unwrap())
             }
-            Recourung::DayInMonth(day) => finance::Recourung::DayInMonth(day.parse().unwrap()),
+            Recourung::DayInMonth(day) => fm_core::Recourung::DayInMonth(day.parse().unwrap()),
             Recourung::Yearly(month, day) => {
-                finance::Recourung::Yearly(month.parse().unwrap(), day.parse().unwrap())
+                fm_core::Recourung::Yearly(month.parse().unwrap(), day.parse().unwrap())
             }
         }
     }
@@ -70,7 +70,7 @@ impl View for CreateBudgetView {
     fn update_view(
         &mut self,
         _message: Self::ParentMessage,
-        _finance_manager: &mut finance::FinanceManager,
+        _finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
         if let AppMessage::CreateBudgetViewMessage(m) = _message {
             return self.update(m, _finance_manager);
@@ -102,7 +102,7 @@ impl CreateBudgetView {
     fn update(
         &mut self,
         message: Message,
-        finance_manager: &mut finance::FinanceManager,
+        finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = AppMessage>>> {
         match message {
             Message::NameInput(name) => {
@@ -122,7 +122,7 @@ impl CreateBudgetView {
                     } else {
                         Some(self.description_input.clone())
                     },
-                    finance::Currency::Eur(self.value_input.parse::<f64>().unwrap()),
+                    fm_core::Currency::Eur(self.value_input.parse::<f64>().unwrap()),
                     self.recouring_inputs.clone().into(),
                 );
                 return Some(Box::new(super::budget_overview::BudgetOverview::new(

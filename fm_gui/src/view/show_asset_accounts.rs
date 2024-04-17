@@ -1,4 +1,4 @@
-use crate::finance;
+use fm_core;
 
 use super::super::{utils, AppMessage};
 use super::View;
@@ -10,7 +10,7 @@ pub enum Message {
 
 #[derive(Debug, Clone)]
 pub struct AssetAccountOverview {
-    accounts: Vec<finance::account::AssetAccount>,
+    accounts: Vec<fm_core::account::AssetAccount>,
 }
 
 impl View for AssetAccountOverview {
@@ -19,7 +19,7 @@ impl View for AssetAccountOverview {
     fn update_view(
         &mut self,
         message: Self::ParentMessage,
-        _finance_manager: &mut finance::FinanceManager,
+        _finance_manager: &mut fm_core::FinanceManager,
     ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
         if let AppMessage::AccountOverviewMessage(m) = message {
             return self.update(m);
@@ -33,12 +33,12 @@ impl View for AssetAccountOverview {
 }
 
 impl AssetAccountOverview {
-    pub fn new(finance_manager: &finance::FinanceManager) -> Self {
+    pub fn new(finance_manager: &fm_core::FinanceManager) -> Self {
         let asset_accounts = finance_manager
             .get_accounts()
             .iter()
             .filter_map(|x| match x {
-                finance::account::Account::AssetAccount(acc) => Some(acc.clone()),
+                fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -81,7 +81,7 @@ impl AssetAccountOverview {
 }
 
 fn asset_account_overview_entry(
-    account: &finance::account::AssetAccount,
+    account: &fm_core::account::AssetAccount,
 ) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
     iced::widget::container(iced::widget::text(account.name().to_owned()))
         .style(utils::entry_row_container_style)
