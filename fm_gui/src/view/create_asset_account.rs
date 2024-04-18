@@ -1,6 +1,8 @@
+use super::super::{AppMessage, View};
 use fm_core;
 
-use super::View;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -19,31 +21,6 @@ pub struct CreateAssetAccountDialog {
     bic_input: String,
 }
 
-impl View for CreateAssetAccountDialog {
-    type ParentMessage = super::super::AppMessage;
-
-    fn view_view(&self) -> iced::Element<'_, Self::ParentMessage, iced::Theme, iced::Renderer> {
-        self.view()
-            .map(super::super::AppMessage::CreateAssetAccountMessage)
-    }
-
-    fn update_view(
-        &mut self,
-        message: Self::ParentMessage,
-        finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
-        if let super::super::AppMessage::CreateAssetAccountMessage(m) = message {
-            if let Some(acc) = self.update(m, finance_manager) {
-                return Some(Box::new(super::view_account::ViewAccount::new(
-                    &finance_manager,
-                    acc.into(),
-                )));
-            }
-        }
-        None
-    }
-}
-
 impl CreateAssetAccountDialog {
     pub fn new() -> Self {
         Self {
@@ -57,28 +34,43 @@ impl CreateAssetAccountDialog {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<fm_core::account::AssetAccount> {
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + Send + 'static>>,
+    ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::NameInput(input) => self.name_input = input,
             Message::NoteInput(input) => self.note_input = input,
             Message::IbanInput(input) => self.iban_input = input,
             Message::BicInput(input) => self.bic_input = input,
             Message::Submit => {
-                let account = finance_manager.create_asset_account(
-                    self.name_input.clone(),
-                    if !self.note_input.is_empty() {
-                        Some(self.note_input.clone())
-                    } else {
-                        None
-                    },
-                    Some(self.iban_input.clone()),
-                    Some(self.bic_input.clone()),
+                let name_input = self.name_input.clone();
+                let note_input = self.note_input.clone();
+                let iban_input = self.iban_input.clone();
+                let bic_input = self.bic_input.clone();
+                return (
+                    Some(View::Empty),
+                    iced::Command::perform(
+                        async move {
+                            let account = finance_manager
+                                .lock()
+                                .await
+                                .create_asset_account(
+                                    name_input,
+                                    if !note_input.is_empty() {
+                                        Some(note_input.clone())
+                                    } else {
+                                        None
+                                    },
+                                    Some(iban_input.clone()),
+                                    Some(bic_input.clone()),
+                                )
+                                .await;
+                        },
+                        |acc| AppMessage::SwitchView(View::Empty),
+                    ),
                 );
-                return Some(account);
             }
         }
-        None
+        (None, iced::Command::none())
     }
 
     pub fn view(&self) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
