@@ -117,13 +117,13 @@ pub enum Recourung {
 type Timespan = (Option<DateTime>, Option<DateTime>);
 
 pub trait FinanceManager: Send + Clone + Sized {
-    async fn create_asset_account(
+    fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> account::AssetAccount;
+    ) -> impl futures::Future<Output = account::AssetAccount> + Send;
 
     async fn get_accounts(&self) -> Vec<account::Account>;
 

@@ -14,19 +14,19 @@ pub enum AppMessage {
     SwitchView(View),
     BudgetOverViewMessage(view::budget_overview::Message),
     SwitchToBudgetOverview,
-    /*CreateAssetAccountMessage(view::create_asset_account::Message),
-    AccountOverviewMessage(view::show_asset_accounts::Message),
-    CreateTransactionViewMessage(view::create_transaction::Message),
-    CreateBudgetViewMessage(view::create_budget::Message),*/
+    CreateAssetAccountMessage(view::create_asset_account::Message), /*,
+                                                                    AccountOverviewMessage(view::show_asset_accounts::Message),
+                                                                    CreateTransactionViewMessage(view::create_transaction::Message),
+                                                                    CreateBudgetViewMessage(view::create_budget::Message),*/
 }
 
 #[derive(Debug, Clone)]
 enum View {
     Empty,
     BudgetOverview(view::budget_overview::BudgetOverview),
+    CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog),
     /*
     CreateBudgetView(view::create_budget::CreateBudgetView),
-    CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog),
     CreateTransactionView(view::create_transaction::CreateTransactionView),
     ViewAccount(view::view_account::ViewAccount),
     ShowAssetAccounts(view::show_asset_accounts::AssetAccountOverview),*/
@@ -77,6 +77,18 @@ impl Application for App {
             AppMessage::SwitchToBudgetOverview => {
                 return view::budget_overview::switch_view_command(self.finance_manager.clone())
             }
+            AppMessage::CreateAssetAccountMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::CreateAssetAccountDialog(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
             /*AppMessage::AssetAccountOverview => {
                 self.current_view = Box::new(view::show_asset_accounts::AssetAccountOverview::new(
                     &self.finance_manager,
@@ -126,6 +138,8 @@ impl Application for App {
                 View::Empty => iced::widget::text("comming soon").into(),
                 View::BudgetOverview(ref view) =>
                     view.view().map(AppMessage::BudgetOverViewMessage),
+                View::CreateAssetAccountDialog(ref view) =>
+                    view.view().map(AppMessage::CreateAssetAccountMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]
