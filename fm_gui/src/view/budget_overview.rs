@@ -1,57 +1,48 @@
-use super::super::{utils, AppMessage};
-use super::View;
-use fm_core;
+use super::super::{utils, AppMessage, View};
+use fm_core::{self, FinanceManager};
 use iced::widget;
+
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+pub fn switch_view_command(
+    finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
+) -> iced::Command<AppMessage> {
+    iced::Command::perform(
+        async move { finance_manager.lock().await.get_budgets().await },
+        |budgets| AppMessage::SwitchView(View::BudgetOverview(BudgetOverview::new(budgets))),
+    )
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
     CreateBudget,
 }
 
+#[derive(Debug, Clone)]
 pub struct BudgetOverview {
     budgets: Vec<fm_core::Budget>,
 }
 
-impl View for BudgetOverview {
-    type ParentMessage = AppMessage;
-
-    fn update_view(
-        &mut self,
-        message: Self::ParentMessage,
-        finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
-        if let AppMessage::BudgetOverViewMessage(m) = message {
-            return self.update(m, finance_manager);
-        } else {
-            panic!();
-        }
-    }
-
-    fn view_view(&self) -> iced::Element<'_, Self::ParentMessage, iced::Theme, iced::Renderer> {
-        self.view().map(AppMessage::BudgetOverViewMessage)
-    }
-}
-
 impl BudgetOverview {
-    pub fn new(finance_manager: &fm_core::FinanceManager) -> Self {
-        Self {
-            budgets: finance_manager.get_budgets(),
-        }
+    pub fn new(budgets: Vec<fm_core::Budget>) -> Self {
+        Self { budgets: budgets }
     }
 
-    fn update(
+    pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<Box<dyn View<ParentMessage = AppMessage>>> {
-        match message {
+        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+    ) -> (Option<View>, iced::Command<AppMessage>) {
+        /*match message {
             Message::CreateBudget => {
-                return Some(Box::new(super::create_budget::CreateBudgetView::new()));
+                return super::create_budget::CreateBudgetView::new();
             }
-        }
+        }*/
+        (None, iced::Command::none())
     }
 
-    fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
         widget::column![
             widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
             widget::horizontal_rule(10),
