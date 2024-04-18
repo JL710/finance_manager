@@ -116,7 +116,7 @@ pub enum Recourung {
 
 type Timespan = (Option<DateTime>, Option<DateTime>);
 
-pub trait FinanceManager {
+pub trait FinanceManager: Send + Clone + Sized {
     async fn create_asset_account(
         &mut self,
         name: String,
@@ -147,7 +147,11 @@ pub trait FinanceManager {
         timespan: Recourung,
     ) -> Budget;
 
-    async fn get_budgets(&self) -> Vec<Budget>;
+    //async fn get_budgets(&self) -> Vec<Budget>;
+    fn get_budgets(&self) -> impl futures::Future<Output = Vec<Budget>> + Send;
 
-    async fn get_transactions_of_budget(&self, budget: &Budget) -> Vec<Transaction>;
+    fn get_transactions_of_budget(
+        &self,
+        budget: &Budget,
+    ) -> impl futures::Future<Output = Vec<Transaction>> + Send;
 }
