@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+pub mod account;
+pub mod ram_finance_manager;
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 pub type Id = u128;
@@ -78,118 +79,6 @@ impl std::fmt::Display for Budget {
     }
 }
 
-pub mod account {
-    use super::{Currency, Id};
-
-    #[derive(Debug, Clone)]
-    pub struct AssetAccount {
-        id: Id,
-        name: String,
-        notes: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-    }
-
-    impl AssetAccount {
-        pub fn new(
-            id: Id,
-            name: String,
-            note: Option<String>,
-            iban: Option<String>,
-            bic: Option<String>,
-        ) -> Self {
-            Self {
-                id,
-                name,
-                notes: note,
-                iban,
-                bic,
-            }
-        }
-
-        pub fn id(&self) -> Id {
-            self.id
-        }
-
-        pub fn name(&self) -> &str {
-            &self.name
-        }
-
-        pub fn note(&self) -> Option<&str> {
-            match &self.notes {
-                Some(note) => Some(note),
-                None => None,
-            }
-        }
-
-        pub fn iban(&self) -> Option<&str> {
-            match &self.iban {
-                Some(content) => Some(content),
-                None => None,
-            }
-        }
-
-        pub fn bic(&self) -> Option<&str> {
-            match &self.bic {
-                Some(content) => Some(content),
-                None => None,
-            }
-        }
-    }
-
-    impl From<AssetAccount> for Account {
-        fn from(value: AssetAccount) -> Self {
-            Account::AssetAccount(value)
-        }
-    }
-
-    #[derive(Debug, Clone)]
-    pub enum BookChecking {
-        Expense,
-        Revenue,
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct BookCheckingAccount {
-        id: Id,
-        name: String,
-        notes: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-        checking_type: BookChecking,
-    }
-
-    #[derive(Debug, Clone)]
-    pub enum Account {
-        AssetAccount(AssetAccount),
-        BookCheckingAccount(BookCheckingAccount),
-    }
-
-    impl PartialEq for Account {
-        fn eq(&self, other: &Self) -> bool {
-            match self {
-                Account::AssetAccount(acc) => match other {
-                    Account::AssetAccount(other_acc) => acc.id == other_acc.id,
-                    _ => false,
-                },
-                Account::BookCheckingAccount(acc) => match other {
-                    Account::BookCheckingAccount(other_acc) => acc.id == other_acc.id,
-                    _ => false,
-                },
-            }
-        }
-    }
-
-    impl PartialEq<Id> for Account {
-        fn eq(&self, other: &Id) -> bool {
-            match self {
-                Account::AssetAccount(acc) => acc.id == *other,
-                Account::BookCheckingAccount(acc) => acc.id == *other,
-            }
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Transaction {
     id: Id,
@@ -218,13 +107,6 @@ impl Transaction {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct FinanceManager {
-    accounts: HashMap<Id, account::Account>,
-    transactions: Vec<Transaction>,
-    budgets: HashMap<Id, Budget>,
-}
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Recourung {
     Days(DateTime, usize), // start time and days
@@ -234,141 +116,46 @@ pub enum Recourung {
 
 type Timespan = (Option<DateTime>, Option<DateTime>);
 
-impl FinanceManager {
-    pub fn new() -> Self {
-        Self {
-            accounts: HashMap::new(),
-            transactions: Vec::new(),
-            budgets: HashMap::new(),
-        }
-    }
-
-    pub fn create_asset_account(
+pub trait FinanceManager: Send + Clone + Sized {
+    fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> account::AssetAccount {
-        let id = uuid::Uuid::new_v4().as_u128();
+    ) -> impl futures::Future<Output = account::AssetAccount> + Send;
 
-        let new_account = account::AssetAccount::new(id, name, note, iban, bic);
+    fn get_accounts(&self) -> impl futures::Future<Output = Vec<account::Account>> + Send;
 
-        if self.accounts.contains_key(&id) {
-            panic!("ID ALREADY EXISTS");
-        }
+    fn get_account(&self, id: Id)
+        -> impl futures::Future<Output = Option<account::Account>> + Send;
 
-        self.accounts.insert(id, new_account.clone().into());
+    fn get_account_sum(
+        &self,
+        account: &account::Account,
+        date: DateTime,
+    ) -> impl futures::Future<Output = Currency> + Send;
 
-        new_account
-    }
+    fn get_transaction(&self, id: Id) -> impl futures::Future<Output = Option<Transaction>> + Send;
 
-    pub fn get_accounts(&self) -> Vec<account::Account> {
-        return self
-            .accounts
-            .iter()
-            .map(|x| x.1.clone())
-            .collect::<Vec<account::Account>>();
-    }
-
-    pub fn get_account(&self, id: Id) -> Option<account::Account> {
-        if let Some(acc) = self.accounts.get(&id) {
-            return Some(acc.clone());
-        }
-        None
-    }
-
-    pub fn get_account_sum(&self, account: &account::Account, date: DateTime) -> Currency {
-        // sum up all transactions from start to end date
-        let transactions = self.get_transactions_of_account(account, (None, Some(date)));
-        let mut total = Currency::Eur(0.0);
-        for transaction in transactions {
-            total += transaction.amount;
-        }
-        total
-    }
-
-    pub fn get_transaction(&self, id: Id) -> Option<Transaction> {
-        for transaction in &self.transactions {
-            if transaction.id == id {
-                return Some(transaction.clone());
-            }
-        }
-        None
-    }
-
-    pub fn get_transactions_of_account(
+    fn get_transactions_of_account(
         &self,
         account: &account::Account,
         timespan: Timespan,
-    ) -> Vec<Transaction> {
-        self.transactions
-            .iter()
-            .filter(|transaction| {
-                if !transaction.connection_with_account(account) {
-                    return false;
-                }
-                if let Some(begin) = timespan.0 {
-                    if transaction.date < begin {
-                        return false;
-                    }
-                }
-                if let Some(end) = timespan.1 {
-                    if transaction.date > end {
-                        return false;
-                    }
-                }
-                true
-            })
-            .cloned()
-            .collect()
-    }
+    ) -> impl futures::Future<Output = Vec<Transaction>> + Send;
 
-    pub fn create_budget(
+    fn create_budget(
         &mut self,
         name: String,
         description: Option<String>,
         total_value: Currency,
         timespan: Recourung,
-    ) -> Budget {
-        let id = uuid::Uuid::new_v4().as_u128();
+    ) -> impl futures::Future<Output = Budget> + Send;
 
-        let new_budget = Budget {
-            id,
-            name,
-            description,
-            total_value,
-            timespan,
-        };
+    fn get_budgets(&self) -> impl futures::Future<Output = Vec<Budget>> + Send;
 
-        if self.budgets.contains_key(&id) {
-            panic!("ID ALREADY EXISTS");
-        }
-
-        self.budgets.insert(id, new_budget.clone());
-
-        new_budget
-    }
-
-    pub fn get_budgets(&self) -> Vec<Budget> {
-        self.budgets
-            .iter()
-            .map(|x| x.1.clone())
-            .collect::<Vec<Budget>>()
-    }
-
-    pub fn get_transactions_of_budget(&self, budget: &Budget) -> Vec<Transaction> {
-        self.transactions
-            .iter()
-            .filter(|x| {
-                if let Some(b) = x.budget {
-                    if b == budget.id {
-                        return true;
-                    }
-                }
-                false
-            })
-            .cloned()
-            .collect()
-    }
+    fn get_transactions_of_budget(
+        &self,
+        budget: &Budget,
+    ) -> impl futures::Future<Output = Vec<Transaction>> + Send;
 }

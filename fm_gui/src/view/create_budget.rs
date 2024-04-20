@@ -1,16 +1,18 @@
 use super::super::utils;
-use super::super::AppMessage;
-use super::View;
+use super::super::{AppMessage, View};
 use chrono::TimeZone;
 use fm_core;
 use iced::widget;
+
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub enum Message {
     NameInput(String),
     DescriptionInput(String),
     ValueInput(String),
-    RecouringCombobox(String),
+    RecouringPickList(String),
     RecouringFirstInput(String),
     RecouringSecondInput(String),
     Submit,
@@ -56,32 +58,13 @@ impl std::fmt::Display for Recourung {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CreateBudgetView {
     name_input: String,
     description_input: String,
     value_input: String,
     recouring_inputs: Recourung,
-    recouruing_state: widget::combo_box::State<String>,
-}
-
-impl View for CreateBudgetView {
-    type ParentMessage = AppMessage;
-
-    fn update_view(
-        &mut self,
-        _message: Self::ParentMessage,
-        _finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
-        if let AppMessage::CreateBudgetViewMessage(m) = _message {
-            return self.update(m, _finance_manager);
-        } else {
-            panic!();
-        }
-    }
-
-    fn view_view(&self) -> iced::Element<'_, Self::ParentMessage, iced::Theme, iced::Renderer> {
-        self.view().map(AppMessage::CreateBudgetViewMessage)
-    }
+    recouring_state: Option<String>,
 }
 
 impl CreateBudgetView {
@@ -91,19 +74,15 @@ impl CreateBudgetView {
             description_input: String::new(),
             value_input: String::new(),
             recouring_inputs: Recourung::Days(String::new(), String::new()),
-            recouruing_state: widget::combo_box::State::new(vec![
-                "Days".to_string(),
-                "Day in month".to_string(),
-                "Yearly".to_string(),
-            ]),
+            recouring_state: None,
         }
     }
 
-    fn update(
+    pub fn update(
         &mut self,
         message: Message,
-        finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<Box<dyn View<ParentMessage = AppMessage>>> {
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+    ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::NameInput(name) => {
                 self.name_input = name;
@@ -115,32 +94,53 @@ impl CreateBudgetView {
                 self.value_input = value;
             }
             Message::Submit => {
-                let _budget = finance_manager.create_budget(
-                    self.name_input.clone(),
-                    if self.description_input.is_empty() {
-                        None
-                    } else {
-                        Some(self.description_input.clone())
-                    },
-                    fm_core::Currency::Eur(self.value_input.parse::<f64>().unwrap()),
-                    self.recouring_inputs.clone().into(),
+                let name_input = self.name_input.clone();
+                let description_input = self.description_input.clone();
+                let value_input = self.value_input.clone();
+                let recouring_inputs = self.recouring_inputs.clone();
+                return (
+                    Some(View::Empty),
+                    iced::Command::perform(
+                        async move {
+                            finance_manager
+                                .lock()
+                                .await
+                                .create_budget(
+                                    name_input,
+                                    if description_input.is_empty() {
+                                        None
+                                    } else {
+                                        Some(description_input)
+                                    },
+                                    fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                    recouring_inputs.into(),
+                                )
+                                .await;
+                            finance_manager.lock().await.get_budgets().await
+                        },
+                        |budgets| {
+                            AppMessage::SwitchView(View::BudgetOverview(
+                                super::budget_overview::BudgetOverview::new(budgets),
+                            ))
+                        },
+                    ),
                 );
-                return Some(Box::new(super::budget_overview::BudgetOverview::new(
-                    finance_manager,
-                )));
             }
-            Message::RecouringCombobox(recouring) => match recouring.as_str() {
-                "Days" => {
-                    self.recouring_inputs = Recourung::Days(String::new(), String::new());
+            Message::RecouringPickList(recouring) => {
+                self.recouring_state = Some(recouring.clone());
+                match recouring.as_str() {
+                    "Days" => {
+                        self.recouring_inputs = Recourung::Days(String::new(), String::new());
+                    }
+                    "Day in month" => {
+                        self.recouring_inputs = Recourung::DayInMonth(String::new());
+                    }
+                    "Yearly" => {
+                        self.recouring_inputs = Recourung::Yearly(String::new(), String::new());
+                    }
+                    _ => {}
                 }
-                "Day in month" => {
-                    self.recouring_inputs = Recourung::DayInMonth(String::new());
-                }
-                "Yearly" => {
-                    self.recouring_inputs = Recourung::Yearly(String::new(), String::new());
-                }
-                _ => {}
-            },
+            }
             Message::RecouringFirstInput(content) => match &mut self.recouring_inputs {
                 Recourung::Days(start, _) => {
                     *start = content;
@@ -162,10 +162,10 @@ impl CreateBudgetView {
                 }
             },
         }
-        None
+        (None, iced::Command::none())
     }
 
-    fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
         widget::column![
             utils::labeled_entry("Name", &self.name_input, Message::NameInput),
             utils::labeled_entry(
@@ -186,11 +186,14 @@ impl CreateBudgetView {
     }
 
     fn generate_recouring_view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
-        let mut row = widget::row![widget::ComboBox::new(
-            &self.recouruing_state,
-            "Recouring",
-            Some(&self.recouring_inputs.to_string()),
-            Message::RecouringCombobox,
+        let mut row = widget::row![widget::PickList::new(
+            vec!["Days", "Day in month", "Yearly"],
+            if let Some(state) = &self.recouring_state {
+                Some(state.as_str())
+            } else {
+                None
+            },
+            |x| Message::RecouringPickList(x.to_string()),
         ),];
         match &self.recouring_inputs {
             Recourung::Days(start, days) => {
