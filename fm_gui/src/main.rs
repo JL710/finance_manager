@@ -1,6 +1,7 @@
 use fm_core;
 
 use iced::advanced::Application;
+use view::{create_asset_account, create_transaction};
 
 mod table;
 mod utils;
@@ -14,10 +15,12 @@ pub enum AppMessage {
     SwitchView(View),
     BudgetOverViewMessage(view::budget_overview::Message),
     SwitchToBudgetOverview,
-    CreateAssetAccountMessage(view::create_asset_account::Message), /*,
-                                                                    AccountOverviewMessage(view::show_asset_accounts::Message),
-                                                                    CreateTransactionViewMessage(view::create_transaction::Message),
-                                                                    CreateBudgetViewMessage(view::create_budget::Message),*/
+    SwitchToCreateTransActionView,
+    CreateAssetAccountMessage(view::create_asset_account::Message),
+    CreateBudgetViewMessage(view::create_budget::Message),
+    CreateTransactionViewMessage(view::create_transaction::Message),
+    /*
+    AccountOverviewMessage(view::show_asset_accounts::Message),*/
 }
 
 #[derive(Debug, Clone)]
@@ -25,9 +28,9 @@ enum View {
     Empty,
     BudgetOverview(view::budget_overview::BudgetOverview),
     CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog),
-    /*
     CreateBudgetView(view::create_budget::CreateBudgetView),
     CreateTransactionView(view::create_transaction::CreateTransactionView),
+    /*
     ViewAccount(view::view_account::ViewAccount),
     ShowAssetAccounts(view::show_asset_accounts::AssetAccountOverview),*/
 }
@@ -89,13 +92,35 @@ impl Application for App {
                 }
                 return cmd;
             }
+            AppMessage::CreateBudgetViewMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::CreateBudgetView(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
+            AppMessage::CreateTransactionViewMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::CreateTransactionView(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
+            AppMessage::SwitchToCreateTransActionView => {
+                return create_transaction::switch_view_command(self.finance_manager.clone());
+            }
             /*AppMessage::AssetAccountOverview => {
                 self.current_view = Box::new(view::show_asset_accounts::AssetAccountOverview::new(
-                    &self.finance_manager,
-                ))
-            }
-            AppMessage::BudgetOverview => {
-                self.current_view = Box::new(view::budget_overview::BudgetOverview::new(
                     &self.finance_manager,
                 ))
             }
@@ -128,7 +153,7 @@ impl Application for App {
                     .on_press(AppMessage::SwitchToBudgetOverview),
                 iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchView(View::Empty))
+                    .on_press(AppMessage::SwitchToCreateTransActionView)
             ]
             .align_items(iced::Alignment::Start)
             .spacing(10)
@@ -140,6 +165,10 @@ impl Application for App {
                     view.view().map(AppMessage::BudgetOverViewMessage),
                 View::CreateAssetAccountDialog(ref view) =>
                     view.view().map(AppMessage::CreateAssetAccountMessage),
+                View::CreateBudgetView(ref view) =>
+                    view.view().map(AppMessage::CreateBudgetViewMessage),
+                View::CreateTransactionView(ref view) =>
+                    view.view().map(AppMessage::CreateTransactionViewMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]

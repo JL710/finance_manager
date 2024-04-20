@@ -3,7 +3,23 @@ use fm_core;
 use iced::widget;
 
 use super::super::utils;
-use super::super::AppMessage;
+use super::super::{AppMessage, View};
+
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+pub fn switch_view_command(
+    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+) -> iced::Command<AppMessage> {
+    iced::Command::perform(
+        async move { finance_manager.lock().await.get_budgets().await },
+        |budgets| {
+            AppMessage::SwitchView(View::CreateTransactionView(
+                super::create_transaction::CreateTransactionView::new(budgets),
+            ))
+        },
+    )
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -27,41 +43,24 @@ pub struct CreateTransactionView {
     date_input: String,
 }
 
-impl super::View for CreateTransactionView {
-    type ParentMessage = AppMessage;
-
-    fn update_view(
-        &mut self,
-        message: Self::ParentMessage,
-        finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<Box<dyn super::View<ParentMessage = Self::ParentMessage>>> {
-        if let AppMessage::CreateTransactionViewMessage(m) = message {
-            self.update(m, finance_manager);
-        } else {
-            panic!();
-        }
-        None
-    }
-
-    fn view_view(&self) -> iced::Element<'_, Self::ParentMessage, iced::Theme, iced::Renderer> {
-        self.view().map(AppMessage::CreateTransactionViewMessage)
-    }
-}
-
 impl CreateTransactionView {
-    pub fn new(finance_manager: &fm_core::FinanceManager) -> Self {
+    pub fn new(budgets: Vec<fm_core::Budget>) -> Self {
         Self {
             amount_input: String::new(),
             title_input: String::new(),
             description_input: String::new(),
             source_input: String::new(),
             destination_input: String::new(),
-            budget_state: widget::combo_box::State::new(finance_manager.get_budgets()),
+            budget_state: widget::combo_box::State::new(budgets),
             date_input: String::new(),
         }
     }
 
-    pub fn update(&mut self, message: Message, _finance_manager: &fm_core::FinanceManager) {
+    pub fn update(
+        &mut self,
+        message: Message,
+        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+    ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::Submit => {
                 todo!()
@@ -75,6 +74,7 @@ impl CreateTransactionView {
             Message::SourceInput(content) => self.source_input = content,
             Message::BudgetSelected(_) => {}
         }
+        (None, iced::Command::none())
     }
 
     pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
