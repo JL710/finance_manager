@@ -1,7 +1,11 @@
-use super::super::AppMessage;
+use super::super::{AppMessage, View};
 use fm_core;
 
-use super::View;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+#[derive(Debug, Clone)]
+pub enum Message {}
 
 #[derive(Debug, Clone)]
 pub struct ViewAccount {
@@ -10,35 +14,24 @@ pub struct ViewAccount {
     current_value: fm_core::Currency,
 }
 
-impl View for ViewAccount {
-    type ParentMessage = AppMessage;
-
-    fn update_view(
-        &mut self,
-        _message: Self::ParentMessage,
-        _finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
-        None
-    }
-
-    fn view_view(&self) -> iced::Element<'_, Self::ParentMessage, iced::Theme, iced::Renderer> {
-        self.view()
-    }
-}
-
 impl ViewAccount {
-    pub fn new(
-        finance_manager: &fm_core::FinanceManager,
-        account: fm_core::account::Account,
-    ) -> Self {
+    pub fn new(account: fm_core::account::Account, account_sum: fm_core::Currency) -> Self {
         Self {
-            current_value: finance_manager.get_account_sum(&account, chrono::Utc::now()),
+            current_value: account_sum, // finance_manager.get_account_sum(&account, chrono::Utc::now()),
             account,
             transactions: Vec::new(),
         }
     }
 
-    pub fn view(&self) -> iced::Element<'_, AppMessage, iced::Theme, iced::Renderer> {
+    pub fn update(
+        &mut self,
+        _message: Message,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+    ) -> (Option<View>, iced::Command<AppMessage>) {
+        (None, iced::Command::none())
+    }
+
+    pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
         match &self.account {
             fm_core::account::Account::AssetAccount(acc) => {
                 asset_account_view(acc, &self.transactions, &self.current_value)
@@ -52,8 +45,8 @@ fn asset_account_view<'a>(
     account: &fm_core::account::AssetAccount,
     transactions: &[fm_core::Transaction],
     current_value: &fm_core::Currency,
-) -> iced::Element<'a, AppMessage, iced::Theme, iced::Renderer> {
-    let mut transactions_table = super::super::table::Table::<'_, AppMessage>::new(2);
+) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
+    let mut transactions_table = super::super::table::Table::<'_, Message>::new(2);
 
     for transaction in transactions {
         // TODO: push transaction
