@@ -20,6 +20,7 @@ pub enum AppMessage {
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
     AssetAccountsMessage(view::show_asset_accounts::Message),
+    ViewAccountMessage(view::view_account::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -30,8 +31,7 @@ enum View {
     CreateBudgetView(view::create_budget::CreateBudgetView),
     CreateTransactionView(view::create_transaction::CreateTransactionView),
     AssetAccounts(view::show_asset_accounts::AssetAccountOverview),
-    /*
-    ViewAccount(view::view_account::ViewAccount),*/
+    ViewAccount(view::view_account::ViewAccount),
 }
 
 pub struct App {
@@ -133,6 +133,16 @@ impl Application for App {
                     self.finance_manager.clone(),
                 );
             }
+            AppMessage::ViewAccountMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::ViewAccount(ref mut view) => view.update(m, self.finance_manager.clone()),
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
             _ => {
                 todo!()
             }
@@ -171,6 +181,7 @@ impl Application for App {
                 View::CreateTransactionView(ref view) =>
                     view.view().map(AppMessage::CreateTransactionViewMessage),
                 View::AssetAccounts(ref view) => view.view().map(AppMessage::AssetAccountsMessage),
+                View::ViewAccount(ref view) => view.view().map(AppMessage::ViewAccountMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]
