@@ -187,6 +187,10 @@ impl Application for App {
         ]
         .into()
     }
+
+    fn theme(&self) -> Self::Theme {
+        iced::Theme::Nord
+    }
 }
 
 fn main() {

@@ -12,7 +12,7 @@ pub enum Message {
     NameInput(String),
     DescriptionInput(String),
     ValueInput(String),
-    RecouringCombobox(String),
+    RecouringPickList(String),
     RecouringFirstInput(String),
     RecouringSecondInput(String),
     Submit,
@@ -64,7 +64,7 @@ pub struct CreateBudgetView {
     description_input: String,
     value_input: String,
     recouring_inputs: Recourung,
-    recouring_state: widget::combo_box::State<String>,
+    recouring_state: Option<String>,
 }
 
 impl CreateBudgetView {
@@ -74,11 +74,7 @@ impl CreateBudgetView {
             description_input: String::new(),
             value_input: String::new(),
             recouring_inputs: Recourung::Days(String::new(), String::new()),
-            recouring_state: widget::combo_box::State::new(vec![
-                "Days".to_string(),
-                "Day in month".to_string(),
-                "Yearly".to_string(),
-            ]),
+            recouring_state: None,
         }
     }
 
@@ -130,18 +126,21 @@ impl CreateBudgetView {
                     ),
                 );
             }
-            Message::RecouringCombobox(recouring) => match recouring.as_str() {
-                "Days" => {
-                    self.recouring_inputs = Recourung::Days(String::new(), String::new());
+            Message::RecouringPickList(recouring) => {
+                self.recouring_state = Some(recouring.clone());
+                match recouring.as_str() {
+                    "Days" => {
+                        self.recouring_inputs = Recourung::Days(String::new(), String::new());
+                    }
+                    "Day in month" => {
+                        self.recouring_inputs = Recourung::DayInMonth(String::new());
+                    }
+                    "Yearly" => {
+                        self.recouring_inputs = Recourung::Yearly(String::new(), String::new());
+                    }
+                    _ => {}
                 }
-                "Day in month" => {
-                    self.recouring_inputs = Recourung::DayInMonth(String::new());
-                }
-                "Yearly" => {
-                    self.recouring_inputs = Recourung::Yearly(String::new(), String::new());
-                }
-                _ => {}
-            },
+            }
             Message::RecouringFirstInput(content) => match &mut self.recouring_inputs {
                 Recourung::Days(start, _) => {
                     *start = content;
@@ -187,11 +186,14 @@ impl CreateBudgetView {
     }
 
     fn generate_recouring_view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
-        let mut row = widget::row![widget::ComboBox::new(
-            &self.recouring_state,
-            "Recouring",
-            Some(&self.recouring_inputs.to_string()),
-            Message::RecouringCombobox,
+        let mut row = widget::row![widget::PickList::new(
+            vec!["Days", "Day in month", "Yearly"],
+            if let Some(state) = &self.recouring_state {
+                Some(state.as_str())
+            } else {
+                None
+            },
+            |x| Message::RecouringPickList(x.to_string()),
         ),];
         match &self.recouring_inputs {
             Recourung::Days(start, days) => {
