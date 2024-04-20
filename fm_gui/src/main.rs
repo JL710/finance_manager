@@ -1,7 +1,6 @@
 use fm_core;
 
 use iced::advanced::Application;
-use view::{create_asset_account, create_transaction};
 
 mod table;
 mod utils;
@@ -117,7 +116,7 @@ impl Application for App {
                 return cmd;
             }
             AppMessage::SwitchToCreateTransActionView => {
-                return create_transaction::switch_view_command(self.finance_manager.clone());
+                return view::create_transaction::switch_view_command(self.finance_manager.clone());
             }
             AppMessage::AssetAccountsMessage(m) => {
                 let (new_view, cmd) = match self.current_view {
