@@ -125,29 +125,33 @@ pub trait FinanceManager: Send + Clone + Sized {
         bic: Option<String>,
     ) -> impl futures::Future<Output = account::AssetAccount> + Send;
 
-    async fn get_accounts(&self) -> Vec<account::Account>;
+    fn get_accounts(&self) -> impl futures::Future<Output = Vec<account::Account>> + Send;
 
-    async fn get_account(&self, id: Id) -> Option<account::Account>;
+    fn get_account(&self, id: Id)
+        -> impl futures::Future<Output = Option<account::Account>> + Send;
 
-    async fn get_account_sum(&self, account: &account::Account, date: DateTime) -> Currency;
+    fn get_account_sum(
+        &self,
+        account: &account::Account,
+        date: DateTime,
+    ) -> impl futures::Future<Output = Currency> + Send;
 
-    async fn get_transaction(&self, id: Id) -> Option<Transaction>;
+    fn get_transaction(&self, id: Id) -> impl futures::Future<Output = Option<Transaction>> + Send;
 
-    async fn get_transactions_of_account(
+    fn get_transactions_of_account(
         &self,
         account: &account::Account,
         timespan: Timespan,
-    ) -> Vec<Transaction>;
+    ) -> impl futures::Future<Output = Vec<Transaction>> + Send;
 
-    async fn create_budget(
+    fn create_budget(
         &mut self,
         name: String,
         description: Option<String>,
         total_value: Currency,
         timespan: Recourung,
-    ) -> Budget;
+    ) -> impl futures::Future<Output = Budget> + Send;
 
-    //async fn get_budgets(&self) -> Vec<Budget>;
     fn get_budgets(&self) -> impl futures::Future<Output = Vec<Budget>> + Send;
 
     fn get_transactions_of_budget(
