@@ -34,12 +34,16 @@ impl BudgetOverview {
         message: Message,
         _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
-        /*match message {
+        match message {
             Message::CreateBudget => {
-                return super::create_budget::CreateBudgetView::new();
+                return (
+                    Some(View::CreateBudgetView(
+                        super::create_budget::CreateBudgetView::new(),
+                    )),
+                    iced::Command::none(),
+                );
             }
-        }*/
-        (None, iced::Command::none())
+        }
     }
 
     pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
