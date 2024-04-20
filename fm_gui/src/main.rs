@@ -16,11 +16,11 @@ pub enum AppMessage {
     BudgetOverViewMessage(view::budget_overview::Message),
     SwitchToBudgetOverview,
     SwitchToCreateTransActionView,
+    SwitchToAssetAccountsView,
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
-    /*
-    AccountOverviewMessage(view::show_asset_accounts::Message),*/
+    AssetAccountsMessage(view::show_asset_accounts::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -30,9 +30,9 @@ enum View {
     CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog),
     CreateBudgetView(view::create_budget::CreateBudgetView),
     CreateTransactionView(view::create_transaction::CreateTransactionView),
+    AssetAccounts(view::show_asset_accounts::AssetAccountOverview),
     /*
-    ViewAccount(view::view_account::ViewAccount),
-    ShowAssetAccounts(view::show_asset_accounts::AssetAccountOverview),*/
+    ViewAccount(view::view_account::ViewAccount),*/
 }
 
 pub struct App {
@@ -119,19 +119,21 @@ impl Application for App {
             AppMessage::SwitchToCreateTransActionView => {
                 return create_transaction::switch_view_command(self.finance_manager.clone());
             }
-            /*AppMessage::AssetAccountOverview => {
-                self.current_view = Box::new(view::show_asset_accounts::AssetAccountOverview::new(
-                    &self.finance_manager,
-                ))
+            AppMessage::AssetAccountsMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::AssetAccounts(ref mut view) => view.update(m),
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
             }
-            AppMessage::TransactionOverview => {
-                self.current_view = Box::new(view::comming_soon_view::EmptyView {})
+            AppMessage::SwitchToAssetAccountsView => {
+                return view::show_asset_accounts::switch_view_command(
+                    self.finance_manager.clone(),
+                );
             }
-            AppMessage::CreateTransactionView => {
-                self.current_view = Box::new(view::create_transaction::CreateTransactionView::new(
-                    &self.finance_manager,
-                ))
-            }*/
             _ => {
                 todo!()
             }
@@ -144,7 +146,7 @@ impl Application for App {
             iced::widget::column![
                 iced::widget::button("AssetAccounts")
                     .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchView(View::Empty)),
+                    .on_press(AppMessage::SwitchToAssetAccountsView),
                 iced::widget::button("Transactions")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchView(View::Empty)),
@@ -169,6 +171,7 @@ impl Application for App {
                     view.view().map(AppMessage::CreateBudgetViewMessage),
                 View::CreateTransactionView(ref view) =>
                     view.view().map(AppMessage::CreateTransactionViewMessage),
+                View::AssetAccounts(ref view) => view.view().map(AppMessage::AssetAccountsMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]

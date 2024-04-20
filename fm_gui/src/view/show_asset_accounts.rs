@@ -1,7 +1,18 @@
 use fm_core;
 
-use super::super::{utils, AppMessage};
-use super::View;
+use super::super::{utils, AppMessage, View};
+
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+pub fn switch_view_command(
+    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+) -> iced::Command<AppMessage> {
+    iced::Command::perform(
+        async move { finance_manager.lock().await.get_accounts().await },
+        |accounts| AppMessage::SwitchView(View::AssetAccounts(AssetAccountOverview::new(accounts))),
+    )
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -13,29 +24,9 @@ pub struct AssetAccountOverview {
     accounts: Vec<fm_core::account::AssetAccount>,
 }
 
-impl View for AssetAccountOverview {
-    type ParentMessage = AppMessage;
-
-    fn update_view(
-        &mut self,
-        message: Self::ParentMessage,
-        _finance_manager: &mut fm_core::FinanceManager,
-    ) -> Option<Box<dyn View<ParentMessage = Self::ParentMessage>>> {
-        if let AppMessage::AccountOverviewMessage(m) = message {
-            return self.update(m);
-        }
-        None
-    }
-
-    fn view_view(&self) -> iced::Element<'_, Self::ParentMessage, iced::Theme, iced::Renderer> {
-        self.view().map(AppMessage::AccountOverviewMessage)
-    }
-}
-
 impl AssetAccountOverview {
-    pub fn new(finance_manager: &fm_core::FinanceManager) -> Self {
-        let asset_accounts = finance_manager
-            .get_accounts()
+    pub fn new(accounts: Vec<fm_core::account::Account>) -> Self {
+        let asset_accounts = accounts
             .iter()
             .filter_map(|x| match x {
                 fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
@@ -48,12 +39,15 @@ impl AssetAccountOverview {
         }
     }
 
-    fn update(&mut self, message: Message) -> Option<Box<dyn View<ParentMessage = AppMessage>>> {
+    pub fn update(&mut self, message: Message) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::CreateAssetAccount => {
-                return Some(Box::new(
-                    super::create_asset_account::CreateAssetAccountDialog::new(),
-                ))
+                return (
+                    Some(View::CreateAssetAccountDialog(
+                        super::create_asset_account::CreateAssetAccountDialog::new(),
+                    )),
+                    iced::Command::none(),
+                );
             }
         }
     }
