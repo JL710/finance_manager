@@ -122,7 +122,11 @@ fn asset_account_view<'a>(
     for transaction in transactions {
         transactions_table.push_row(vec![
             iced::widget::text(transaction.0.title().clone()).into(),
-            iced::widget::text(transaction.0.amount().clone().to_num_string()).into(),
+            if *transaction.0.source() == account.id() {
+                iced::widget::text(format!("-{}", transaction.0.amount())).into()
+            } else {
+                iced::widget::text(format!("+{}", transaction.0.amount())).into()
+            },
             iced::widget::text(transaction.1.to_string()).into(),
             iced::widget::text(transaction.2.to_string()).into(),
         ])
