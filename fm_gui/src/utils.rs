@@ -13,24 +13,16 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
     .into()
 }
 
-pub fn entry_row_container_style(theme: &iced::Theme) -> iced::widget::container::Style {
-    match theme {
-        iced::Theme::Dark => iced::widget::container::Style::default().with_background(
-            iced::Background::Color(iced::Color::from_rgb8(100, 100, 100)),
-        ),
-        _ => iced::widget::container::Style::default().with_background(iced::Background::Color(
-            iced::Color::from_rgb8(100, 100, 100),
-        )),
-    }
+pub fn entry_row_container_style_weak(theme: &iced::Theme) -> iced::widget::container::Style {
+    iced::widget::container::Style::default().with_background(iced::Background::Color(
+        theme.extended_palette().background.weak.color,
+    ))
 }
 
-pub fn entry_row_container_style_header(theme: &iced::Theme) -> iced::widget::container::Style {
-    match theme {
-        iced::Theme::Dark => iced::widget::container::Style::default()
-            .with_background(iced::Background::Color(iced::Color::from_rgb8(80, 80, 80))),
-        _ => iced::widget::container::Style::default()
-            .with_background(iced::Background::Color(iced::Color::from_rgb8(80, 80, 80))),
-    }
+pub fn entry_row_container_style_strong(theme: &iced::Theme) -> iced::widget::container::Style {
+    iced::widget::container::Style::default().with_background(iced::Background::Color(
+        theme.extended_palette().background.strong.color,
+    ))
 }
 
 pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {

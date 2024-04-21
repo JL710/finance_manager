@@ -60,7 +60,7 @@ fn generate_budget_entry(
     budget: &fm_core::Budget,
 ) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
     widget::container(widget::text(budget.name()))
-        .style(utils::entry_row_container_style)
+        .style(utils::entry_row_container_style_weak)
         .into()
 }
 

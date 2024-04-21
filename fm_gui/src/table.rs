@@ -46,7 +46,7 @@ impl<'a, Message: 'a> Table<'a, Message> {
             }
 
             parent_column = parent_column
-                .push(widget::container(row).style(utils::entry_row_container_style_header));
+                .push(widget::container(row).style(utils::entry_row_container_style_strong));
         }
 
         for row_vec in self.rows {
@@ -56,8 +56,8 @@ impl<'a, Message: 'a> Table<'a, Message> {
                 row = row.push(widget::container(element).width(iced::Length::FillPortion(1)));
             }
 
-            parent_column =
-                parent_column.push(widget::container(row).style(utils::entry_row_container_style));
+            parent_column = parent_column
+                .push(widget::container(row).style(utils::entry_row_container_style_weak));
         }
 
         widget::scrollable(parent_column)
