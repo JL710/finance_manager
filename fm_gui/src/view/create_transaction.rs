@@ -12,13 +12,44 @@ pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Command<AppMessage> {
     iced::Command::perform(
-        async move { finance_manager.lock().await.get_budgets().await },
-        |budgets| {
+        async move {
+            let budgets = finance_manager.lock().await.get_budgets().await;
+            let accounts = finance_manager.lock().await.get_accounts().await;
+            (budgets, accounts)
+        },
+        |x| {
             AppMessage::SwitchView(View::CreateTransactionView(
-                super::create_transaction::CreateTransactionView::new(budgets),
+                super::create_transaction::CreateTransactionView::new(x.0, x.1),
             ))
         },
     )
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum SelectedAccount {
+    Account(fm_core::account::Account),
+    New(String),
+}
+
+impl SelectedAccount {
+    fn is_new(&self) -> bool {
+        match self {
+            SelectedAccount::New(_) => true,
+            _ => false,
+        }
+    }
+}
+
+impl std::fmt::Display for SelectedAccount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SelectedAccount::Account(account) => match account {
+                fm_core::account::Account::AssetAccount(acc) => write!(f, "{}", acc.name()),
+                fm_core::account::Account::BookCheckingAccount(acc) => write!(f, "{}", acc),
+            },
+            SelectedAccount::New(name) => write!(f, "{}", name),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -28,7 +59,11 @@ pub enum Message {
     DescriptionInput(String),
     DateInput(String),
     SourceInput(String),
+    SourceSelected(SelectedAccount),
+    DestinationInput(String),
+    DestinationSelected(SelectedAccount),
     BudgetSelected(fm_core::Budget),
+    ClearBudget,
     Submit,
 }
 
@@ -37,21 +72,35 @@ pub struct CreateTransactionView {
     amount_input: String,
     title_input: String,
     description_input: String,
-    source_input: String,
-    destination_input: String,
+    source_input: Option<SelectedAccount>,
+    source_state: widget::combo_box::State<SelectedAccount>,
+    destination_input: Option<SelectedAccount>,
+    destination_state: widget::combo_box::State<SelectedAccount>,
     budget_state: widget::combo_box::State<fm_core::Budget>,
     budget_input: Option<fm_core::Budget>,
     date_input: String,
 }
 
 impl CreateTransactionView {
-    pub fn new(budgets: Vec<fm_core::Budget>) -> Self {
+    pub fn new(budgets: Vec<fm_core::Budget>, accounts: Vec<fm_core::account::Account>) -> Self {
         Self {
             amount_input: String::new(),
             title_input: String::new(),
             description_input: String::new(),
-            source_input: String::new(),
-            destination_input: String::new(),
+            source_input: None,
+            source_state: widget::combo_box::State::new(
+                accounts
+                    .iter()
+                    .map(|acc| SelectedAccount::Account(acc.clone()))
+                    .collect(),
+            ),
+            destination_input: None,
+            destination_state: widget::combo_box::State::new(
+                accounts
+                    .iter()
+                    .map(|acc| SelectedAccount::Account(acc.clone()))
+                    .collect(),
+            ),
             budget_state: widget::combo_box::State::new(budgets),
             budget_input: None,
             date_input: String::new(),
@@ -61,11 +110,11 @@ impl CreateTransactionView {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::Submit => {
-                todo!()
+                return (Some(View::Empty), self.submit_command(finance_manager));
             }
             Message::AmountInput(content) => {
                 self.amount_input = content;
@@ -73,9 +122,23 @@ impl CreateTransactionView {
             Message::TitleInput(content) => self.title_input = content,
             Message::DescriptionInput(content) => self.description_input = content,
             Message::DateInput(content) => self.date_input = content,
-            Message::SourceInput(content) => self.source_input = content,
+            Message::SourceInput(content) => {
+                self.source_input = Some(SelectedAccount::New(content))
+            }
             Message::BudgetSelected(content) => {
                 self.budget_input = Some(content);
+            }
+            Message::SourceSelected(content) => {
+                self.source_input = Some(content);
+            }
+            Message::DestinationInput(content) => {
+                self.destination_input = Some(SelectedAccount::New(content));
+            }
+            Message::DestinationSelected(content) => {
+                self.destination_input = Some(content);
+            }
+            Message::ClearBudget => {
+                self.budget_input = None;
             }
         }
         (None, iced::Command::none())
@@ -93,7 +156,24 @@ impl CreateTransactionView {
             utils::labeled_entry("Date", &self.date_input, Message::DateInput),
             widget::row![
                 widget::text("Source"),
-                widget::text_input("Source", &self.source_input).on_input(Message::SourceInput)
+                widget::ComboBox::new(
+                    &self.source_state,
+                    "Source",
+                    self.source_input.as_ref(),
+                    Message::SourceSelected
+                )
+                .on_input(Message::SourceInput)
+            ]
+            .spacing(10),
+            widget::row![
+                widget::text("Destination"),
+                widget::ComboBox::new(
+                    &self.destination_state,
+                    "Destination",
+                    self.destination_input.as_ref(),
+                    Message::DestinationSelected
+                )
+                .on_input(Message::DestinationInput)
             ]
             .spacing(10),
             widget::row![
@@ -103,7 +183,8 @@ impl CreateTransactionView {
                     "Budget",
                     self.budget_input.as_ref(),
                     Message::BudgetSelected
-                )
+                ),
+                widget::button("X").on_press(Message::ClearBudget)
             ]
             .spacing(10),
             widget::button("Submit").on_press_maybe(if self.submittable() {
@@ -130,9 +211,67 @@ impl CreateTransactionView {
             return false;
         }
         // check if source and destination are empty
-        if self.source_input.is_empty() && self.destination_input.is_empty() {
+        if self.source_input.is_none() && self.destination_input.is_none() {
             return false;
         }
+        // check if source and destination are valid
+        if let Some(source_input) = &self.source_input {
+            if let Some(destination_input) = &self.destination_input {
+                // check if both are new
+                if source_input.is_new() && destination_input.is_new() {
+                    return false;
+                }
+                if source_input == destination_input {
+                    return false;
+                }
+            }
+        }
         true
+    }
+
+    fn submit_command(
+        &self,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+    ) -> iced::Command<AppMessage> {
+        let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());
+        let title = self.title_input.clone();
+        let description = if self.description_input.is_empty() {
+            None
+        } else {
+            Some(self.description_input.clone())
+        };
+        let source = match &self.source_input {
+            Some(SelectedAccount::Account(acc)) => fm_core::Or::One(acc.id()),
+            Some(SelectedAccount::New(name)) => fm_core::Or::Two(name.clone()),
+            None => panic!(),
+        };
+        let destination = match &self.destination_input {
+            Some(SelectedAccount::Account(acc)) => fm_core::Or::One(acc.id()),
+            Some(SelectedAccount::New(name)) => fm_core::Or::Two(name.clone()),
+            None => panic!(),
+        };
+        let budget = match &self.budget_input {
+            Some(budget) => Some(budget.id().clone()),
+            None => None,
+        };
+        let date = utils::parse_to_datetime(&self.date_input).unwrap();
+        iced::Command::perform(
+            async move {
+                finance_manager
+                    .lock()
+                    .await
+                    .create_transaction(
+                        amount,
+                        title,
+                        description,
+                        source,
+                        destination,
+                        budget,
+                        date,
+                    )
+                    .await;
+            },
+            |x| AppMessage::SwitchView(View::Empty),
+        )
     }
 }

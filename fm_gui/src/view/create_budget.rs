@@ -24,16 +24,16 @@ enum Recourung {
     Yearly(String, String), // month and day
 }
 
-impl Into<fm_core::Recourung> for Recourung {
-    fn into(self) -> fm_core::Recourung {
+impl Into<fm_core::Recouring> for Recourung {
+    fn into(self) -> fm_core::Recouring {
         match self {
-            Recourung::Days(start, days) => fm_core::Recourung::Days(
+            Recourung::Days(start, days) => fm_core::Recouring::Days(
                 utils::parse_to_datetime(&start).unwrap(),
                 days.parse().unwrap(),
             ),
-            Recourung::DayInMonth(day) => fm_core::Recourung::DayInMonth(day.parse().unwrap()),
+            Recourung::DayInMonth(day) => fm_core::Recouring::DayInMonth(day.parse().unwrap()),
             Recourung::Yearly(month, day) => {
-                fm_core::Recourung::Yearly(month.parse().unwrap(), day.parse().unwrap())
+                fm_core::Recouring::Yearly(month.parse().unwrap(), day.parse().unwrap())
             }
         }
     }
