@@ -24,6 +24,15 @@ pub fn entry_row_container_style(theme: &iced::Theme) -> iced::widget::container
     }
 }
 
+pub fn entry_row_container_style_header(theme: &iced::Theme) -> iced::widget::container::Style {
+    match theme {
+        iced::Theme::Dark => iced::widget::container::Style::default()
+            .with_background(iced::Background::Color(iced::Color::from_rgb8(80, 80, 80))),
+        _ => iced::widget::container::Style::default()
+            .with_background(iced::Background::Color(iced::Color::from_rgb8(80, 80, 80))),
+    }
+}
+
 pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
     let date = chrono::NaiveDate::parse_from_str(date, "%d.%m.%Y")?
         .and_hms_opt(0, 0, 0)

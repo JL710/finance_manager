@@ -83,43 +83,23 @@ impl AssetAccountOverview {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
-        let asset_accounts = self.accounts.clone();
+        let mut account_table = super::super::table::Table::new(2)
+            .set_headers(vec!["Name".to_owned(), "Current Value".to_owned()]);
 
-        let account_list = iced::widget::Column::from_vec(
-            asset_accounts
-                .iter()
-                .map(|x| asset_account_overview_entry(&x.0, &x.1))
-                .collect(),
-        )
-        .width(iced::Length::Fill);
+        for account in &self.accounts {
+            account_table.push_row(vec![
+                iced::widget::Text::new(account.0.name().to_owned()).into(),
+                iced::widget::Text::new(account.1.to_string()).into(),
+            ]);
+        }
 
         iced::widget::column![
             iced::widget::row![
                 iced::widget::button("New AssetAccount").on_press(Message::CreateAssetAccount)
             ],
             iced::widget::horizontal_rule(10),
-            iced::widget::scrollable(account_list)
+            account_table.convert_to_view(),
         ]
         .into()
     }
-}
-
-fn asset_account_overview_entry(
-    account: &fm_core::account::AssetAccount,
-    value: &fm_core::Currency,
-) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
-    widget::container(
-        widget::button(
-            widget::row![
-                widget::text(account.name().to_owned()),
-                widget::text(value.to_string())
-            ]
-            .spacing(30),
-        )
-        .on_press(Message::AccountView(account.clone())),
-    )
-    .style(utils::entry_row_container_style)
-    .padding(10)
-    .width(iced::Length::Fill)
-    .into()
 }
