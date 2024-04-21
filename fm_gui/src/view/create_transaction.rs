@@ -117,7 +117,7 @@ impl CreateTransactionView {
             return false;
         }
         // check if date is empty
-        if self.date_input.is_empty() {
+        if self.date_input.is_empty() || utils::parse_to_datetime(&self.date_input).is_err() {
             return false;
         }
         // check if source and destination are empty

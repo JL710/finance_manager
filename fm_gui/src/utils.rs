@@ -1,3 +1,5 @@
+use chrono::TimeZone;
+
 pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,
     content: &str,
@@ -20,4 +22,11 @@ pub fn entry_row_container_style(theme: &iced::Theme) -> iced::widget::container
             iced::Color::from_rgb8(100, 100, 100),
         )),
     }
+}
+
+pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
+    let date = chrono::NaiveDate::parse_from_str(date, "%d.%m.%Y")?
+        .and_hms_opt(0, 0, 0)
+        .unwrap();
+    Ok(chrono::Utc.from_utc_datetime(&date))
 }

@@ -1,6 +1,5 @@
 use super::super::utils;
 use super::super::{AppMessage, View};
-use chrono::TimeZone;
 use fm_core;
 use iced::widget;
 
@@ -25,18 +24,11 @@ enum Recourung {
     Yearly(String, String), // month and day
 }
 
-fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
-    let date = chrono::NaiveDate::parse_from_str(date, "%d.%m.%Y")?
-        .and_hms_opt(0, 0, 0)
-        .unwrap();
-    Ok(chrono::Utc.from_utc_datetime(&date))
-}
-
 impl Into<fm_core::Recourung> for Recourung {
     fn into(self) -> fm_core::Recourung {
         match self {
             Recourung::Days(start, days) => {
-                fm_core::Recourung::Days(parse_to_datetime(&start).unwrap(), days.parse().unwrap())
+                fm_core::Recourung::Days(utils::parse_to_datetime(&start).unwrap(), days.parse().unwrap())
             }
             Recourung::DayInMonth(day) => fm_core::Recourung::DayInMonth(day.parse().unwrap()),
             Recourung::Yearly(month, day) => {
