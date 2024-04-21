@@ -167,7 +167,7 @@ impl FinanceManager for RamFinanceManager {
         let source_id = match source {
             super::Or::One(id) => id,
             super::Or::Two(name) => {
-                let account = self.create_asset_account(name, None, None, None).await;
+                let account = self.create_book_checking_account(name, None, None, None).await;
                 account.id()
             }
         };
@@ -175,7 +175,7 @@ impl FinanceManager for RamFinanceManager {
         let destination_id = match destination {
             super::Or::One(id) => id,
             super::Or::Two(name) => {
-                let account = self.create_asset_account(name, None, None, None).await;
+                let account = self.create_book_checking_account(name, None, None, None).await;
                 account.id()
             }
         };
