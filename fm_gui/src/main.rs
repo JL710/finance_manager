@@ -156,9 +156,6 @@ impl Application for App {
                 iced::widget::button("AssetAccounts")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToAssetAccountsView),
-                iced::widget::button("Transactions")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchView(View::Empty)),
                 iced::widget::button("Budgets")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToBudgetOverview),
