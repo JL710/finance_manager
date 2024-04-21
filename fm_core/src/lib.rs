@@ -49,7 +49,7 @@ pub struct Budget {
     name: String,
     description: Option<String>,
     total_value: Currency,
-    timespan: Recourung,
+    timespan: Recouring,
 }
 
 impl Budget {
@@ -68,7 +68,7 @@ impl Budget {
         self.total_value.clone()
     }
 
-    pub fn timespan(&self) -> &Recourung {
+    pub fn timespan(&self) -> &Recouring {
         &self.timespan
     }
 }
@@ -108,7 +108,7 @@ impl Transaction {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Recourung {
+pub enum Recouring {
     Days(DateTime, usize), // start time and days
     DayInMonth(u16),       // i.e. 3. of each month
     Yearly(u8, u16),       // month and day
@@ -149,7 +149,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recourung,
+        timespan: Recouring,
     ) -> impl futures::Future<Output = Budget> + Send;
 
     fn get_budgets(&self) -> impl futures::Future<Output = Vec<Budget>> + Send;
