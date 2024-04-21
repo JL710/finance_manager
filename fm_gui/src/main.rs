@@ -159,9 +159,16 @@ impl Application for App {
                 iced::widget::button("Budgets")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToBudgetOverview),
-                iced::widget::button("Create Transaction")
+                iced::widget::horizontal_rule(5),
+                iced::widget::button("Create Expense")
                     .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToCreateTransActionView)
+                    .on_press(AppMessage::SwitchToCreateTransActionView),
+                iced::widget::button("Create Revenue")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwitchView(View::Empty)),
+                iced::widget::button("Create Transfer")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwitchView(View::Empty))
             ]
             .align_items(iced::Alignment::Start)
             .spacing(10)
