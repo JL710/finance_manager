@@ -91,10 +91,13 @@ fn asset_account_overview_entry(
     account: &fm_core::account::AssetAccount,
     value: &fm_core::Currency,
 ) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
-    widget::container(widget::row![
-        widget::text(account.name().to_owned()),
-        widget::text(value.to_string())
-    ].spacing(30))
+    widget::container(
+        widget::row![
+            widget::text(account.name().to_owned()),
+            widget::text(value.to_string())
+        ]
+        .spacing(30),
+    )
     .style(utils::entry_row_container_style)
     .padding(10)
     .width(iced::Length::Fill)

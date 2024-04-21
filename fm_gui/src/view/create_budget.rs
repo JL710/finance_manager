@@ -27,9 +27,10 @@ enum Recourung {
 impl Into<fm_core::Recourung> for Recourung {
     fn into(self) -> fm_core::Recourung {
         match self {
-            Recourung::Days(start, days) => {
-                fm_core::Recourung::Days(utils::parse_to_datetime(&start).unwrap(), days.parse().unwrap())
-            }
+            Recourung::Days(start, days) => fm_core::Recourung::Days(
+                utils::parse_to_datetime(&start).unwrap(),
+                days.parse().unwrap(),
+            ),
             Recourung::DayInMonth(day) => fm_core::Recourung::DayInMonth(day.parse().unwrap()),
             Recourung::Yearly(month, day) => {
                 fm_core::Recourung::Yearly(month.parse().unwrap(), day.parse().unwrap())

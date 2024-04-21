@@ -40,6 +40,7 @@ pub struct CreateTransactionView {
     source_input: String,
     destination_input: String,
     budget_state: widget::combo_box::State<fm_core::Budget>,
+    budget_input: Option<fm_core::Budget>,
     date_input: String,
 }
 
@@ -52,6 +53,7 @@ impl CreateTransactionView {
             source_input: String::new(),
             destination_input: String::new(),
             budget_state: widget::combo_box::State::new(budgets),
+            budget_input: None,
             date_input: String::new(),
         }
     }
@@ -72,7 +74,9 @@ impl CreateTransactionView {
             Message::DescriptionInput(content) => self.description_input = content,
             Message::DateInput(content) => self.date_input = content,
             Message::SourceInput(content) => self.source_input = content,
-            Message::BudgetSelected(_) => {}
+            Message::BudgetSelected(content) => {
+                self.budget_input = Some(content);
+            }
         }
         (None, iced::Command::none())
     }
@@ -94,7 +98,12 @@ impl CreateTransactionView {
             .spacing(10),
             widget::row![
                 widget::text("Budget"),
-                widget::ComboBox::new(&self.budget_state, "Budget", None, Message::BudgetSelected)
+                widget::ComboBox::new(
+                    &self.budget_state,
+                    "Budget",
+                    self.budget_input.as_ref(),
+                    Message::BudgetSelected
+                )
             ]
             .spacing(10),
             widget::button("Submit").on_press_maybe(if self.submittable() {
