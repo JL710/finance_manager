@@ -9,4 +9,4 @@ edition = "2021"
 iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", features = ["advanced", "lazy", "tokio"]}
 
 [lib]
-crate-type = ["rlib", "dylib"]
+crate-type = ["dylib"]
