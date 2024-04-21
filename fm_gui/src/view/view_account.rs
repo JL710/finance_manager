@@ -4,6 +4,16 @@ use fm_core;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+pub fn switch_view_command(
+    account_id: fm_core::Id,
+    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+) -> iced::Command<AppMessage> {
+    iced::Command::perform(
+        async move { View::ViewAccount(ViewAccount::fetch(finance_manager, account_id).await) },
+        |view| AppMessage::SwitchView(view),
+    )
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {}
 
@@ -15,18 +25,45 @@ pub struct ViewAccount {
 }
 
 impl ViewAccount {
-    pub fn new(account: fm_core::account::Account, account_sum: fm_core::Currency) -> Self {
+    pub fn new(
+        account: fm_core::account::Account,
+        account_sum: fm_core::Currency,
+        transactions: Vec<fm_core::Transaction>,
+    ) -> Self {
         Self {
             current_value: account_sum, // finance_manager.get_account_sum(&account, chrono::Utc::now()),
             account,
-            transactions: Vec::new(),
+            transactions: transactions,
         }
+    }
+
+    pub async fn fetch(
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        account_id: fm_core::Id,
+    ) -> Self {
+        let account = finance_manager
+            .lock()
+            .await
+            .get_account(account_id)
+            .await
+            .unwrap();
+        let account_sum = finance_manager
+            .lock()
+            .await
+            .get_account_sum(&account, chrono::Utc::now())
+            .await;
+        let transactions = finance_manager
+            .lock()
+            .await
+            .get_transactions_of_account(&account, (None, Some(chrono::Utc::now())))
+            .await;
+        Self::new(account, account_sum, transactions)
     }
 
     pub fn update(
         &mut self,
         _message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         (None, iced::Command::none())
     }

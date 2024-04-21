@@ -63,21 +63,12 @@ impl CreateAssetAccountDialog {
                                     Some(iban_input.clone()),
                                     Some(bic_input.clone()),
                                 )
-                                .await
-                                .into();
-
-                            let mut total_sum = finance_manager
-                                .lock()
-                                .await
-                                .get_account_sum(&account, chrono::Utc::now())
                                 .await;
-                            (account, total_sum)
+
+                            super::view_account::ViewAccount::fetch(finance_manager, account.id())
+                                .await
                         },
-                        |(acc, sum)| {
-                            AppMessage::SwitchView(View::ViewAccount(
-                                super::view_account::ViewAccount::new(acc, sum),
-                            ))
-                        },
+                        |view| AppMessage::SwitchView(View::ViewAccount(view)),
                     ),
                 );
             }
