@@ -151,4 +151,68 @@ impl FinanceManager for RamFinanceManager {
             .cloned()
             .collect()
     }
+
+    async fn create_transaction(
+        &mut self,
+        amount: Currency,
+        title: String,
+        description: Option<String>,
+        source: super::Or<Id, String>,
+        destination: super::Or<Id, String>,
+        budget: Option<Id>,
+        date: DateTime,
+    ) -> Transaction {
+        let id = uuid::Uuid::new_v4().as_u128();
+
+        let source_id = match source {
+            super::Or::One(id) => id,
+            super::Or::Two(name) => {
+                let account = self.create_asset_account(name, None, None, None).await;
+                account.id()
+            }
+        };
+
+        let destination_id = match destination {
+            super::Or::One(id) => id,
+            super::Or::Two(name) => {
+                let account = self.create_asset_account(name, None, None, None).await;
+                account.id()
+            }
+        };
+
+        let new_transaction = Transaction {
+            id,
+            amount,
+            title,
+            description,
+            source: source_id,
+            destination: destination_id,
+            budget,
+            date,
+        };
+
+        self.transactions.push(new_transaction.clone());
+
+        new_transaction
+    }
+
+    async fn create_book_checking_account(
+        &mut self,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> account::BookCheckingAccount {
+        let id = uuid::Uuid::new_v4().as_u128();
+
+        let new_account = account::BookCheckingAccount::new(id, name, notes, iban, bic);
+
+        if self.accounts.contains_key(&id) {
+            panic!("ID ALREADY EXISTS");
+        }
+
+        self.accounts.insert(id, new_account.clone().into());
+
+        new_account
+    }
 }

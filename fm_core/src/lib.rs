@@ -71,6 +71,10 @@ impl Budget {
     pub fn timespan(&self) -> &Recouring {
         &self.timespan
     }
+
+    pub fn id(&self) -> &Id {
+        &self.id
+    }
 }
 
 impl std::fmt::Display for Budget {
@@ -85,23 +89,19 @@ pub struct Transaction {
     amount: Currency, // if amount is positive the money is added to the account. If negative it is removed
     title: String,
     description: Option<String>,
-    source: Option<Id>,
-    destination: Option<Id>,
+    source: Id,
+    destination: Id,
     budget: Option<Id>,
     date: DateTime,
 }
 
 impl Transaction {
     fn connection_with_account(&self, account: &account::Account) -> bool {
-        if let Some(source) = self.source {
-            if *account == source {
-                return true;
-            }
+        if *account == self.source {
+            return true;
         }
-        if let Some(destination) = self.destination {
-            if *account == destination {
-                return true;
-            }
+        if *account == self.destination {
+            return true;
         }
         false
     }
@@ -115,6 +115,11 @@ pub enum Recouring {
 }
 
 type Timespan = (Option<DateTime>, Option<DateTime>);
+
+pub enum Or<T, F> {
+    One(T),
+    Two(F),
+}
 
 pub trait FinanceManager: Send + Clone + Sized {
     fn create_asset_account(
@@ -143,6 +148,25 @@ pub trait FinanceManager: Send + Clone + Sized {
         account: &account::Account,
         timespan: Timespan,
     ) -> impl futures::Future<Output = Vec<Transaction>> + Send;
+
+    fn create_transaction(
+        &mut self,
+        amount: Currency,
+        title: String,
+        description: Option<String>,
+        source: Or<Id, String>, // id = Existing | String = New
+        destination: Or<Id, String>,
+        budget: Option<Id>,
+        date: DateTime,
+    ) -> impl futures::Future<Output = Transaction> + Send;
+
+    fn create_book_checking_account(
+        &mut self,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> impl futures::Future<Output = account::BookCheckingAccount> + Send;
 
     fn create_budget(
         &mut self,
