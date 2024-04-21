@@ -1,5 +1,5 @@
 use super::{
-    account, Budget, Currency, DateTime, FinanceManager, Id, Recourung, Timespan, Transaction,
+    account, Budget, Currency, DateTime, FinanceManager, Id, Recouring, Timespan, Transaction,
 };
 use std::collections::HashMap;
 
@@ -109,7 +109,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recourung,
+        timespan: Recouring,
     ) -> Budget {
         let id = uuid::Uuid::new_v4().as_u128();
 
