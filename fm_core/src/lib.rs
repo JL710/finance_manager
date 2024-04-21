@@ -37,9 +37,27 @@ impl std::ops::Add for Currency {
     }
 }
 
+impl std::ops::Sub for Currency {
+    type Output = Currency;
+
+    fn sub(self, other: Currency) -> Self::Output {
+        match self {
+            Currency::Eur(value) => match other {
+                Currency::Eur(other_value) => Currency::Eur(value - other_value),
+            },
+        }
+    }
+}
+
 impl std::ops::AddAssign for Currency {
     fn add_assign(&mut self, rhs: Self) {
         *self = self.clone() + rhs;
+    }
+}
+
+impl std::ops::SubAssign for Currency {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = self.clone() - rhs;
     }
 }
 
