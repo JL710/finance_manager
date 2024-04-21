@@ -1,4 +1,4 @@
-use super::{Currency, Id};
+use super::Id;
 
 #[derive(Debug, Clone)]
 pub struct AssetAccount {

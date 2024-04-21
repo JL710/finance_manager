@@ -271,7 +271,7 @@ impl CreateTransactionView {
                     )
                     .await;
             },
-            |x| AppMessage::SwitchView(View::Empty),
+            |_| AppMessage::SwitchView(View::Empty),
         )
     }
 }
