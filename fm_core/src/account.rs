@@ -145,6 +145,15 @@ impl Account {
     }
 }
 
+impl std::fmt::Display for Account {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Account::AssetAccount(acc) => write!(f, "{}", acc.name),
+            Account::BookCheckingAccount(acc) => write!(f, "{}", acc.name),
+        }
+    }
+}
+
 impl PartialEq for Account {
     fn eq(&self, other: &Self) -> bool {
         match self {

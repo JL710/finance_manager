@@ -20,7 +20,11 @@ pub enum Message {}
 #[derive(Debug, Clone)]
 pub struct ViewAccount {
     account: fm_core::account::Account,
-    transactions: Vec<fm_core::Transaction>,
+    transactions: Vec<(
+        fm_core::Transaction,
+        fm_core::account::Account,
+        fm_core::account::Account,
+    )>,
     current_value: fm_core::Currency,
 }
 
@@ -28,7 +32,11 @@ impl ViewAccount {
     pub fn new(
         account: fm_core::account::Account,
         account_sum: fm_core::Currency,
-        transactions: Vec<fm_core::Transaction>,
+        transactions: Vec<(
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+        )>,
     ) -> Self {
         Self {
             current_value: account_sum, // finance_manager.get_account_sum(&account, chrono::Utc::now()),
@@ -57,7 +65,23 @@ impl ViewAccount {
             .await
             .get_transactions_of_account(account.id(), (None, Some(chrono::Utc::now())))
             .await;
-        Self::new(account, account_sum, transactions)
+        let mut transaction_tuples = Vec::with_capacity(transactions.len());
+        for transaction in transactions {
+            let source = finance_manager
+                .lock()
+                .await
+                .get_account(transaction.source().clone())
+                .await
+                .unwrap();
+            let destination = finance_manager
+                .lock()
+                .await
+                .get_account(transaction.destination().clone())
+                .await
+                .unwrap();
+            transaction_tuples.push((transaction, source, destination));
+        }
+        Self::new(account, account_sum, transaction_tuples)
     }
 
     pub fn update(
@@ -80,13 +104,28 @@ impl ViewAccount {
 
 fn asset_account_view<'a>(
     account: &fm_core::account::AssetAccount,
-    transactions: &[fm_core::Transaction],
+    transactions: &[(
+        fm_core::Transaction,
+        fm_core::account::Account,
+        fm_core::account::Account,
+    )],
     current_value: &fm_core::Currency,
 ) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
-    let mut transactions_table = super::super::table::Table::<'_, Message>::new(2);
+    let mut transactions_table =
+        super::super::table::Table::<'_, Message>::new(4).set_headers(vec![
+            "Title".to_string(),
+            "Amount".to_string(),
+            "Source".to_string(),
+            "Destination".to_string(),
+        ]);
 
     for transaction in transactions {
-        // TODO: push transaction
+        transactions_table.push_row(vec![
+            iced::widget::text(transaction.0.title().clone()).into(),
+            iced::widget::text(transaction.0.amount().clone().to_num_string()).into(),
+            iced::widget::text(transaction.1.to_string()).into(),
+            iced::widget::text(transaction.2.to_string()).into(),
+        ])
     }
 
     iced::widget::column![
