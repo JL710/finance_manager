@@ -120,7 +120,9 @@ impl Application for App {
             }
             AppMessage::AssetAccountsMessage(m) => {
                 let (new_view, cmd) = match self.current_view {
-                    View::AssetAccounts(ref mut view) => view.update(m),
+                    View::AssetAccounts(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
                     _ => panic!(),
                 };
                 if let Some(new_view) = new_view {

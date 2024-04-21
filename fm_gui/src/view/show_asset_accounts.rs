@@ -1,4 +1,4 @@
-use fm_core;
+use fm_core::{self, FinanceManager};
 
 use super::super::{utils, AppMessage, View};
 
@@ -30,6 +30,7 @@ pub fn switch_view_command(
 #[derive(Debug, Clone)]
 pub enum Message {
     CreateAssetAccount,
+    AccountView(fm_core::account::AssetAccount),
 }
 
 #[derive(Debug, Clone)]
@@ -52,7 +53,11 @@ impl AssetAccountOverview {
         }
     }
 
-    pub fn update(&mut self, message: Message) -> (Option<View>, iced::Command<AppMessage>) {
+    pub fn update(
+        &mut self,
+        message: Message,
+        finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
+    ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::CreateAssetAccount => {
                 return (
@@ -61,6 +66,18 @@ impl AssetAccountOverview {
                     )),
                     iced::Command::none(),
                 );
+            }
+            Message::AccountView(account) => {
+                return (
+                    None,
+                    iced::Command::perform(
+                        async move {
+                            super::view_account::ViewAccount::fetch(finance_manager, account.id())
+                                .await
+                        },
+                        |view| AppMessage::SwitchView(View::ViewAccount(view)),
+                    ),
+                )
             }
         }
     }
@@ -92,11 +109,14 @@ fn asset_account_overview_entry(
     value: &fm_core::Currency,
 ) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
     widget::container(
-        widget::row![
-            widget::text(account.name().to_owned()),
-            widget::text(value.to_string())
-        ]
-        .spacing(30),
+        widget::button(
+            widget::row![
+                widget::text(account.name().to_owned()),
+                widget::text(value.to_string())
+            ]
+            .spacing(30),
+        )
+        .on_press(Message::AccountView(account.clone())),
     )
     .style(utils::entry_row_container_style)
     .padding(10)
