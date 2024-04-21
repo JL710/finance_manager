@@ -105,6 +105,44 @@ impl Transaction {
         }
         false
     }
+
+    pub fn id(&self) -> &Id {
+        &self.id
+    }
+
+    pub fn amount(&self) -> Currency {
+        self.amount.clone()
+    }
+
+    pub fn title(&self) -> &String {
+        &self.title
+    }
+
+    pub fn description(&self) -> Option<&str> {
+        match &self.description {
+            Some(desc) => Some(desc),
+            None => None,
+        }
+    }
+
+    pub fn source(&self) -> &Id {
+        &self.source
+    }
+
+    pub fn destination(&self) -> &Id {
+        &self.destination
+    }
+
+    pub fn budget(&self) -> Option<&Id> {
+        match &self.budget {
+            Some(budget) => Some(budget),
+            None => None,
+        }
+    }
+
+    pub fn date(&self) -> &DateTime {
+        &self.date
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
