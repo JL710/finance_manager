@@ -55,7 +55,7 @@ impl ViewAccount {
         let transactions = finance_manager
             .lock()
             .await
-            .get_transactions_of_account(&account, (None, Some(chrono::Utc::now())))
+            .get_transactions_of_account(account.id(), (None, Some(chrono::Utc::now())))
             .await;
         Self::new(account, account_sum, transactions)
     }

@@ -1,6 +1,6 @@
 use super::Id;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AssetAccount {
     id: Id,
     name: String,
@@ -62,7 +62,7 @@ impl From<AssetAccount> for Account {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BookCheckingAccount {
     id: Id,
     name: String,
@@ -130,7 +130,7 @@ impl BookCheckingAccount {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Account {
     AssetAccount(AssetAccount),
     BookCheckingAccount(BookCheckingAccount),

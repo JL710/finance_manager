@@ -28,7 +28,7 @@ impl FinanceManager for RamFinanceManager {
         iban: Option<String>,
         bic: Option<String>,
     ) -> account::AssetAccount {
-        let id = uuid::Uuid::new_v4().as_u128();
+        let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let new_account = account::AssetAccount::new(id, name, note, iban, bic);
 
@@ -59,7 +59,7 @@ impl FinanceManager for RamFinanceManager {
     async fn get_account_sum(&self, account: &account::Account, date: DateTime) -> Currency {
         // sum up all transactions from start to end date
         let transactions = self
-            .get_transactions_of_account(account, (None, Some(date)))
+            .get_transactions_of_account(account.id(), (None, Some(date)))
             .await;
         let mut total = Currency::Eur(0.0);
         for transaction in transactions {
@@ -79,13 +79,13 @@ impl FinanceManager for RamFinanceManager {
 
     async fn get_transactions_of_account(
         &self,
-        account: &account::Account,
+        account_id: Id,
         timespan: Timespan,
     ) -> Vec<Transaction> {
         self.transactions
             .iter()
             .filter(|transaction| {
-                if !transaction.connection_with_account(account) {
+                if !transaction.connection_with_account(account_id) {
                     return false;
                 }
                 if let Some(begin) = timespan.0 {
@@ -111,7 +111,7 @@ impl FinanceManager for RamFinanceManager {
         total_value: Currency,
         timespan: Recouring,
     ) -> Budget {
-        let id = uuid::Uuid::new_v4().as_u128();
+        let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let new_budget = Budget {
             id,
@@ -162,7 +162,7 @@ impl FinanceManager for RamFinanceManager {
         budget: Option<Id>,
         date: DateTime,
     ) -> Transaction {
-        let id = uuid::Uuid::new_v4().as_u128();
+        let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let source_id = match source {
             super::Or::One(id) => id,
@@ -203,7 +203,7 @@ impl FinanceManager for RamFinanceManager {
         iban: Option<String>,
         bic: Option<String>,
     ) -> account::BookCheckingAccount {
-        let id = uuid::Uuid::new_v4().as_u128();
+        let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let new_account = account::BookCheckingAccount::new(id, name, notes, iban, bic);
 

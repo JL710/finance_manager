@@ -2,7 +2,7 @@ pub mod account;
 pub mod ram_finance_manager;
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
-pub type Id = u128;
+pub type Id = u64;
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub enum Currency {
@@ -83,7 +83,7 @@ impl std::fmt::Display for Budget {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Transaction {
     id: Id,
     amount: Currency, // if amount is positive the money is added to the account. If negative it is removed
@@ -96,11 +96,11 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    fn connection_with_account(&self, account: &account::Account) -> bool {
-        if *account == self.source {
+    fn connection_with_account(&self, account: Id) -> bool {
+        if account == self.source {
             return true;
         }
-        if *account == self.destination {
+        if account == self.destination {
             return true;
         }
         false
@@ -114,8 +114,9 @@ pub enum Recouring {
     Yearly(u8, u16),       // month and day
 }
 
-type Timespan = (Option<DateTime>, Option<DateTime>);
+pub type Timespan = (Option<DateTime>, Option<DateTime>);
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum Or<T, F> {
     One(T),
     Two(F),
@@ -145,7 +146,7 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     fn get_transactions_of_account(
         &self,
-        account: &account::Account,
+        account: Id,
         timespan: Timespan,
     ) -> impl futures::Future<Output = Vec<Transaction>> + Send;
 

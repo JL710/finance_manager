@@ -35,7 +35,7 @@ enum View {
 }
 
 pub struct App {
-    finance_manager: Arc<Mutex<fm_core::ram_finance_manager::RamFinanceManager>>,
+    finance_manager: Arc<Mutex<fm_server::client::Client>>,
     current_view: View,
 }
 
@@ -47,7 +47,7 @@ impl Application for App {
     type Renderer = iced::Renderer;
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let finance_manager = fm_core::ram_finance_manager::RamFinanceManager::new();
+        let finance_manager = fm_server::client::Client::new(String::from("http://localhost:3000"));
         (
             App {
                 current_view: View::Empty,

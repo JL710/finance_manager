@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 server = ["dep:axum"]
-client = []
+client = ["dep:reqwest"]
 full = ["server", "client"]
 
 [dependencies]
@@ -16,3 +16,4 @@ tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"]}
 fm_core = { path = "../fm_core" }
 serde = "1.0.198"
 serde_json = "1.0.116"
+reqwest = { version = "0.12.4", optional = true }
