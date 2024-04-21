@@ -59,26 +59,21 @@ impl AssetAccountOverview {
         finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
-            Message::CreateAssetAccount => {
-                return (
-                    Some(View::CreateAssetAccountDialog(
-                        super::create_asset_account::CreateAssetAccountDialog::new(),
-                    )),
-                    iced::Command::none(),
-                );
-            }
-            Message::AccountView(account) => {
-                return (
-                    None,
-                    iced::Command::perform(
-                        async move {
-                            super::view_account::ViewAccount::fetch(finance_manager, account.id())
-                                .await
-                        },
-                        |view| AppMessage::SwitchView(View::ViewAccount(view)),
-                    ),
-                )
-            }
+            Message::CreateAssetAccount => (
+                Some(View::CreateAssetAccountDialog(
+                    super::create_asset_account::CreateAssetAccountDialog::new(),
+                )),
+                iced::Command::none(),
+            ),
+            Message::AccountView(account) => (
+                None,
+                iced::Command::perform(
+                    async move {
+                        super::view_account::ViewAccount::fetch(finance_manager, account.id()).await
+                    },
+                    |view| AppMessage::SwitchView(View::ViewAccount(view)),
+                ),
+            ),
         }
     }
 
@@ -89,7 +84,7 @@ impl AssetAccountOverview {
         for account in &self.accounts {
             account_table.push_row(vec![
                 widget::button(account.0.name())
-                    .style(|theme: &iced::Theme, status| widget::button::Style {
+                    .style(|theme: &iced::Theme, _status| widget::button::Style {
                         background: None,
                         text_color: theme.palette().text,
                         ..Default::default()

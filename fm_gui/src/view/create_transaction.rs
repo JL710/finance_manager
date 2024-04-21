@@ -33,10 +33,7 @@ enum SelectedAccount {
 
 impl SelectedAccount {
     fn is_new(&self) -> bool {
-        match self {
-            SelectedAccount::New(_) => true,
-            _ => false,
-        }
+        matches!(self, SelectedAccount::New(_))
     }
 }
 
@@ -250,10 +247,7 @@ impl CreateTransactionView {
             Some(SelectedAccount::New(name)) => fm_core::Or::Two(name.clone()),
             None => panic!(),
         };
-        let budget = match &self.budget_input {
-            Some(budget) => Some(budget.id().clone()),
-            None => None,
-        };
+        let budget = self.budget_input.as_ref().map(|budget| *budget.id());
         let date = utils::parse_to_datetime(&self.date_input).unwrap();
         iced::Command::perform(
             async move {

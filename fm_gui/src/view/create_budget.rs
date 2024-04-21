@@ -24,9 +24,9 @@ enum Recourung {
     Yearly(String, String), // month and day
 }
 
-impl Into<fm_core::Recouring> for Recourung {
-    fn into(self) -> fm_core::Recouring {
-        match self {
+impl From<Recourung> for fm_core::Recouring {
+    fn from(value: Recourung) -> Self {
+        match value {
             Recourung::Days(start, days) => fm_core::Recouring::Days(
                 utils::parse_to_datetime(&start).unwrap(),
                 days.parse().unwrap(),
@@ -181,34 +181,29 @@ impl CreateBudgetView {
     fn generate_recouring_view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
         let mut row = widget::row![widget::PickList::new(
             vec!["Days", "Day in month", "Yearly"],
-            if let Some(state) = &self.recouring_state {
-                Some(state.as_str())
-            } else {
-                None
-            },
+            self.recouring_state.as_deref(),
             |x| Message::RecouringPickList(x.to_string()),
         ),];
         match &self.recouring_inputs {
             Recourung::Days(start, days) => {
                 row = row.push(
-                    widget::text_input("Start Date day.month.year", &start)
+                    widget::text_input("Start Date day.month.year", start)
                         .on_input(Message::RecouringFirstInput),
                 );
-                row = row.push(
-                    widget::text_input("Days", &days).on_input(Message::RecouringSecondInput),
-                );
+                row = row
+                    .push(widget::text_input("Days", days).on_input(Message::RecouringSecondInput));
             }
             Recourung::DayInMonth(day) => {
                 row = row.push(
-                    widget::text_input("Day in Month", &day).on_input(Message::RecouringFirstInput),
+                    widget::text_input("Day in Month", day).on_input(Message::RecouringFirstInput),
                 );
             }
             Recourung::Yearly(month, day) => {
                 row = row.push(
-                    widget::text_input("Month", &month).on_input(Message::RecouringFirstInput),
+                    widget::text_input("Month", month).on_input(Message::RecouringFirstInput),
                 );
                 row = row
-                    .push(widget::text_input("Day", &day).on_input(Message::RecouringSecondInput));
+                    .push(widget::text_input("Day", day).on_input(Message::RecouringSecondInput));
             }
         }
 
@@ -225,7 +220,7 @@ impl CreateBudgetView {
         // check if the recouring inputs are valid
         match &self.recouring_inputs {
             Recourung::Days(start, days) => {
-                if chrono::NaiveDate::parse_from_str(&start, "%d.%m.%Y").is_err() {
+                if chrono::NaiveDate::parse_from_str(start, "%d.%m.%Y").is_err() {
                     return false;
                 }
                 if days.parse::<usize>().is_err() {

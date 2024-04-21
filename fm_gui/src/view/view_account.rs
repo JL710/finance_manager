@@ -10,7 +10,7 @@ pub fn switch_view_command(
 ) -> iced::Command<AppMessage> {
     iced::Command::perform(
         async move { View::ViewAccount(ViewAccount::fetch(finance_manager, account_id).await) },
-        |view| AppMessage::SwitchView(view),
+        AppMessage::SwitchView,
     )
 }
 
@@ -33,7 +33,7 @@ impl ViewAccount {
         Self {
             current_value: account_sum, // finance_manager.get_account_sum(&account, chrono::Utc::now()),
             account,
-            transactions: transactions,
+            transactions,
         }
     }
 

@@ -26,7 +26,7 @@ pub struct BudgetOverview {
 
 impl BudgetOverview {
     pub fn new(budgets: Vec<fm_core::Budget>) -> Self {
-        Self { budgets: budgets }
+        Self { budgets }
     }
 
     pub fn update(
@@ -35,14 +35,12 @@ impl BudgetOverview {
         _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
-            Message::CreateBudget => {
-                return (
-                    Some(View::CreateBudgetView(
-                        super::create_budget::CreateBudgetView::new(),
-                    )),
-                    iced::Command::none(),
-                );
-            }
+            Message::CreateBudget => (
+                Some(View::CreateBudgetView(
+                    super::create_budget::CreateBudgetView::new(),
+                )),
+                iced::Command::none(),
+            ),
         }
     }
 
