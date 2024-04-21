@@ -1,6 +1,6 @@
 use fm_core::{self, FinanceManager};
 
-use super::super::{utils, AppMessage, View};
+use super::super::{AppMessage, View};
 
 use iced::widget;
 use std::sync::Arc;
@@ -88,16 +88,22 @@ impl AssetAccountOverview {
 
         for account in &self.accounts {
             account_table.push_row(vec![
-                iced::widget::Text::new(account.0.name().to_owned()).into(),
-                iced::widget::Text::new(account.1.to_string()).into(),
+                widget::button(account.0.name())
+                    .style(|theme: &iced::Theme, status| widget::button::Style {
+                        background: None,
+                        text_color: theme.palette().text,
+                        ..Default::default()
+                    })
+                    .padding(0)
+                    .on_press(Message::AccountView(account.0.clone()))
+                    .into(),
+                widget::Text::new(account.1.to_string()).into(),
             ]);
         }
 
-        iced::widget::column![
-            iced::widget::row![
-                iced::widget::button("New AssetAccount").on_press(Message::CreateAssetAccount)
-            ],
-            iced::widget::horizontal_rule(10),
+        widget::column![
+            widget::row![widget::button("New AssetAccount").on_press(Message::CreateAssetAccount)],
+            widget::horizontal_rule(10),
             account_table.convert_to_view(),
         ]
         .into()
