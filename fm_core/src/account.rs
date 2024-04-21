@@ -68,7 +68,13 @@ pub struct BookCheckingAccount {
     name: String,
     notes: Option<String>,
     iban: Option<String>,
-    bic: Option<String>
+    bic: Option<String>,
+}
+
+impl std::fmt::Display for BookCheckingAccount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 #[derive(Debug, Clone)]
