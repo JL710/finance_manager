@@ -63,19 +63,12 @@ impl From<AssetAccount> for Account {
 }
 
 #[derive(Debug, Clone)]
-pub enum BookChecking {
-    Expense,
-    Revenue,
-}
-
-#[derive(Debug, Clone)]
 pub struct BookCheckingAccount {
     id: Id,
     name: String,
     notes: Option<String>,
     iban: Option<String>,
-    bic: Option<String>,
-    checking_type: BookChecking,
+    bic: Option<String>
 }
 
 #[derive(Debug, Clone)]
