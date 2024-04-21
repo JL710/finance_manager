@@ -1,6 +1,7 @@
 use super::super::{AppMessage, View};
 use fm_core;
 
+use iced::widget;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -97,7 +98,7 @@ impl ViewAccount {
             fm_core::account::Account::AssetAccount(acc) => {
                 asset_account_view(acc, &self.transactions, &self.current_value)
             }
-            _ => iced::widget::text("comming soon").into(),
+            _ => widget::text("comming soon").into(),
         }
     }
 }
@@ -121,24 +122,32 @@ fn asset_account_view<'a>(
 
     for transaction in transactions {
         transactions_table.push_row(vec![
-            iced::widget::text(transaction.0.title().clone()).into(),
+            widget::text(transaction.0.title().clone()).into(),
             if *transaction.0.source() == account.id() {
-                iced::widget::text(format!("-{}", transaction.0.amount())).into()
+                widget::text(format!("-{}", transaction.0.amount()))
+                    .style(|theme: &iced::Theme| widget::text::Style {
+                        color: Some(theme.palette().danger),
+                    })
+                    .into()
             } else {
-                iced::widget::text(format!("+{}", transaction.0.amount())).into()
+                widget::text(format!("+{}", transaction.0.amount()))
+                    .style(|theme: &iced::Theme| widget::text::Style {
+                        color: Some(theme.palette().success),
+                    })
+                    .into()
             },
-            iced::widget::text(transaction.1.to_string()).into(),
-            iced::widget::text(transaction.2.to_string()).into(),
+            widget::text(transaction.1.to_string()).into(),
+            widget::text(transaction.2.to_string()).into(),
         ])
     }
 
-    iced::widget::column![
-        iced::widget::text(format!("Account: {}", account.name())),
-        iced::widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
-        iced::widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
-        iced::widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
-        iced::widget::text(format!("Current Amount: {}", current_value)),
-        iced::widget::horizontal_rule(10),
+    widget::column![
+        widget::text(format!("Account: {}", account.name())),
+        widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
+        widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
+        widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
+        widget::text(format!("Current Amount: {}", current_value)),
+        widget::horizontal_rule(10),
         transactions_table.convert_to_view()
     ]
     .into()
