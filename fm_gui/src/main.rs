@@ -160,12 +160,9 @@ impl Application for App {
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToBudgetOverview),
                 iced::widget::horizontal_rule(5),
-                iced::widget::button("Create Expense")
+                iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToCreateTransActionView),
-                iced::widget::button("Create Revenue")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchView(View::Empty)),
                 iced::widget::button("Create Transfer")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchView(View::Empty))
