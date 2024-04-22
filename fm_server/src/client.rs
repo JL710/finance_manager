@@ -35,6 +35,21 @@ impl fm_core::FinanceManager for Client {
         client_post_macro!(self.url, "create_asset_account", (name, note, iban, bic))
     }
 
+    async fn update_asset_account(
+        &mut self,
+        id: fm_core::Id,
+        name: String,
+        note: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> fm_core::account::AssetAccount {
+        client_post_macro!(
+            self.url,
+            "update_asset_account",
+            (id, name, note, iban, bic)
+        )
+    }
+
     async fn get_accounts(&self) -> Vec<fm_core::account::Account> {
         let response = reqwest::get(&format!("{}/get_accounts", self.url))
             .await

@@ -41,6 +41,7 @@ pub async fn run() {
             post(create_book_checking_account),
         )
         .route("/get_transaction", post(get_transaction))
+        .route("/update_asset_account", post(update_asset_account))
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
@@ -202,4 +203,23 @@ async fn get_transaction(
         .get_transaction(data)
         .await;
     json!(transaction).into()
+}
+
+async fn update_asset_account(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<(
+        fm_core::Id,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    )>,
+) -> Json<Value> {
+    let account = state
+        .finance_manager
+        .lock()
+        .await
+        .update_asset_account(data.0, data.1, data.2, data.3, data.4)
+        .await;
+    json!(account).into()
 }

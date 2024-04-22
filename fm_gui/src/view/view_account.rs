@@ -16,7 +16,9 @@ pub fn switch_view_command(
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {}
+pub enum Message {
+    Edit,
+}
 
 #[derive(Debug, Clone)]
 pub struct ViewAccount {
@@ -87,10 +89,20 @@ impl ViewAccount {
 
     pub fn update(
         &mut self,
-        _message: Message,
+        message: Message,
         _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
-        (None, iced::Command::none())
+        match message {
+            Message::Edit => match &self.account {
+                fm_core::account::Account::AssetAccount(acc) => {
+                    return (
+                            Some(View::CreateAssetAccountDialog(
+                                super::create_asset_account::CreateAssetAccountDialog::from_existing_account(acc)
+                            )), iced::Command::none());
+                }
+                fm_core::account::Account::BookCheckingAccount(acc) => todo!(),
+            },
+        }
     }
 
     pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
@@ -142,11 +154,17 @@ fn asset_account_view<'a>(
     }
 
     widget::column![
-        widget::text(format!("Account: {}", account.name())),
-        widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
-        widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
-        widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
-        widget::text(format!("Current Amount: {}", current_value)),
+        widget::row![
+            widget::column![
+                widget::text(format!("Account: {}", account.name())),
+                widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
+                widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
+                widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
+                widget::text(format!("Current Amount: {}", current_value)),
+            ],
+            widget::Space::with_width(iced::Length::Fill),
+            widget::button("Edit").on_press(Message::Edit),
+        ],
         widget::horizontal_rule(10),
         transactions_table.convert_to_view()
     ]

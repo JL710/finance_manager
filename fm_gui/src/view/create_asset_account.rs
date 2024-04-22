@@ -15,6 +15,7 @@ pub enum Message {
 
 #[derive(Debug, Clone)]
 pub struct CreateAssetAccountDialog {
+    id: Option<fm_core::Id>,
     name_input: String,
     note_input: String,
     iban_input: String,
@@ -24,10 +25,25 @@ pub struct CreateAssetAccountDialog {
 impl CreateAssetAccountDialog {
     pub fn new() -> Self {
         Self {
+            id: None,
             name_input: String::new(),
             note_input: String::new(),
             iban_input: String::new(),
             bic_input: String::new(),
+        }
+    }
+
+    pub fn from_existing_account(account: &fm_core::account::AssetAccount) -> Self {
+        Self {
+            id: Some(account.id()),
+            name_input: account.name().to_string(),
+            note_input: account
+                .note()
+                .map_or(String::new(), |note| note.to_string()),
+            iban_input: account
+                .iban()
+                .map_or(String::new(), |iban| iban.to_string()),
+            bic_input: account.bic().map_or(String::new(), |bic| bic.to_string()),
         }
     }
 
@@ -42,28 +58,40 @@ impl CreateAssetAccountDialog {
             Message::IbanInput(input) => self.iban_input = input,
             Message::BicInput(input) => self.bic_input = input,
             Message::Submit => {
-                let name_input = self.name_input.clone();
-                let note_input = self.note_input.clone();
-                let iban_input = self.iban_input.clone();
-                let bic_input = self.bic_input.clone();
+                let name = self.name_input.clone();
+                let note = if self.note_input.is_empty() {
+                    None
+                } else {
+                    Some(self.note_input.clone())
+                };
+                let iban = if self.iban_input.is_empty() {
+                    None
+                } else {
+                    Some(self.iban_input.clone())
+                };
+                let bic = if self.bic_input.is_empty() {
+                    None
+                } else {
+                    Some(self.bic_input.clone())
+                };
+                let id = self.id.clone();
                 return (
                     Some(View::Empty),
                     iced::Command::perform(
                         async move {
-                            let account = finance_manager
-                                .lock()
-                                .await
-                                .create_asset_account(
-                                    name_input,
-                                    if !note_input.is_empty() {
-                                        Some(note_input.clone())
-                                    } else {
-                                        None
-                                    },
-                                    Some(iban_input.clone()),
-                                    Some(bic_input.clone()),
-                                )
-                                .await;
+                            let account = if let Some(some_id) = id {
+                                finance_manager
+                                    .lock()
+                                    .await
+                                    .update_asset_account(some_id, name, note, iban, bic)
+                                    .await
+                            } else {
+                                finance_manager
+                                    .lock()
+                                    .await
+                                    .create_asset_account(name, note, iban, bic)
+                                    .await
+                            };
 
                             super::view_account::ViewAccount::fetch(finance_manager, account.id())
                                 .await

@@ -21,6 +21,20 @@ impl RamFinanceManager {
 }
 
 impl FinanceManager for RamFinanceManager {
+    async fn update_asset_account(
+        &mut self,
+        id: Id,
+        name: String,
+        note: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> account::AssetAccount {
+        let account = self.accounts.get_mut(&id).unwrap();
+        let new_account = account::AssetAccount::new(id, name, note, iban, bic);
+        *account = new_account.clone().into();
+        new_account
+    }
+
     async fn create_asset_account(
         &mut self,
         name: String,

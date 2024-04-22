@@ -187,6 +187,15 @@ pub trait FinanceManager: Send + Clone + Sized {
         bic: Option<String>,
     ) -> impl futures::Future<Output = account::AssetAccount> + Send;
 
+    fn update_asset_account(
+        &mut self,
+        id: Id,
+        name: String,
+        note: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> impl futures::Future<Output = account::AssetAccount> + Send;
+
     fn get_accounts(&self) -> impl futures::Future<Output = Vec<account::Account>> + Send;
 
     fn get_account(&self, id: Id)
