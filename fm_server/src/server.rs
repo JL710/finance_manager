@@ -1,6 +1,9 @@
 use axum::{response::Json, routing::get, routing::post, Router};
 use serde_json::{json, Value};
 
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+
 use fm_core::FinanceManager;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -17,6 +20,15 @@ pub async fn run() {
             fm_core::ram_finance_manager::RamFinanceManager::new(),
         )),
     };
+
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::filter::EnvFilter::builder()
+                .parse("tower_http=trace,fm_server=trace")
+                .unwrap(),
+        )
+        .init();
 
     // build our application with a single route
     let app = Router::new()
@@ -42,6 +54,7 @@ pub async fn run() {
         )
         .route("/get_transaction", post(get_transaction))
         .route("/update_asset_account", post(update_asset_account))
+        .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
