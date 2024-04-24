@@ -1,5 +1,10 @@
+use anyhow::Result;
+
 pub mod account;
 pub mod ram_finance_manager;
+
+#[cfg(feature = "sqlite")]
+pub mod sqlite_finange_manager;
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 pub type Id = u64;
@@ -13,6 +18,18 @@ impl Currency {
     pub fn to_num_string(&self) -> String {
         match self {
             Currency::Eur(num) => num.to_string(),
+        }
+    }
+
+    pub fn get_num(&self) -> f64 {
+        match self {
+            Currency::Eur(x) => *x,
+        }
+    }
+
+    pub fn get_currency_id(&self) -> i32 {
+        match self {
+            Currency::Eur(_) => 1,
         }
     }
 }
@@ -185,7 +202,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = account::AssetAccount> + Send;
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
 
     fn update_asset_account(
         &mut self,
@@ -194,26 +211,31 @@ pub trait FinanceManager: Send + Clone + Sized {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = account::AssetAccount> + Send;
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
 
-    fn get_accounts(&self) -> impl futures::Future<Output = Vec<account::Account>> + Send;
+    fn get_accounts(&self) -> impl futures::Future<Output = Result<Vec<account::Account>>> + Send;
 
-    fn get_account(&self, id: Id)
-        -> impl futures::Future<Output = Option<account::Account>> + Send;
+    fn get_account(
+        &self,
+        id: Id,
+    ) -> impl futures::Future<Output = Result<Option<account::Account>>> + Send;
 
     fn get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
-    ) -> impl futures::Future<Output = Currency> + Send;
+    ) -> impl futures::Future<Output = Result<Currency>> + Send;
 
-    fn get_transaction(&self, id: Id) -> impl futures::Future<Output = Option<Transaction>> + Send;
+    fn get_transaction(
+        &self,
+        id: Id,
+    ) -> impl futures::Future<Output = Result<Option<Transaction>>> + Send;
 
     fn get_transactions_of_account(
         &self,
         account: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Vec<Transaction>> + Send;
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
 
     fn create_transaction(
         &mut self,
@@ -224,7 +246,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         destination: Or<Id, String>,
         budget: Option<Id>,
         date: DateTime,
-    ) -> impl futures::Future<Output = Transaction> + Send;
+    ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
     fn create_book_checking_account(
         &mut self,
@@ -232,7 +254,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         notes: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = account::BookCheckingAccount> + Send;
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send;
 
     fn create_budget(
         &mut self,
@@ -240,12 +262,12 @@ pub trait FinanceManager: Send + Clone + Sized {
         description: Option<String>,
         total_value: Currency,
         timespan: Recouring,
-    ) -> impl futures::Future<Output = Budget> + Send;
+    ) -> impl futures::Future<Output = Result<Budget>> + Send;
 
-    fn get_budgets(&self) -> impl futures::Future<Output = Vec<Budget>> + Send;
+    fn get_budgets(&self) -> impl futures::Future<Output = Result<Vec<Budget>>> + Send;
 
     fn get_transactions_of_budget(
         &self,
         budget: &Budget,
-    ) -> impl futures::Future<Output = Vec<Transaction>> + Send;
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
 }

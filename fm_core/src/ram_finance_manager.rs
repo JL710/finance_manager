@@ -1,6 +1,7 @@
 use super::{
     account, Budget, Currency, DateTime, FinanceManager, Id, Recouring, Timespan, Transaction,
 };
+use anyhow::Result;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -28,11 +29,11 @@ impl FinanceManager for RamFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> account::AssetAccount {
+    ) -> Result<account::AssetAccount> {
         let account = self.accounts.get_mut(&id).unwrap();
         let new_account = account::AssetAccount::new(id, name, note, iban, bic);
         *account = new_account.clone().into();
-        new_account
+        Ok(new_account)
     }
 
     async fn create_asset_account(
@@ -41,7 +42,7 @@ impl FinanceManager for RamFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> account::AssetAccount {
+    ) -> Result<account::AssetAccount> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let new_account = account::AssetAccount::new(id, name, note, iban, bic);
@@ -52,29 +53,33 @@ impl FinanceManager for RamFinanceManager {
 
         self.accounts.insert(id, new_account.clone().into());
 
-        new_account
+        Ok(new_account)
     }
 
-    async fn get_accounts(&self) -> Vec<account::Account> {
-        return self
+    async fn get_accounts(&self) -> Result<Vec<account::Account>> {
+        return Ok(self
             .accounts
             .iter()
             .map(|x| x.1.clone())
-            .collect::<Vec<account::Account>>();
+            .collect::<Vec<account::Account>>());
     }
 
-    async fn get_account(&self, id: Id) -> Option<account::Account> {
+    async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
         if let Some(acc) = self.accounts.get(&id) {
-            return Some(acc.clone());
+            return Ok(Some(acc.clone()));
         }
-        None
+        Ok(None)
     }
 
-    async fn get_account_sum(&self, account: &account::Account, date: DateTime) -> Currency {
+    async fn get_account_sum(
+        &self,
+        account: &account::Account,
+        date: DateTime,
+    ) -> Result<Currency> {
         // sum up all transactions from start to end date
         let transactions = self
             .get_transactions_of_account(account.id(), (None, Some(date)))
-            .await;
+            .await?;
         let mut total = Currency::Eur(0.0);
         for transaction in transactions {
             if *transaction.source() == account.id() {
@@ -83,24 +88,25 @@ impl FinanceManager for RamFinanceManager {
                 total += transaction.amount;
             }
         }
-        total
+        Ok(total)
     }
 
-    async fn get_transaction(&self, id: Id) -> Option<Transaction> {
+    async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
         for transaction in &self.transactions {
             if transaction.id == id {
-                return Some(transaction.clone());
+                return Ok(Some(transaction.clone()));
             }
         }
-        None
+        Ok(None)
     }
 
     async fn get_transactions_of_account(
         &self,
         account_id: Id,
         timespan: Timespan,
-    ) -> Vec<Transaction> {
-        self.transactions
+    ) -> Result<Vec<Transaction>> {
+        Ok(self
+            .transactions
             .iter()
             .filter(|transaction| {
                 if !transaction.connection_with_account(account_id) {
@@ -119,7 +125,7 @@ impl FinanceManager for RamFinanceManager {
                 true
             })
             .cloned()
-            .collect()
+            .collect())
     }
 
     async fn create_budget(
@@ -128,7 +134,7 @@ impl FinanceManager for RamFinanceManager {
         description: Option<String>,
         total_value: Currency,
         timespan: Recouring,
-    ) -> Budget {
+    ) -> Result<Budget> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let new_budget = Budget {
@@ -145,18 +151,20 @@ impl FinanceManager for RamFinanceManager {
 
         self.budgets.insert(id, new_budget.clone());
 
-        new_budget
+        Ok(new_budget)
     }
 
-    async fn get_budgets(&self) -> Vec<Budget> {
-        self.budgets
+    async fn get_budgets(&self) -> Result<Vec<Budget>> {
+        Ok(self
+            .budgets
             .iter()
             .map(|x| x.1.clone())
-            .collect::<Vec<Budget>>()
+            .collect::<Vec<Budget>>())
     }
 
-    async fn get_transactions_of_budget(&self, budget: &Budget) -> Vec<Transaction> {
-        self.transactions
+    async fn get_transactions_of_budget(&self, budget: &Budget) -> Result<Vec<Transaction>> {
+        Ok(self
+            .transactions
             .iter()
             .filter(|x| {
                 if let Some(b) = x.budget {
@@ -167,7 +175,7 @@ impl FinanceManager for RamFinanceManager {
                 false
             })
             .cloned()
-            .collect()
+            .collect())
     }
 
     async fn create_transaction(
@@ -179,7 +187,7 @@ impl FinanceManager for RamFinanceManager {
         destination: super::Or<Id, String>,
         budget: Option<Id>,
         date: DateTime,
-    ) -> Transaction {
+    ) -> Result<Transaction> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let source_id = match source {
@@ -187,7 +195,7 @@ impl FinanceManager for RamFinanceManager {
             super::Or::Two(name) => {
                 let account = self
                     .create_book_checking_account(name, None, None, None)
-                    .await;
+                    .await?;
                 account.id()
             }
         };
@@ -197,7 +205,7 @@ impl FinanceManager for RamFinanceManager {
             super::Or::Two(name) => {
                 let account = self
                     .create_book_checking_account(name, None, None, None)
-                    .await;
+                    .await?;
                 account.id()
             }
         };
@@ -215,7 +223,7 @@ impl FinanceManager for RamFinanceManager {
 
         self.transactions.push(new_transaction.clone());
 
-        new_transaction
+        Ok(new_transaction)
     }
 
     async fn create_book_checking_account(
@@ -224,7 +232,7 @@ impl FinanceManager for RamFinanceManager {
         notes: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> account::BookCheckingAccount {
+    ) -> Result<account::BookCheckingAccount> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let new_account = account::BookCheckingAccount::new(id, name, notes, iban, bic);
@@ -235,6 +243,6 @@ impl FinanceManager for RamFinanceManager {
 
         self.accounts.insert(id, new_account.clone().into());
 
-        new_account
+        Ok(new_account)
     }
 }

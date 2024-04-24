@@ -5,8 +5,14 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["sqlite"]
+sqlite = ["dep:rusqlite"]
+
 [dependencies]
 chrono = { version = "0.4.38", features = ["serde"] }
 uuid = { version = "1.8.0", features = ["v4"] }
 serde = { version = "1.0.198", features = ["derive"] }
 futures = "0.3.30"
+rusqlite = { version = "0.31.0", features = ["bundled"], optional = true }
+anyhow = { version = "1.0.82" }

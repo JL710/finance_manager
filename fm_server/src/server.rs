@@ -65,7 +65,13 @@ pub async fn run() {
 }
 
 async fn get_budgets(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
-    let budgets = state.finance_manager.lock().await.get_budgets().await;
+    let budgets = state
+        .finance_manager
+        .lock()
+        .await
+        .get_budgets()
+        .await
+        .unwrap();
     json!(budgets).into()
 }
 
@@ -78,12 +84,19 @@ async fn get_transactions_of_budget(
         .lock()
         .await
         .get_transactions_of_budget(&budget)
-        .await;
+        .await
+        .unwrap();
     json!(transactions).into()
 }
 
 async fn get_accounts(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
-    let accounts = state.finance_manager.lock().await.get_accounts().await;
+    let accounts = state
+        .finance_manager
+        .lock()
+        .await
+        .get_accounts()
+        .await
+        .unwrap();
     json!(accounts).into()
 }
 
@@ -106,7 +119,8 @@ async fn create_asset_account(
             account_data.2,
             account_data.3,
         )
-        .await;
+        .await
+        .unwrap();
     println!("Created account: {:?}", account);
     json!(account).into()
 }
@@ -123,7 +137,8 @@ async fn get_account_sum(
         .lock()
         .await
         .get_account_sum(&account_data.0, account_data.1)
-        .await;
+        .await
+        .unwrap();
     json!(sum).into()
 }
 
@@ -131,7 +146,13 @@ async fn get_account(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(id): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
-    let account = state.finance_manager.lock().await.get_account(id).await;
+    let account = state
+        .finance_manager
+        .lock()
+        .await
+        .get_account(id)
+        .await
+        .unwrap();
     json!(account).into()
 }
 
@@ -144,7 +165,8 @@ async fn get_transactions_of_account(
         .lock()
         .await
         .get_transactions_of_account(data.0, data.1)
-        .await;
+        .await
+        .unwrap();
     json!(transactions).into()
 }
 
@@ -162,7 +184,8 @@ async fn create_budget(
         .lock()
         .await
         .create_budget(data.0, data.1, data.2, data.3)
-        .await;
+        .await
+        .unwrap();
     json!(budget).into()
 }
 
@@ -183,7 +206,8 @@ async fn create_transaction(
         .lock()
         .await
         .create_transaction(data.0, data.1, data.2, data.3, data.4, data.5, data.6)
-        .await;
+        .await
+        .unwrap();
     json!(transaction).into()
 }
 
@@ -201,7 +225,8 @@ async fn create_book_checking_account(
         .lock()
         .await
         .create_book_checking_account(data.0, data.1, data.2, data.3)
-        .await;
+        .await
+        .unwrap();
     json!(account).into()
 }
 
@@ -214,7 +239,8 @@ async fn get_transaction(
         .lock()
         .await
         .get_transaction(data)
-        .await;
+        .await
+        .unwrap();
     json!(transaction).into()
 }
 
@@ -233,6 +259,7 @@ async fn update_asset_account(
         .lock()
         .await
         .update_asset_account(data.0, data.1, data.2, data.3, data.4)
-        .await;
+        .await
+        .unwrap();
     json!(account).into()
 }

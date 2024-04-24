@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 #[derive(Clone)]
 pub struct Client {
     url: String,
@@ -20,7 +22,7 @@ macro_rules! client_post_macro {
             .send()
             .await
             .unwrap();
-        serde_json::from_str(&response.text().await.unwrap()).unwrap()
+        Ok(serde_json::from_str(&response.text().await.unwrap())?)
     }};
 }
 
@@ -31,7 +33,7 @@ impl fm_core::FinanceManager for Client {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> fm_core::account::AssetAccount {
+    ) -> Result<fm_core::account::AssetAccount> {
         client_post_macro!(self.url, "create_asset_account", (name, note, iban, bic))
     }
 
@@ -42,7 +44,7 @@ impl fm_core::FinanceManager for Client {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> fm_core::account::AssetAccount {
+    ) -> Result<fm_core::account::AssetAccount> {
         client_post_macro!(
             self.url,
             "update_asset_account",
@@ -50,14 +52,14 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
-    async fn get_accounts(&self) -> Vec<fm_core::account::Account> {
+    async fn get_accounts(&self) -> Result<Vec<fm_core::account::Account>> {
         let response = reqwest::get(&format!("{}/get_accounts", self.url))
             .await
             .unwrap();
-        serde_json::from_str(&response.text().await.unwrap()).unwrap()
+        Ok(serde_json::from_str(&response.text().await?)?)
     }
 
-    async fn get_account(&self, id: fm_core::Id) -> Option<fm_core::account::Account> {
+    async fn get_account(&self, id: fm_core::Id) -> Result<Option<fm_core::account::Account>> {
         client_post_macro!(self.url, "get_account", id)
     }
 
@@ -65,11 +67,11 @@ impl fm_core::FinanceManager for Client {
         &self,
         account: &fm_core::account::Account,
         date: fm_core::DateTime,
-    ) -> fm_core::Currency {
+    ) -> Result<fm_core::Currency> {
         client_post_macro!(self.url, "get_account_sum", (account, date))
     }
 
-    async fn get_transaction(&self, id: fm_core::Id) -> Option<fm_core::Transaction> {
+    async fn get_transaction(&self, id: fm_core::Id) -> Result<Option<fm_core::Transaction>> {
         client_post_macro!(self.url, "get_transaction", id)
     }
 
@@ -77,7 +79,7 @@ impl fm_core::FinanceManager for Client {
         &self,
         account: fm_core::Id,
         timespan: fm_core::Timespan,
-    ) -> Vec<fm_core::Transaction> {
+    ) -> Result<Vec<fm_core::Transaction>> {
         client_post_macro!(self.url, "get_transactions_of_account", (account, timespan))
     }
 
@@ -90,7 +92,7 @@ impl fm_core::FinanceManager for Client {
         destination: fm_core::Or<fm_core::Id, String>,
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
-    ) -> fm_core::Transaction {
+    ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
             "create_transaction",
@@ -112,7 +114,7 @@ impl fm_core::FinanceManager for Client {
         notes: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> fm_core::account::BookCheckingAccount {
+    ) -> Result<fm_core::account::BookCheckingAccount> {
         client_post_macro!(
             self.url,
             "create_book_checking_account",
@@ -126,7 +128,7 @@ impl fm_core::FinanceManager for Client {
         description: Option<String>,
         total_value: fm_core::Currency,
         timespan: fm_core::Recouring,
-    ) -> fm_core::Budget {
+    ) -> Result<fm_core::Budget> {
         client_post_macro!(
             self.url,
             "create_budget",
@@ -134,17 +136,17 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
-    async fn get_budgets(&self) -> Vec<fm_core::Budget> {
+    async fn get_budgets(&self) -> Result<Vec<fm_core::Budget>> {
         let response = reqwest::get(&format!("{}/get_budgets", self.url))
             .await
             .unwrap();
-        return serde_json::from_str(&response.text().await.unwrap()).unwrap();
+        Ok(serde_json::from_str(&response.text().await?)?)
     }
 
     async fn get_transactions_of_budget(
         &self,
         budget: &fm_core::Budget,
-    ) -> Vec<fm_core::Transaction> {
+    ) -> Result<Vec<fm_core::Transaction>> {
         client_post_macro!(self.url, "get_transactions_of_budget", budget)
     }
 }
