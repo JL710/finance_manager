@@ -14,7 +14,7 @@ full = ["server", "client"]
 [dependencies]
 axum = { version="0.7.5", optional = true }
 tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
-fm_core = { path = "../fm_core" }
+fm_core = { path = "../fm_core", features = ["sqlite"], default-features = false }
 serde = "1.0.198"
 serde_json = "1.0.116"
 reqwest = { version = "0.12.4", optional = true }

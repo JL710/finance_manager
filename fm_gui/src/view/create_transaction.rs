@@ -13,8 +13,8 @@ pub fn switch_view_command(
 ) -> iced::Command<AppMessage> {
     iced::Command::perform(
         async move {
-            let budgets = finance_manager.lock().await.get_budgets().await;
-            let accounts = finance_manager.lock().await.get_accounts().await;
+            let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
+            let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
             (budgets, accounts)
         },
         |x| {

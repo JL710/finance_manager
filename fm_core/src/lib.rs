@@ -32,6 +32,13 @@ impl Currency {
             Currency::Eur(_) => 1,
         }
     }
+
+    pub fn from_currency_id(id: i32, amound: f64) -> Result<Self> {
+        match id {
+            1 => Ok(Currency::Eur(amound)),
+            _ => anyhow::bail!("not a valid currency id"),
+        }
+    }
 }
 
 impl std::fmt::Display for Currency {
@@ -88,6 +95,22 @@ pub struct Budget {
 }
 
 impl Budget {
+    pub fn new(
+        id: Id,
+        name: String,
+        description: Option<String>,
+        total_value: Currency,
+        timespan: Recouring,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            description,
+            total_value,
+            timespan,
+        }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -131,6 +154,28 @@ pub struct Transaction {
 }
 
 impl Transaction {
+    fn new(
+        id: Id,
+        amount: Currency,
+        title: String,
+        description: Option<String>,
+        source: Id,
+        destination: Id,
+        budget: Option<Id>,
+        date: DateTime,
+    ) -> Self {
+        Self {
+            id,
+            amount,
+            title,
+            description,
+            source,
+            destination,
+            budget,
+            date,
+        }
+    }
+
     fn connection_with_account(&self, account: Id) -> bool {
         if account == self.source {
             return true;

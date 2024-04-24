@@ -9,7 +9,7 @@ pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
 ) -> iced::Command<AppMessage> {
     iced::Command::perform(
-        async move { finance_manager.lock().await.get_budgets().await },
+        async move { finance_manager.lock().await.get_budgets().await.unwrap() },
         |budgets| AppMessage::SwitchView(View::BudgetOverview(BudgetOverview::new(budgets))),
     )
 }

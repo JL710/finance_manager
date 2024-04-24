@@ -108,8 +108,9 @@ impl CreateBudgetView {
                                     fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
                                     recouring_inputs.into(),
                                 )
-                                .await;
-                            finance_manager.lock().await.get_budgets().await
+                                .await
+                                .unwrap();
+                            finance_manager.lock().await.get_budgets().await.unwrap()
                         },
                         |budgets| {
                             AppMessage::SwitchView(View::BudgetOverview(

@@ -85,12 +85,14 @@ impl CreateAssetAccountDialog {
                                     .await
                                     .update_asset_account(some_id, name, note, iban, bic)
                                     .await
+                                    .unwrap()
                             } else {
                                 finance_manager
                                     .lock()
                                     .await
                                     .create_asset_account(name, note, iban, bic)
                                     .await
+                                    .unwrap()
                             };
 
                             super::view_account::ViewAccount::fetch(finance_manager, account.id())

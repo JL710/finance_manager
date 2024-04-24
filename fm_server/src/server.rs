@@ -10,14 +10,15 @@ use tokio::sync::Mutex;
 
 #[derive(Clone)]
 struct State {
-    finance_manager: Arc<Mutex<fm_core::ram_finance_manager::RamFinanceManager>>,
+    finance_manager: Arc<Mutex<fm_core::sqlite_finange_manager::SqliteFinanceManager>>,
 }
 
 #[tokio::main]
 pub async fn run() {
     let state = State {
         finance_manager: Arc::new(Mutex::new(
-            fm_core::ram_finance_manager::RamFinanceManager::new(),
+            fm_core::sqlite_finange_manager::SqliteFinanceManager::new("test.db".to_string())
+                .unwrap(),
         )),
     };
 

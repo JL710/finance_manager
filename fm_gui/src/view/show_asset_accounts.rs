@@ -11,14 +11,15 @@ pub fn switch_view_command(
 ) -> iced::Command<AppMessage> {
     iced::Command::perform(
         async move {
-            let accounts = finance_manager.lock().await.get_accounts().await;
+            let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
             let mut tuples = Vec::new();
             for account in accounts {
                 let amount = finance_manager
                     .lock()
                     .await
                     .get_account_sum(&account, chrono::Utc::now())
-                    .await;
+                    .await
+                    .unwrap();
                 tuples.push((account, amount));
             }
             tuples

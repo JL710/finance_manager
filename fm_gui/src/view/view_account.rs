@@ -57,17 +57,20 @@ impl ViewAccount {
             .await
             .get_account(account_id)
             .await
+            .unwrap()
             .unwrap();
         let account_sum = finance_manager
             .lock()
             .await
             .get_account_sum(&account, chrono::Utc::now())
-            .await;
+            .await
+            .unwrap();
         let transactions = finance_manager
             .lock()
             .await
             .get_transactions_of_account(account.id(), (None, Some(chrono::Utc::now())))
-            .await;
+            .await
+            .unwrap();
         let mut transaction_tuples = Vec::with_capacity(transactions.len());
         for transaction in transactions {
             let source = finance_manager
@@ -75,12 +78,14 @@ impl ViewAccount {
                 .await
                 .get_account(transaction.source().clone())
                 .await
+                .unwrap()
                 .unwrap();
             let destination = finance_manager
                 .lock()
                 .await
                 .get_account(transaction.destination().clone())
                 .await
+                .unwrap()
                 .unwrap();
             transaction_tuples.push((transaction, source, destination));
         }

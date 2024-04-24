@@ -1,5 +1,3 @@
-use fm_core;
-
 use iced::advanced::Application;
 
 mod table;
