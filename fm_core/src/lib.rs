@@ -39,6 +39,12 @@ impl Currency {
             _ => anyhow::bail!("not a valid currency id"),
         }
     }
+
+    pub fn negative(&self) -> Self {
+        match self {
+            Currency::Eur(x) => Currency::Eur(-*x)
+        }
+    }
 }
 
 impl std::fmt::Display for Currency {
