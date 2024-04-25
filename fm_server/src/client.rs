@@ -153,4 +153,31 @@ impl fm_core::FinanceManager for Client {
     async fn get_budget(&self, id: fm_core::Id) -> Result<Option<fm_core::Budget>> {
         client_post_macro!(self.url, "get_budget", id)
     }
+
+    async fn update_transaction(
+        &mut self,
+        id: fm_core::Id,
+        amount: fm_core::Currency,
+        title: String,
+        description: Option<String>,
+        source: fm_core::Or<fm_core::Id, String>,
+        destination: fm_core::Or<fm_core::Id, String>,
+        budget: Option<fm_core::Id>,
+        date: fm_core::DateTime,
+    ) -> Result<fm_core::Transaction> {
+        client_post_macro!(
+            self.url,
+            "update_transaction",
+            (
+                id,
+                amount,
+                title,
+                description,
+                source,
+                destination,
+                budget,
+                date
+            )
+        )
+    }
 }

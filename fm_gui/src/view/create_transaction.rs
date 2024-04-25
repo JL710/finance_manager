@@ -1,10 +1,12 @@
 use fm_core;
 
+use iced::futures::lock;
 use iced::widget;
 
 use super::super::utils;
 use super::super::{AppMessage, View};
 
+use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -66,6 +68,7 @@ pub enum Message {
 
 #[derive(Debug, Clone)]
 pub struct CreateTransactionView {
+    id: Option<fm_core::Id>,
     amount_input: String,
     title_input: String,
     description_input: String,
@@ -81,6 +84,7 @@ pub struct CreateTransactionView {
 impl CreateTransactionView {
     pub fn new(budgets: Vec<fm_core::Budget>, accounts: Vec<fm_core::account::Account>) -> Self {
         Self {
+            id: None,
             amount_input: String::new(),
             title_input: String::new(),
             description_input: String::new(),
@@ -102,6 +106,78 @@ impl CreateTransactionView {
             budget_input: None,
             date_input: String::new(),
         }
+    }
+
+    pub fn from_existing_transaction(
+        transaction: &fm_core::Transaction,
+        source: fm_core::account::Account,
+        destination: fm_core::account::Account,
+        budget: Option<fm_core::Budget>,
+        budgets: Vec<fm_core::Budget>,
+        accounts: Vec<fm_core::account::Account>,
+    ) -> Self {
+        fn string_convert(input: Option<&str>) -> String {
+            match input {
+                Some(x) => x.to_owned(),
+                _ => String::new(),
+            }
+        }
+
+        Self {
+            id: Some(*transaction.id()),
+            amount_input: transaction.amount().get_num().to_string(),
+            title_input: transaction.title().clone(),
+            description_input: string_convert(transaction.description()),
+            source_input: Some(SelectedAccount::Account(source)),
+            source_state: widget::combo_box::State::new(
+                accounts
+                    .iter()
+                    .map(|acc| SelectedAccount::Account(acc.clone()))
+                    .collect(),
+            ),
+            destination_input: Some(SelectedAccount::Account(destination)),
+            destination_state: widget::combo_box::State::new(
+                accounts
+                    .iter()
+                    .map(|acc| SelectedAccount::Account(acc.clone()))
+                    .collect(),
+            ),
+            budget_input: budget,
+            budget_state: widget::combo_box::State::new(budgets),
+            date_input: transaction.date().format("%d.%m.%Y").to_string(),
+        }
+    }
+
+    pub async fn fetch(
+        id: &fm_core::Id,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+    ) -> Result<Self> {
+        let locked_manager = finance_manager.lock().await;
+
+        let transaction = locked_manager.get_transaction(*id).await?.unwrap();
+        let source_account = locked_manager
+            .get_account(*transaction.source())
+            .await?
+            .unwrap();
+        let destination_account = locked_manager
+            .get_account(*transaction.destination())
+            .await?
+            .unwrap();
+        let budget = match transaction.budget() {
+            Some(x) => locked_manager.get_budget(*x).await?,
+            None => None,
+        };
+        let budgets = locked_manager.get_budgets().await?;
+        let accounts = locked_manager.get_accounts().await?;
+
+        Ok(Self::from_existing_transaction(
+            &transaction,
+            source_account,
+            destination_account,
+            budget,
+            budgets,
+            accounts,
+        ))
     }
 
     pub fn update(
@@ -230,6 +306,7 @@ impl CreateTransactionView {
         &self,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> iced::Command<AppMessage> {
+        let option_id = self.id.clone();
         let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());
         let title = self.title_input.clone();
         let description = if self.description_input.is_empty() {
@@ -251,19 +328,37 @@ impl CreateTransactionView {
         let date = utils::parse_to_datetime(&self.date_input).unwrap();
         iced::Command::perform(
             async move {
-                finance_manager
-                    .lock()
-                    .await
-                    .create_transaction(
-                        amount,
-                        title,
-                        description,
-                        source,
-                        destination,
-                        budget,
-                        date,
-                    )
-                    .await;
+                match option_id {
+                    Some(id) => finance_manager
+                        .lock()
+                        .await
+                        .update_transaction(
+                            id,
+                            amount,
+                            title,
+                            description,
+                            source,
+                            destination,
+                            budget,
+                            date,
+                        )
+                        .await
+                        .unwrap(),
+                    _ => finance_manager
+                        .lock()
+                        .await
+                        .create_transaction(
+                            amount,
+                            title,
+                            description,
+                            source,
+                            destination,
+                            budget,
+                            date,
+                        )
+                        .await
+                        .unwrap(),
+                }
             },
             |_| AppMessage::SwitchView(View::Empty),
         )

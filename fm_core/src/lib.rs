@@ -293,6 +293,18 @@ pub trait FinanceManager: Send + Clone + Sized {
         date: DateTime,
     ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
+    fn update_transaction(
+        &mut self,
+        id: Id,
+        amount: Currency,
+        title: String,
+        description: Option<String>,
+        source: Or<Id, String>, // id = Existing | String = New
+        destination: Or<Id, String>,
+        budget: Option<Id>,
+        date: DateTime,
+    ) -> impl futures::Future<Output = Result<Transaction>> + Send;
+
     fn create_book_checking_account(
         &mut self,
         name: String,

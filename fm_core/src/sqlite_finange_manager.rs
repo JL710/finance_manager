@@ -406,6 +406,56 @@ impl FinanceManager for SqliteFinanceManager {
 
         Ok(Some(result.try_into()?))
     }
+
+    async fn update_transaction(
+        &mut self,
+        id: Id,
+        amount: Currency,
+        title: String,
+        description: Option<String>,
+        source: Or<Id, String>,
+        destination: Or<Id, String>,
+        budget: Option<Id>,
+        date: DateTime,
+    ) -> Result<Transaction> {
+        let connection = self.connect()?;
+
+        let source_id = match source {
+            Or::One(id) => id,
+            Or::Two(name) => {
+                let account = self
+                    .create_book_checking_account(name, None, None, None)
+                    .await?;
+                account.id()
+            }
+        };
+
+        let destination_id = match destination {
+            Or::One(id) => id,
+            Or::Two(name) => {
+                let account = self
+                    .create_book_checking_account(name, None, None, None)
+                    .await?;
+                account.id()
+            }
+        };
+
+        connection.execute(
+            "UPDATE transaction SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, timestamp=?8 WHERE id=?9", 
+            (id, amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget, date.timestamp())
+        )?;
+
+        Ok(Transaction::new(
+            id,
+            amount,
+            title,
+            description,
+            source_id,
+            destination_id,
+            budget,
+            date,
+        ))
+    }
 }
 
 fn get_asset_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {

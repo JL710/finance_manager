@@ -252,4 +252,54 @@ impl FinanceManager for RamFinanceManager {
             None => Ok(None),
         }
     }
+
+    async fn update_transaction(
+        &mut self,
+        id: Id,
+        amount: Currency,
+        title: String,
+        description: Option<String>,
+        source: super::Or<Id, String>,
+        destination: super::Or<Id, String>,
+        budget: Option<Id>,
+        date: DateTime,
+    ) -> Result<Transaction> {
+        let source_id = match source {
+            super::Or::One(id) => id,
+            super::Or::Two(name) => {
+                let account = self
+                    .create_book_checking_account(name, None, None, None)
+                    .await?;
+                account.id()
+            }
+        };
+
+        let destination_id = match destination {
+            super::Or::One(id) => id,
+            super::Or::Two(name) => {
+                let account = self
+                    .create_book_checking_account(name, None, None, None)
+                    .await?;
+                account.id()
+            }
+        };
+
+        let new_transaction = Transaction::new(
+            id,
+            amount,
+            title,
+            description,
+            source_id,
+            destination_id,
+            budget,
+            date,
+        );
+        for transaction in &mut self.transactions {
+            if *transaction.id() == id {
+                *transaction = new_transaction.clone();
+                return Ok(new_transaction);
+            }
+        }
+        anyhow::bail!("Transaction does not exist");
+    }
 }
