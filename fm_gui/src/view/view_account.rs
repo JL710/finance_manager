@@ -1,5 +1,4 @@
 use super::super::{AppMessage, View};
-use fm_core;
 
 use iced::widget;
 use std::sync::Arc;
@@ -18,6 +17,7 @@ pub fn switch_view_command(
 #[derive(Debug, Clone)]
 pub enum Message {
     Edit,
+    ViewTransaction(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -95,7 +95,7 @@ impl ViewAccount {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::Edit => match &self.account {
@@ -107,6 +107,12 @@ impl ViewAccount {
                 }
                 fm_core::account::Account::BookCheckingAccount(acc) => todo!(),
             },
+            Message::ViewTransaction(id) => {
+                return (
+                    Some(View::Empty),
+                    super::view_transaction::switch_view_command(id, finance_manager),
+                )
+            }
         }
     }
 
@@ -122,7 +128,7 @@ impl ViewAccount {
 
 fn asset_account_view<'a>(
     account: &fm_core::account::AssetAccount,
-    transactions: &[(
+    transactions: &'a [(
         fm_core::Transaction,
         fm_core::account::Account,
         fm_core::account::Account,
@@ -139,7 +145,15 @@ fn asset_account_view<'a>(
 
     for transaction in transactions {
         transactions_table.push_row(vec![
-            widget::text(transaction.0.title().clone()).into(),
+            widget::button(transaction.0.title().as_str())
+                .on_press(Message::ViewTransaction(*transaction.0.id()))
+                .style(|theme: &iced::Theme, _status| widget::button::Style {
+                    background: None,
+                    text_color: theme.palette().text,
+                    ..Default::default()
+                })
+                .padding(0)
+                .into(),
             if *transaction.0.source() == account.id() {
                 widget::text(format!("-{}", transaction.0.amount()))
                     .style(|theme: &iced::Theme| widget::text::Style {

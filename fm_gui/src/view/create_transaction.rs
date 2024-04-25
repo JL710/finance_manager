@@ -27,6 +27,20 @@ pub fn switch_view_command(
     )
 }
 
+pub fn edit_switch_view_command(
+    id: fm_core::Id,
+    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+) -> iced::Command<AppMessage> {
+    iced::Command::perform(
+        async move {
+            CreateTransactionView::fetch(&id, finance_manager)
+                .await
+                .unwrap()
+        },
+        |x| AppMessage::SwitchView(View::CreateTransactionView(x)),
+    )
+}
+
 #[derive(Debug, Clone, PartialEq)]
 enum SelectedAccount {
     Account(fm_core::account::Account),
@@ -328,7 +342,7 @@ impl CreateTransactionView {
         let date = utils::parse_to_datetime(&self.date_input).unwrap();
         iced::Command::perform(
             async move {
-                match option_id {
+                let new_transaction = match option_id {
                     Some(id) => finance_manager
                         .lock()
                         .await
@@ -358,9 +372,15 @@ impl CreateTransactionView {
                         )
                         .await
                         .unwrap(),
-                }
+                };
+                super::view_transaction::TransactionView::fetch(
+                    *new_transaction.id(),
+                    finance_manager,
+                )
+                .await
+                .unwrap()
             },
-            |_| AppMessage::SwitchView(View::Empty),
+            |x| AppMessage::SwitchView(View::TransactionView(x)),
         )
     }
 }
