@@ -315,4 +315,6 @@ pub trait FinanceManager: Send + Clone + Sized {
         &self,
         budget: &Budget,
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
+
+    fn get_budget(&self, id: Id) -> impl futures::Future<Output = Result<Option<Budget>>> + Send;
 }

@@ -394,6 +394,18 @@ impl FinanceManager for SqliteFinanceManager {
 
         Ok(transactions)
     }
+
+    async fn get_budget(&self, id: Id) -> Result<Option<Budget>> {
+        let connection = self.connect()?;
+
+        let result: BudgetSignature = connection.query_row(
+            "SELECT id, name, descriptiion, value, currency, description, timespan_field1, timespan_field2 FROM budget WHERE id=?1", 
+            (&id,),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?))
+        )?;
+
+        Ok(Some(result.try_into()?))
+    }
 }
 
 fn get_asset_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {

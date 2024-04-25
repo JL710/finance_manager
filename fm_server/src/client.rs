@@ -149,4 +149,8 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<Vec<fm_core::Transaction>> {
         client_post_macro!(self.url, "get_transactions_of_budget", budget)
     }
+
+    async fn get_budget(&self, id: fm_core::Id) -> Result<Option<fm_core::Budget>> {
+        client_post_macro!(self.url, "get_budget", id)
+    }
 }

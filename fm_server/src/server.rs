@@ -55,6 +55,7 @@ pub async fn run() {
         )
         .route("/get_transaction", post(get_transaction))
         .route("/update_asset_account", post(update_asset_account))
+        .route("/get_budget", post(get_budget))
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
 
@@ -263,4 +264,18 @@ async fn update_asset_account(
         .await
         .unwrap();
     json!(account).into()
+}
+
+async fn get_budget(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
+) -> Json<Value> {
+    let budget = state
+        .finance_manager
+        .lock()
+        .await
+        .get_budget(data)
+        .await
+        .unwrap();
+    json!(budget).into()
 }

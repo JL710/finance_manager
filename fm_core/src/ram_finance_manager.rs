@@ -245,4 +245,11 @@ impl FinanceManager for RamFinanceManager {
 
         Ok(new_account)
     }
+
+    async fn get_budget(&self, id: Id) -> Result<Option<Budget>> {
+        match self.budgets.get(&id) {
+            Some(x) => Ok(Some(x.clone())),
+            None => Ok(None),
+        }
+    }
 }
