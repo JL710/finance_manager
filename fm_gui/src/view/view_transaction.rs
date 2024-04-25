@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 
 use iced::widget;
 
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 pub fn switch_view_command(
     id: fm_core::Id,
@@ -84,7 +84,10 @@ impl TransactionView {
 
     pub fn view(&self) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
         let mut column = widget::column![
-            widget::text(format!("Value: {}", self.transaction.amount())),
+            widget::row![
+                widget::text("Value: "),
+                utils::colored_currency_display(&self.transaction.amount())
+            ],
             widget::text(format!("Name: {}", self.transaction.title())),
             widget::text(format!("Source: {}", self.source)),
             widget::text(format!("Destination: {}", self.destination)),

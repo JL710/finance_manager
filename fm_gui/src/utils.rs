@@ -31,3 +31,21 @@ pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::
         .unwrap();
     Ok(chrono::Utc.from_utc_datetime(&date))
 }
+
+pub fn colored_currency_display<Message>(
+    value: &fm_core::Currency,
+) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
+    if value.get_num() < 0.0 {
+        iced::widget::text(format!("{}", value))
+            .style(|theme: &iced::Theme| iced::widget::text::Style {
+                color: Some(theme.palette().danger),
+            })
+            .into()
+    } else {
+        iced::widget::text(format!("+{}", value))
+            .style(|theme: &iced::Theme| iced::widget::text::Style {
+                color: Some(theme.palette().success),
+            })
+            .into()
+    }
+}

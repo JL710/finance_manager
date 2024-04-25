@@ -1,6 +1,6 @@
 use fm_core::{self, FinanceManager};
 
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use iced::widget;
 use std::sync::Arc;
@@ -93,7 +93,7 @@ impl AssetAccountOverview {
                     .padding(0)
                     .on_press(Message::AccountView(account.0.clone()))
                     .into(),
-                widget::Text::new(account.1.to_string()).into(),
+                utils::colored_currency_display(&account.1),
             ]);
         }
 

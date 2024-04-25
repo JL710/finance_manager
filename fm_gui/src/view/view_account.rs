@@ -1,4 +1,4 @@
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use iced::widget;
 use std::sync::Arc;
@@ -155,17 +155,9 @@ fn asset_account_view<'a>(
                 .padding(0)
                 .into(),
             if *transaction.0.source() == account.id() {
-                widget::text(format!("-{}", transaction.0.amount()))
-                    .style(|theme: &iced::Theme| widget::text::Style {
-                        color: Some(theme.palette().danger),
-                    })
-                    .into()
+                utils::colored_currency_display(&transaction.0.amount().negative())
             } else {
-                widget::text(format!("+{}", transaction.0.amount()))
-                    .style(|theme: &iced::Theme| widget::text::Style {
-                        color: Some(theme.palette().success),
-                    })
-                    .into()
+                utils::colored_currency_display(&transaction.0.amount())
             },
             widget::text(transaction.1.to_string()).into(),
             widget::text(transaction.2.to_string()).into(),
@@ -179,7 +171,10 @@ fn asset_account_view<'a>(
                 widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
                 widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
                 widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
-                widget::text(format!("Current Amount: {}", current_value)),
+                widget::row![
+                    widget::text("Current Amount: "),
+                    utils::colored_currency_display(current_value)
+                ],
             ],
             widget::Space::with_width(iced::Length::Fill),
             widget::button("Edit").on_press(Message::Edit),
