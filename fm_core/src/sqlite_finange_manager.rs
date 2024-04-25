@@ -441,8 +441,8 @@ impl FinanceManager for SqliteFinanceManager {
         };
 
         connection.execute(
-            "UPDATE transaction SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, timestamp=?8 WHERE id=?9", 
-            (id, amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget, date.timestamp())
+            "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, timestamp=?8 WHERE id=?9", 
+            (amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget, date.timestamp(), id)
         )?;
 
         Ok(Transaction::new(
