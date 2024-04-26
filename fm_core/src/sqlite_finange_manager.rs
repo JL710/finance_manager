@@ -396,15 +396,15 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_budgets(&self) -> Result<Vec<Budget>> {
         let connection = self.connect()?;
 
-        let resuls: Vec<std::result::Result<BudgetSignature, rusqlite::Error>> = connection.prepare(
+        let results: Vec<std::result::Result<BudgetSignature, rusqlite::Error>> = connection.prepare(
             "SELECT id, name, description, value, currency, timespan_type, timespan_field1, timespan_field2 FROM budget"
             )?.
-            query_map((), |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(6)?)))?
+            query_map((), |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?)))?
             .collect();
 
         let mut budgets = Vec::new();
 
-        for row in resuls {
+        for row in results {
             let row = row?;
             budgets.push(row.try_into()?);
         }
@@ -415,7 +415,7 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
 
         let result: BudgetSignature = connection.query_row(
-            "SELECT id, name, descriptiion, value, currency, description, timespan_field1, timespan_field2 FROM budget WHERE id=?1", 
+            "SELECT id, name, description, value, currency, timespan_type, timespan_field1, timespan_field2 FROM budget WHERE id=?1", 
             (&id,),
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?))
         )?;

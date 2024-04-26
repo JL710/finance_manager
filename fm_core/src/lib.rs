@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::{Datelike, TimeZone};
 
 pub mod account;
 pub mod ram_finance_manager;
@@ -338,4 +339,48 @@ pub trait FinanceManager: Send + Clone + Sized {
         id: Id,
         timespan: Timespan,
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
+
+    fn get_current_budget_value(
+        &self,
+        budget: &Budget,
+    ) -> impl futures::Future<Output = Result<Currency>> + Send {
+        let (start, end) = match budget.timespan() {
+            Recouring::Days(x, y) => todo!(),
+            Recouring::DayInMonth(day) => todo!(),
+            Recouring::Yearly(month, day) => {
+                let current_year = chrono::Utc::now().year();
+                let in_current_year = chrono::Utc
+                    .with_ymd_and_hms(current_year, *month as u32, *day as u32, 0, 0, 0)
+                    .unwrap();
+
+                if in_current_year > chrono::Utc::now() {
+                    (
+                        chrono::Utc
+                            .with_ymd_and_hms(current_year - 1, *month as u32, *day as u32, 0, 0, 0)
+                            .unwrap(),
+                        in_current_year,
+                    )
+                } else {
+                    (
+                        in_current_year,
+                        chrono::Utc
+                            .with_ymd_and_hms(current_year + 1, *month as u32, *day as u32, 0, 0, 0)
+                            .unwrap(),
+                    )
+                }
+            }
+        };
+
+        let transaction_future =
+            self.get_transactions_of_budget(*budget.id(), (Some(start), Some(end)));
+
+        async {
+            let transactions = transaction_future.await?;
+            let mut sum = Currency::Eur(0.0);
+            for transaction in transactions {
+                sum += transaction.amount();
+            }
+            Ok(sum)
+        }
+    }
 }

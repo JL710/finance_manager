@@ -110,13 +110,11 @@ impl CreateBudgetView {
                                 )
                                 .await
                                 .unwrap();
-                            finance_manager.lock().await.get_budgets().await.unwrap()
+                            super::budget_overview::BudgetOverview::fetch(finance_manager)
+                                .await
+                                .unwrap()
                         },
-                        |budgets| {
-                            AppMessage::SwitchView(View::BudgetOverview(
-                                super::budget_overview::BudgetOverview::new(budgets),
-                            ))
-                        },
+                        |x| AppMessage::SwitchView(View::BudgetOverview(x)),
                     ),
                 );
             }
