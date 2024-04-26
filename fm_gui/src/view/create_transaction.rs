@@ -1,6 +1,5 @@
 use fm_core;
 
-use iced::futures::lock;
 use iced::widget;
 
 use super::super::utils;

@@ -20,6 +20,7 @@ pub fn switch_view_command(
 #[derive(Debug, Clone)]
 pub enum Message {
     Edit,
+    Delete,
 }
 
 #[derive(Debug, Clone)]
@@ -79,6 +80,23 @@ impl TransactionView {
                     finance_manager,
                 ),
             ),
+            Message::Delete => {
+                let id = *self.transaction.id();
+                (
+                    Some(View::Empty),
+                    iced::Command::perform(
+                        async move {
+                            finance_manager
+                                .lock()
+                                .await
+                                .delete_transaction(id)
+                                .await
+                                .unwrap();
+                        },
+                        |_| AppMessage::SwitchView(View::Empty),
+                    ),
+                )
+            }
         }
     }
 
@@ -109,7 +127,11 @@ impl TransactionView {
         widget::row![
             column,
             widget::Space::with_width(iced::Length::Fill),
-            widget::button("Edit").on_press(Message::Edit)
+            widget::column![
+                widget::button("Edit").on_press(Message::Edit),
+                widget::button("Delete").on_press(Message::Delete)
+            ]
+            .spacing(10)
         ]
         .into()
     }

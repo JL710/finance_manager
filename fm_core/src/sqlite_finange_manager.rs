@@ -189,7 +189,6 @@ impl FinanceManager for SqliteFinanceManager {
             let result = result?;
             sum -= Currency::from_currency_id(result.1, result.0)?;
         }
-
         // get positive number
         let positive_result: Vec<std::result::Result<(f64, i32), rusqlite::Error>> = connection
             .prepare(
@@ -456,6 +455,12 @@ impl FinanceManager for SqliteFinanceManager {
             date,
         ))
     }
+
+    async fn delete_transaction(&mut self, id: Id) -> Result<()> {
+        let connection = self.connect()?;
+        connection.execute("DELETE FROM transactions WHERE id=?1", (id,))?;
+        Ok(())
+    }
 }
 
 fn get_asset_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {
@@ -499,7 +504,7 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )?;
         return Ok(account::BookCheckingAccount::new(
-            id,
+            account_id,
             book_checking_account_result.0,
             book_checking_account_result.1,
             book_checking_account_result.2,

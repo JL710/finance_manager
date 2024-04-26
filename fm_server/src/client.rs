@@ -180,4 +180,8 @@ impl fm_core::FinanceManager for Client {
             )
         )
     }
+
+    async fn delete_transaction(&mut self, id: fm_core::Id) -> Result<()> {
+        client_post_macro!(self.url, "delete_transaction", id)
+    }
 }

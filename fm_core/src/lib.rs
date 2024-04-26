@@ -42,7 +42,7 @@ impl Currency {
 
     pub fn negative(&self) -> Self {
         match self {
-            Currency::Eur(x) => Currency::Eur(-*x)
+            Currency::Eur(x) => Currency::Eur(-*x),
         }
     }
 }
@@ -240,7 +240,7 @@ pub enum Recouring {
 
 pub type Timespan = (Option<DateTime>, Option<DateTime>);
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Or<T, F> {
     One(T),
     Two(F),
@@ -335,4 +335,6 @@ pub trait FinanceManager: Send + Clone + Sized {
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
 
     fn get_budget(&self, id: Id) -> impl futures::Future<Output = Result<Option<Budget>>> + Send;
+
+    fn delete_transaction(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + Send;
 }

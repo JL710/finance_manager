@@ -302,4 +302,19 @@ impl FinanceManager for RamFinanceManager {
         }
         anyhow::bail!("Transaction does not exist");
     }
+
+    async fn delete_transaction(&mut self, id: Id) -> Result<()> {
+        let mut found_index = -1;
+        for (index, transaction) in self.transactions.iter().enumerate() {
+            if *transaction.id() == id {
+                found_index = index as isize;
+                break;
+            }
+        }
+        if found_index == -1 {
+            anyhow::bail!("Transaction does not exist");
+        }
+        self.transactions.remove(found_index as usize);
+        Ok(())
+    }
 }
