@@ -176,10 +176,7 @@ impl Application for App {
                 iced::widget::horizontal_rule(5),
                 iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToCreateTransActionView),
-                iced::widget::button("Create Transfer")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchView(View::Empty))
+                    .on_press(AppMessage::SwitchToCreateTransActionView)
             ]
             .align_items(iced::Alignment::Start)
             .spacing(10)
