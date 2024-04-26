@@ -340,10 +340,10 @@ pub trait FinanceManager: Send + Clone + Sized {
         timespan: Timespan,
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
 
-    fn get_current_budget_value(
+    fn get_current_budget_transactions(
         &self,
         budget: &Budget,
-    ) -> impl futures::Future<Output = Result<Currency>> + Send {
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send {
         let (start, end) = match budget.timespan() {
             Recouring::Days(x, y) => todo!(),
             Recouring::DayInMonth(day) => todo!(),
@@ -371,11 +371,16 @@ pub trait FinanceManager: Send + Clone + Sized {
             }
         };
 
-        let transaction_future =
-            self.get_transactions_of_budget(*budget.id(), (Some(start), Some(end)));
+        self.get_transactions_of_budget(*budget.id(), (Some(start), Some(end)))
+    }
 
+    fn get_current_budget_value(
+        &self,
+        budget: &Budget,
+    ) -> impl futures::Future<Output = Result<Currency>> + Send {
+        let transactions_future = self.get_current_budget_transactions(budget);
         async {
-            let transactions = transaction_future.await?;
+            let transactions = transactions_future.await?;
             let mut sum = Currency::Eur(0.0);
             for transaction in transactions {
                 sum += transaction.amount();
