@@ -81,13 +81,13 @@ async fn get_budgets(axum::extract::State(state): axum::extract::State<State>) -
 
 async fn get_transactions_of_budget(
     axum::extract::State(state): axum::extract::State<State>,
-    axum::extract::Json(budget): axum::extract::Json<fm_core::Budget>,
+    axum::extract::Json(data): axum::extract::Json<(fm_core::Id, fm_core::Timespan)>,
 ) -> Json<Value> {
     let transactions = state
         .finance_manager
         .lock()
         .await
-        .get_transactions_of_budget(&budget)
+        .get_transactions_of_budget(data.0, data.1)
         .await
         .unwrap();
     json!(transactions).into()

@@ -162,22 +162,6 @@ impl FinanceManager for RamFinanceManager {
             .collect::<Vec<Budget>>())
     }
 
-    async fn get_transactions_of_budget(&self, budget: &Budget) -> Result<Vec<Transaction>> {
-        Ok(self
-            .transactions
-            .iter()
-            .filter(|x| {
-                if let Some(b) = x.budget {
-                    if b == budget.id {
-                        return true;
-                    }
-                }
-                false
-            })
-            .cloned()
-            .collect())
-    }
-
     async fn create_transaction(
         &mut self,
         amount: Currency,
@@ -316,5 +300,37 @@ impl FinanceManager for RamFinanceManager {
         }
         self.transactions.remove(found_index as usize);
         Ok(())
+    }
+
+    async fn get_transactions_of_budget(
+        &self,
+        id: Id,
+        timespan: Timespan,
+    ) -> Result<Vec<Transaction>> {
+        Ok(self
+            .transactions
+            .iter()
+            .filter(|transaction| {
+                if let Some(budget_id) = transaction.budget {
+                    if budget_id != id {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+                if let Some(begin) = timespan.0 {
+                    if transaction.date < begin {
+                        return false;
+                    }
+                }
+                if let Some(end) = timespan.1 {
+                    if transaction.date > end {
+                        return false;
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect())
     }
 }

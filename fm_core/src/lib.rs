@@ -329,12 +329,13 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     fn get_budgets(&self) -> impl futures::Future<Output = Result<Vec<Budget>>> + Send;
 
-    fn get_transactions_of_budget(
-        &self,
-        budget: &Budget,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
-
     fn get_budget(&self, id: Id) -> impl futures::Future<Output = Result<Option<Budget>>> + Send;
 
     fn delete_transaction(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + Send;
+
+    fn get_transactions_of_budget(
+        &self,
+        id: Id,
+        timespan: Timespan,
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
 }

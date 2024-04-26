@@ -411,25 +411,6 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(budgets)
     }
 
-    async fn get_transactions_of_budget(&self, budget: &Budget) -> Result<Vec<Transaction>> {
-        let connection = self.connect()?;
-
-        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = connection.prepare(
-            "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1"
-            )?
-            .query_map((budget.id(),), |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?, row.get(8)?)))?
-            .collect();
-
-        let mut transactions = Vec::new();
-
-        for row in result {
-            let row = row?;
-            transactions.push(row.try_into()?);
-        }
-
-        Ok(transactions)
-    }
-
     async fn get_budget(&self, id: Id) -> Result<Option<Budget>> {
         let connection = self.connect()?;
 
@@ -496,6 +477,62 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
         connection.execute("DELETE FROM transactions WHERE id=?1", (id,))?;
         Ok(())
+    }
+
+    async fn get_transactions_of_budget(
+        &self,
+        id: Id,
+        timespan: Timespan,
+    ) -> Result<Vec<Transaction>> {
+        let connection = self.connect()?;
+
+        macro_rules! transaction_query {
+            ($sql:expr, $params:expr) => {
+                connection
+                    .prepare($sql)?
+                    .query_map($params, |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                            row.get(4)?,
+                            row.get(5)?,
+                            row.get(6)?,
+                            row.get(7)?,
+                            row.get(8)?,
+                        ))
+                    })?
+                    .collect()
+            };
+        }
+
+        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
+            (None, None) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1", 
+                (id,)
+            ),
+            (Some(start), None) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1 AND timestamp >= ?2", 
+                (id, start.timestamp())
+            ),
+            (None, Some(end)) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1 AND timestamp <= ?2", 
+                (id, end.timestamp())
+            ),
+            (Some(start), Some(end)) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1 AND timestamp >= ?2 AND timestamp <= ?3", 
+                (id, start.timestamp(), end.timestamp())
+            )
+        };
+
+        let mut transactions: Vec<Transaction> = Vec::new();
+
+        for row in result {
+            transactions.push(row?.try_into()?);
+        }
+
+        Ok(transactions)
     }
 }
 
