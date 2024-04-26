@@ -54,22 +54,18 @@ impl BudgetOverview {
     }
 }
 
-fn generate_budget_entry(
-    budget: &fm_core::Budget,
-) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
-    widget::container(widget::text(budget.name()))
-        .style(utils::entry_row_container_style_weak)
-        .into()
-}
-
 fn generate_budget_list(
     budgets: &Vec<fm_core::Budget>,
 ) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
-    let mut column = widget::Column::new();
+    let mut budget_table = super::super::table::Table::new(2)
+        .set_headers(vec!["Name".to_string(), "Total".to_string()]);
 
     for budget in budgets {
-        column = column.push(generate_budget_entry(budget));
+        budget_table.push_row(vec![
+            widget::text(budget.name()).into(),
+            widget::text(format!("{}", budget.total_value())).into(),
+        ]);
     }
 
-    widget::scrollable(column).into()
+    budget_table.convert_to_view()
 }
