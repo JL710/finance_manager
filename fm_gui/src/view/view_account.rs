@@ -147,11 +147,7 @@ fn asset_account_view<'a>(
         transactions_table.push_row(vec![
             widget::button(transaction.0.title().as_str())
                 .on_press(Message::ViewTransaction(*transaction.0.id()))
-                .style(|theme: &iced::Theme, _status| widget::button::Style {
-                    background: None,
-                    text_color: theme.palette().text,
-                    ..Default::default()
-                })
+                .style(utils::button_link_style)
                 .padding(0)
                 .into(),
             if *transaction.0.source() == account.id() {

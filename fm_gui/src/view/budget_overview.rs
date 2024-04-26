@@ -18,6 +18,7 @@ pub fn switch_view_command(
 #[derive(Debug, Clone)]
 pub enum Message {
     CreateBudget,
+    ViewBudget(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +50,7 @@ impl BudgetOverview {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::CreateBudget => (
@@ -57,6 +58,10 @@ impl BudgetOverview {
                     super::create_budget::CreateBudgetView::new(),
                 )),
                 iced::Command::none(),
+            ),
+            Message::ViewBudget(id) => (
+                Some(View::Empty),
+                super::view_budget::switch_view_command(id, _finance_manager),
             ),
         }
     }
@@ -82,7 +87,11 @@ fn generate_budget_list(
 
     for budget in budgets {
         budget_table.push_row(vec![
-            widget::text(budget.0.name()).into(),
+            widget::button(budget.0.name())
+                .on_press(Message::ViewBudget(*budget.0.id()))
+                .padding(0)
+                .style(utils::button_link_style)
+                .into(),
             widget::text(format!("{}", &budget.1)).into(),
             widget::text(format!("{}", budget.0.total_value())).into(),
         ]);

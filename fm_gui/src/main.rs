@@ -20,6 +20,7 @@ pub enum AppMessage {
     AssetAccountsMessage(view::show_asset_accounts::Message),
     ViewAccountMessage(view::view_account::Message),
     TransactionViewMessage(view::view_transaction::Message),
+    ViewBudgetMessage(view::view_budget::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -32,6 +33,7 @@ enum View {
     AssetAccounts(view::show_asset_accounts::AssetAccountOverview),
     ViewAccount(view::view_account::ViewAccount),
     TransactionView(view::view_transaction::TransactionView),
+    ViewBudgetView(view::view_budget::BudgetView),
 }
 
 pub struct App {
@@ -157,8 +159,17 @@ impl Application for App {
                 }
                 return cmd;
             }
-            _ => {
-                todo!()
+            AppMessage::ViewBudgetMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::ViewBudgetView(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
             }
         }
         iced::Command::none()
@@ -196,6 +207,7 @@ impl Application for App {
                 View::ViewAccount(ref view) => view.view().map(AppMessage::ViewAccountMessage),
                 View::TransactionView(ref view) =>
                     view.view().map(AppMessage::TransactionViewMessage),
+                View::ViewBudgetView(ref view) => view.view().map(AppMessage::ViewBudgetMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]

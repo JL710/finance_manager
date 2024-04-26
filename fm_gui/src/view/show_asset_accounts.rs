@@ -85,11 +85,7 @@ impl AssetAccountOverview {
         for account in &self.accounts {
             account_table.push_row(vec![
                 widget::button(account.0.name())
-                    .style(|theme: &iced::Theme, _status| widget::button::Style {
-                        background: None,
-                        text_color: theme.palette().text,
-                        ..Default::default()
-                    })
+                    .style(utils::button_link_style)
                     .padding(0)
                     .on_press(Message::AccountView(account.0.clone()))
                     .into(),

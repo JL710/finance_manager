@@ -4,4 +4,5 @@ pub mod create_budget;
 pub mod create_transaction;
 pub mod show_asset_accounts;
 pub mod view_account;
+pub mod view_budget;
 pub mod view_transaction;

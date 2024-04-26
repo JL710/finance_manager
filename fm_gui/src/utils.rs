@@ -49,3 +49,14 @@ pub fn colored_currency_display<Message>(
             .into()
     }
 }
+
+pub fn button_link_style(
+    theme: &iced::Theme,
+    _status: iced::widget::button::Status,
+) -> iced::widget::button::Style {
+    iced::widget::button::Style {
+        background: None,
+        text_color: theme.palette().text,
+        ..Default::default()
+    }
+}
