@@ -534,6 +534,40 @@ impl FinanceManager for SqliteFinanceManager {
 
         Ok(transactions)
     }
+
+    async fn update_budget(
+            &mut self,
+            id: Id,
+            name: String,
+            description: Option<String>,
+            total_value: Currency,
+            timespan: Recouring,
+        ) -> Result<Budget> {
+            let connection = self.connect()?;
+            let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(timespan.clone());
+
+            connection.execute(
+                "UPDATE budget SET name=?1, description=?2, value=?3, currency=?4, timespan_type=?5, timespan_field1=?6, timespan_field2=?7 WHERE id=?8",
+                (
+                    &name,
+                    &description,
+                    total_value.get_num(),
+                    total_value.get_currency_id(),
+                    timespan_tuple.0,
+                    timespan_tuple.1,
+                    timespan_tuple.2,
+                    id,
+                ),
+            )?;
+            Ok(Budget::new(
+                id,
+                name,
+                description,
+                total_value,
+                timespan,
+            ))
+        
+    }
 }
 
 fn get_asset_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {

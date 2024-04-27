@@ -341,6 +341,15 @@ pub trait FinanceManager: Send + Clone + Sized {
         timespan: Recouring,
     ) -> impl futures::Future<Output = Result<Budget>> + Send;
 
+    fn update_budget(
+        &mut self,
+        id: Id,
+        name: String,
+        description: Option<String>,
+        total_value: Currency,
+        timespan: Recouring,
+    ) -> impl futures::Future<Output = Result<Budget>> + Send;
+
     fn get_budgets(&self) -> impl futures::Future<Output = Result<Vec<Budget>>> + Send;
 
     fn get_budget(&self, id: Id) -> impl futures::Future<Output = Result<Option<Budget>>> + Send;

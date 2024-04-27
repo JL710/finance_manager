@@ -185,4 +185,19 @@ impl fm_core::FinanceManager for Client {
     async fn delete_transaction(&mut self, id: fm_core::Id) -> Result<()> {
         client_post_macro!(self.url, "delete_transaction", id)
     }
+
+    async fn update_budget(
+        &mut self,
+        id: fm_core::Id,
+        name: String,
+        description: Option<String>,
+        total_value: fm_core::Currency,
+        timespan: fm_core::Recouring,
+    ) -> Result<fm_core::Budget> {
+        client_post_macro!(
+            self.url,
+            "update_budget",
+            (id, name, description, total_value, timespan)
+        )
+    }
 }

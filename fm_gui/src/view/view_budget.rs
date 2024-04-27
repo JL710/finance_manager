@@ -17,6 +17,7 @@ pub fn switch_view_command(
 pub enum Message {
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
+    Edit,
 }
 
 #[derive(Debug, Clone)]
@@ -40,6 +41,7 @@ impl BudgetView {
             fm_core::account::Account,
         )>,
     ) -> Self {
+        println!("{:?}", transactions);
         Self {
             budget,
             current_value,
@@ -91,6 +93,10 @@ impl BudgetView {
                 Some(View::Empty),
                 super::view_transaction::switch_view_command(id, finance_manager),
             ),
+            Message::Edit => (
+                Some(View::Empty),
+                super::create_budget::switch_view_command_edit(*self.budget.id(), finance_manager),
+            ),
         }
     }
 
@@ -98,11 +104,7 @@ impl BudgetView {
         let mut column = widget::column![
             widget::text(format!("Name: {}", self.budget.name())),
             widget::text(format!("Current Value: {}", self.current_value)),
-            widget::text(format!("Recouring: {}", self.budget.timespan())),
-            widget::progress_bar(
-                0.0..=self.budget.total_value().get_num() as f32,
-                self.current_value.get_num() as f32
-            )
+            widget::text(format!("Recouring: {}", self.budget.timespan()))
         ]
         .spacing(10);
 
@@ -110,13 +112,24 @@ impl BudgetView {
             column = column.push(widget::text(format!("Description: {}", content)));
         }
 
-        column = column.push(utils::transaction_table(
-            &self.transactions,
-            |_| None,
-            Message::ViewTransaction,
-            Message::ViewAccount,
-        ));
-
-        column.into()
+        widget::column![
+            widget::row![
+                column,
+                widget::Space::with_width(iced::Length::Fill),
+                widget::button("Edit").on_press(Message::Edit)
+            ],
+            widget::progress_bar(
+                0.0..=self.budget.total_value().get_num() as f32,
+                self.current_value.get_num() as f32
+            ),
+            utils::transaction_table(
+                &self.transactions,
+                |_| None,
+                Message::ViewTransaction,
+                Message::ViewAccount,
+            )
+        ]
+        .spacing(10)
+        .into()
     }
 }

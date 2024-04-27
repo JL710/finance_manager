@@ -323,4 +323,24 @@ impl FinanceManager for RamFinanceManager {
             .cloned()
             .collect())
     }
+
+    async fn update_budget(
+        &mut self,
+        id: Id,
+        name: String,
+        description: Option<String>,
+        total_value: Currency,
+        timespan: Recouring,
+    ) -> Result<Budget> {
+        let new_budget = Budget {
+            id,
+            name,
+            description,
+            total_value,
+            timespan,
+        };
+        let old_budget = self.budgets.get_mut(&id).unwrap();
+        *old_budget = new_budget.clone();
+        Ok(new_budget)
+    }
 }

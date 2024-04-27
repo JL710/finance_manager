@@ -3,8 +3,19 @@ use super::super::{AppMessage, View};
 use fm_core;
 use iced::widget;
 
+use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+pub fn switch_view_command_edit(
+    id: fm_core::Id,
+    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+) -> iced::Command<AppMessage> {
+    iced::Command::perform(
+        async move { CreateBudgetView::fetch(id, finance_manager).await.unwrap() },
+        |x| AppMessage::SwitchView(View::CreateBudgetView(x)),
+    )
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -53,6 +64,7 @@ impl std::fmt::Display for Recourung {
 
 #[derive(Debug, Clone)]
 pub struct CreateBudgetView {
+    id: Option<fm_core::Id>,
     name_input: String,
     description_input: String,
     value_input: String,
@@ -60,15 +72,67 @@ pub struct CreateBudgetView {
     recouring_state: Option<String>,
 }
 
-impl CreateBudgetView {
-    pub fn new() -> Self {
+impl Default for CreateBudgetView {
+    fn default() -> Self {
         Self {
+            id: None,
             name_input: String::new(),
             description_input: String::new(),
             value_input: String::new(),
             recouring_inputs: Recourung::Days(String::new(), String::new()),
             recouring_state: None,
         }
+    }
+}
+
+impl CreateBudgetView {
+    pub fn new(
+        id: Option<fm_core::Id>,
+        name_input: String,
+        description_input: String,
+        value_input: String,
+        recouring_inputs: Recourung,
+        recouring_state: Option<String>,
+    ) -> Self {
+        Self {
+            id,
+            name_input,
+            description_input,
+            value_input,
+            recouring_inputs,
+            recouring_state,
+        }
+    }
+
+    pub fn from_budget(budget: fm_core::Budget) -> Self {
+        Self {
+            id: Some(*budget.id()),
+            name_input: budget.name().to_string(),
+            description_input: budget.description().unwrap_or_default().to_string(),
+            value_input: budget.total_value().to_num_string(),
+            recouring_inputs: match budget.timespan() {
+                fm_core::Recouring::Days(start, days) => {
+                    Recourung::Days(start.format("%d.%m.%Y").to_string(), days.to_string())
+                }
+                fm_core::Recouring::DayInMonth(day) => Recourung::DayInMonth(day.to_string()),
+                fm_core::Recouring::Yearly(month, day) => {
+                    Recourung::Yearly(month.to_string(), day.to_string())
+                }
+            },
+            recouring_state: match budget.timespan() {
+                fm_core::Recouring::Days(_, _) => Some("Days".to_string()),
+                fm_core::Recouring::DayInMonth(_) => Some("Day in month".to_string()),
+                fm_core::Recouring::Yearly(_, _) => Some("Yearly".to_string()),
+            },
+        }
+    }
+
+    pub async fn fetch(
+        id: fm_core::Id,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+    ) -> Result<Self> {
+        let budget = finance_manager.lock().await.get_budget(id).await?.unwrap();
+        Ok(Self::from_budget(budget))
     }
 
     pub fn update(
@@ -87,6 +151,7 @@ impl CreateBudgetView {
                 self.value_input = value;
             }
             Message::Submit => {
+                let option_id = self.id;
                 let name_input = self.name_input.clone();
                 let description_input = self.description_input.clone();
                 let value_input = self.value_input.clone();
@@ -95,26 +160,44 @@ impl CreateBudgetView {
                     Some(View::Empty),
                     iced::Command::perform(
                         async move {
-                            finance_manager
-                                .lock()
-                                .await
-                                .create_budget(
-                                    name_input,
-                                    if description_input.is_empty() {
-                                        None
-                                    } else {
-                                        Some(description_input)
-                                    },
-                                    fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
-                                    recouring_inputs.into(),
-                                )
-                                .await
-                                .unwrap();
-                            super::budget_overview::BudgetOverview::fetch(finance_manager)
+                            let budget = match option_id {
+                                Some(id) => finance_manager
+                                    .lock()
+                                    .await
+                                    .update_budget(
+                                        id,
+                                        name_input,
+                                        if description_input.is_empty() {
+                                            None
+                                        } else {
+                                            Some(description_input)
+                                        },
+                                        fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                        recouring_inputs.into(),
+                                    )
+                                    .await
+                                    .unwrap(),
+                                None => finance_manager
+                                    .lock()
+                                    .await
+                                    .create_budget(
+                                        name_input,
+                                        if description_input.is_empty() {
+                                            None
+                                        } else {
+                                            Some(description_input)
+                                        },
+                                        fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                        recouring_inputs.into(),
+                                    )
+                                    .await
+                                    .unwrap(),
+                            };
+                            super::view_budget::BudgetView::fetch(*budget.id(), finance_manager)
                                 .await
                                 .unwrap()
                         },
-                        |x| AppMessage::SwitchView(View::BudgetOverview(x)),
+                        |x| AppMessage::SwitchView(View::ViewBudgetView(x)),
                     ),
                 );
             }
