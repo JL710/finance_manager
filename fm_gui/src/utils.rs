@@ -66,6 +66,10 @@ pub fn button_link_style(
 ///
 /// # Arguments
 /// - `transactions`: A slice of tuples of transactions and their source and destination accounts
+/// - `amount_color`: A function that takes a transaction and returns a boolean that indicates how the amount should be colored
+///     - `true`: The amount should be colored in a positive color
+///     - `false`: The amount should be colored in a negative color
+///     - `None`: The amount should not be colored
 /// - `view_transaction`: A function that takes a transaction id and returns a message that will be produced when the transaction is clicked
 /// - `view_account`: A function that takes an account id and returns a message that will be produced when the account is clicked
 pub fn transaction_table<'a, Message: 'a + Clone>(
@@ -74,6 +78,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
         fm_core::account::Account,
         fm_core::account::Account,
     )],
+    amount_color: impl Fn(&fm_core::Transaction) -> Option<bool>,
     view_transaction: impl Fn(fm_core::Id) -> Message,
     view_account: impl Fn(fm_core::Id) -> Message,
 ) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
@@ -92,7 +97,11 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
                 .padding(0)
                 .into(),
             widget::text(transaction.0.date().format("%d.%m.%Y").to_string()).into(),
-            widget::text(transaction.0.amount().to_string()).into(),
+            match amount_color(&transaction.0) {
+                Some(true) => colored_currency_display(&transaction.0.amount()),
+                Some(false) => colored_currency_display(&transaction.0.amount().negative()),
+                None => widget::text(transaction.0.amount().to_string()).into(),
+            },
             widget::button(widget::text(transaction.1.to_string()))
                 .on_press(view_account(transaction.1.id()))
                 .style(button_link_style)

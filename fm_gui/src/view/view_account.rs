@@ -18,6 +18,7 @@ pub fn switch_view_command(
 pub enum Message {
     Edit,
     ViewTransaction(fm_core::Id),
+    ViewAccount(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +114,9 @@ impl ViewAccount {
                     super::view_transaction::switch_view_command(id, finance_manager),
                 )
             }
+            Message::ViewAccount(id) => {
+                (Some(View::Empty), switch_view_command(id, finance_manager))
+            }
         }
     }
 
@@ -135,31 +139,6 @@ fn asset_account_view<'a>(
     )],
     current_value: &fm_core::Currency,
 ) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
-    let mut transactions_table =
-        super::super::table::Table::<'_, Message>::new(4).set_headers(vec![
-            "Title".to_string(),
-            "Amount".to_string(),
-            "Source".to_string(),
-            "Destination".to_string(),
-        ]);
-
-    for transaction in transactions {
-        transactions_table.push_row(vec![
-            widget::button(transaction.0.title().as_str())
-                .on_press(Message::ViewTransaction(*transaction.0.id()))
-                .style(utils::button_link_style)
-                .padding(0)
-                .into(),
-            if *transaction.0.source() == account.id() {
-                utils::colored_currency_display(&transaction.0.amount().negative())
-            } else {
-                utils::colored_currency_display(&transaction.0.amount())
-            },
-            widget::text(transaction.1.to_string()).into(),
-            widget::text(transaction.2.to_string()).into(),
-        ])
-    }
-
     widget::column![
         widget::row![
             widget::column![
@@ -176,7 +155,12 @@ fn asset_account_view<'a>(
             widget::button("Edit").on_press(Message::Edit),
         ],
         widget::horizontal_rule(10),
-        transactions_table.convert_to_view()
+        utils::transaction_table(
+            transactions,
+            |transaction| Some(*transaction.destination() == account.id()),
+            Message::ViewTransaction,
+            Message::ViewAccount,
+        )
     ]
     .into()
 }

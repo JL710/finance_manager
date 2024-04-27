@@ -107,6 +107,7 @@ impl BudgetView {
 
         column = column.push(utils::transaction_table(
             &self.transactions,
+            |_| None,
             Message::ViewTransaction,
             Message::ViewAccount,
         ));
