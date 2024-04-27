@@ -239,6 +239,16 @@ pub enum Recouring {
     Yearly(u8, u16),       // month and day
 }
 
+impl std::fmt::Display for Recouring {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Yearly(month, day) => write!(f, "Yearly on {}.{}", day, month),
+            Self::DayInMonth(day) => write!(f, "Day in month {}", day),
+            Self::Days(date, days) => write!(f, "Every {} days starting from {}", days, date),
+        }
+    }
+}
+
 pub type Timespan = (Option<DateTime>, Option<DateTime>);
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
