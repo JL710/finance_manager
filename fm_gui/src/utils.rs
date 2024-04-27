@@ -1,26 +1,27 @@
 use chrono::TimeZone;
+use iced::widget;
 
 pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,
     content: &str,
     message: impl Fn(String) -> Message + 'a,
 ) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
-    iced::widget::row![
-        iced::widget::text(name),
-        iced::widget::text_input(name, content).on_input(message)
+    widget::row![
+        widget::text(name),
+        widget::text_input(name, content).on_input(message)
     ]
     .spacing(10)
     .into()
 }
 
-pub fn entry_row_container_style_weak(theme: &iced::Theme) -> iced::widget::container::Style {
-    iced::widget::container::Style::default().with_background(iced::Background::Color(
+pub fn entry_row_container_style_weak(theme: &iced::Theme) -> widget::container::Style {
+    widget::container::Style::default().with_background(iced::Background::Color(
         theme.extended_palette().background.weak.color,
     ))
 }
 
-pub fn entry_row_container_style_strong(theme: &iced::Theme) -> iced::widget::container::Style {
-    iced::widget::container::Style::default().with_background(iced::Background::Color(
+pub fn entry_row_container_style_strong(theme: &iced::Theme) -> widget::container::Style {
+    widget::container::Style::default().with_background(iced::Background::Color(
         theme.extended_palette().background.strong.color,
     ))
 }
@@ -36,14 +37,14 @@ pub fn colored_currency_display<Message>(
     value: &fm_core::Currency,
 ) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
     if value.get_num() < 0.0 {
-        iced::widget::text(format!("{}", value))
-            .style(|theme: &iced::Theme| iced::widget::text::Style {
+        widget::text(format!("{}", value))
+            .style(|theme: &iced::Theme| widget::text::Style {
                 color: Some(theme.palette().danger),
             })
             .into()
     } else {
-        iced::widget::text(format!("+{}", value))
-            .style(|theme: &iced::Theme| iced::widget::text::Style {
+        widget::text(format!("+{}", value))
+            .style(|theme: &iced::Theme| widget::text::Style {
                 color: Some(theme.palette().success),
             })
             .into()
@@ -52,9 +53,9 @@ pub fn colored_currency_display<Message>(
 
 pub fn button_link_style(
     theme: &iced::Theme,
-    _status: iced::widget::button::Status,
-) -> iced::widget::button::Style {
-    iced::widget::button::Style {
+    _status: widget::button::Status,
+) -> widget::button::Style {
+    widget::button::Style {
         background: None,
         text_color: theme.palette().text,
         ..Default::default()
