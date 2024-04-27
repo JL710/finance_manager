@@ -61,3 +61,49 @@ pub fn button_link_style(
         ..Default::default()
     }
 }
+
+/// Create a table of transactions
+///
+/// # Arguments
+/// - `transactions`: A slice of tuples of transactions and their source and destination accounts
+/// - `view_transaction`: A function that takes a transaction id and returns a message that will be produced when the transaction is clicked
+/// - `view_account`: A function that takes an account id and returns a message that will be produced when the account is clicked
+pub fn transaction_table<'a, Message: 'a + Clone>(
+    transactions: &'a [(
+        fm_core::Transaction,
+        fm_core::account::Account,
+        fm_core::account::Account,
+    )],
+    view_transaction: impl Fn(fm_core::Id) -> Message,
+    view_account: impl Fn(fm_core::Id) -> Message,
+) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
+    let mut transaction_table = super::table::Table::new(5).set_headers(vec![
+        "Title".to_owned(),
+        "Date".to_owned(),
+        "Amount".to_owned(),
+        "Source".to_owned(),
+        "Destination".to_owned(),
+    ]);
+    for transaction in transactions {
+        transaction_table.push_row(vec![
+            widget::button(transaction.0.title().as_str())
+                .style(button_link_style)
+                .on_press(view_transaction(*transaction.0.id()))
+                .padding(0)
+                .into(),
+            widget::text(transaction.0.date().format("%d.%m.%Y").to_string()).into(),
+            widget::text(transaction.0.amount().to_string()).into(),
+            widget::button(widget::text(transaction.1.to_string()))
+                .on_press(view_account(transaction.1.id()))
+                .style(button_link_style)
+                .padding(0)
+                .into(),
+            widget::button(widget::text(transaction.2.to_string()))
+                .on_press(view_account(transaction.2.id()))
+                .style(button_link_style)
+                .padding(0)
+                .into(),
+        ]);
+    }
+    transaction_table.convert_to_view()
+}

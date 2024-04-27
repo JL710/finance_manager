@@ -95,35 +95,6 @@ impl BudgetView {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
-        let mut transaction_table = super::super::table::Table::new(5).set_headers(vec![
-            "Title".to_owned(),
-            "Date".to_owned(),
-            "Amount".to_owned(),
-            "Source".to_owned(),
-            "Destination".to_owned(),
-        ]);
-        for transaction in &self.transactions {
-            transaction_table.push_row(vec![
-                widget::button(transaction.0.title().as_str())
-                    .style(utils::button_link_style)
-                    .on_press(Message::ViewTransaction(*transaction.0.id()))
-                    .padding(0)
-                    .into(),
-                widget::text(transaction.0.date().format("%d.%m.%Y").to_string()).into(),
-                widget::text(transaction.0.amount().to_string()).into(),
-                widget::button(widget::text(transaction.1.to_string()))
-                    .on_press(Message::ViewAccount(transaction.1.id()))
-                    .style(utils::button_link_style)
-                    .padding(0)
-                    .into(),
-                widget::button(widget::text(transaction.2.to_string()))
-                    .on_press(Message::ViewAccount(transaction.2.id()))
-                    .style(utils::button_link_style)
-                    .padding(0)
-                    .into(),
-            ]);
-        }
-
         let mut column = widget::column![
             widget::text(format!("Name: {}", self.budget.name())),
             widget::text(format!("Current Value: {}", self.current_value)),
@@ -134,7 +105,11 @@ impl BudgetView {
             column = column.push(widget::text(format!("Description: {}", content)));
         }
 
-        column = column.push(transaction_table.convert_to_view());
+        column = column.push(utils::transaction_table(
+            &self.transactions,
+            Message::ViewTransaction,
+            Message::ViewAccount,
+        ));
 
         column.into()
     }
