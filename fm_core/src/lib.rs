@@ -234,9 +234,12 @@ impl Transaction {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Recouring {
-    Days(DateTime, usize), // start time and days
-    DayInMonth(u16),       // i.e. 3. of each month
-    Yearly(u8, u16),       // month and day
+    /// start time and days
+    Days(DateTime, usize), 
+    /// i.e. 3. of each month
+    DayInMonth(u16),
+    /// month and day
+    Yearly(u8, u16),
 }
 
 impl std::fmt::Display for Recouring {
@@ -355,8 +358,30 @@ pub trait FinanceManager: Send + Clone + Sized {
         budget: &Budget,
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send {
         let (start, end) = match budget.timespan() {
-            Recouring::Days(x, y) => todo!(),
-            Recouring::DayInMonth(day) => todo!(),
+            Recouring::Days(start, days) => {
+                let since_start = chrono::Utc::now() - start;
+                let a: i64 = since_start.num_days() / *days as i64;
+                let timespan_start = *start + chrono::Duration::days(a * *days as i64);
+                let timespan_end = timespan_start + chrono::Duration::days(*days as i64);
+                (
+                    timespan_start,
+                    timespan_end
+                )
+            },
+            Recouring::DayInMonth(day) => {
+                let day_in_current_month = chrono::Utc::now().with_day(*day as u32).unwrap();
+                if day_in_current_month > chrono::Utc::now() {
+                    (
+                        chrono::Utc::now().with_day(*day as u32 -1).unwrap(),
+                        chrono::Utc::now().with_day(*day as u32).unwrap(),
+                    )
+                } else {
+                    (
+                        chrono::Utc::now().with_day(*day as u32).unwrap(),
+                        chrono::Utc::now().with_day(*day as u32 + 1).unwrap(),
+                    )
+                }
+            },
             Recouring::Yearly(month, day) => {
                 let current_year = chrono::Utc::now().year();
                 let in_current_year = chrono::Utc
