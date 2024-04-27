@@ -103,6 +103,7 @@ impl BudgetView {
     pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
         let mut column = widget::column![
             widget::text(format!("Name: {}", self.budget.name())),
+            widget::text(format!("Total Value: {}", self.budget.total_value())),
             widget::text(format!("Current Value: {}", self.current_value)),
             widget::text(format!("Recouring: {}", self.budget.timespan()))
         ]
