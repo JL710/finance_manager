@@ -98,8 +98,13 @@ impl BudgetView {
         let mut column = widget::column![
             widget::text(format!("Name: {}", self.budget.name())),
             widget::text(format!("Current Value: {}", self.current_value)),
-            widget::text(format!("Recouring: {}", self.budget.timespan()))
-        ];
+            widget::text(format!("Recouring: {}", self.budget.timespan())),
+            widget::progress_bar(
+                0.0..=self.budget.total_value().get_num() as f32,
+                self.current_value.get_num() as f32
+            )
+        ]
+        .spacing(10);
 
         if let Some(content) = self.budget.description() {
             column = column.push(widget::text(format!("Description: {}", content)));
