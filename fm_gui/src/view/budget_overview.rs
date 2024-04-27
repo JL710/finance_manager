@@ -1,6 +1,6 @@
 use super::super::{utils, AppMessage, View};
 use fm_core::{self, FinanceManager};
-use iced::{futures::FutureExt, widget};
+use iced::widget;
 
 use anyhow::Result;
 use std::sync::Arc;
@@ -55,7 +55,7 @@ impl BudgetOverview {
         match message {
             Message::CreateBudget => (
                 Some(View::CreateBudgetView(
-                    super::create_budget::CreateBudgetView::new(),
+                    super::create_budget::CreateBudgetView::default(),
                 )),
                 iced::Command::none(),
             ),
