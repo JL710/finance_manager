@@ -4,21 +4,11 @@ use super::{
 use anyhow::Result;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RamFinanceManager {
     accounts: HashMap<Id, account::Account>,
     transactions: Vec<Transaction>,
     budgets: HashMap<Id, Budget>,
-}
-
-impl RamFinanceManager {
-    pub fn new() -> Self {
-        Self {
-            accounts: HashMap::new(),
-            transactions: Vec::new(),
-            budgets: HashMap::new(),
-        }
-    }
 }
 
 impl FinanceManager for RamFinanceManager {

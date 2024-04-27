@@ -77,14 +77,14 @@ impl ViewAccount {
             let source = finance_manager
                 .lock()
                 .await
-                .get_account(transaction.source().clone())
+                .get_account(*transaction.source())
                 .await
                 .unwrap()
                 .unwrap();
             let destination = finance_manager
                 .lock()
                 .await
-                .get_account(transaction.destination().clone())
+                .get_account(*transaction.destination())
                 .await
                 .unwrap()
                 .unwrap();

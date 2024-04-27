@@ -77,9 +77,9 @@ impl std::fmt::Display for BookCheckingAccount {
     }
 }
 
-impl Into<Account> for BookCheckingAccount {
-    fn into(self) -> Account {
-        Account::BookCheckingAccount(self)
+impl From<BookCheckingAccount> for Account {
+    fn from(val: BookCheckingAccount) -> Self {
+        Account::BookCheckingAccount(val)
     }
 }
 

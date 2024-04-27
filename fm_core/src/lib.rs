@@ -235,7 +235,7 @@ impl Transaction {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Recouring {
     /// start time and days
-    Days(DateTime, usize), 
+    Days(DateTime, usize),
     /// i.e. 3. of each month
     DayInMonth(u16),
     /// month and day
@@ -363,16 +363,13 @@ pub trait FinanceManager: Send + Clone + Sized {
                 let a: i64 = since_start.num_days() / *days as i64;
                 let timespan_start = *start + chrono::Duration::days(a * *days as i64);
                 let timespan_end = timespan_start + chrono::Duration::days(*days as i64);
-                (
-                    timespan_start,
-                    timespan_end
-                )
-            },
+                (timespan_start, timespan_end)
+            }
             Recouring::DayInMonth(day) => {
                 let day_in_current_month = chrono::Utc::now().with_day(*day as u32).unwrap();
                 if day_in_current_month > chrono::Utc::now() {
                     (
-                        chrono::Utc::now().with_day(*day as u32 -1).unwrap(),
+                        chrono::Utc::now().with_day(*day as u32 - 1).unwrap(),
                         chrono::Utc::now().with_day(*day as u32).unwrap(),
                     )
                 } else {
@@ -381,7 +378,7 @@ pub trait FinanceManager: Send + Clone + Sized {
                         chrono::Utc::now().with_day(*day as u32 + 1).unwrap(),
                     )
                 }
-            },
+            }
             Recouring::Yearly(month, day) => {
                 let current_year = chrono::Utc::now().year();
                 let in_current_year = chrono::Utc

@@ -319,7 +319,7 @@ impl CreateTransactionView {
         &self,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> iced::Command<AppMessage> {
-        let option_id = self.id.clone();
+        let option_id = self.id;
         let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());
         let title = self.title_input.clone();
         let description = if self.description_input.is_empty() {

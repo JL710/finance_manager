@@ -74,7 +74,7 @@ impl CreateAssetAccountDialog {
                 } else {
                     Some(self.bic_input.clone())
                 };
-                let id = self.id.clone();
+                let id = self.id;
                 return (
                     Some(View::Empty),
                     iced::Command::perform(

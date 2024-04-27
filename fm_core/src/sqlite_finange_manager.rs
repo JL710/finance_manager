@@ -34,12 +34,12 @@ impl TryInto<Transaction> for TransactionSignature {
 
 type RecouringSignature = (i32, i64, Option<i64>);
 
-impl Into<RecouringSignature> for Recouring {
-    fn into(self) -> RecouringSignature {
-        match self {
-            Self::DayInMonth(num) => (1, num as i64, None),
-            Self::Days(datetime, days) => (2, datetime.timestamp(), Some(days as i64)),
-            Self::Yearly(num1, num2) => (3, num1 as i64, Some(num2 as i64)),
+impl From<Recouring> for RecouringSignature {
+    fn from(val: Recouring) -> Self {
+        match val {
+            Recouring::DayInMonth(num) => (1, num as i64, None),
+            Recouring::Days(datetime, days) => (2, datetime.timestamp(), Some(days as i64)),
+            Recouring::Yearly(num1, num2) => (3, num1 as i64, Some(num2 as i64)),
         }
     }
 }
@@ -95,7 +95,7 @@ impl SqliteFinanceManager {
     }
 
     fn connect(&self) -> Result<rusqlite::Connection> {
-        Ok(rusqlite::Connection::open(&self.path).context("failed to open database")?)
+        rusqlite::Connection::open(&self.path).context("failed to open database")
     }
 }
 
@@ -561,14 +561,14 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
                 (id,),
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )?;
-        return Ok(account::AssetAccount::new(
+        Ok(account::AssetAccount::new(
             id,
             asset_account_result.0,
             asset_account_result.1,
             asset_account_result.2,
             asset_account_result.3,
         )
-        .into());
+        .into())
     } else if let Some(id) = account_result.1 {
         let book_checking_account_result: (String, Option<String>, Option<String>, Option<String>) =
             connection.query_row(
@@ -576,14 +576,14 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
                 (id,),
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )?;
-        return Ok(account::BookCheckingAccount::new(
+        Ok(account::BookCheckingAccount::new(
             account_id,
             book_checking_account_result.0,
             book_checking_account_result.1,
             book_checking_account_result.2,
             book_checking_account_result.3,
         )
-        .into());
+        .into())
     } else {
         anyhow::bail!("could not find the account");
     }
