@@ -11,13 +11,24 @@ pub fn switch_view_command(
 ) -> iced::Command<AppMessage> {
     iced::Command::perform(
         async move {
-            let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
+            let accounts = finance_manager
+                .lock()
+                .await
+                .get_accounts()
+                .await
+                .unwrap()
+                .iter()
+                .filter_map(|x| match &x {
+                    fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
             let mut tuples = Vec::new();
             for account in accounts {
                 let amount = finance_manager
                     .lock()
                     .await
-                    .get_account_sum(&account, chrono::Utc::now())
+                    .get_account_sum(&account.clone().into(), chrono::Utc::now())
                     .await
                     .unwrap();
                 tuples.push((account, amount));
@@ -40,14 +51,8 @@ pub struct AssetAccountOverview {
 }
 
 impl AssetAccountOverview {
-    pub fn new(accounts: Vec<(fm_core::account::Account, fm_core::Currency)>) -> Self {
-        let asset_accounts = accounts
-            .iter()
-            .filter_map(|x| match &x.0 {
-                fm_core::account::Account::AssetAccount(acc) => Some((acc.clone(), x.1.clone())),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
+    pub fn new(accounts: Vec<(fm_core::account::AssetAccount, fm_core::Currency)>) -> Self {
+        let asset_accounts = accounts;
 
         Self {
             accounts: asset_accounts,
