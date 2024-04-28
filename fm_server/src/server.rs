@@ -14,11 +14,10 @@ struct State {
 }
 
 #[tokio::main]
-pub async fn run() {
+pub async fn run(url: String, db: String) {
     let state = State {
         finance_manager: Arc::new(Mutex::new(
-            fm_core::sqlite_finange_manager::SqliteFinanceManager::new("test.db".to_string())
-                .unwrap(),
+            fm_core::sqlite_finange_manager::SqliteFinanceManager::new(db).unwrap(),
         )),
     };
 
@@ -63,9 +62,7 @@ pub async fn run() {
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(url).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
