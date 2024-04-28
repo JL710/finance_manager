@@ -143,6 +143,13 @@ impl Account {
             Account::BookCheckingAccount(acc) => acc.id,
         }
     }
+
+    pub fn iban(&self) -> Option<&str> {
+        match self {
+            Account::AssetAccount(acc) => acc.iban(),
+            Account::BookCheckingAccount(acc) => acc.iban(),
+        }
+    }
 }
 
 impl std::fmt::Display for Account {
