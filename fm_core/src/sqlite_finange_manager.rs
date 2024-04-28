@@ -652,7 +652,7 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )?;
         Ok(account::AssetAccount::new(
-            id,
+            account_id,
             asset_account_result.0,
             asset_account_result.1,
             asset_account_result.2,
