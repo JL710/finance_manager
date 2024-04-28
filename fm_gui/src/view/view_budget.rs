@@ -41,7 +41,6 @@ impl BudgetView {
             fm_core::account::Account,
         )>,
     ) -> Self {
-        println!("{:?}", transactions);
         Self {
             budget,
             current_value,

@@ -124,7 +124,6 @@ async fn create_asset_account(
         )
         .await
         .unwrap();
-    println!("Created account: {:?}", account);
     json!(account).into()
 }
 
