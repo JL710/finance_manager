@@ -92,6 +92,7 @@ pub struct CreateTransactionView {
     budget_state: widget::combo_box::State<fm_core::Budget>,
     budget_input: Option<fm_core::Budget>,
     date_input: String,
+    metadata: std::collections::HashMap<String, String>,
 }
 
 impl CreateTransactionView {
@@ -118,6 +119,7 @@ impl CreateTransactionView {
             budget_state: widget::combo_box::State::new(budgets),
             budget_input: None,
             date_input: String::new(),
+            metadata: std::collections::HashMap::new(),
         }
     }
 
@@ -158,6 +160,7 @@ impl CreateTransactionView {
             budget_input: budget,
             budget_state: widget::combo_box::State::new(budgets),
             date_input: transaction.date().format("%d.%m.%Y").to_string(),
+            metadata: transaction.metadata().clone(),
         }
     }
 
@@ -339,6 +342,7 @@ impl CreateTransactionView {
         };
         let budget = self.budget_input.as_ref().map(|budget| *budget.id());
         let date = utils::parse_to_datetime(&self.date_input).unwrap();
+        let metadata = self.metadata.clone();
         iced::Command::perform(
             async move {
                 let new_transaction = match option_id {
@@ -354,6 +358,7 @@ impl CreateTransactionView {
                             destination,
                             budget,
                             date,
+                            metadata,
                         )
                         .await
                         .unwrap(),
@@ -368,6 +373,7 @@ impl CreateTransactionView {
                             destination,
                             budget,
                             date,
+                            metadata,
                         )
                         .await
                         .unwrap(),

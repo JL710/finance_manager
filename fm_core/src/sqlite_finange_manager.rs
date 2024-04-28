@@ -13,6 +13,7 @@ type TransactionSignature = (
     Id,
     Option<Id>,
     i64,
+    String,
 );
 
 impl TryInto<Transaction> for TransactionSignature {
@@ -28,6 +29,7 @@ impl TryInto<Transaction> for TransactionSignature {
             self.6,
             self.7,
             DateTime::from_timestamp(self.8, 0).unwrap(),
+            serde_json::from_str(&self.9)?,
         ))
     }
 }
@@ -207,9 +209,9 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
         let connection = self.connect()?;
         let result: TransactionSignature = connection.query_row(
-            "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE id=?1", 
+            "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE id=?1", 
             (&id,),
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?, row.get(8)?))
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?, row.get(8)?, row.get(9)?))
         )?;
         Ok(Some(result.try_into()?))
     }
@@ -236,6 +238,7 @@ impl FinanceManager for SqliteFinanceManager {
                             row.get(6)?,
                             row.get(7)?,
                             row.get(8)?,
+                            row.get(9)?,
                         ))
                     })?
                     .collect()
@@ -244,19 +247,19 @@ impl FinanceManager for SqliteFinanceManager {
 
         let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
             (None, None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE source_id=?1 OR destination_id=?2", 
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE source_id=?1 OR destination_id=?2", 
                 (account, account)
             ),
             (Some(start), None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3", 
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3", 
                 (account, account, start.timestamp())
             ),
             (None, Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp <= ?3", 
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp <= ?3", 
                 (account, account, end.timestamp())
             ),
             (Some(start), Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3 AND timestamp <= ?4", 
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3 AND timestamp <= ?4", 
                 (account, account, start.timestamp(), end.timestamp())
             )
         };
@@ -279,6 +282,7 @@ impl FinanceManager for SqliteFinanceManager {
         destination: Or<Id, String>,
         budget: Option<Id>,
         date: DateTime,
+        metadata: HashMap<String, String>,
     ) -> Result<Transaction> {
         let connection = self.connect()?;
 
@@ -306,9 +310,10 @@ impl FinanceManager for SqliteFinanceManager {
                 source_id,
                 destination_id,
                 budget,
-                timestamp
+                timestamp,
+                metadata
             ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
             )
             ",
             (
@@ -320,6 +325,7 @@ impl FinanceManager for SqliteFinanceManager {
                 &destination,
                 &budget,
                 &date.timestamp(),
+                serde_json::to_string(&metadata)?,
             ),
         )?;
         Ok(Transaction::new(
@@ -331,6 +337,7 @@ impl FinanceManager for SqliteFinanceManager {
             destination,
             budget,
             date,
+            metadata,
         ))
     }
 
@@ -433,6 +440,7 @@ impl FinanceManager for SqliteFinanceManager {
         destination: Or<Id, String>,
         budget: Option<Id>,
         date: DateTime,
+        metadata: HashMap<String, String>,
     ) -> Result<Transaction> {
         let connection = self.connect()?;
 
@@ -457,8 +465,8 @@ impl FinanceManager for SqliteFinanceManager {
         };
 
         connection.execute(
-            "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, timestamp=?8 WHERE id=?9", 
-            (amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget, date.timestamp(), id)
+            "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, timestamp=?8, metadata=?9 WHERE id=?10", 
+            (amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget, date.timestamp(), serde_json::to_string(&metadata)?, id)
         )?;
 
         Ok(Transaction::new(
@@ -470,6 +478,7 @@ impl FinanceManager for SqliteFinanceManager {
             destination_id,
             budget,
             date,
+            metadata,
         ))
     }
 
@@ -501,6 +510,7 @@ impl FinanceManager for SqliteFinanceManager {
                             row.get(6)?,
                             row.get(7)?,
                             row.get(8)?,
+                            row.get(9)?,
                         ))
                     })?
                     .collect()
@@ -509,19 +519,19 @@ impl FinanceManager for SqliteFinanceManager {
 
         let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
             (None, None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1", 
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE budget=?1", 
                 (id,)
             ),
             (Some(start), None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1 AND timestamp >= ?2", 
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE budget=?1 AND timestamp >= ?2", 
                 (id, start.timestamp())
             ),
             (None, Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1 AND timestamp <= ?2", 
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE budget=?1 AND timestamp <= ?2", 
                 (id, end.timestamp())
             ),
             (Some(start), Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp FROM transactions WHERE budget=?1 AND timestamp >= ?2 AND timestamp <= ?3", 
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE budget=?1 AND timestamp >= ?2 AND timestamp <= ?3", 
                 (id, start.timestamp(), end.timestamp())
             )
         };
@@ -536,17 +546,17 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn update_budget(
-            &mut self,
-            id: Id,
-            name: String,
-            description: Option<String>,
-            total_value: Currency,
-            timespan: Recouring,
-        ) -> Result<Budget> {
-            let connection = self.connect()?;
-            let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(timespan.clone());
+        &mut self,
+        id: Id,
+        name: String,
+        description: Option<String>,
+        total_value: Currency,
+        timespan: Recouring,
+    ) -> Result<Budget> {
+        let connection = self.connect()?;
+        let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(timespan.clone());
 
-            connection.execute(
+        connection.execute(
                 "UPDATE budget SET name=?1, description=?2, value=?3, currency=?4, timespan_type=?5, timespan_field1=?6, timespan_field2=?7 WHERE id=?8",
                 (
                     &name,
@@ -559,14 +569,7 @@ impl FinanceManager for SqliteFinanceManager {
                     id,
                 ),
             )?;
-            Ok(Budget::new(
-                id,
-                name,
-                description,
-                total_value,
-                timespan,
-            ))
-        
+        Ok(Budget::new(id, name, description, total_value, timespan))
     }
 }
 

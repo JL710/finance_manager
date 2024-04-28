@@ -92,6 +92,7 @@ impl fm_core::FinanceManager for Client {
         destination: fm_core::Or<fm_core::Id, String>,
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
+        metadata: std::collections::HashMap<String, String>,
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
@@ -103,7 +104,8 @@ impl fm_core::FinanceManager for Client {
                 source,
                 destination,
                 budget,
-                date
+                date,
+                metadata
             )
         )
     }
@@ -165,6 +167,7 @@ impl fm_core::FinanceManager for Client {
         destination: fm_core::Or<fm_core::Id, String>,
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
+        metadata: std::collections::HashMap<String, String>,
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
@@ -177,7 +180,8 @@ impl fm_core::FinanceManager for Client {
                 source,
                 destination,
                 budget,
-                date
+                date,
+                metadata
             )
         )
     }

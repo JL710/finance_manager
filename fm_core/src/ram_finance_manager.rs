@@ -161,6 +161,7 @@ impl FinanceManager for RamFinanceManager {
         destination: super::Or<Id, String>,
         budget: Option<Id>,
         date: DateTime,
+        metadata: HashMap<String, String>,
     ) -> Result<Transaction> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
@@ -193,6 +194,7 @@ impl FinanceManager for RamFinanceManager {
             destination: destination_id,
             budget,
             date,
+            metadata,
         };
 
         self.transactions.push(new_transaction.clone());
@@ -237,6 +239,7 @@ impl FinanceManager for RamFinanceManager {
         destination: super::Or<Id, String>,
         budget: Option<Id>,
         date: DateTime,
+        metadata: HashMap<String, String>,
     ) -> Result<Transaction> {
         let source_id = match source {
             super::Or::One(id) => id,
@@ -267,6 +270,7 @@ impl FinanceManager for RamFinanceManager {
             destination_id,
             budget,
             date,
+            metadata,
         );
         for transaction in &mut self.transactions {
             if *transaction.id() == id {

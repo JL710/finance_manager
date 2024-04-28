@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chrono::{Datelike, TimeZone};
+use std::collections::HashMap;
 
 pub mod account;
 pub mod ram_finance_manager;
@@ -158,6 +159,7 @@ pub struct Transaction {
     destination: Id,
     budget: Option<Id>,
     date: DateTime,
+    metadata: HashMap<String, String>,
 }
 
 impl Transaction {
@@ -170,6 +172,7 @@ impl Transaction {
         destination: Id,
         budget: Option<Id>,
         date: DateTime,
+        metadata: HashMap<String, String>,
     ) -> Self {
         Self {
             id,
@@ -180,6 +183,7 @@ impl Transaction {
             destination,
             budget,
             date,
+            metadata,
         }
     }
 
@@ -229,6 +233,10 @@ impl Transaction {
 
     pub fn date(&self) -> &DateTime {
         &self.date
+    }
+
+    pub fn metadata(&self) -> &HashMap<String, String> {
+        &self.metadata
     }
 }
 
@@ -311,6 +319,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         destination: Or<Id, String>,
         budget: Option<Id>,
         date: DateTime,
+        metadata: HashMap<String, String>,
     ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
     fn update_transaction(
@@ -323,6 +332,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         destination: Or<Id, String>,
         budget: Option<Id>,
         date: DateTime,
+        metadata: HashMap<String, String>,
     ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
     fn create_book_checking_account(

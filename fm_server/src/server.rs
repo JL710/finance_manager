@@ -204,13 +204,16 @@ async fn create_transaction(
         fm_core::Or<fm_core::Id, String>,
         Option<fm_core::Id>,
         fm_core::DateTime,
+        std::collections::HashMap<String, String>,
     )>,
 ) -> Json<Value> {
     let transaction = state
         .finance_manager
         .lock()
         .await
-        .create_transaction(data.0, data.1, data.2, data.3, data.4, data.5, data.6)
+        .create_transaction(
+            data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7,
+        )
         .await
         .unwrap();
     json!(transaction).into()
@@ -294,6 +297,7 @@ async fn update_transaction(
         fm_core::Or<fm_core::Id, String>,
         Option<fm_core::Id>,
         fm_core::DateTime,
+        std::collections::HashMap<String, String>,
     )>,
 ) -> Json<Value> {
     let transaction = state
@@ -301,7 +305,7 @@ async fn update_transaction(
         .lock()
         .await
         .update_transaction(
-            data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7,
+            data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7, data.8,
         )
         .await
         .unwrap();

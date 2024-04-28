@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 default = ["sqlite"]
-sqlite = ["dep:rusqlite"]
+sqlite = ["dep:rusqlite", "dep:serde_json"]
 
 [dependencies]
 chrono = { version = "0.4.38", features = ["serde"] }
@@ -16,3 +16,4 @@ serde = { version = "1.0.198", features = ["derive"] }
 futures = "0.3.30"
 rusqlite = { version = "0.31.0", features = ["bundled"], optional = true }
 anyhow = { version = "1.0.82" }
+serde_json = { version = "1.0.116", optional = true }
