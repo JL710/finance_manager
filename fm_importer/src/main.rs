@@ -99,7 +99,7 @@ async fn parse_csv_camt_v2(
             .unwrap();
         transaction_tuples.push((transaction, source_acc, destination_acc));
     }
-    let accounts = finance_manager.get_accounts().await?;
+    let mut accounts = finance_manager.get_accounts().await?;
 
     let mut transaction_entries = Vec::new();
 
@@ -183,6 +183,7 @@ async fn parse_csv_camt_v2(
             entry.account.clone()
         });
 
+        // find accounts
         for account in &accounts {
             if account.iban().is_none() {
                 continue;
@@ -205,6 +206,22 @@ async fn parse_csv_camt_v2(
                 if account.iban().unwrap() == entry.other_account {
                     destination = fm_core::Or::One(account.id());
                 }
+            }
+        }
+
+        // create book_checking accounts
+        for foo in [&mut source, &mut destination] {
+            if let fm_core::Or::Two(acc) = foo {
+                let account = finance_manager
+                    .create_book_checking_account(
+                        entry.account.clone(),
+                        None,
+                        Some(entry.other_account.to_string()),
+                        Some(entry.bic.clone()),
+                    )
+                    .await?;
+                *foo = fm_core::Or::One(account.id());
+                accounts = finance_manager.get_accounts().await?;
             }
         }
 
