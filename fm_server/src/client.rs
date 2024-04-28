@@ -204,4 +204,8 @@ impl fm_core::FinanceManager for Client {
             (id, name, description, total_value, timespan)
         )
     }
+
+    async fn get_transactions(&self, timespan: fm_core::Timespan) -> Result<Vec<fm_core::Transaction>> {
+        client_post_macro!(self.url, "get_transactions", timespan)
+    }
 }

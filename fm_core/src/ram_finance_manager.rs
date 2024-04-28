@@ -347,4 +347,24 @@ impl FinanceManager for RamFinanceManager {
         *old_budget = new_budget.clone();
         Ok(new_budget)
     }
+
+    async fn get_transactions(&self, timespan: Timespan) -> Result<Vec<Transaction>> {
+        let mut transactions = self.transactions.clone();
+
+        if let Some(begin) = timespan.0 {
+            transactions = transactions
+                .into_iter()
+                .filter(|transaction| transaction.date >= begin)
+                .collect();
+        }
+
+        if let Some(end) = timespan.1 {
+            transactions = transactions
+                .into_iter()
+                .filter(|transaction| transaction.date <= end)
+                .collect();
+        }
+
+        Ok(transactions)
+    }
 }

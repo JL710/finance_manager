@@ -571,6 +571,59 @@ impl FinanceManager for SqliteFinanceManager {
             )?;
         Ok(Budget::new(id, name, description, total_value, timespan))
     }
+
+    async fn get_transactions(&self, timespan: Timespan) -> Result<Vec<Transaction>> {
+        let connection = self.connect()?;
+
+        macro_rules! transaction_query {
+            ($sql:expr, $params:expr) => {
+                connection
+                    .prepare($sql)?
+                    .query_map($params, |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                            row.get(4)?,
+                            row.get(5)?,
+                            row.get(6)?,
+                            row.get(7)?,
+                            row.get(8)?,
+                            row.get(9)?,
+                        ))
+                    })?
+                    .collect()
+            };
+        }
+
+        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
+            (None, None) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions", 
+                ()
+            ),
+            (Some(start), None) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE timestamp >= ?1", 
+                (start.timestamp(),)
+            ),
+            (None, Some(end)) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE timestamp <= ?1", 
+                (end.timestamp(),)
+            ),
+            (Some(start), Some(end)) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE timestamp >= ?1 AND timestamp <= ?2", 
+                (start.timestamp(), end.timestamp())
+            )
+        };
+
+        let mut transactions: Vec<Transaction> = Vec::new();
+
+        for row in result {
+            transactions.push(row?.try_into()?);
+        }
+
+        Ok(transactions)
+    }
 }
 
 fn get_asset_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {

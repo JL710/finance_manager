@@ -58,6 +58,7 @@ pub async fn run(url: String, db: String) {
         .route("/update_transaction", post(update_transaction))
         .route("/delete_transaction", post(delete_transaction))
         .route("/update_budget", post(update_budget))
+        .route("/get_transactions", post(get_transactions))
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
 
@@ -341,4 +342,18 @@ async fn update_budget(
         .await
         .unwrap();
     json!(budget).into()
+}
+
+async fn get_transactions(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Timespan>
+) -> Json<Value> {
+    let transactions = state
+        .finance_manager
+        .lock()
+        .await
+        .get_transactions(data)
+        .await
+        .unwrap();
+    json!(transactions).into()
 }
