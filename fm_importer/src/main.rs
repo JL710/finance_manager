@@ -238,7 +238,7 @@ async fn parse_csv_camt_v2(
                 destination,
                 None,
                 entry.date,
-                HashMap::new(),
+                HashMap::from([(String::from("parser-row-content"), entry.row_content)]),
             )
             .await?;
     }
