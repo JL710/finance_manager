@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     destination_id INTEGER NOT NULL,
     budget INTEGER,
     timestamp INTEGER,
-    metadata TEXT NOT NULL
+    metadata TEXT NOT NULL,
     FOREIGN KEY(source_id) REFERENCES account(id),
     FOREIGN KEY(destination_id) REFERENCES account(id),
     FOREIGN KEY (budget) REFERENCES budget(id)
