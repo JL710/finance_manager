@@ -21,8 +21,8 @@ impl AssetAccount {
             id,
             name,
             notes: note,
-            iban,
-            bic,
+            iban: iban.and_then(|x| Some(x.to_uppercase())),
+            bic: bic.and_then(|x| Some(x.to_uppercase())),
         }
     }
 
@@ -95,8 +95,8 @@ impl BookCheckingAccount {
             id,
             name,
             notes: note,
-            iban,
-            bic,
+            iban: iban.and_then(|x| Some(x.to_uppercase())),
+            bic: bic.and_then(|x| Some(x.to_uppercase())),
         }
     }
 

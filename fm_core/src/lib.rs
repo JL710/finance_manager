@@ -366,7 +366,10 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     fn delete_transaction(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + Send;
 
-    fn get_transactions(&self, timespan: Timespan) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
+    fn get_transactions(
+        &self,
+        timespan: Timespan,
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
 
     fn get_transactions_of_budget(
         &self,
