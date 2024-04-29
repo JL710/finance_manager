@@ -214,7 +214,7 @@ async fn parse_csv_camt_v2(
             if let fm_core::Or::Two(acc) = foo {
                 let account = finance_manager
                     .create_book_checking_account(
-                        entry.account.clone(),
+                        entry.beneficiary_or_payer.clone(),
                         None,
                         Some(entry.other_account.to_string()),
                         Some(entry.bic.clone()),
