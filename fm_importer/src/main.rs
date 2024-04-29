@@ -238,7 +238,13 @@ async fn parse_csv_camt_v2(
                 destination,
                 None,
                 entry.date,
-                HashMap::from([(String::from("parser-row-content"), entry.row_content)]),
+                HashMap::from([
+                    (String::from("parser-row-content"), entry.row_content),
+                    (
+                        "parser-import-format".to_string(),
+                        "CSV_CAMT_V2".to_string(),
+                    ),
+                ]),
             )
             .await?;
     }
