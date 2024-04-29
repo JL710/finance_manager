@@ -445,7 +445,9 @@ pub trait FinanceManager: Send + Clone + Sized {
         }
     }
 
-    fn get_accounts_hash_map(&self) -> impl futures::Future<Output = Result<HashMap<Id, account::Account>>> + Send {
+    fn get_accounts_hash_map(
+        &self,
+    ) -> impl futures::Future<Output = Result<HashMap<Id, account::Account>>> + Send {
         let accounts_future = self.get_accounts();
         async {
             let accounts = accounts_future.await?;
