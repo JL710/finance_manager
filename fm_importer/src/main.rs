@@ -56,7 +56,7 @@ impl TransactionEntry {
     ) -> Result<Self> {
         Ok(Self {
             account,
-            date: parse_to_datetime(&date)?,
+            date: parse_to_datetime_short_year(&date)?,
             value: value.replace(",", ".").parse::<f64>().unwrap(),
             other_account,
             row_content,
@@ -258,9 +258,9 @@ fn input() -> String {
     input.trim().to_string()
 }
 
-pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
+pub fn parse_to_datetime_short_year(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
     use chrono::TimeZone;
-    let date = chrono::NaiveDate::parse_from_str(date, "%d.%m.%Y")?
+    let date = chrono::NaiveDate::parse_from_str(date, "%d.%m.%y")?
         .and_hms_opt(0, 0, 0)
         .unwrap();
     Ok(chrono::Utc.from_utc_datetime(&date))
