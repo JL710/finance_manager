@@ -53,41 +53,25 @@ impl ViewAccount {
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
         account_id: fm_core::Id,
     ) -> Self {
-        let account = finance_manager
-            .lock()
-            .await
+        let locked_manager = finance_manager.lock().await;
+        let account = locked_manager
             .get_account(account_id)
             .await
             .unwrap()
             .unwrap();
-        let account_sum = finance_manager
-            .lock()
-            .await
+        let account_sum = locked_manager
             .get_account_sum(&account, chrono::Utc::now())
             .await
             .unwrap();
-        let transactions = finance_manager
-            .lock()
-            .await
+        let transactions = locked_manager
             .get_transactions_of_account(account.id(), (None, Some(chrono::Utc::now())))
             .await
             .unwrap();
+        let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
         let mut transaction_tuples = Vec::with_capacity(transactions.len());
         for transaction in transactions {
-            let source = finance_manager
-                .lock()
-                .await
-                .get_account(*transaction.source())
-                .await
-                .unwrap()
-                .unwrap();
-            let destination = finance_manager
-                .lock()
-                .await
-                .get_account(*transaction.destination())
-                .await
-                .unwrap()
-                .unwrap();
+            let source = accounts.get(transaction.source()).unwrap().clone();
+            let destination = accounts.get(transaction.destination()).unwrap().clone();
             transaction_tuples.push((transaction, source, destination));
         }
         Self::new(account, account_sum, transaction_tuples)
