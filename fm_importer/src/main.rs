@@ -220,8 +220,8 @@ async fn parse_csv_camt_v2(
                         Some(entry.bic.clone()),
                     )
                     .await?;
+                accounts.push(account.clone().into());
                 *foo = fm_core::Or::One(account.id());
-                accounts = finance_manager.get_accounts().await?;
             }
         }
 
