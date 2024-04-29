@@ -3,8 +3,8 @@ use chrono::{Datelike, TimeZone};
 use std::collections::HashMap;
 
 pub mod account;
+#[cfg(feature = "ram")]
 pub mod ram_finance_manager;
-
 #[cfg(feature = "sqlite")]
 pub mod sqlite_finange_manager;
 
