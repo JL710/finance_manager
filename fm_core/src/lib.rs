@@ -453,7 +453,7 @@ pub trait FinanceManager: Send + Clone + Sized {
             let accounts = accounts_future.await?;
             let mut account_map = HashMap::with_capacity(accounts.len());
             for account in accounts {
-                account_map.insert(account.id(), account);
+                account_map.insert(*account.id(), account);
             }
             Ok(account_map)
         }

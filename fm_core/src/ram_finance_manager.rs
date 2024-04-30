@@ -68,11 +68,11 @@ impl FinanceManager for RamFinanceManager {
     ) -> Result<Currency> {
         // sum up all transactions from start to end date
         let transactions = self
-            .get_transactions_of_account(account.id(), (None, Some(date)))
+            .get_transactions_of_account(*account.id(), (None, Some(date)))
             .await?;
         let mut total = Currency::Eur(0.0);
         for transaction in transactions {
-            if *transaction.source() == account.id() {
+            if *transaction.source() == *account.id() {
                 total -= transaction.amount;
             } else {
                 total += transaction.amount;

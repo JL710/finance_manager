@@ -137,10 +137,10 @@ pub enum Account {
 }
 
 impl Account {
-    pub fn id(&self) -> Id {
+    pub fn id(&self) -> &Id {
         match self {
-            Account::AssetAccount(acc) => acc.id,
-            Account::BookCheckingAccount(acc) => acc.id,
+            Account::AssetAccount(acc) => &acc.id,
+            Account::BookCheckingAccount(acc) => &acc.id,
         }
     }
 

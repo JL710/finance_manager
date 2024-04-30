@@ -192,19 +192,19 @@ async fn parse_csv_camt_v2(
                 // account is destination
                 // other_account is source
                 if account.iban().unwrap() == entry.account {
-                    destination = fm_core::Or::One(account.id());
+                    destination = fm_core::Or::One(*account.id());
                 }
                 if account.iban().unwrap() == entry.other_account {
-                    source = fm_core::Or::One(account.id());
+                    source = fm_core::Or::One(*account.id());
                 }
             } else {
                 // other_account is destination
                 // account is source
                 if account.iban().unwrap() == entry.account {
-                    source = fm_core::Or::One(account.id());
+                    source = fm_core::Or::One(*account.id());
                 }
                 if account.iban().unwrap() == entry.other_account {
-                    destination = fm_core::Or::One(account.id());
+                    destination = fm_core::Or::One(*account.id());
                 }
             }
         }
