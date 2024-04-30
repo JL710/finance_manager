@@ -9,7 +9,7 @@ where
     headers: Option<[String; COLUMNS]>,
     sortable: [bool; COLUMNS],
     to_row: TR,
-    sort_by_callback: Option<Box<dyn Fn(&T, &T, usize, bool) -> std::cmp::Ordering + 'a>>,
+    sort_by_callback: Option<Box<dyn Fn(&T, &T, usize) -> std::cmp::Ordering + 'a>>,
     spacing: u16,
     padding: u16,
 }
@@ -53,10 +53,7 @@ where
     }
 
     /// callback produces based on the items T and the column index and reverse state a Ordering
-    pub fn sort_by(
-        mut self,
-        callback: impl Fn(&T, &T, usize, bool) -> std::cmp::Ordering + 'a,
-    ) -> Self {
+    pub fn sort_by(mut self, callback: impl Fn(&T, &T, usize) -> std::cmp::Ordering + 'a) -> Self {
         self.sort_by_callback = Some(Box::new(callback));
         self.sort(0, false);
         self
@@ -64,8 +61,13 @@ where
 
     fn sort(&mut self, column: usize, reverse: bool) {
         if let Some(sort_by_callback) = &self.sort_by_callback {
-            self.items
-                .sort_by(|a, b| sort_by_callback(a, b, column, reverse));
+            self.items.sort_by(|a, b| {
+                let mut ordering = sort_by_callback(a, b, column);
+                if reverse {
+                    ordering = ordering.reverse();
+                }
+                ordering
+            });
         }
     }
 
@@ -120,8 +122,7 @@ where
             let row_elements = (self.to_row)(item).map(|x| x.map(|m| TableViewMessage::Message(m)));
             let mut row = widget::row![];
             for element in row_elements {
-                row =
-                    row.push(widget::container(element).width(iced::Length::FillPortion(1)));
+                row = row.push(widget::container(element).width(iced::Length::FillPortion(1)));
             }
             data_column = data_column.push(
                 widget::container(row)
@@ -139,12 +140,29 @@ where
                     widget::row![widget::text(header.clone()),]
                         .push_maybe(if self.sortable[index] {
                             Some(
-                                widget::button("Sort")
-                                    .on_press(TableViewMessage::SortByColumn(index)),
+                                widget::button(
+                                    widget::svg::Svg::new(widget::svg::Handle::from_memory(
+                                        std::borrow::Cow::from(if index == state.sort_column {
+                                            if state.reverse {
+                                                &include_bytes!("assets/filter-circle-fill.svg")[..]
+                                            } else {
+                                                &include_bytes!("assets/filter-circle.svg")[..]
+                                            }
+                                        } else {
+                                            &include_bytes!("assets/filter.svg")[..]
+                                        }),
+                                    ))
+                                    .content_fit(iced::ContentFit::Fill)
+                                    .width(iced::Length::Shrink),
+                                )
+                                .padding(3)
+                                .on_press(TableViewMessage::SortByColumn(index)),
                             )
                         } else {
                             None
                         })
+                        .spacing(10)
+                        .align_items(iced::Alignment::Center)
                         .width(iced::Length::FillPortion(1)),
                 );
             }
