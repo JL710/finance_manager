@@ -1,6 +1,7 @@
 use iced::advanced::Application;
 
 mod table;
+mod table_view;
 mod utils;
 mod view;
 

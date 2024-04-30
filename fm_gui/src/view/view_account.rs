@@ -64,7 +64,7 @@ impl ViewAccount {
             .await
             .unwrap();
         let mut transactions = locked_manager
-            .get_transactions_of_account(account.id(), (None, Some(chrono::Utc::now())))
+            .get_transactions_of_account(*account.id(), (None, Some(chrono::Utc::now())))
             .await
             .unwrap();
         transactions.sort_by(|a, b| b.date().cmp(a.date())); // FIXME: this should not be related to the view -> the table should do it
@@ -116,7 +116,7 @@ impl ViewAccount {
 }
 
 fn asset_account_view<'a>(
-    account: &fm_core::account::AssetAccount,
+    account: &'a fm_core::account::AssetAccount,
     transactions: &'a [(
         fm_core::Transaction,
         fm_core::account::Account,
@@ -141,7 +141,7 @@ fn asset_account_view<'a>(
         ],
         widget::horizontal_rule(10),
         utils::transaction_table(
-            transactions,
+            transactions.to_vec(),
             |transaction| Some(*transaction.destination() == account.id()),
             Message::ViewTransaction,
             Message::ViewAccount,

@@ -123,7 +123,7 @@ impl BudgetView {
                 self.current_value.get_num() as f32
             ),
             utils::transaction_table(
-                &self.transactions,
+                self.transactions.to_vec(),
                 |_| None,
                 Message::ViewTransaction,
                 Message::ViewAccount,

@@ -331,12 +331,12 @@ impl CreateTransactionView {
             Some(self.description_input.clone())
         };
         let source = match &self.source_input {
-            Some(SelectedAccount::Account(acc)) => fm_core::Or::One(acc.id()),
+            Some(SelectedAccount::Account(acc)) => fm_core::Or::One(*acc.id()),
             Some(SelectedAccount::New(name)) => fm_core::Or::Two(name.clone()),
             None => panic!(),
         };
         let destination = match &self.destination_input {
-            Some(SelectedAccount::Account(acc)) => fm_core::Or::One(acc.id()),
+            Some(SelectedAccount::Account(acc)) => fm_core::Or::One(*acc.id()),
             Some(SelectedAccount::New(name)) => fm_core::Or::Two(name.clone()),
             None => panic!(),
         };

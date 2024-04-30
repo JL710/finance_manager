@@ -73,46 +73,54 @@ pub fn button_link_style(
 /// - `view_transaction`: A function that takes a transaction id and returns a message that will be produced when the transaction is clicked
 /// - `view_account`: A function that takes an account id and returns a message that will be produced when the account is clicked
 pub fn transaction_table<'a, Message: 'a + Clone>(
-    transactions: &'a [(
+    transactions: Vec<(
         fm_core::Transaction,
         fm_core::account::Account,
         fm_core::account::Account,
-    )],
-    amount_color: impl Fn(&fm_core::Transaction) -> Option<bool>,
-    view_transaction: impl Fn(fm_core::Id) -> Message,
-    view_account: impl Fn(fm_core::Id) -> Message,
+    )>,
+    amount_color: impl Fn(fm_core::Transaction) -> Option<bool> + 'a,
+    view_transaction: impl Fn(fm_core::Id) -> Message + 'static,
+    view_account: impl Fn(fm_core::Id) -> Message + 'static,
 ) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
-    let mut transaction_table = super::table::Table::new(5).set_headers(vec![
+    let table = super::table_view::TableView::new(
+        transactions.clone(),
+        move |(transaction, source, destination): &(
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+        )| {
+            [
+                widget::button(widget::text(transaction.title().clone()))
+                    .on_press(view_transaction(*transaction.id()))
+                    .style(button_link_style)
+                    .padding(0)
+                    .into(),
+                widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
+                match amount_color(transaction.clone()) {
+                    Some(true) => colored_currency_display(&transaction.amount()),
+                    Some(false) => colored_currency_display(&transaction.amount().negative()),
+                    None => widget::text(transaction.amount().to_string()).into(),
+                },
+                widget::button(widget::text(source.to_string().clone()))
+                    .on_press(view_account(*source.id()))
+                    .style(button_link_style)
+                    .padding(0)
+                    .into(),
+                widget::button(widget::text(destination.to_string().clone()))
+                    .on_press(view_account(*destination.id()))
+                    .style(button_link_style)
+                    .padding(0)
+                    .into(),
+            ]
+        },
+    )
+    .headers([
         "Title".to_owned(),
         "Date".to_owned(),
         "Amount".to_owned(),
         "Source".to_owned(),
         "Destination".to_owned(),
     ]);
-    for transaction in transactions {
-        transaction_table.push_row(vec![
-            widget::button(transaction.0.title().as_str())
-                .style(button_link_style)
-                .on_press(view_transaction(*transaction.0.id()))
-                .padding(0)
-                .into(),
-            widget::text(transaction.0.date().format("%d.%m.%Y").to_string()).into(),
-            match amount_color(&transaction.0) {
-                Some(true) => colored_currency_display(&transaction.0.amount()),
-                Some(false) => colored_currency_display(&transaction.0.amount().negative()),
-                None => widget::text(transaction.0.amount().to_string()).into(),
-            },
-            widget::button(widget::text(transaction.1.to_string()))
-                .on_press(view_account(transaction.1.id()))
-                .style(button_link_style)
-                .padding(0)
-                .into(),
-            widget::button(widget::text(transaction.2.to_string()))
-                .on_press(view_account(transaction.2.id()))
-                .style(button_link_style)
-                .padding(0)
-                .into(),
-        ]);
-    }
-    transaction_table.convert_to_view()
+
+    table.into_element()
 }
