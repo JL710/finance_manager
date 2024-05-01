@@ -19,6 +19,14 @@ pub enum Message {
     Edit,
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
+    ChangeTransactionTimespan(fm_core::Timespan),
+    SetTransactions(
+        Vec<(
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+        )>,
+    ),
 }
 
 #[derive(Debug, Clone)]
@@ -102,6 +110,35 @@ impl ViewAccount {
             Message::ViewAccount(id) => {
                 (Some(View::Empty), switch_view_command(id, finance_manager))
             }
+            Message::SetTransactions(transactions) => {
+                self.transactions = transactions;
+                (None, iced::Command::none())
+            }
+            Message::ChangeTransactionTimespan(timespan) => {
+                let account_id = *self.account.id();
+                (
+                    None,
+                    iced::Command::perform(
+                        async move {
+                            let locked_manager = finance_manager.lock().await;
+                            let transactions = locked_manager
+                                .get_transactions_of_account(account_id, timespan)
+                                .await
+                                .unwrap();
+                            let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
+                            let mut transaction_tuples = Vec::with_capacity(transactions.len());
+                            for transaction in transactions {
+                                let source = accounts.get(transaction.source()).unwrap().clone();
+                                let destination =
+                                    accounts.get(transaction.destination()).unwrap().clone();
+                                transaction_tuples.push((transaction, source, destination));
+                            }
+                            transaction_tuples
+                        },
+                        |x| AppMessage::ViewAccountMessage(Message::SetTransactions(x)),
+                    ),
+                )
+            }
         }
     }
 
@@ -140,6 +177,8 @@ fn asset_account_view<'a>(
             widget::button("Edit").on_press(Message::Edit),
         ],
         widget::horizontal_rule(10),
+        super::super::timespan_input::TimespanInput::new(Message::ChangeTransactionTimespan)
+            .into_element(),
         utils::transaction_table(
             transactions.to_vec(),
             |transaction| Some(*transaction.destination() == account.id()),

@@ -2,6 +2,7 @@ use iced::advanced::Application;
 
 mod table;
 mod table_view;
+mod timespan_input;
 mod utils;
 mod view;
 
