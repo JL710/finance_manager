@@ -1,5 +1,6 @@
 use super::{
-    account, Budget, Currency, DateTime, FinanceManager, Id, Recouring, Timespan, Transaction,
+    account, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring, Timespan,
+    Transaction,
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -9,6 +10,7 @@ pub struct RamFinanceManager {
     accounts: HashMap<Id, account::Account>,
     transactions: Vec<Transaction>,
     budgets: HashMap<Id, Budget>,
+    categories: Vec<Category>,
 }
 
 impl FinanceManager for RamFinanceManager {
@@ -162,6 +164,7 @@ impl FinanceManager for RamFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
+        categories: Vec<Id>,
     ) -> Result<Transaction> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
@@ -195,6 +198,7 @@ impl FinanceManager for RamFinanceManager {
             budget,
             date,
             metadata,
+            categories,
         };
 
         self.transactions.push(new_transaction.clone());
@@ -240,6 +244,7 @@ impl FinanceManager for RamFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
+        categories: Vec<Id>,
     ) -> Result<Transaction> {
         let source_id = match source {
             super::Or::One(id) => id,
@@ -271,6 +276,7 @@ impl FinanceManager for RamFinanceManager {
             budget,
             date,
             metadata,
+            categories,
         );
         for transaction in &mut self.transactions {
             if *transaction.id() == id {
@@ -366,5 +372,41 @@ impl FinanceManager for RamFinanceManager {
         }
 
         Ok(transactions)
+    }
+
+    async fn create_category(&mut self, name: String) -> Result<Category> {
+        let id = uuid::Uuid::new_v4().as_u64_pair().0;
+
+        let new_category = Category { id, name };
+
+        self.categories.push(new_category.clone());
+
+        Ok(new_category)
+    }
+
+    async fn update_category(&mut self, id: Id, name: String) -> Result<Category> {
+        let new_category = Category { id, name };
+
+        for category in &mut self.categories {
+            if category.id == id {
+                *category = new_category.clone();
+                return Ok(new_category);
+            }
+        }
+
+        anyhow::bail!("Category does not exist");
+    }
+
+    async fn get_categories(&self) -> Result<Vec<Category>> {
+        Ok(self.categories.clone())
+    }
+
+    async fn get_category(&self, id: Id) -> Result<Option<Category>> {
+        for category in &self.categories {
+            if category.id == id {
+                return Ok(Some(category.clone()));
+            }
+        }
+        Ok(None)
     }
 }

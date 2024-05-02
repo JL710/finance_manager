@@ -359,6 +359,7 @@ impl CreateTransactionView {
                             budget,
                             date,
                             metadata,
+                            Vec::new(),
                         )
                         .await
                         .unwrap(),
@@ -374,6 +375,7 @@ impl CreateTransactionView {
                             budget,
                             date,
                             metadata,
+                            Vec::new(),
                         )
                         .await
                         .unwrap(),

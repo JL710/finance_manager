@@ -30,6 +30,7 @@ impl TryInto<Transaction> for TransactionSignature {
             self.7,
             DateTime::from_timestamp(self.8, 0).unwrap(),
             serde_json::from_str(&self.9)?,
+            Vec::new(),
         ))
     }
 }
@@ -213,7 +214,23 @@ impl FinanceManager for SqliteFinanceManager {
             (&id,),
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?, row.get(8)?, row.get(9)?))
         )?;
-        Ok(Some(result.try_into()?))
+        let categories = get_categories_of_account(&connection, result.5)?
+            .iter()
+            .map(|x| *x.id())
+            .collect();
+        let transaction: Transaction = result.try_into()?;
+        Ok(Some(Transaction::new(
+            *transaction.id(),
+            transaction.amount(),
+            transaction.title().to_owned(),
+            transaction.description().and_then(|x| Some(x.to_string())),
+            *transaction.source(),
+            *transaction.destination(),
+            transaction.budget().copied(),
+            *transaction.date(),
+            transaction.metadata().clone(),
+            categories,
+        )))
     }
 
     async fn get_transactions_of_account(
@@ -267,7 +284,24 @@ impl FinanceManager for SqliteFinanceManager {
         let mut transactions: Vec<Transaction> = Vec::new();
 
         for row in result {
-            transactions.push(row?.try_into()?);
+            let transaction: Transaction = row?.try_into()?;
+            let categories = get_categories_of_account(&connection, *transaction.source())?
+                .iter()
+                .map(|x| *x.id())
+                .collect();
+            transactions.push(Transaction::new(
+                *transaction.id(),
+                transaction.amount(),
+                transaction.title().to_owned(),
+                transaction.description().and_then(|x| Some(x.to_string())),
+                *transaction.source(),
+                *transaction.destination(),
+                transaction.budget().copied(),
+                *transaction.date(),
+                transaction.metadata().clone(),
+                categories,
+            ));
+            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -283,6 +317,7 @@ impl FinanceManager for SqliteFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
+        categories: Vec<Id>,
     ) -> Result<Transaction> {
         let connection = self.connect()?;
 
@@ -328,8 +363,12 @@ impl FinanceManager for SqliteFinanceManager {
                 serde_json::to_string(&metadata)?,
             ),
         )?;
+        let transaction_id = connection.last_insert_rowid();
+
+        set_categories_for_transaction(&connection, transaction_id as Id, &categories)?; // set categories for transaction
+
         Ok(Transaction::new(
-            connection.last_insert_rowid() as Id,
+            transaction_id as Id,
             amount,
             title,
             description,
@@ -338,6 +377,7 @@ impl FinanceManager for SqliteFinanceManager {
             budget,
             date,
             metadata,
+            categories,
         ))
     }
 
@@ -441,6 +481,7 @@ impl FinanceManager for SqliteFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
+        categories: Vec<Id>,
     ) -> Result<Transaction> {
         let connection = self.connect()?;
 
@@ -469,6 +510,8 @@ impl FinanceManager for SqliteFinanceManager {
             (amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget, date.timestamp(), serde_json::to_string(&metadata)?, id)
         )?;
 
+        set_categories_for_transaction(&connection, id, &categories)?; // set categories for transaction
+
         Ok(Transaction::new(
             id,
             amount,
@@ -479,6 +522,7 @@ impl FinanceManager for SqliteFinanceManager {
             budget,
             date,
             metadata,
+            categories,
         ))
     }
 
@@ -539,7 +583,24 @@ impl FinanceManager for SqliteFinanceManager {
         let mut transactions: Vec<Transaction> = Vec::new();
 
         for row in result {
-            transactions.push(row?.try_into()?);
+            let transaction: Transaction = row?.try_into()?;
+            let categories = get_categories_of_account(&connection, *transaction.source())?
+                .iter()
+                .map(|x| *x.id())
+                .collect();
+            transactions.push(Transaction::new(
+                *transaction.id(),
+                transaction.amount(),
+                transaction.title().to_owned(),
+                transaction.description().and_then(|x| Some(x.to_string())),
+                *transaction.source(),
+                *transaction.destination(),
+                transaction.budget().copied(),
+                *transaction.date(),
+                transaction.metadata().clone(),
+                categories,
+            ));
+            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -619,10 +680,58 @@ impl FinanceManager for SqliteFinanceManager {
         let mut transactions: Vec<Transaction> = Vec::new();
 
         for row in result {
-            transactions.push(row?.try_into()?);
+            let transaction: Transaction = row?.try_into()?;
+            let categories = get_categories_of_account(&connection, *transaction.source())?
+                .iter()
+                .map(|x| *x.id())
+                .collect();
+            transactions.push(Transaction::new(
+                *transaction.id(),
+                transaction.amount(),
+                transaction.title().to_owned(),
+                transaction.description().and_then(|x| Some(x.to_string())),
+                *transaction.source(),
+                *transaction.destination(),
+                transaction.budget().copied(),
+                *transaction.date(),
+                transaction.metadata().clone(),
+                categories,
+            ));
+            transactions.push(transaction);
         }
 
         Ok(transactions)
+    }
+
+    async fn get_categories(&self) -> Result<Vec<Category>> {
+        let connection = self.connect()?;
+        let mut categories = Vec::new();
+        let mut statement = connection.prepare("SELECT id, name FROM category")?;
+        let rows: Vec<std::result::Result<(Id, String), rusqlite::Error>> = statement
+            .query_map((), |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect();
+        for row in rows {
+            let row = row?;
+            categories.push(Category::new(row.0, row.1));
+        }
+        Ok(categories)
+    }
+
+    async fn create_category(&mut self, name: String) -> Result<Category> {
+        let connection = self.connect()?;
+        connection.execute("INSERT INTO category (name) VALUES (?1)", (&name,))?;
+        Ok(Category::new(connection.last_insert_rowid() as Id, name))
+    }
+
+    async fn update_category(&mut self, id: Id, name: String) -> Result<Category> {
+        let connection = self.connect()?;
+        connection.execute("UPDATE category SET name=?1 WHERE id=?2", (&name, id))?;
+        Ok(Category::new(id, name))
+    }
+
+    async fn get_category(&self, id: Id) -> Result<Option<Category>> {
+        let connection = self.connect()?;
+        get_category(&connection, id)
     }
 }
 
@@ -701,4 +810,51 @@ fn create_book_checking_account(
         iban,
         bic,
     ))
+}
+
+fn set_categories_for_transaction(
+    connection: &rusqlite::Connection,
+    transaction_id: Id,
+    categories: &Vec<Id>,
+) -> Result<()> {
+    connection.execute(
+        "DELETE FROM transaction_category WHERE transaction_id=?1",
+        (transaction_id,),
+    )?;
+    for category in categories {
+        connection.execute(
+            "INSERT INTO transaction_category (transaction_id, category_id) VALUES (?1, ?2)",
+            (transaction_id, category),
+        )?;
+    }
+    Ok(())
+}
+
+fn get_category(connection: &rusqlite::Connection, category_id: Id) -> Result<Option<Category>> {
+    let result: Option<String> = connection.query_row(
+        "SELECT name FROM category WHERE id=?1",
+        (&category_id,),
+        |row| row.get(0),
+    )?;
+    match result {
+        Some(name) => Ok(Some(Category::new(category_id, name))),
+        None => Ok(None),
+    }
+}
+
+fn get_categories_of_account(
+    connection: &rusqlite::Connection,
+    account_id: Id,
+) -> Result<Vec<Category>> {
+    let mut categories = Vec::new();
+    let mut statement =
+        connection.prepare("SELECT category_id FROM account_category WHERE account_id=?1")?;
+    let rows: Vec<std::result::Result<Id, rusqlite::Error>> = statement
+        .query_map((account_id,), |row| Ok(row.get(0)?))?
+        .collect();
+    for row in rows {
+        let row = row?;
+        categories.push(get_category(&connection, row)?.unwrap());
+    }
+    Ok(categories)
 }

@@ -93,6 +93,7 @@ impl fm_core::FinanceManager for Client {
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
+        categories: Vec<fm_core::Id>,
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
@@ -105,7 +106,8 @@ impl fm_core::FinanceManager for Client {
                 destination,
                 budget,
                 date,
-                metadata
+                metadata,
+                categories
             )
         )
     }
@@ -168,6 +170,7 @@ impl fm_core::FinanceManager for Client {
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
+        categories: Vec<fm_core::Id>,
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
@@ -181,7 +184,8 @@ impl fm_core::FinanceManager for Client {
                 destination,
                 budget,
                 date,
-                metadata
+                metadata,
+                categories
             )
         )
     }
@@ -205,7 +209,33 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
-    async fn get_transactions(&self, timespan: fm_core::Timespan) -> Result<Vec<fm_core::Transaction>> {
+    async fn get_transactions(
+        &self,
+        timespan: fm_core::Timespan,
+    ) -> Result<Vec<fm_core::Transaction>> {
         client_post_macro!(self.url, "get_transactions", timespan)
+    }
+
+    async fn get_categories(&self) -> Result<Vec<fm_core::Category>> {
+        let response = reqwest::get(&format!("{}/get_categories", self.url))
+            .await
+            .unwrap();
+        Ok(serde_json::from_str(&response.text().await?)?)
+    }
+
+    async fn create_category(&mut self, name: String) -> Result<fm_core::Category> {
+        client_post_macro!(self.url, "create_category", name)
+    }
+
+    async fn update_category(
+        &mut self,
+        id: fm_core::Id,
+        name: String,
+    ) -> Result<fm_core::Category> {
+        client_post_macro!(self.url, "update_category", (id, name))
+    }
+
+    async fn get_category(&self, id: fm_core::Id) -> Result<Option<fm_core::Category>> {
+        client_post_macro!(self.url, "get_category", id)
     }
 }

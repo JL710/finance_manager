@@ -245,6 +245,7 @@ async fn parse_csv_camt_v2(
                         "CSV_CAMT_V2".to_string(),
                     ),
                 ]),
+                Vec::new(),
             )
             .await?;
     }

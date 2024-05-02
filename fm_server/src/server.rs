@@ -59,6 +59,10 @@ pub async fn run(url: String, db: String) {
         .route("/delete_transaction", post(delete_transaction))
         .route("/update_budget", post(update_budget))
         .route("/get_transactions", post(get_transactions))
+        .route("/get_categories", get(get_categories))
+        .route("/get_category", post(get_category))
+        .route("/create_category", post(create_category))
+        .route("/update_category", post(update_category))
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
 
@@ -202,6 +206,7 @@ async fn create_transaction(
         Option<fm_core::Id>,
         fm_core::DateTime,
         std::collections::HashMap<String, String>,
+        Vec<fm_core::Id>,
     )>,
 ) -> Json<Value> {
     let transaction = state
@@ -209,7 +214,7 @@ async fn create_transaction(
         .lock()
         .await
         .create_transaction(
-            data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7,
+            data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7, data.8,
         )
         .await
         .unwrap();
@@ -295,6 +300,7 @@ async fn update_transaction(
         Option<fm_core::Id>,
         fm_core::DateTime,
         std::collections::HashMap<String, String>,
+        Vec<fm_core::Id>,
     )>,
 ) -> Json<Value> {
     let transaction = state
@@ -302,7 +308,7 @@ async fn update_transaction(
         .lock()
         .await
         .update_transaction(
-            data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7, data.8,
+            data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7, data.8, data.9,
         )
         .await
         .unwrap();
@@ -345,7 +351,7 @@ async fn update_budget(
 
 async fn get_transactions(
     axum::extract::State(state): axum::extract::State<State>,
-    axum::extract::Json(data): axum::extract::Json<fm_core::Timespan>
+    axum::extract::Json(data): axum::extract::Json<fm_core::Timespan>,
 ) -> Json<Value> {
     let transactions = state
         .finance_manager
@@ -355,4 +361,57 @@ async fn get_transactions(
         .await
         .unwrap();
     json!(transactions).into()
+}
+
+async fn get_categories(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
+    let categories = state
+        .finance_manager
+        .lock()
+        .await
+        .get_categories()
+        .await
+        .unwrap();
+    json!(categories).into()
+}
+
+async fn get_category(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
+) -> Json<Value> {
+    let category = state
+        .finance_manager
+        .lock()
+        .await
+        .get_category(data)
+        .await
+        .unwrap();
+    json!(category).into()
+}
+
+async fn create_category(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<String>,
+) -> Json<Value> {
+    let category = state
+        .finance_manager
+        .lock()
+        .await
+        .create_category(data)
+        .await
+        .unwrap();
+    json!(category).into()
+}
+
+async fn update_category(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<(fm_core::Id, String)>,
+) -> Json<Value> {
+    let category = state
+        .finance_manager
+        .lock()
+        .await
+        .update_category(data.0, data.1)
+        .await
+        .unwrap();
+    json!(category).into()
 }

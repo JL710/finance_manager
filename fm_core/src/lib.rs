@@ -150,6 +150,26 @@ impl std::fmt::Display for Budget {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Category {
+    id: Id,
+    name: String,
+}
+
+impl Category {
+    pub fn new(id: Id, name: String) -> Self {
+        Self { id, name }
+    }
+
+    pub fn id(&self) -> &Id {
+        &self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Transaction {
     id: Id,
     amount: Currency, // if amount is positive the money is added to the account. If negative it is removed
@@ -160,6 +180,7 @@ pub struct Transaction {
     budget: Option<Id>,
     date: DateTime,
     metadata: HashMap<String, String>,
+    categories: Vec<Id>,
 }
 
 impl Transaction {
@@ -173,6 +194,7 @@ impl Transaction {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
+        categories: Vec<Id>,
     ) -> Self {
         Self {
             id,
@@ -184,6 +206,7 @@ impl Transaction {
             budget,
             date,
             metadata,
+            categories,
         }
     }
 
@@ -320,6 +343,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
+        categoris: Vec<Id>,
     ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
     fn update_transaction(
@@ -333,6 +357,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
+        categoris: Vec<Id>,
     ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
     fn create_book_checking_account(
@@ -458,4 +483,22 @@ pub trait FinanceManager: Send + Clone + Sized {
             Ok(account_map)
         }
     }
+
+    fn get_categories(&self) -> impl futures::Future<Output = Result<Vec<Category>>> + Send;
+
+    fn get_category(
+        &self,
+        id: Id,
+    ) -> impl futures::Future<Output = Result<Option<Category>>> + Send;
+
+    fn create_category(
+        &mut self,
+        name: String,
+    ) -> impl futures::Future<Output = Result<Category>> + Send;
+
+    fn update_category(
+        &mut self,
+        id: Id,
+        name: String,
+    ) -> impl futures::Future<Output = Result<Category>> + Send;
 }

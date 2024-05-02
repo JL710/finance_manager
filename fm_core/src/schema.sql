@@ -38,6 +38,18 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (budget) REFERENCES budget(id)
 );
 
+CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS transaction_category (
+    transaction_id INTEGER NOT NULL,
+    category_id INTEGER NOT NULL,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
 CREATE TABLE IF NOT EXISTS budget (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
