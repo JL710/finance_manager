@@ -99,7 +99,11 @@ pub struct CreateTransactionView {
 }
 
 impl CreateTransactionView {
-    pub fn new(budgets: Vec<fm_core::Budget>, accounts: Vec<fm_core::account::Account>, available_categories: Vec<fm_core::Category>) -> Self {
+    pub fn new(
+        budgets: Vec<fm_core::Budget>,
+        accounts: Vec<fm_core::account::Account>,
+        available_categories: Vec<fm_core::Category>,
+    ) -> Self {
         Self {
             id: None,
             amount_input: String::new(),
@@ -124,7 +128,7 @@ impl CreateTransactionView {
             date_input: String::new(),
             metadata: std::collections::HashMap::new(),
             selected_categories: Vec::new(),
-            available_categories
+            available_categories,
         }
     }
 
@@ -135,7 +139,7 @@ impl CreateTransactionView {
         budget: Option<fm_core::Budget>,
         budgets: Vec<fm_core::Budget>,
         accounts: Vec<fm_core::account::Account>,
-        available_categories: Vec<fm_core::Category>
+        available_categories: Vec<fm_core::Category>,
     ) -> Self {
         fn string_convert(input: Option<&str>) -> String {
             match input {
@@ -168,8 +172,7 @@ impl CreateTransactionView {
             date_input: transaction.date().format("%d.%m.%Y").to_string(),
             metadata: transaction.metadata().clone(),
             available_categories,
-            selected_categories: transaction.categories().iter().map(|x| *x).collect()
-
+            selected_categories: transaction.categories().iter().map(|x| *x).collect(),
         }
     }
 
@@ -203,7 +206,7 @@ impl CreateTransactionView {
             budget,
             budgets,
             accounts,
-            available_categories
+            available_categories,
         ))
     }
 

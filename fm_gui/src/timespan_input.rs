@@ -63,10 +63,7 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
         Some((self.produce_message)((start, end)))
     }
 
-    fn view(
-        &self,
-        state: &Self::State,
-    ) -> iced::Element<'_, Self::Event> {
+    fn view(&self, state: &Self::State) -> iced::Element<'_, Self::Event> {
         widget::row![
             widget::text_input("Start", &state.start).on_input(TimespanInputMsg::SetStart),
             widget::text(" - "),

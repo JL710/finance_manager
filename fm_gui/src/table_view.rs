@@ -113,10 +113,7 @@ where
         None
     }
 
-    fn view(
-        &self,
-        state: &Self::State,
-    ) -> iced::Element<'a, Self::Event> {
+    fn view(&self, state: &Self::State) -> iced::Element<'a, Self::Event> {
         let mut data_column = widget::column![].spacing(self.spacing);
         for item in &self.items {
             let row_elements = (self.to_row)(item).map(|x| x.map(|m| TableViewMessage::Message(m)));
