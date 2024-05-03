@@ -16,11 +16,12 @@ pub fn switch_view_command(
         async move {
             let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
             let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
-            (budgets, accounts)
+            let categories = finance_manager.lock().await.get_categories().await.unwrap();
+            (budgets, accounts, categories)
         },
         |x| {
             AppMessage::SwitchView(View::CreateTransactionView(
-                super::create_transaction::CreateTransactionView::new(x.0, x.1),
+                super::create_transaction::CreateTransactionView::new(x.0, x.1, x.2),
             ))
         },
     )
@@ -93,10 +94,12 @@ pub struct CreateTransactionView {
     budget_input: Option<fm_core::Budget>,
     date_input: String,
     metadata: std::collections::HashMap<String, String>,
+    available_categories: Vec<fm_core::Category>,
+    selected_categories: Vec<fm_core::Id>,
 }
 
 impl CreateTransactionView {
-    pub fn new(budgets: Vec<fm_core::Budget>, accounts: Vec<fm_core::account::Account>) -> Self {
+    pub fn new(budgets: Vec<fm_core::Budget>, accounts: Vec<fm_core::account::Account>, available_categories: Vec<fm_core::Category>) -> Self {
         Self {
             id: None,
             amount_input: String::new(),
@@ -120,6 +123,8 @@ impl CreateTransactionView {
             budget_input: None,
             date_input: String::new(),
             metadata: std::collections::HashMap::new(),
+            selected_categories: Vec::new(),
+            available_categories
         }
     }
 
@@ -130,6 +135,7 @@ impl CreateTransactionView {
         budget: Option<fm_core::Budget>,
         budgets: Vec<fm_core::Budget>,
         accounts: Vec<fm_core::account::Account>,
+        available_categories: Vec<fm_core::Category>
     ) -> Self {
         fn string_convert(input: Option<&str>) -> String {
             match input {
@@ -161,6 +167,9 @@ impl CreateTransactionView {
             budget_state: widget::combo_box::State::new(budgets),
             date_input: transaction.date().format("%d.%m.%Y").to_string(),
             metadata: transaction.metadata().clone(),
+            available_categories,
+            selected_categories: transaction.categories().iter().map(|x| *x).collect()
+
         }
     }
 
@@ -185,6 +194,7 @@ impl CreateTransactionView {
         };
         let budgets = locked_manager.get_budgets().await?;
         let accounts = locked_manager.get_accounts().await?;
+        let available_categories = locked_manager.get_categories().await?;
 
         Ok(Self::from_existing_transaction(
             &transaction,
@@ -193,6 +203,7 @@ impl CreateTransactionView {
             budget,
             budgets,
             accounts,
+            available_categories
         ))
     }
 

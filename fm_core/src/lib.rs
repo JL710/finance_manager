@@ -261,6 +261,10 @@ impl Transaction {
     pub fn metadata(&self) -> &HashMap<String, String> {
         &self.metadata
     }
+
+    pub fn categories(&self) -> &Vec<Id> {
+        &self.categories
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
