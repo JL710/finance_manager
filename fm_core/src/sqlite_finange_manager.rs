@@ -706,7 +706,7 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_categories(&self) -> Result<Vec<Category>> {
         let connection = self.connect()?;
         let mut categories = Vec::new();
-        let mut statement = connection.prepare("SELECT id, name FROM category")?;
+        let mut statement = connection.prepare("SELECT id, name FROM categories")?;
         let rows: Vec<std::result::Result<(Id, String), rusqlite::Error>> = statement
             .query_map((), |row| Ok((row.get(0)?, row.get(1)?)))?
             .collect();
@@ -719,13 +719,13 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn create_category(&mut self, name: String) -> Result<Category> {
         let connection = self.connect()?;
-        connection.execute("INSERT INTO category (name) VALUES (?1)", (&name,))?;
+        connection.execute("INSERT INTO categories (name) VALUES (?1)", (&name,))?;
         Ok(Category::new(connection.last_insert_rowid() as Id, name))
     }
 
     async fn update_category(&mut self, id: Id, name: String) -> Result<Category> {
         let connection = self.connect()?;
-        connection.execute("UPDATE category SET name=?1 WHERE id=?2", (&name, id))?;
+        connection.execute("UPDATE categories SET name=?1 WHERE id=?2", (&name, id))?;
         Ok(Category::new(id, name))
     }
 
