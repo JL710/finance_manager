@@ -62,7 +62,8 @@ impl CreateCategory {
             widget::row![
                 widget::text("Name:"),
                 widget::text_input("Name", &self.name).on_input(Message::NameInput),
-            ].spacing(10),
+            ]
+            .spacing(10),
             widget::button("Submit").on_press_maybe(if self.is_submittable() {
                 Some(Message::Submit)
             } else {
