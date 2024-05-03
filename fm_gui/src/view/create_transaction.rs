@@ -78,6 +78,7 @@ pub enum Message {
     BudgetSelected(fm_core::Budget),
     ClearBudget,
     Submit,
+    SelectCategory(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -243,11 +244,27 @@ impl CreateTransactionView {
             Message::ClearBudget => {
                 self.budget_input = None;
             }
+            Message::SelectCategory(id) => {
+                if self.selected_categories.contains(&id) {
+                    self.selected_categories.retain(|x| x != &id);
+                } else {
+                    self.selected_categories.push(id);
+                }
+            }
         }
         (None, iced::Command::none())
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
+        let mut categories = widget::column![].spacing(10);
+        for category in &self.available_categories {
+            let selected = self.selected_categories.contains(category.id());
+            categories = categories.push(
+                widget::checkbox(category.name(), selected)
+                    .on_toggle(|_| Message::SelectCategory(*category.id())),
+            );
+        }
+
         widget::column![
             utils::labeled_entry("Amount", &self.amount_input, Message::AmountInput),
             utils::labeled_entry("Title", &self.title_input, Message::TitleInput),
@@ -290,6 +307,10 @@ impl CreateTransactionView {
                 widget::button("X").on_press(Message::ClearBudget)
             ]
             .spacing(10),
+            widget::horizontal_rule(10),
+            widget::text("Categories"),
+            widget::scrollable(categories),
+            widget::horizontal_rule(10),
             widget::button("Submit").on_press_maybe(if self.submittable() {
                 Some(Message::Submit)
             } else {
@@ -357,6 +378,7 @@ impl CreateTransactionView {
         let budget = self.budget_input.as_ref().map(|budget| *budget.id());
         let date = utils::parse_to_datetime(&self.date_input).unwrap();
         let metadata = self.metadata.clone();
+        let categories = self.selected_categories.clone();
         iced::Command::perform(
             async move {
                 let new_transaction = match option_id {
@@ -373,7 +395,7 @@ impl CreateTransactionView {
                             budget,
                             date,
                             metadata,
-                            Vec::new(),
+                            categories,
                         )
                         .await
                         .unwrap(),
@@ -389,7 +411,7 @@ impl CreateTransactionView {
                             budget,
                             date,
                             metadata,
-                            Vec::new(),
+                            categories,
                         )
                         .await
                         .unwrap(),
