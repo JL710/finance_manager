@@ -6,7 +6,7 @@ const ROW_PADDING: u16 = 5;
 const ROW_SPACING: u16 = 10;
 
 pub struct Table<'a, Message> {
-    rows: Vec<Vec<iced::Element<'a, Message, iced::Theme, iced::Renderer>>>,
+    rows: Vec<Vec<iced::Element<'a, Message>>>,
     headers: Option<Vec<String>>,
     columns: usize,
 }
@@ -26,12 +26,12 @@ impl<'a, Message: 'a> Table<'a, Message> {
         self
     }
 
-    pub fn push_row(&mut self, row: Vec<iced::Element<'a, Message, iced::Theme, iced::Renderer>>) {
+    pub fn push_row(&mut self, row: Vec<iced::Element<'a, Message>>) {
         assert_eq!(self.columns, row.len());
         self.rows.push(row);
     }
 
-    pub fn convert_to_view(self) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
+    pub fn convert_to_view(self) -> iced::Element<'a, Message> {
         let mut parent_column = widget::Column::new().spacing(10);
 
         if let Some(headers) = self.headers {

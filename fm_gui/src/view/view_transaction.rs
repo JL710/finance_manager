@@ -100,7 +100,7 @@ impl TransactionView {
         }
     }
 
-    pub fn view(&self) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'static, Message> {
         let mut column = widget::column![
             widget::row![
                 widget::text("Value: "),

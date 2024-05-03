@@ -5,7 +5,7 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,
     content: &str,
     message: impl Fn(String) -> Message + 'a,
-) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
+) -> iced::Element<'a, Message> {
     widget::row![
         widget::text(name),
         widget::text_input(name, content).on_input(message)
@@ -35,7 +35,7 @@ pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::
 
 pub fn colored_currency_display<Message>(
     value: &fm_core::Currency,
-) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
+) -> iced::Element<'static, Message> {
     if value.get_num() < 0.0 {
         widget::text(format!("{}", value))
             .style(|theme: &iced::Theme| widget::text::Style {
@@ -81,7 +81,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
     amount_color: impl Fn(fm_core::Transaction) -> Option<bool> + 'a,
     view_transaction: impl Fn(fm_core::Id) -> Message + 'static,
     view_account: impl Fn(fm_core::Id) -> Message + 'static,
-) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
+) -> iced::Element<'a, Message> {
     let table = super::table_view::TableView::new(
         transactions.clone(),
         move |(transaction, source, destination): &(

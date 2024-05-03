@@ -3,7 +3,7 @@ use iced::widget;
 
 pub struct TableView<'a, T, Message, const COLUMNS: usize, TR>
 where
-    TR: Fn(&T) -> [iced::Element<'a, Message, iced::Theme, iced::Renderer>; COLUMNS] + 'a,
+    TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
 {
     items: Vec<T>,
     headers: Option<[String; COLUMNS]>,
@@ -17,7 +17,7 @@ where
 impl<'a, T: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
     TableView<'a, T, Message, COLUMNS, TR>
 where
-    TR: Fn(&T) -> [iced::Element<'a, Message, iced::Theme, iced::Renderer>; COLUMNS] + 'a,
+    TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
 {
     pub fn new(items: Vec<T>, to_row: TR) -> Self {
         Self {
@@ -71,7 +71,7 @@ where
         }
     }
 
-    pub fn into_element(self) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
+    pub fn into_element(self) -> iced::Element<'a, Message> {
         widget::component(self)
     }
 }
@@ -91,7 +91,7 @@ pub enum TableViewMessage<Message> {
 impl<'a, T: 'a, Message, const COLUMNS: usize, TR> widget::Component<Message>
     for TableView<'a, T, Message, COLUMNS, TR>
 where
-    TR: Fn(&T) -> [iced::Element<'a, Message, iced::Theme, iced::Renderer>; COLUMNS] + 'a,
+    TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
     Message: 'a + Clone,
 {
     type State = TableViewState;
@@ -116,7 +116,7 @@ where
     fn view(
         &self,
         state: &Self::State,
-    ) -> iced::Element<'a, Self::Event, iced::Theme, iced::Renderer> {
+    ) -> iced::Element<'a, Self::Event> {
         let mut data_column = widget::column![].spacing(self.spacing);
         for item in &self.items {
             let row_elements = (self.to_row)(item).map(|x| x.map(|m| TableViewMessage::Message(m)));

@@ -10,7 +10,7 @@ impl<'a, Message: 'a, PM: Fn(fm_core::Timespan) -> Message + 'a> TimespanInput<M
         Self { produce_message }
     }
 
-    pub fn into_element(self) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
+    pub fn into_element(self) -> iced::Element<'a, Message> {
         widget::component(self)
     }
 }
@@ -66,7 +66,7 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
     fn view(
         &self,
         state: &Self::State,
-    ) -> iced::Element<'_, Self::Event, iced::Theme, iced::Renderer> {
+    ) -> iced::Element<'_, Self::Event> {
         widget::row![
             widget::text_input("Start", &state.start).on_input(TimespanInputMsg::SetStart),
             widget::text(" - "),

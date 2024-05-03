@@ -106,7 +106,7 @@ impl CreateAssetAccountDialog {
         (None, iced::Command::none())
     }
 
-    pub fn view(&self) -> iced::Element<'static, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'static, Message> {
         iced::widget::column![
             iced::widget::row![
                 iced::widget::text("Name"),

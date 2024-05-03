@@ -244,7 +244,7 @@ impl CreateTransactionView {
         (None, iced::Command::none())
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         widget::column![
             utils::labeled_entry("Amount", &self.amount_input, Message::AmountInput),
             utils::labeled_entry("Title", &self.title_input, Message::TitleInput),

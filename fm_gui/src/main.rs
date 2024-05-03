@@ -177,7 +177,7 @@ impl Application for App {
         iced::Command::none()
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message, Self::Theme, iced::Renderer> {
+    fn view(&self) -> iced::Element<Self::Message> {
         iced::widget::row![
             iced::widget::column![
                 iced::widget::button("AssetAccounts")

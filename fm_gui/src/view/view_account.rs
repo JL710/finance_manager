@@ -142,7 +142,7 @@ impl ViewAccount {
         }
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         match &self.account {
             fm_core::account::Account::AssetAccount(acc) => {
                 asset_account_view(acc, &self.transactions, &self.current_value)
@@ -160,7 +160,7 @@ fn asset_account_view<'a>(
         fm_core::account::Account,
     )],
     current_value: &fm_core::Currency,
-) -> iced::Element<'a, Message, iced::Theme, iced::Renderer> {
+) -> iced::Element<'a, Message> {
     widget::column![
         widget::row![
             widget::column![

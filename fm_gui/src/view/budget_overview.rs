@@ -66,7 +66,7 @@ impl BudgetOverview {
         }
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         widget::column![
             widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
             widget::horizontal_rule(10),
@@ -78,7 +78,7 @@ impl BudgetOverview {
 
 fn generate_budget_list(
     budgets: &Vec<(fm_core::Budget, fm_core::Currency)>,
-) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+) -> iced::Element<'_, Message> {
     let mut budget_table = super::super::table::Table::new(3).set_headers(vec![
         "Name".to_string(),
         "Current".to_string(),

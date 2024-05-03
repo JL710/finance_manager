@@ -83,7 +83,7 @@ impl AssetAccountOverview {
         }
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         let mut account_table = super::super::table::Table::new(2)
             .set_headers(vec!["Name".to_owned(), "Current Value".to_owned()]);
 

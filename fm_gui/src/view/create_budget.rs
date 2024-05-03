@@ -240,7 +240,7 @@ impl CreateBudgetView {
         (None, iced::Command::none())
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         widget::column![
             utils::labeled_entry("Name", &self.name_input, Message::NameInput),
             utils::labeled_entry(
@@ -260,7 +260,7 @@ impl CreateBudgetView {
         .into()
     }
 
-    fn generate_recouring_view(&self) -> iced::Element<'_, Message, iced::Theme, iced::Renderer> {
+    fn generate_recouring_view(&self) -> iced::Element<'_, Message> {
         let mut row = widget::row![widget::PickList::new(
             vec!["Days", "Day in month", "Yearly"],
             self.recouring_state.as_deref(),
