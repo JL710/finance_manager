@@ -23,6 +23,7 @@ pub enum AppMessage {
     ViewAccountMessage(view::view_account::Message),
     TransactionViewMessage(view::view_transaction::Message),
     ViewBudgetMessage(view::view_budget::Message),
+    CreateCategoryMessage(view::create_category::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -36,6 +37,7 @@ enum View {
     ViewAccount(view::view_account::ViewAccount),
     TransactionView(view::view_transaction::TransactionView),
     ViewBudgetView(view::view_budget::BudgetView),
+    CreateCategory(view::create_category::CreateCategory),
 }
 
 pub struct App {
@@ -173,6 +175,18 @@ impl Application for App {
                 }
                 return cmd;
             }
+            AppMessage::CreateCategoryMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::CreateCategory(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
         }
         iced::Command::none()
     }
@@ -189,7 +203,12 @@ impl Application for App {
                 iced::widget::horizontal_rule(5),
                 iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToCreateTransActionView)
+                    .on_press(AppMessage::SwitchToCreateTransActionView),
+                iced::widget::button("Create Category")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwitchView(View::CreateCategory(
+                        view::create_category::CreateCategory::new(),
+                    ))),
             ]
             .align_items(iced::Alignment::Start)
             .spacing(10)
@@ -210,6 +229,8 @@ impl Application for App {
                 View::TransactionView(ref view) =>
                     view.view().map(AppMessage::TransactionViewMessage),
                 View::ViewBudgetView(ref view) => view.view().map(AppMessage::ViewBudgetMessage),
+                View::CreateCategory(ref view) =>
+                    view.view().map(AppMessage::CreateCategoryMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]
