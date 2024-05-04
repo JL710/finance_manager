@@ -70,8 +70,7 @@ impl CategoryOverview {
         .headers(["Name".to_string()]);
 
         iced::widget::column![
-            iced::widget::button("New Category")
-                .on_press(Message::NewCategory),
+            iced::widget::button("New Category").on_press(Message::NewCategory),
             table.into_element()
         ]
         .width(iced::Length::Fill)
