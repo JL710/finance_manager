@@ -606,7 +606,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
                     let entry = values.last().unwrap().clone();
                     if entry.0 == time {
                         let i = values.len() - 1;
-                        values[i] = (time, amount + entry.1);
+                        values[i] = (time, amount);
                     } else {
                         values.push((time, amount));
                     }
