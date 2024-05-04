@@ -238,4 +238,8 @@ impl fm_core::FinanceManager for Client {
     async fn get_category(&self, id: fm_core::Id) -> Result<Option<fm_core::Category>> {
         client_post_macro!(self.url, "get_category", id)
     }
+
+    async fn delete_category(&mut self, id: fm_core::Id) -> Result<()> {
+        client_post_macro!(self.url, "delete_category", id)
+    }
 }

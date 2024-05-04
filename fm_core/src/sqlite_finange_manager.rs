@@ -733,6 +733,16 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
         get_category(&connection, id)
     }
+
+    async fn delete_category(&mut self, id: Id) -> Result<()> {
+        let connection = self.connect()?;
+        connection.execute("DELETE FROM categories WHERE id=?1", (id,))?;
+        connection.execute(
+            "DELETE FROM transaction_category WHERE category_id=?1",
+            (id,),
+        )?; // delete all references to the category
+        Ok(())
+    }
 }
 
 fn get_asset_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {

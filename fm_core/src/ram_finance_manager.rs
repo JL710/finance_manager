@@ -409,4 +409,25 @@ impl FinanceManager for RamFinanceManager {
         }
         Ok(None)
     }
+
+    async fn delete_category(&mut self, id: Id) -> Result<()> {
+        let mut found_index = -1;
+        for (index, category) in self.categories.iter().enumerate() {
+            if category.id == id {
+                found_index = index as isize;
+                break;
+            }
+        }
+        if found_index == -1 {
+            anyhow::bail!("Category does not exist");
+        }
+        self.categories.remove(found_index as usize);
+
+        // remove from transactions
+        for transaction in &mut self.transactions {
+            transaction.categories.retain(|x| *x != id);
+        }
+
+        Ok(())
+    }
 }

@@ -505,4 +505,6 @@ pub trait FinanceManager: Send + Clone + Sized {
         id: Id,
         name: String,
     ) -> impl futures::Future<Output = Result<Category>> + Send;
+
+    fn delete_category(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + Send;
 }

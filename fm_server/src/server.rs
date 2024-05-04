@@ -63,6 +63,7 @@ pub async fn run(url: String, db: String) {
         .route("/get_category", post(get_category))
         .route("/create_category", post(create_category))
         .route("/update_category", post(update_category))
+        .route("/delete_category", post(delete_category))
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
 
@@ -414,4 +415,18 @@ async fn update_category(
         .await
         .unwrap();
     json!(category).into()
+}
+
+async fn delete_category(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
+) -> Json<Value> {
+    state
+        .finance_manager
+        .lock()
+        .await
+        .delete_category(data)
+        .await
+        .unwrap();
+    json!(()).into()
 }
