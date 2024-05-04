@@ -309,7 +309,7 @@ impl CreateTransactionView {
             .spacing(10),
             widget::horizontal_rule(10),
             widget::text("Categories"),
-            widget::scrollable(categories),
+            widget::scrollable(categories).height(iced::Length::Fill).width(iced::Length::Fill),
             widget::horizontal_rule(10),
             widget::button("Submit").on_press_maybe(if self.submittable() {
                 Some(Message::Submit)
@@ -317,6 +317,7 @@ impl CreateTransactionView {
                 None
             })
         ]
+        .height(iced::Length::Fill)
         .spacing(10)
         .into()
     }
