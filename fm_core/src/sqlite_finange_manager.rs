@@ -301,7 +301,6 @@ impl FinanceManager for SqliteFinanceManager {
                 transaction.metadata().clone(),
                 categories,
             ));
-            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -600,7 +599,6 @@ impl FinanceManager for SqliteFinanceManager {
                 transaction.metadata().clone(),
                 categories,
             ));
-            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -697,7 +695,6 @@ impl FinanceManager for SqliteFinanceManager {
                 transaction.metadata().clone(),
                 categories,
             ));
-            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -812,7 +809,6 @@ impl FinanceManager for SqliteFinanceManager {
                 transaction.metadata().clone(),
                 categories,
             ));
-            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -932,7 +928,7 @@ fn get_categories_of_account(
 ) -> Result<Vec<Category>> {
     let mut categories = Vec::new();
     let mut statement =
-        connection.prepare("SELECT category_id FROM account_category WHERE account_id=?1")?;
+        connection.prepare("SELECT category_id FROM transaction_category WHERE transaction_id=?1")?;
     let rows: Vec<std::result::Result<Id, rusqlite::Error>> = statement
         .query_map((account_id,), |row| Ok(row.get(0)?))?
         .collect();
