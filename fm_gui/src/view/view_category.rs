@@ -28,7 +28,9 @@ pub enum Message {
     Delete,
     Edit,
     ChangedTimespan(fm_core::Timespan),
-    SetTransactions(
+    Set(
+        fm_core::Timespan,
+        Vec<(fm_core::DateTime, fm_core::Currency)>,
         Vec<(
             fm_core::Transaction,
             fm_core::account::Account,
@@ -48,6 +50,7 @@ pub struct ViewCategory {
         fm_core::account::Account,
     )>,
     timespan: fm_core::Timespan,
+    values: Vec<(fm_core::DateTime, fm_core::Currency)>,
 }
 
 impl ViewCategory {
@@ -58,11 +61,13 @@ impl ViewCategory {
             fm_core::account::Account,
             fm_core::account::Account,
         )>,
+        values: Vec<(fm_core::DateTime, fm_core::Currency)>,
     ) -> Self {
         Self {
             category,
             transactions,
             timespan: (None, None),
+            values,
         }
     }
 
@@ -81,10 +86,14 @@ impl ViewCategory {
             let to_account = accounts.get(transaction.destination()).unwrap().clone();
             transaction_tuples.push((transaction, from_account, to_account));
         }
+        let values = locked_manager
+            .get_relative_category_values(category_id, (None, None))
+            .await?;
         Ok(Self {
             category: locked_manager.get_category(category_id).await?.unwrap(),
             transactions: transaction_tuples,
             timespan: (None, None),
+            values,
         })
     }
 
@@ -152,7 +161,15 @@ impl ViewCategory {
                                     accounts.get(transaction.destination()).unwrap().clone();
                                 transaction_tuples.push((transaction, from_account, to_account));
                             }
-                            AppMessage::ViewCategoryMessage(Message::SetTransactions(
+                            let values = finance_manager
+                                .lock()
+                                .await
+                                .get_relative_category_values(id, timespan)
+                                .await
+                                .unwrap();
+                            AppMessage::ViewCategoryMessage(Message::Set(
+                                timespan,
+                                values,
                                 transaction_tuples,
                             ))
                         },
@@ -160,7 +177,9 @@ impl ViewCategory {
                     ),
                 )
             }
-            Message::SetTransactions(transactions) => {
+            Message::Set(timespan, values, transactions) => {
+                self.timespan = timespan;
+                self.values = values;
                 self.transactions = transactions;
                 (None, iced::Command::none())
             }
@@ -178,9 +197,25 @@ impl ViewCategory {
     pub fn view(&self) -> iced::Element<'_, Message> {
         widget::column![
             widget::row![
-                widget::text(self.category.name().to_string()),
-                widget::button("Edit").on_press(Message::Edit),
-                widget::button("Delete").on_press(Message::Delete),
+                widget::column![
+                    widget::row![
+                        widget::text("Total value"),
+                        widget::text(if let Some(value) = self.values.last() {
+                            value.1.to_string()
+                        } else {
+                            "0€".to_string()
+                        }),
+                    ]
+                    .spacing(10),
+                    widget::text(self.category.name().to_string()),
+                ]
+                .spacing(10),
+                widget::Space::with_width(iced::Length::Fill),
+                widget::column![
+                    widget::button("Edit").on_press(Message::Edit),
+                    widget::button("Delete").on_press(Message::Delete),
+                ]
+                .spacing(10)
             ]
             .spacing(10),
             super::super::timespan_input::TimespanInput::new(Message::ChangedTimespan)

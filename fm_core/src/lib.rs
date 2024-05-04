@@ -513,4 +513,43 @@ pub trait FinanceManager: Send + Clone + Sized {
         id: Id,
         timespan: Timespan,
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
+    
+    /// Gets the values of the category over time.
+    /// The first value is the value at the start of the timespan.
+    /// The last value is the total value over the timespan.
+    fn get_relative_category_values(
+        &self,
+        id: Id,
+        timespan: Timespan
+    ) -> impl futures::Future<Output = Result<Vec<(DateTime, Currency)>>> + Send {
+        let transactions_future = self.get_transactions_of_category(id, timespan);
+        async {
+            let mut transactions = transactions_future.await?;
+            transactions.sort_by(|a, b| a.date().cmp(b.date()));
+
+            let mut values: Vec<(DateTime, Currency)> = Vec::new();
+
+            for transaction in transactions {
+                let time = chrono::Utc.with_ymd_and_hms(transaction.date().year(), transaction.date().month(), transaction.date().day(), 0, 0, 0).unwrap();
+                let amount = if values.len() == 0 {
+                    transaction.amount()
+                } else {
+                    values.last().unwrap().1.clone() + transaction.amount()
+                };
+                if !values.is_empty() {
+                    let entry = values.last().unwrap().clone();
+                    if entry.0 == time {
+                        let i = values.len() - 1;
+                        values[i] = (time, amount + entry.1);
+                    } else {
+                        values.push((time, amount));
+                    }
+                } else {
+                    values.push((time, amount));
+                }
+            }
+
+            Ok(values)
+        }
+    }
 }
