@@ -248,6 +248,10 @@ impl fm_core::FinanceManager for Client {
         category: fm_core::Id,
         timespan: fm_core::Timespan,
     ) -> Result<Vec<fm_core::Transaction>> {
-        client_post_macro!(self.url, "get_transactions_of_category", (category, timespan))
+        client_post_macro!(
+            self.url,
+            "get_transactions_of_category",
+            (category, timespan)
+        )
     }
 }
