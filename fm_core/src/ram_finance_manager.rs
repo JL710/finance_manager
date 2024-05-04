@@ -438,6 +438,21 @@ impl FinanceManager for RamFinanceManager {
     ) -> Result<Vec<Transaction>> {
         let mut transactions = self.transactions.clone();
         transactions.retain(|x| x.categories.contains(&id));
+
+        if let Some(begin) = timespan.0 {
+            transactions = transactions
+                .into_iter()
+                .filter(|transaction| transaction.date >= begin)
+                .collect();
+        }
+
+        if let Some(end) = timespan.1 {
+            transactions = transactions
+                .into_iter()
+                .filter(|transaction| transaction.date <= end)
+                .collect();
+        }
+
         Ok(transactions)
     }
 }
