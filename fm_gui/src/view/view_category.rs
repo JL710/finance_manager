@@ -55,11 +55,30 @@ impl ViewCategory {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::Delete => {
-                todo!()
+                let category_id = *self.category.id();
+                (
+                    None,
+                    iced::Command::perform(
+                        async move {
+                            finance_manager
+                                .lock()
+                                .await
+                                .delete_category(category_id)
+                                .await
+                                .unwrap();
+                            AppMessage::SwitchView(View::CategoryOverview(
+                                super::category_overview::CategoryOverview::fetch(finance_manager)
+                                    .await
+                                    .unwrap(),
+                            ))
+                        },
+                        |msg| msg,
+                    ),
+                )
             }
             Message::Edit => (
                 Some(View::CreateCategory(
@@ -82,7 +101,8 @@ impl ViewCategory {
                 widget::text(self.category.name().to_string()),
                 widget::button("Edit").on_press(Message::Edit),
                 widget::button("Delete").on_press(Message::Delete),
-            ].spacing(10),
+            ]
+            .spacing(10),
             super::super::timespan_input::TimespanInput::new(Message::ChangedTimespan)
                 .into_element()
         ]
