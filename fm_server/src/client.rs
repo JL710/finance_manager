@@ -26,8 +26,8 @@ macro_rules! client_post_macro {
     }};
 }
 
-impl fm_core::FinanceManager for Client {
-    async fn create_asset_account(
+impl fm_core::PrivateFinanceManager for Client {
+    async fn private_create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -37,7 +37,7 @@ impl fm_core::FinanceManager for Client {
         client_post_macro!(self.url, "create_asset_account", (name, note, iban, bic))
     }
 
-    async fn update_asset_account(
+    async fn private_update_asset_account(
         &mut self,
         id: fm_core::Id,
         name: String,
@@ -52,6 +52,22 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
+    async fn private_create_book_checking_account(
+        &mut self,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> Result<fm_core::account::BookCheckingAccount> {
+        client_post_macro!(
+            self.url,
+            "create_book_checking_account",
+            (name, notes, iban, bic)
+        )
+    }
+}
+
+impl fm_core::FinanceManager for Client {
     async fn get_accounts(&self) -> Result<Vec<fm_core::account::Account>> {
         let response = reqwest::get(&format!("{}/get_accounts", self.url))
             .await
@@ -109,20 +125,6 @@ impl fm_core::FinanceManager for Client {
                 metadata,
                 categories
             )
-        )
-    }
-
-    async fn create_book_checking_account(
-        &mut self,
-        name: String,
-        notes: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-    ) -> Result<fm_core::account::BookCheckingAccount> {
-        client_post_macro!(
-            self.url,
-            "create_book_checking_account",
-            (name, notes, iban, bic)
         )
     }
 
