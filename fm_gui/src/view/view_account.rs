@@ -75,7 +75,6 @@ impl ViewAccount {
             .get_transactions_of_account(*account.id(), (None, Some(chrono::Utc::now())))
             .await
             .unwrap();
-        transactions.sort_by(|a, b| b.date().cmp(a.date())); // FIXME: this should not be related to the view -> the table should do it
         let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
         let mut transaction_tuples = Vec::with_capacity(transactions.len());
         for transaction in transactions {

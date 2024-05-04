@@ -52,10 +52,9 @@ where
         self
     }
 
-    /// callback produces based on the items T and the column index and reverse state a Ordering
+    /// Callback produces based on the items T and the column index and reverse state a Ordering.
     pub fn sort_by(mut self, callback: impl Fn(&T, &T, usize) -> std::cmp::Ordering + 'a) -> Self {
         self.sort_by_callback = Some(Box::new(callback));
-        self.sort(0, false);
         self
     }
 

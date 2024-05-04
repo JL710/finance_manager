@@ -82,6 +82,8 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
     view_transaction: impl Fn(fm_core::Id) -> Message + 'static,
     view_account: impl Fn(fm_core::Id) -> Message + 'static,
 ) -> iced::Element<'a, Message> {
+    let mut transactions = transactions;
+    transactions.sort_by(|(a, _, _), (b, _, _)| b.date().cmp(&a.date()));
     let table = super::table_view::TableView::new(
         transactions.clone(),
         move |(transaction, source, destination): &(
