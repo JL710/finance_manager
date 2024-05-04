@@ -1,4 +1,4 @@
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use anyhow::Result;
 use std::sync::Arc;
@@ -41,7 +41,7 @@ impl CategoryOverview {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::NewCategory => (
@@ -50,20 +50,28 @@ impl CategoryOverview {
                 )),
                 iced::Command::none(),
             ),
-            Message::ViewCategory(category_id) => {
-                todo!()
-            }
+            Message::ViewCategory(category_id) => (
+                None,
+                super::view_category::switch_view_command(finance_manager, category_id),
+            ),
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         let table = super::super::table_view::TableView::new(self.categories.clone(), |category| {
-            [iced::widget::text(category.name().to_string()).into()]
+            [
+                iced::widget::button(iced::widget::text(category.name().to_string()))
+                    .on_press(Message::ViewCategory(*category.id()))
+                    .style(utils::button_link_style)
+                    .padding(0)
+                    .into(),
+            ]
         })
         .headers(["Name".to_string()]);
 
         iced::widget::column![
-            iced::widget::button("New Category").on_press(Message::NewCategory),
+            iced::widget::button("New Category")
+                .on_press(Message::NewCategory),
             table.into_element()
         ]
         .width(iced::Length::Fill)

@@ -26,6 +26,7 @@ pub enum AppMessage {
     ViewBudgetMessage(view::view_budget::Message),
     CreateCategoryMessage(view::create_category::Message),
     CategoryOverviewMessage(view::category_overview::Message),
+    ViewCategoryMessage(view::view_category::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +42,7 @@ enum View {
     ViewBudgetView(view::view_budget::BudgetView),
     CreateCategory(view::create_category::CreateCategory),
     CategoryOverview(view::category_overview::CategoryOverview),
+    ViewCategory(view::view_category::ViewCategory),
 }
 
 pub struct App {
@@ -205,6 +207,18 @@ impl Application for App {
             AppMessage::SwitchToCategoryOverview => {
                 return view::category_overview::switch_view_command(self.finance_manager.clone());
             }
+            AppMessage::ViewCategoryMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::ViewCategory(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
         }
         iced::Command::none()
     }
@@ -249,6 +263,7 @@ impl Application for App {
                     view.view().map(AppMessage::CreateCategoryMessage),
                 View::CategoryOverview(ref view) =>
                     view.view().map(AppMessage::CategoryOverviewMessage),
+                View::ViewCategory(ref view) => view.view().map(AppMessage::ViewCategoryMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]
