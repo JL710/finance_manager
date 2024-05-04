@@ -832,7 +832,7 @@ fn set_categories_for_transaction(
 
 fn get_category(connection: &rusqlite::Connection, category_id: Id) -> Result<Option<Category>> {
     let result: Option<String> = connection.query_row(
-        "SELECT name FROM category WHERE id=?1",
+        "SELECT name FROM categories WHERE id=?1",
         (&category_id,),
         |row| row.get(0),
     )?;
