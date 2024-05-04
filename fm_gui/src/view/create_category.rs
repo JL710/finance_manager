@@ -48,8 +48,13 @@ impl CreateCategory {
                             } else {
                                 locked_manager.create_category(name).await.unwrap();
                             }
+                            drop(locked_manager);
+
+                            super::category_overview::CategoryOverview::fetch(finance_manager)
+                                .await
+                                .unwrap()
                         },
-                        |_| AppMessage::SwitchView(View::Empty),
+                        |x| AppMessage::SwitchView(View::CategoryOverview(x)),
                     ),
                 );
             }
