@@ -121,7 +121,15 @@ impl TransactionView {
         }
 
         if let Some(content) = self.transaction.description() {
-            column = column.push(widget::text(format!("Description: {}", content)));
+            column = column.push(
+                widget::row![
+                    widget::text("Description: "),
+                    widget::container(widget::text(content.to_string()))
+                        .padding(3)
+                        .style(utils::entry_row_container_style_weak)
+                ]
+                .spacing(10),
+            );
         }
 
         widget::row![
