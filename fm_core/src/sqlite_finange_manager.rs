@@ -743,6 +743,80 @@ impl FinanceManager for SqliteFinanceManager {
         )?; // delete all references to the category
         Ok(())
     }
+
+    async fn get_transactions_of_category(
+        &self,
+        id: Id,
+        timespan: Timespan,
+    ) -> Result<Vec<Transaction>> {
+        let connection = self.connect()?;
+
+        macro_rules! transaction_query {
+            ($sql:expr, $params:expr) => {
+                connection
+                    .prepare($sql)?
+                    .query_map($params, |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                            row.get(4)?,
+                            row.get(5)?,
+                            row.get(6)?,
+                            row.get(7)?,
+                            row.get(8)?,
+                            row.get(9)?,
+                        ))
+                    })?
+                    .collect()
+            };
+        }
+
+        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
+            (None, None) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE category_id=?1", 
+                (&id,)
+            ),
+            (Some(start), None) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND category_id=?2", 
+                (start.timestamp(), &id)
+            ),
+            (None, Some(end)) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp <= ?1  AND category_id=?2", 
+                (end.timestamp(), &id)
+            ),
+            (Some(start), Some(end)) => transaction_query!(
+                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND timestamp <= ?2  AND category_id=?3", 
+                (start.timestamp(), end.timestamp(), &id)
+            )
+        };
+
+        let mut transactions: Vec<Transaction> = Vec::new();
+
+        for row in result {
+            let transaction: Transaction = row?.try_into()?;
+            let categories = get_categories_of_account(&connection, *transaction.source())?
+                .iter()
+                .map(|x| *x.id())
+                .collect();
+            transactions.push(Transaction::new(
+                *transaction.id(),
+                transaction.amount(),
+                transaction.title().to_owned(),
+                transaction.description().and_then(|x| Some(x.to_string())),
+                *transaction.source(),
+                *transaction.destination(),
+                transaction.budget().copied(),
+                *transaction.date(),
+                transaction.metadata().clone(),
+                categories,
+            ));
+            transactions.push(transaction);
+        }
+
+        Ok(transactions)
+    }
 }
 
 fn get_asset_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {

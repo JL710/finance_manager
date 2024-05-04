@@ -242,4 +242,12 @@ impl fm_core::FinanceManager for Client {
     async fn delete_category(&mut self, id: fm_core::Id) -> Result<()> {
         client_post_macro!(self.url, "delete_category", id)
     }
+
+    async fn get_transactions_of_category(
+        &self,
+        category: fm_core::Id,
+        timespan: fm_core::Timespan,
+    ) -> Result<Vec<fm_core::Transaction>> {
+        client_post_macro!(self.url, "get_transactions_of_category", (category, timespan))
+    }
 }

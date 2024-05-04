@@ -64,6 +64,10 @@ pub async fn run(url: String, db: String) {
         .route("/create_category", post(create_category))
         .route("/update_category", post(update_category))
         .route("/delete_category", post(delete_category))
+        .route(
+            "/get_transactions_of_category",
+            post(get_transactions_of_category),
+        )
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
 
@@ -429,4 +433,18 @@ async fn delete_category(
         .await
         .unwrap();
     json!(()).into()
+}
+
+async fn get_transactions_of_category(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<(fm_core::Id, fm_core::Timespan)>,
+) -> Json<Value> {
+    let transactions = state
+        .finance_manager
+        .lock()
+        .await
+        .get_transactions_of_category(data.0, data.1)
+        .await
+        .unwrap();
+    json!(transactions).into()
 }

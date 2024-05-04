@@ -430,4 +430,14 @@ impl FinanceManager for RamFinanceManager {
 
         Ok(())
     }
+
+    async fn get_transactions_of_category(
+        &self,
+        id: super::Id,
+        timespan: super::Timespan,
+    ) -> Result<Vec<Transaction>> {
+        let mut transactions = self.transactions.clone();
+        transactions.retain(|x| x.categories.contains(&id));
+        Ok(transactions)
+    }
 }

@@ -507,4 +507,10 @@ pub trait FinanceManager: Send + Clone + Sized {
     ) -> impl futures::Future<Output = Result<Category>> + Send;
 
     fn delete_category(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + Send;
+
+    fn get_transactions_of_category(
+        &self,
+        id: Id,
+        timespan: Timespan,
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
 }
