@@ -102,8 +102,8 @@ impl SqliteFinanceManager {
     }
 }
 
-impl FinanceManager for SqliteFinanceManager {
-    async fn create_asset_account(
+impl super::PrivateFinanceManager for SqliteFinanceManager {
+    async fn private_create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -128,7 +128,7 @@ impl FinanceManager for SqliteFinanceManager {
         ))
     }
 
-    async fn update_asset_account(
+    async fn private_update_asset_account(
         &mut self,
         id: Id,
         name: String,
@@ -147,6 +147,19 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(account::AssetAccount::new(id, name, note, iban, bic))
     }
 
+    async fn private_create_book_checking_account(
+        &mut self,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> Result<account::BookCheckingAccount> {
+        let connection = self.connect()?;
+        create_book_checking_account(&connection, name, notes, iban, bic)
+    }
+}
+
+impl FinanceManager for SqliteFinanceManager {
     async fn get_accounts(&self) -> Result<Vec<account::Account>> {
         let connection = self.connect()?;
 
@@ -378,17 +391,6 @@ impl FinanceManager for SqliteFinanceManager {
             metadata,
             categories,
         ))
-    }
-
-    async fn create_book_checking_account(
-        &mut self,
-        name: String,
-        notes: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-    ) -> Result<account::BookCheckingAccount> {
-        let connection = self.connect()?;
-        create_book_checking_account(&connection, name, notes, iban, bic)
     }
 
     async fn create_budget(
@@ -927,8 +929,8 @@ fn get_categories_of_account(
     account_id: Id,
 ) -> Result<Vec<Category>> {
     let mut categories = Vec::new();
-    let mut statement =
-        connection.prepare("SELECT category_id FROM transaction_category WHERE transaction_id=?1")?;
+    let mut statement = connection
+        .prepare("SELECT category_id FROM transaction_category WHERE transaction_id=?1")?;
     let rows: Vec<std::result::Result<Id, rusqlite::Error>> = statement
         .query_map((account_id,), |row| Ok(row.get(0)?))?
         .collect();

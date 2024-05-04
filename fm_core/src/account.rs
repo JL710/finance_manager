@@ -1,4 +1,5 @@
 use super::Id;
+use anyhow::Result;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AssetAccount {
@@ -9,6 +10,14 @@ pub struct AssetAccount {
     bic: Option<String>,
 }
 
+pub fn valid_iban_bic(value: &String) -> Result<()> {
+    let valid = value.to_uppercase().replace(" ", "");
+    if &valid != value {
+        anyhow::bail!("IBAN/BIC must be uppercase and without spaces")
+    }
+    Ok(())
+}
+
 impl AssetAccount {
     pub fn new(
         id: Id,
@@ -17,12 +26,18 @@ impl AssetAccount {
         iban: Option<String>,
         bic: Option<String>,
     ) -> Self {
+        if let Some(iban) = &iban {
+            valid_iban_bic(iban).unwrap();
+        }
+        if let Some(bic) = &bic {
+            valid_iban_bic(bic).unwrap();
+        }
         Self {
             id,
             name,
             notes: note,
-            iban: iban.and_then(|x| Some(x.to_uppercase())),
-            bic: bic.and_then(|x| Some(x.to_uppercase())),
+            iban: iban,
+            bic: bic,
         }
     }
 
@@ -91,12 +106,18 @@ impl BookCheckingAccount {
         iban: Option<String>,
         bic: Option<String>,
     ) -> Self {
+        if let Some(value) = &iban {
+            valid_iban_bic(value).unwrap();
+        }
+        if let Some(value) = &bic {
+            valid_iban_bic(value).unwrap();
+        }
         Self {
             id,
             name,
             notes: note,
-            iban: iban.and_then(|x| Some(x.to_uppercase())),
-            bic: bic.and_then(|x| Some(x.to_uppercase())),
+            iban: iban,
+            bic: bic,
         }
     }
 

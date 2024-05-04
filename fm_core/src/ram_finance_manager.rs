@@ -13,8 +13,8 @@ pub struct RamFinanceManager {
     categories: Vec<Category>,
 }
 
-impl FinanceManager for RamFinanceManager {
-    async fn update_asset_account(
+impl super::PrivateFinanceManager for RamFinanceManager {
+    async fn private_update_asset_account(
         &mut self,
         id: Id,
         name: String,
@@ -28,7 +28,7 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_account)
     }
 
-    async fn create_asset_account(
+    async fn private_create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -48,6 +48,28 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_account)
     }
 
+    async fn private_create_book_checking_account(
+        &mut self,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> Result<account::BookCheckingAccount> {
+        let id = uuid::Uuid::new_v4().as_u64_pair().0;
+
+        let new_account = account::BookCheckingAccount::new(id, name, notes, iban, bic);
+
+        if self.accounts.contains_key(&id) {
+            panic!("ID ALREADY EXISTS");
+        }
+
+        self.accounts.insert(id, new_account.clone().into());
+
+        Ok(new_account)
+    }
+}
+
+impl FinanceManager for RamFinanceManager {
     async fn get_accounts(&self) -> Result<Vec<account::Account>> {
         return Ok(self
             .accounts
@@ -204,26 +226,6 @@ impl FinanceManager for RamFinanceManager {
         self.transactions.push(new_transaction.clone());
 
         Ok(new_transaction)
-    }
-
-    async fn create_book_checking_account(
-        &mut self,
-        name: String,
-        notes: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-    ) -> Result<account::BookCheckingAccount> {
-        let id = uuid::Uuid::new_v4().as_u64_pair().0;
-
-        let new_account = account::BookCheckingAccount::new(id, name, notes, iban, bic);
-
-        if self.accounts.contains_key(&id) {
-            panic!("ID ALREADY EXISTS");
-        }
-
-        self.accounts.insert(id, new_account.clone().into());
-
-        Ok(new_account)
     }
 
     async fn get_budget(&self, id: Id) -> Result<Option<Budget>> {

@@ -295,14 +295,56 @@ pub enum Or<T, F> {
     Two(F),
 }
 
-pub trait FinanceManager: Send + Clone + Sized {
-    fn create_asset_account(
+pub trait PrivateFinanceManager: Send + Clone + Sized {
+    fn private_create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
+
+    fn private_update_asset_account(
+        &mut self,
+        id: Id,
+        name: String,
+        note: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
+
+    fn private_create_book_checking_account(
+        &mut self,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send;
+}
+
+fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
+    if let Some(content) = content {
+        Some(content.to_uppercase().replace(" ", ""))
+    } else {
+        None
+    }
+}
+
+pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
+    fn create_asset_account(
+        &mut self,
+        name: String,
+        note: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send {
+        self.private_create_asset_account(
+            name,
+            note,
+            make_iban_bic_unified(iban),
+            make_iban_bic_unified(bic),
+        )
+    }
 
     fn update_asset_account(
         &mut self,
@@ -311,7 +353,15 @@ pub trait FinanceManager: Send + Clone + Sized {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send {
+        self.private_update_asset_account(
+            id,
+            name,
+            note,
+            make_iban_bic_unified(iban),
+            make_iban_bic_unified(bic),
+        )
+    }
 
     fn get_accounts(&self) -> impl futures::Future<Output = Result<Vec<account::Account>>> + Send;
 
@@ -347,7 +397,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categoris: Vec<Id>,
+        categories: Vec<Id>,
     ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
     fn update_transaction(
@@ -370,7 +420,14 @@ pub trait FinanceManager: Send + Clone + Sized {
         notes: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send;
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send {
+        self.private_create_book_checking_account(
+            name,
+            notes,
+            make_iban_bic_unified(iban),
+            make_iban_bic_unified(bic),
+        )
+    }
 
     fn create_budget(
         &mut self,
@@ -513,14 +570,14 @@ pub trait FinanceManager: Send + Clone + Sized {
         id: Id,
         timespan: Timespan,
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
-    
+
     /// Gets the values of the category over time.
     /// The first value is the value at the start of the timespan.
     /// The last value is the total value over the timespan.
     fn get_relative_category_values(
         &self,
         id: Id,
-        timespan: Timespan
+        timespan: Timespan,
     ) -> impl futures::Future<Output = Result<Vec<(DateTime, Currency)>>> + Send {
         let transactions_future = self.get_transactions_of_category(id, timespan);
         async {
@@ -530,7 +587,16 @@ pub trait FinanceManager: Send + Clone + Sized {
             let mut values: Vec<(DateTime, Currency)> = Vec::new();
 
             for transaction in transactions {
-                let time = chrono::Utc.with_ymd_and_hms(transaction.date().year(), transaction.date().month(), transaction.date().day(), 0, 0, 0).unwrap();
+                let time = chrono::Utc
+                    .with_ymd_and_hms(
+                        transaction.date().year(),
+                        transaction.date().month(),
+                        transaction.date().day(),
+                        0,
+                        0,
+                        0,
+                    )
+                    .unwrap();
                 let amount = if values.len() == 0 {
                     transaction.amount()
                 } else {
