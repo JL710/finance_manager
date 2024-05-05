@@ -130,7 +130,7 @@ where
         let mut column = widget::column![].spacing(self.spacing);
 
         if let Some(headers) = &self.headers {
-            let mut row = widget::row![];
+            let mut row = widget::row![].spacing(self.spacing);
             for (index, header) in headers.iter().enumerate() {
                 row = row.push(
                     widget::row![widget::text(header.clone()),]
