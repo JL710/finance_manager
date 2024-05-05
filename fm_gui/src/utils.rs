@@ -14,13 +14,13 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
     .into()
 }
 
-pub fn entry_row_container_style_weak(theme: &iced::Theme) -> widget::container::Style {
+pub fn container_style_background_weak(theme: &iced::Theme) -> widget::container::Style {
     widget::container::Style::default().with_background(iced::Background::Color(
         theme.extended_palette().background.weak.color,
     ))
 }
 
-pub fn entry_row_container_style_strong(theme: &iced::Theme) -> widget::container::Style {
+pub fn container_style_background_strongg(theme: &iced::Theme) -> widget::container::Style {
     widget::container::Style::default().with_background(iced::Background::Color(
         theme.extended_palette().background.strong.color,
     ))

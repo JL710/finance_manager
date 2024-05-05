@@ -46,7 +46,7 @@ impl<'a, Message: 'a> Table<'a, Message> {
             }
 
             parent_column = parent_column
-                .push(widget::container(row).style(utils::entry_row_container_style_strong));
+                .push(widget::container(row).style(utils::container_style_background_strongg));
         }
 
         for row_vec in self.rows {
@@ -57,7 +57,7 @@ impl<'a, Message: 'a> Table<'a, Message> {
             }
 
             parent_column = parent_column
-                .push(widget::container(row).style(utils::entry_row_container_style_weak));
+                .push(widget::container(row).style(utils::container_style_background_weak));
         }
 
         widget::scrollable(parent_column)

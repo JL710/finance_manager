@@ -126,7 +126,7 @@ impl TransactionView {
                     widget::text("Description: "),
                     widget::container(widget::text(content.to_string()))
                         .padding(3)
-                        .style(utils::entry_row_container_style_weak)
+                        .style(utils::container_style_background_weak)
                 ]
                 .spacing(10),
             );

@@ -122,7 +122,7 @@ where
             }
             data_column = data_column.push(
                 widget::container(row)
-                    .style(utils::entry_row_container_style_weak)
+                    .style(utils::container_style_background_weak)
                     .padding(self.padding),
             );
         }
@@ -164,7 +164,7 @@ where
             }
             column = column.push(
                 widget::container(row)
-                    .style(utils::entry_row_container_style_strong)
+                    .style(utils::container_style_background_strongg)
                     .padding(self.padding),
             );
         }
