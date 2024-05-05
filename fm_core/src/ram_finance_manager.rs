@@ -67,6 +67,20 @@ impl super::PrivateFinanceManager for RamFinanceManager {
 
         Ok(new_account)
     }
+
+    async fn private_update_book_checking_account(
+        &mut self,
+        id: Id,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> Result<account::BookCheckingAccount> {
+        let account = self.accounts.get_mut(&id).unwrap();
+        let new_account = account::BookCheckingAccount::new(id, name, notes, iban, bic);
+        *account = new_account.clone().into();
+        Ok(new_account)
+    }
 }
 
 impl FinanceManager for RamFinanceManager {

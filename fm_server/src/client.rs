@@ -65,6 +65,21 @@ impl fm_core::PrivateFinanceManager for Client {
             (name, notes, iban, bic)
         )
     }
+
+    async fn private_update_book_checking_account(
+        &mut self,
+        id: fm_core::Id,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> Result<fm_core::account::BookCheckingAccount> {
+        client_post_macro!(
+            self.url,
+            "update_book_checking_account",
+            (id, name, notes, iban, bic)
+        )
+    }
 }
 
 impl fm_core::FinanceManager for Client {

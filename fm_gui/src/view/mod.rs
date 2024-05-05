@@ -2,6 +2,7 @@ pub mod book_checking_account_overview;
 pub mod budget_overview;
 pub mod category_overview;
 pub mod create_asset_account;
+pub mod create_book_checking_account;
 pub mod create_budget;
 pub mod create_category;
 pub mod create_transaction;

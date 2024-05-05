@@ -320,6 +320,15 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         iban: Option<String>,
         bic: Option<String>,
     ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send;
+
+    fn private_update_book_checking_account(
+        &mut self,
+        id: Id,
+        name: String,
+        note: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send;
 }
 
 fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
@@ -424,6 +433,23 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         self.private_create_book_checking_account(
             name,
             notes,
+            make_iban_bic_unified(iban),
+            make_iban_bic_unified(bic),
+        )
+    }
+
+    fn update_book_checking_account(
+        &mut self,
+        id: Id,
+        name: String,
+        note: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send {
+        self.private_update_book_checking_account(
+            id,
+            name,
+            note,
             make_iban_bic_unified(iban),
             make_iban_bic_unified(bic),
         )

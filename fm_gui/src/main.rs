@@ -29,6 +29,7 @@ pub enum AppMessage {
     CategoryOverviewMessage(view::category_overview::Message),
     ViewCategoryMessage(view::view_category::Message),
     BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
+    CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +47,7 @@ enum View {
     CategoryOverview(view::category_overview::CategoryOverview),
     ViewCategory(view::view_category::ViewCategory),
     BookCheckingAccountOverview(view::book_checking_account_overview::BookCheckingAccountOverview),
+    CreateBookCheckingAccount(view::create_book_checking_account::CreateBookCheckingAccount),
 }
 
 pub struct App {
@@ -239,6 +241,18 @@ impl Application for App {
                     self.finance_manager.clone(),
                 );
             }
+            AppMessage::CreateBookCheckingAccountMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::CreateBookCheckingAccount(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
         }
         iced::Command::none()
     }
@@ -290,6 +304,9 @@ impl Application for App {
                 View::BookCheckingAccountOverview(ref view) => view
                     .view()
                     .map(AppMessage::BookCheckingAccountOverviewMessage),
+                View::CreateBookCheckingAccount(ref view) => view
+                    .view()
+                    .map(AppMessage::CreateBookCheckingAccountMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]

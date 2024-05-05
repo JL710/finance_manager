@@ -98,7 +98,13 @@ impl ViewAccount {
                                 super::create_asset_account::CreateAssetAccountDialog::from_existing_account(acc)
                             )), iced::Command::none());
                 }
-                fm_core::account::Account::BookCheckingAccount(acc) => todo!(),
+                fm_core::account::Account::BookCheckingAccount(acc) => {
+                    return (
+                            Some(View::CreateBookCheckingAccount(
+                                super::create_book_checking_account::CreateBookCheckingAccount::from_existing_account(acc.clone())
+                            )), iced::Command::none()
+                    )
+                },
             },
             Message::ViewTransaction(id) => {
                 return (

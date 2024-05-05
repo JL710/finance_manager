@@ -68,6 +68,10 @@ pub async fn run(url: String, db: String) {
             "/get_transactions_of_category",
             post(get_transactions_of_category),
         )
+        .route(
+            "/update_book_checking_account",
+            post(update_book_checking_account),
+        )
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
 
@@ -447,4 +451,24 @@ async fn get_transactions_of_category(
         .await
         .unwrap();
     json!(transactions).into()
+}
+
+async fn update_book_checking_account(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<(
+        fm_core::Id,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    )>,
+) -> Json<Value> {
+    let account = state
+        .finance_manager
+        .lock()
+        .await
+        .update_book_checking_account(data.0, data.1, data.2, data.3, data.4)
+        .await
+        .unwrap();
+    json!(account).into()
 }

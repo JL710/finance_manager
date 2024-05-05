@@ -157,6 +157,25 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
         create_book_checking_account(&connection, name, notes, iban, bic)
     }
+
+    async fn private_update_book_checking_account(
+        &mut self,
+        id: Id,
+        name: String,
+        notes: Option<String>,
+        iban: Option<String>,
+        bic: Option<String>,
+    ) -> Result<account::BookCheckingAccount> {
+        let connection = self.connect()?;
+        let account_id = get_book_checking_account_id(&connection, id)?;
+        connection.execute(
+            "UPDATE book_checking_account SET name=?1, notes=?2, iban=?3, bic=?4 WHERE id=?5",
+            (&name, &notes, &iban, &bic, account_id),
+        )?;
+        Ok(account::BookCheckingAccount::new(
+            id, name, notes, iban, bic,
+        ))
+    }
 }
 
 impl FinanceManager for SqliteFinanceManager {
@@ -820,6 +839,18 @@ impl FinanceManager for SqliteFinanceManager {
 fn get_asset_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {
     let result = connection.query_row(
         "SELECT asset_account FROM account WHERE id=?1",
+        (account_id,),
+        |row| row.get(0),
+    )?;
+    match result {
+        Some(id) => Ok(id),
+        None => anyhow::bail!("can not find asset account"),
+    }
+}
+
+fn get_book_checking_account_id(connection: &rusqlite::Connection, account_id: Id) -> Result<i32> {
+    let result = connection.query_row(
+        "SELECT book_checking_account FROM account WHERE id=?1",
         (account_id,),
         |row| row.get(0),
     )?;
