@@ -113,6 +113,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
                     .style(button_link_style)
                     .padding(0)
                     .into(),
+                widget::text(transaction.categories().len().to_string()).into(),
             ]
         },
     )
@@ -122,8 +123,9 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
         "Amount".to_owned(),
         "Source".to_owned(),
         "Destination".to_owned(),
+        "Categories".to_owned(),
     ])
-    .columns_sortable([false, true, true, false, false])
+    .columns_sortable([false, true, true, false, false, false])
     .sort_by(|a, b, column_index| match column_index {
         1 => a.0.date().cmp(&b.0.date()),
         2 => a.0.amount().get_num().total_cmp(&b.0.amount().get_num()),
