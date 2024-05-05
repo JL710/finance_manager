@@ -51,7 +51,7 @@ impl ViewAccount {
         )>,
     ) -> Self {
         Self {
-            current_value: account_sum, // finance_manager.get_account_sum(&account, chrono::Utc::now()),
+            current_value: account_sum,
             account,
             transactions,
         }
@@ -71,7 +71,7 @@ impl ViewAccount {
             .get_account_sum(&account, chrono::Utc::now())
             .await
             .unwrap();
-        let mut transactions = locked_manager
+        let transactions = locked_manager
             .get_transactions_of_account(*account.id(), (None, Some(chrono::Utc::now())))
             .await
             .unwrap();
@@ -146,13 +146,52 @@ impl ViewAccount {
             fm_core::account::Account::AssetAccount(acc) => {
                 asset_account_view(acc, &self.transactions, &self.current_value)
             }
-            _ => widget::text("comming soon").into(),
+            fm_core::account::Account::BookCheckingAccount(acc) => {
+                book_checking_account_view(acc, &self.transactions, &self.current_value)
+            }
         }
     }
 }
 
 fn asset_account_view<'a>(
     account: &'a fm_core::account::AssetAccount,
+    transactions: &'a [(
+        fm_core::Transaction,
+        fm_core::account::Account,
+        fm_core::account::Account,
+    )],
+    current_value: &fm_core::Currency,
+) -> iced::Element<'a, Message> {
+    widget::column![
+        widget::row![
+            widget::column![
+                widget::text(format!("Account: {}", account.name())),
+                widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
+                widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
+                widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
+                widget::row![
+                    widget::text("Current Amount: "),
+                    utils::colored_currency_display(current_value)
+                ],
+            ],
+            widget::Space::with_width(iced::Length::Fill),
+            widget::button("Edit").on_press(Message::Edit),
+        ],
+        widget::horizontal_rule(10),
+        super::super::timespan_input::TimespanInput::new(Message::ChangeTransactionTimespan)
+            .into_element(),
+        utils::transaction_table(
+            transactions.to_vec(),
+            |transaction| Some(*transaction.destination() == account.id()),
+            Message::ViewTransaction,
+            Message::ViewAccount,
+        )
+    ]
+    .into()
+}
+
+fn book_checking_account_view<'a>(
+    account: &'a fm_core::account::BookCheckingAccount,
     transactions: &'a [(
         fm_core::Transaction,
         fm_core::account::Account,
