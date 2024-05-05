@@ -17,6 +17,7 @@ pub enum AppMessage {
     SwitchToCreateTransActionView,
     SwitchToAssetAccountsView,
     SwitchToCategoryOverview,
+    SwitchToBookCheckingAccountOverview,
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
@@ -27,6 +28,7 @@ pub enum AppMessage {
     CreateCategoryMessage(view::create_category::Message),
     CategoryOverviewMessage(view::category_overview::Message),
     ViewCategoryMessage(view::view_category::Message),
+    BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +45,7 @@ enum View {
     CreateCategory(view::create_category::CreateCategory),
     CategoryOverview(view::category_overview::CategoryOverview),
     ViewCategory(view::view_category::ViewCategory),
+    BookCheckingAccountOverview(view::book_checking_account_overview::BookCheckingAccountOverview),
 }
 
 pub struct App {
@@ -219,6 +222,23 @@ impl Application for App {
                 }
                 return cmd;
             }
+            AppMessage::BookCheckingAccountOverviewMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::BookCheckingAccountOverview(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
+            AppMessage::SwitchToBookCheckingAccountOverview => {
+                return view::book_checking_account_overview::switch_view_command(
+                    self.finance_manager.clone(),
+                );
+            }
         }
         iced::Command::none()
     }
@@ -229,16 +249,19 @@ impl Application for App {
                 iced::widget::button("AssetAccounts")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToAssetAccountsView),
+                iced::widget::button("BookCheckingAccounts")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwitchToBookCheckingAccountOverview),
                 iced::widget::button("Budgets")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToBudgetOverview),
+                iced::widget::button("Categories")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwitchToCategoryOverview),
                 iced::widget::horizontal_rule(5),
                 iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToCreateTransActionView),
-                iced::widget::button("Categories")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToCategoryOverview),
             ]
             .align_items(iced::Alignment::Start)
             .spacing(10)
@@ -264,6 +287,9 @@ impl Application for App {
                 View::CategoryOverview(ref view) =>
                     view.view().map(AppMessage::CategoryOverviewMessage),
                 View::ViewCategory(ref view) => view.view().map(AppMessage::ViewCategoryMessage),
+                View::BookCheckingAccountOverview(ref view) => view
+                    .view()
+                    .map(AppMessage::BookCheckingAccountOverviewMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]
