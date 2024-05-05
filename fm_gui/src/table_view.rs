@@ -116,7 +116,7 @@ where
         let mut data_column = widget::column![].spacing(self.spacing);
         for item in &self.items {
             let row_elements = (self.to_row)(item).map(|x| x.map(|m| TableViewMessage::Message(m)));
-            let mut row = widget::row![];
+            let mut row = widget::row![].spacing(self.spacing);
             for element in row_elements {
                 row = row.push(widget::container(element).width(iced::Length::FillPortion(1)));
             }
