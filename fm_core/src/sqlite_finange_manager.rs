@@ -227,7 +227,7 @@ impl FinanceManager for SqliteFinanceManager {
             (&id,),
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?, row.get(8)?, row.get(9)?))
         )?;
-        let categories = get_categories_of_account(&connection, result.5)?
+        let categories = get_categories_of_transaction(&connection, result.0)?
             .iter()
             .map(|x| *x.id())
             .collect();
@@ -298,7 +298,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         for row in result {
             let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_account(&connection, *transaction.source())?
+            let categories = get_categories_of_transaction(&connection, *transaction.id())?
                 .iter()
                 .map(|x| *x.id())
                 .collect();
@@ -585,7 +585,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         for row in result {
             let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_account(&connection, *transaction.source())?
+            let categories = get_categories_of_transaction(&connection, *transaction.id())?
                 .iter()
                 .map(|x| *x.id())
                 .collect();
@@ -681,7 +681,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         for row in result {
             let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_account(&connection, *transaction.source())?
+            let categories = get_categories_of_transaction(&connection, *transaction.id())?
                 .iter()
                 .map(|x| *x.id())
                 .collect();
@@ -795,7 +795,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         for row in result {
             let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_account(&connection, *transaction.source())?
+            let categories = get_categories_of_transaction(&connection, *transaction.id())?
                 .iter()
                 .map(|x| *x.id())
                 .collect();
@@ -924,15 +924,15 @@ fn get_category(connection: &rusqlite::Connection, category_id: Id) -> Result<Op
     }
 }
 
-fn get_categories_of_account(
+fn get_categories_of_transaction(
     connection: &rusqlite::Connection,
-    account_id: Id,
+    transaction_id: Id,
 ) -> Result<Vec<Category>> {
     let mut categories = Vec::new();
     let mut statement = connection
         .prepare("SELECT category_id FROM transaction_category WHERE transaction_id=?1")?;
     let rows: Vec<std::result::Result<Id, rusqlite::Error>> = statement
-        .query_map((account_id,), |row| Ok(row.get(0)?))?
+        .query_map((transaction_id,), |row| Ok(row.get(0)?))?
         .collect();
     for row in rows {
         let row = row?;
