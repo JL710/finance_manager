@@ -29,6 +29,7 @@ pub struct TransactionView {
     source: fm_core::account::Account,
     destination: fm_core::account::Account,
     budget: Option<fm_core::Budget>,
+    categories: Vec<fm_core::Category>,
 }
 
 impl TransactionView {
@@ -37,12 +38,14 @@ impl TransactionView {
         source: fm_core::account::Account,
         destination: fm_core::account::Account,
         budget: Option<fm_core::Budget>,
+        categories: Vec<fm_core::Category>,
     ) -> Self {
         Self {
             transaction,
             source,
             destination,
             budget,
+            categories,
         }
     }
 
@@ -64,7 +67,14 @@ impl TransactionView {
             Some(budget_id) => locked_manager.get_budget(*budget_id).await?,
             None => None,
         };
-        Ok(Self::new(transaction, source, destination, budget))
+        let categories = locked_manager.get_categories().await?;
+        Ok(Self::new(
+            transaction,
+            source,
+            destination,
+            budget,
+            categories,
+        ))
     }
 
     pub fn update(
@@ -132,14 +142,30 @@ impl TransactionView {
             );
         }
 
-        widget::row![
-            column,
-            widget::Space::with_width(iced::Length::Fill),
-            widget::column![
-                widget::button("Edit").on_press(Message::Edit),
-                widget::button("Delete").on_press(Message::Delete)
-            ]
-            .spacing(10)
+        let mut category_column = widget::Column::new().spacing(10);
+        for category in self.transaction.categories() {
+            category_column = category_column.push(widget::checkbox(
+                self.categories
+                    .iter()
+                    .find(|x| x.id() == category)
+                    .unwrap()
+                    .name(),
+                true,
+            ));
+        }
+
+        widget::column![
+            widget::row![
+                column,
+                widget::Space::with_width(iced::Length::Fill),
+                widget::column![
+                    widget::button("Edit").on_press(Message::Edit),
+                    widget::button("Delete").on_press(Message::Delete)
+                ]
+                .spacing(10)
+            ],
+            widget::horizontal_rule(10),
+            widget::scrollable(category_column)
         ]
         .into()
     }
