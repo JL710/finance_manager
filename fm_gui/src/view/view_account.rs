@@ -72,7 +72,7 @@ impl ViewAccount {
             .await
             .unwrap();
         let transactions = locked_manager
-            .get_transactions_of_account(*account.id(), (None, Some(chrono::Utc::now())))
+            .get_transactions_of_account(*account.id(), (None, None))
             .await
             .unwrap();
         let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
