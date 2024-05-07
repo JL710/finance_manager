@@ -502,16 +502,17 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
                 (timespan_start, timespan_end)
             }
             Recouring::DayInMonth(day) => {
-                let day_in_current_month = chrono::Utc::now().with_day(*day as u32).unwrap();
-                if day_in_current_month > chrono::Utc::now() {
+                let now = chrono::Utc::now();
+                let day_in_current_month = now.with_day(*day as u32).unwrap();
+                if day_in_current_month > now {
                     (
-                        chrono::Utc::now().with_day(*day as u32 - 1).unwrap(),
-                        chrono::Utc::now().with_day(*day as u32).unwrap(),
+                        now.with_day(*day as u32).unwrap().with_month(now.month()-1).unwrap(),
+                        now.with_day(*day as u32).unwrap(),
                     )
                 } else {
                     (
-                        chrono::Utc::now().with_day(*day as u32).unwrap(),
-                        chrono::Utc::now().with_day(*day as u32 + 1).unwrap(),
+                        now.with_day(*day as u32).unwrap(),
+                        now.with_day(*day as u32).unwrap().with_month(now.month()+1).unwrap(),
                     )
                 }
             }
