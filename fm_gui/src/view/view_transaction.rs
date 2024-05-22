@@ -21,6 +21,7 @@ pub fn switch_view_command(
 pub enum Message {
     Edit,
     Delete,
+    ViewAccount(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -107,6 +108,13 @@ impl TransactionView {
                     ),
                 )
             }
+            Message::ViewAccount(acc) => {
+                let id = acc;
+                (
+                    Some(View::Empty),
+                    super::view_account::switch_view_command(id, finance_manager),
+                )
+            }
         }
     }
 
@@ -117,12 +125,18 @@ impl TransactionView {
                 utils::colored_currency_display(&self.transaction.amount())
             ],
             widget::text(format!("Name: {}", self.transaction.title())),
-            widget::text(format!("Source: {}", self.source)),
-            widget::text(format!("Destination: {}", self.destination)),
+            widget::button(widget::text(format!("Source: {}", self.source)))
+                .padding(0)
+                .style(utils::button_link_style)
+                .on_press(Message::ViewAccount(*self.source.id())),
+            widget::button(widget::text(format!("Destination: {}", self.destination)))
+                .padding(0)
+                .style(utils::button_link_style)
+                .on_press(Message::ViewAccount(*self.source.id())),
             widget::text(format!(
                 "Date: {}",
                 self.transaction.date().format("%d.%m.%Y")
-            ))
+            )),
         ]
         .spacing(10);
 
