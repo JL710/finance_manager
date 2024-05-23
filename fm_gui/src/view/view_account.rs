@@ -93,13 +93,13 @@ impl ViewAccount {
         match message {
             Message::Edit => match &self.account {
                 fm_core::account::Account::AssetAccount(acc) => {
-                    return (
+                    (
                             Some(View::CreateAssetAccountDialog(
                                 super::create_asset_account::CreateAssetAccountDialog::from_existing_account(acc)
-                            )), iced::Command::none());
+                            )), iced::Command::none())
                 }
                 fm_core::account::Account::BookCheckingAccount(acc) => {
-                    return (
+                    (
                             Some(View::CreateBookCheckingAccount(
                                 super::create_book_checking_account::CreateBookCheckingAccount::from_existing_account(acc.clone())
                             )), iced::Command::none()
@@ -107,7 +107,7 @@ impl ViewAccount {
                 },
             },
             Message::ViewTransaction(id) => {
-                return (
+                (
                     Some(View::Empty),
                     super::view_transaction::switch_view_command(id, finance_manager),
                 )

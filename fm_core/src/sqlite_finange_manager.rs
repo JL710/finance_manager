@@ -227,9 +227,8 @@ impl FinanceManager for SqliteFinanceManager {
         let mut account_statement =
             connection.prepare("SELECT id, asset_account, book_checking_account FROM account")?;
 
-        let account_rows: Vec<std::result::Result<Id, rusqlite::Error>> = account_statement
-            .query_map((), |x| Ok(x.get(0)?))?
-            .collect();
+        let account_rows: Vec<std::result::Result<Id, rusqlite::Error>> =
+            account_statement.query_map((), |x| x.get(0))?.collect();
 
         for account_row in account_rows {
             let id = account_row?;
@@ -260,7 +259,7 @@ impl FinanceManager for SqliteFinanceManager {
             *transaction.id(),
             transaction.amount(),
             transaction.title().to_owned(),
-            transaction.description().and_then(|x| Some(x.to_string())),
+            transaction.description().map(|x| x.to_string()),
             *transaction.source(),
             *transaction.destination(),
             transaction.budget().copied(),
@@ -330,7 +329,7 @@ impl FinanceManager for SqliteFinanceManager {
                 *transaction.id(),
                 transaction.amount(),
                 transaction.title().to_owned(),
-                transaction.description().and_then(|x| Some(x.to_string())),
+                transaction.description().map(|x| x.to_string()),
                 *transaction.source(),
                 *transaction.destination(),
                 transaction.budget().copied(),
@@ -617,7 +616,7 @@ impl FinanceManager for SqliteFinanceManager {
                 *transaction.id(),
                 transaction.amount(),
                 transaction.title().to_owned(),
-                transaction.description().and_then(|x| Some(x.to_string())),
+                transaction.description().map(|x| x.to_string()),
                 *transaction.source(),
                 *transaction.destination(),
                 transaction.budget().copied(),
@@ -713,7 +712,7 @@ impl FinanceManager for SqliteFinanceManager {
                 *transaction.id(),
                 transaction.amount(),
                 transaction.title().to_owned(),
-                transaction.description().and_then(|x| Some(x.to_string())),
+                transaction.description().map(|x| x.to_string()),
                 *transaction.source(),
                 *transaction.destination(),
                 transaction.budget().copied(),
@@ -827,7 +826,7 @@ impl FinanceManager for SqliteFinanceManager {
                 *transaction.id(),
                 transaction.amount(),
                 transaction.title().to_owned(),
-                transaction.description().and_then(|x| Some(x.to_string())),
+                transaction.description().map(|x| x.to_string()),
                 *transaction.source(),
                 *transaction.destination(),
                 transaction.budget().copied(),
@@ -969,11 +968,11 @@ fn get_categories_of_transaction(
     let mut statement = connection
         .prepare("SELECT category_id FROM transaction_category WHERE transaction_id=?1")?;
     let rows: Vec<std::result::Result<Id, rusqlite::Error>> = statement
-        .query_map((transaction_id,), |row| Ok(row.get(0)?))?
+        .query_map((transaction_id,), |row| row.get(0))?
         .collect();
     for row in rows {
         let row = row?;
-        categories.push(get_category(&connection, row)?.unwrap());
+        categories.push(get_category(connection, row)?.unwrap());
     }
     Ok(categories)
 }

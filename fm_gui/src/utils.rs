@@ -83,7 +83,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
     view_account: impl Fn(fm_core::Id) -> Message + 'static,
 ) -> iced::Element<'a, Message> {
     let mut transactions = transactions;
-    transactions.sort_by(|(a, _, _), (b, _, _)| b.date().cmp(&a.date()));
+    transactions.sort_by(|(a, _, _), (b, _, _)| b.date().cmp(a.date()));
     let table = super::table_view::TableView::new(
         transactions.clone(),
         move |(transaction, source, destination): &(
@@ -127,7 +127,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
     ])
     .columns_sortable([false, true, true, false, false, false])
     .sort_by(|a, b, column_index| match column_index {
-        1 => a.0.date().cmp(&b.0.date()),
+        1 => a.0.date().cmp(b.0.date()),
         2 => a.0.amount().get_num().total_cmp(&b.0.amount().get_num()),
         _ => std::cmp::Ordering::Equal,
     });

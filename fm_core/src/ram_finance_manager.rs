@@ -376,17 +376,11 @@ impl FinanceManager for RamFinanceManager {
         let mut transactions = self.transactions.clone();
 
         if let Some(begin) = timespan.0 {
-            transactions = transactions
-                .into_iter()
-                .filter(|transaction| transaction.date >= begin)
-                .collect();
+            transactions.retain(|transaction| transaction.date >= begin);
         }
 
         if let Some(end) = timespan.1 {
-            transactions = transactions
-                .into_iter()
-                .filter(|transaction| transaction.date <= end)
-                .collect();
+            transactions.retain(|transaction| transaction.date <= end);
         }
 
         Ok(transactions)
@@ -458,17 +452,11 @@ impl FinanceManager for RamFinanceManager {
         transactions.retain(|x| x.categories.contains(&id));
 
         if let Some(begin) = timespan.0 {
-            transactions = transactions
-                .into_iter()
-                .filter(|transaction| transaction.date >= begin)
-                .collect();
+            transactions.retain(|transaction| transaction.date >= begin)
         }
 
         if let Some(end) = timespan.1 {
-            transactions = transactions
-                .into_iter()
-                .filter(|transaction| transaction.date <= end)
-                .collect();
+            transactions.retain(|transaction| transaction.date <= end);
         }
 
         Ok(transactions)

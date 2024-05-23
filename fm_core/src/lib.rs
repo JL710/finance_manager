@@ -342,11 +342,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
 }
 
 fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
-    if let Some(content) = content {
-        Some(content.to_uppercase().replace(" ", ""))
-    } else {
-        None
-    }
+    content.map(|content| content.to_uppercase().replace(' ', ""))
 }
 
 pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
@@ -655,7 +651,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
                         0,
                     )
                     .unwrap();
-                let amount = if values.len() == 0 {
+                let amount = if values.is_empty() {
                     transaction.amount()
                 } else {
                     values.last().unwrap().1.clone() + transaction.amount()

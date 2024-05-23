@@ -14,7 +14,7 @@ pub struct AssetAccount {
 }
 
 pub fn valid_iban_bic(value: &String) -> Result<()> {
-    let valid = value.to_uppercase().replace(" ", "");
+    let valid = value.to_uppercase().replace(' ', "");
     if &valid != value {
         anyhow::bail!("IBAN/BIC must be uppercase and without spaces")
     }
@@ -25,7 +25,7 @@ impl AssetAccount {
     pub fn new(
         id: Id,
         name: String,
-        note: Option<String>,
+        notes: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
         offset: Currency,
@@ -39,9 +39,9 @@ impl AssetAccount {
         Self {
             id,
             name,
-            notes: note,
-            iban: iban,
-            bic: bic,
+            notes,
+            iban,
+            bic,
             offset,
         }
     }
@@ -111,7 +111,7 @@ impl BookCheckingAccount {
     pub fn new(
         id: Id,
         name: String,
-        note: Option<String>,
+        notes: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
     ) -> Self {
@@ -124,9 +124,9 @@ impl BookCheckingAccount {
         Self {
             id,
             name,
-            notes: note,
-            iban: iban,
-            bic: bic,
+            notes,
+            iban,
+            bic,
         }
     }
 
