@@ -21,9 +21,10 @@ impl super::PrivateFinanceManager for RamFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> Result<account::AssetAccount> {
         let account = self.accounts.get_mut(&id).unwrap();
-        let new_account = account::AssetAccount::new(id, name, note, iban, bic);
+        let new_account = account::AssetAccount::new(id, name, note, iban, bic, offset);
         *account = new_account.clone().into();
         Ok(new_account)
     }
@@ -34,10 +35,11 @@ impl super::PrivateFinanceManager for RamFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> Result<account::AssetAccount> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
-        let new_account = account::AssetAccount::new(id, name, note, iban, bic);
+        let new_account = account::AssetAccount::new(id, name, note, iban, bic, offset);
 
         if self.accounts.contains_key(&id) {
             panic!("ID ALREADY EXISTS");
@@ -81,25 +83,8 @@ impl super::PrivateFinanceManager for RamFinanceManager {
         *account = new_account.clone().into();
         Ok(new_account)
     }
-}
 
-impl FinanceManager for RamFinanceManager {
-    async fn get_accounts(&self) -> Result<Vec<account::Account>> {
-        return Ok(self
-            .accounts
-            .iter()
-            .map(|x| x.1.clone())
-            .collect::<Vec<account::Account>>());
-    }
-
-    async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
-        if let Some(acc) = self.accounts.get(&id) {
-            return Ok(Some(acc.clone()));
-        }
-        Ok(None)
-    }
-
-    async fn get_account_sum(
+    async fn private_get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
@@ -117,6 +102,23 @@ impl FinanceManager for RamFinanceManager {
             }
         }
         Ok(total)
+    }
+}
+
+impl FinanceManager for RamFinanceManager {
+    async fn get_accounts(&self) -> Result<Vec<account::Account>> {
+        return Ok(self
+            .accounts
+            .iter()
+            .map(|x| x.1.clone())
+            .collect::<Vec<account::Account>>());
+    }
+
+    async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
+        if let Some(acc) = self.accounts.get(&id) {
+            return Ok(Some(acc.clone()));
+        }
+        Ok(None)
     }
 
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {

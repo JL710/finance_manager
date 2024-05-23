@@ -35,9 +35,9 @@ impl Currency {
         }
     }
 
-    pub fn from_currency_id(id: i32, amound: f64) -> Result<Self> {
+    pub fn from_currency_id(id: i32, amount: f64) -> Result<Self> {
         match id {
-            1 => Ok(Currency::Eur(amound)),
+            1 => Ok(Currency::Eur(amount)),
             _ => anyhow::bail!("not a valid currency id"),
         }
     }
@@ -302,6 +302,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
 
     fn private_update_asset_account(
@@ -311,6 +312,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
 
     fn private_create_book_checking_account(
@@ -329,6 +331,14 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         iban: Option<String>,
         bic: Option<String>,
     ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send;
+
+    /// Only get the sum of the transactions for the account at the given date.
+    /// Do not include any offset or similar!
+    fn private_get_account_sum(
+        &self,
+        account: &account::Account,
+        date: DateTime,
+    ) -> impl futures::Future<Output = Result<Currency>> + Send;
 }
 
 fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
@@ -346,12 +356,14 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send {
         self.private_create_asset_account(
             name,
             note,
             make_iban_bic_unified(iban),
             make_iban_bic_unified(bic),
+            offset,
         )
     }
 
@@ -362,6 +374,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send {
         self.private_update_asset_account(
             id,
@@ -369,6 +382,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
             note,
             make_iban_bic_unified(iban),
             make_iban_bic_unified(bic),
+            offset,
         )
     }
 
@@ -383,7 +397,18 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         &self,
         account: &account::Account,
         date: DateTime,
-    ) -> impl futures::Future<Output = Result<Currency>> + Send;
+    ) -> impl futures::Future<Output = Result<Currency>> + Send {
+        let future = self.private_get_account_sum(account, date);
+
+        async move {
+            let sum = future.await?;
+            if let account::Account::AssetAccount(asset_account) = account {
+                Ok(sum + asset_account.offset().clone())
+            } else {
+                Ok(sum)
+            }
+        }
+    }
 
     fn get_transaction(
         &self,
@@ -506,13 +531,19 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
                 let day_in_current_month = now.with_day(*day as u32).unwrap();
                 if day_in_current_month > now {
                     (
-                        now.with_day(*day as u32).unwrap().with_month(now.month()-1).unwrap(),
+                        now.with_day(*day as u32)
+                            .unwrap()
+                            .with_month(now.month() - 1)
+                            .unwrap(),
                         now.with_day(*day as u32).unwrap(),
                     )
                 } else {
                     (
                         now.with_day(*day as u32).unwrap(),
-                        now.with_day(*day as u32).unwrap().with_month(now.month()+1).unwrap(),
+                        now.with_day(*day as u32)
+                            .unwrap()
+                            .with_month(now.month() + 1)
+                            .unwrap(),
                     )
                 }
             }

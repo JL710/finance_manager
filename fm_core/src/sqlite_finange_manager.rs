@@ -109,11 +109,12 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> Result<account::AssetAccount> {
         let connection = self.connect()?;
         connection.execute(
-            "INSERT INTO asset_account (name, notes, iban, bic) VALUES (?1, ?2, ?3, ?4);",
-            (&name, &note, &iban, &bic),
+            "INSERT INTO asset_account (name, notes, iban, bic, offset_value, offset_currency) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
+            (&name, &note, &iban, &bic, offset.get_num(), offset.get_currency_id()),
         )?;
         connection.execute(
             "INSERT INTO account (asset_account) VALUES (?1)",
@@ -125,6 +126,7 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
             note,
             iban,
             bic,
+            offset,
         ))
     }
 
@@ -135,16 +137,19 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> Result<account::AssetAccount> {
         let connection = self.connect()?;
 
         let asset_account_id = get_asset_account_id(&connection, id)?;
 
         connection.execute(
-            "UPDATE asset_account SET name=?1, notes=?2, iban=?3, bic=?4 WHERE id=?5",
-            (&name, &note, &iban, &bic, asset_account_id),
+            "UPDATE asset_account SET name=?1, notes=?2, iban=?3, bic=?4, offset_value=?5, offset_currency=?6 WHERE id=?7",
+            (&name, &note, &iban, &bic, offset.get_num(), offset.get_currency_id(), asset_account_id),
         )?;
-        Ok(account::AssetAccount::new(id, name, note, iban, bic))
+        Ok(account::AssetAccount::new(
+            id, name, note, iban, bic, offset,
+        ))
     }
 
     async fn private_create_book_checking_account(
@@ -176,35 +181,8 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
             id, name, notes, iban, bic,
         ))
     }
-}
 
-impl FinanceManager for SqliteFinanceManager {
-    async fn get_accounts(&self) -> Result<Vec<account::Account>> {
-        let connection = self.connect()?;
-
-        let mut accounts = Vec::new();
-
-        let mut account_statement =
-            connection.prepare("SELECT id, asset_account, book_checking_account FROM account")?;
-
-        let account_rows: Vec<std::result::Result<Id, rusqlite::Error>> = account_statement
-            .query_map((), |x| Ok(x.get(0)?))?
-            .collect();
-
-        for account_row in account_rows {
-            let id = account_row?;
-            accounts.push(get_account(&connection, id)?);
-        }
-
-        Ok(accounts)
-    }
-
-    async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
-        let connection = self.connect()?;
-        Ok(Some(get_account(&connection, id)?))
-    }
-
-    async fn get_account_sum(
+    async fn private_get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
@@ -237,6 +215,33 @@ impl FinanceManager for SqliteFinanceManager {
         }
 
         Ok(sum)
+    }
+}
+
+impl FinanceManager for SqliteFinanceManager {
+    async fn get_accounts(&self) -> Result<Vec<account::Account>> {
+        let connection = self.connect()?;
+
+        let mut accounts = Vec::new();
+
+        let mut account_statement =
+            connection.prepare("SELECT id, asset_account, book_checking_account FROM account")?;
+
+        let account_rows: Vec<std::result::Result<Id, rusqlite::Error>> = account_statement
+            .query_map((), |x| Ok(x.get(0)?))?
+            .collect();
+
+        for account_row in account_rows {
+            let id = account_row?;
+            accounts.push(get_account(&connection, id)?);
+        }
+
+        Ok(accounts)
+    }
+
+    async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
+        let connection = self.connect()?;
+        Ok(Some(get_account(&connection, id)?))
     }
 
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
@@ -867,11 +872,11 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
         |row| Ok((row.get(0)?, row.get(1)?)),
     )?;
     if let Some(id) = account_result.0 {
-        let asset_account_result: (String, Option<String>, Option<String>, Option<String>) =
+        let asset_account_result: (String, Option<String>, Option<String>, Option<String>, f64, i32) =
             connection.query_row(
-                "SELECT name, notes, iban, bic FROM asset_account WHERE id=?1",
+                "SELECT name, notes, iban, bic, offset_value, offset_currency FROM asset_account WHERE id=?1",
                 (id,),
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)),
             )?;
         Ok(account::AssetAccount::new(
             account_id,
@@ -879,6 +884,7 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
             asset_account_result.1,
             asset_account_result.2,
             asset_account_result.3,
+            Currency::from_currency_id(asset_account_result.5, asset_account_result.4)?,
         )
         .into())
     } else if let Some(id) = account_result.1 {

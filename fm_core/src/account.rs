@@ -1,3 +1,5 @@
+use crate::Currency;
+
 use super::Id;
 use anyhow::Result;
 
@@ -8,6 +10,7 @@ pub struct AssetAccount {
     notes: Option<String>,
     iban: Option<String>,
     bic: Option<String>,
+    offset: super::Currency,
 }
 
 pub fn valid_iban_bic(value: &String) -> Result<()> {
@@ -25,6 +28,7 @@ impl AssetAccount {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: Currency,
     ) -> Self {
         if let Some(iban) = &iban {
             valid_iban_bic(iban).unwrap();
@@ -38,6 +42,7 @@ impl AssetAccount {
             notes: note,
             iban: iban,
             bic: bic,
+            offset,
         }
     }
 
@@ -68,6 +73,10 @@ impl AssetAccount {
             Some(content) => Some(content),
             None => None,
         }
+    }
+
+    pub fn offset(&self) -> &Currency {
+        &self.offset
     }
 }
 

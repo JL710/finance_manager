@@ -3,7 +3,9 @@ CREATE TABLE IF NOT EXISTS asset_account (
     name TEXT NOT NULL,
     notes TEXT,
     iban TEXT,
-    bic TEXT
+    bic TEXT,
+    offset_value REAL NOT NULL,
+    offset_currency INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS book_checking_account (
