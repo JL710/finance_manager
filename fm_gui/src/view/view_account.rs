@@ -175,6 +175,7 @@ fn asset_account_view<'a>(
                 widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
                 widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
                 widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
+                widget::text(format!("Offset: {}", account.offset())),
                 widget::row![
                     widget::text("Current Amount: "),
                     utils::colored_currency_display(current_value)

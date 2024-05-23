@@ -33,8 +33,13 @@ impl fm_core::PrivateFinanceManager for Client {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: fm_core::Currency,
     ) -> Result<fm_core::account::AssetAccount> {
-        client_post_macro!(self.url, "create_asset_account", (name, note, iban, bic))
+        client_post_macro!(
+            self.url,
+            "create_asset_account",
+            (name, note, iban, bic, offset)
+        )
     }
 
     async fn private_update_asset_account(
@@ -44,11 +49,12 @@ impl fm_core::PrivateFinanceManager for Client {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
+        offset: fm_core::Currency,
     ) -> Result<fm_core::account::AssetAccount> {
         client_post_macro!(
             self.url,
             "update_asset_account",
-            (id, name, note, iban, bic)
+            (id, name, note, iban, bic, offset)
         )
     }
 
@@ -80,6 +86,14 @@ impl fm_core::PrivateFinanceManager for Client {
             (id, name, notes, iban, bic)
         )
     }
+
+    async fn private_get_account_sum(
+        &self,
+        account: &fm_core::account::Account,
+        date: fm_core::DateTime,
+    ) -> Result<fm_core::Currency> {
+        client_post_macro!(self.url, "get_account_sum", (account, date))
+    }
 }
 
 impl fm_core::FinanceManager for Client {
@@ -92,14 +106,6 @@ impl fm_core::FinanceManager for Client {
 
     async fn get_account(&self, id: fm_core::Id) -> Result<Option<fm_core::account::Account>> {
         client_post_macro!(self.url, "get_account", id)
-    }
-
-    async fn get_account_sum(
-        &self,
-        account: &fm_core::account::Account,
-        date: fm_core::DateTime,
-    ) -> Result<fm_core::Currency> {
-        client_post_macro!(self.url, "get_account_sum", (account, date))
     }
 
     async fn get_transaction(&self, id: fm_core::Id) -> Result<Option<fm_core::Transaction>> {

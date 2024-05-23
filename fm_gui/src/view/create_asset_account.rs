@@ -1,6 +1,7 @@
 use super::super::{AppMessage, View};
 use fm_core;
 
+use core::f64;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -10,6 +11,7 @@ pub enum Message {
     NoteInput(String),
     IbanInput(String),
     BicInput(String),
+    OffsetInput(String),
     Submit,
 }
 
@@ -20,6 +22,7 @@ pub struct CreateAssetAccountDialog {
     note_input: String,
     iban_input: String,
     bic_input: String,
+    offset_input: String,
 }
 
 impl CreateAssetAccountDialog {
@@ -30,6 +33,7 @@ impl CreateAssetAccountDialog {
             note_input: String::new(),
             iban_input: String::new(),
             bic_input: String::new(),
+            offset_input: String::from("0.0"),
         }
     }
 
@@ -44,6 +48,7 @@ impl CreateAssetAccountDialog {
                 .iban()
                 .map_or(String::new(), |iban| iban.to_string()),
             bic_input: account.bic().map_or(String::new(), |bic| bic.to_string()),
+            offset_input: account.offset().to_num_string(),
         }
     }
 
@@ -57,6 +62,7 @@ impl CreateAssetAccountDialog {
             Message::NoteInput(input) => self.note_input = input,
             Message::IbanInput(input) => self.iban_input = input,
             Message::BicInput(input) => self.bic_input = input,
+            Message::OffsetInput(input) => self.offset_input = input,
             Message::Submit => {
                 let name = self.name_input.clone();
                 let note = if self.note_input.is_empty() {
@@ -74,6 +80,7 @@ impl CreateAssetAccountDialog {
                 } else {
                     Some(self.bic_input.clone())
                 };
+                let offset = fm_core::Currency::Eur(self.offset_input.parse().unwrap());
                 let id = self.id;
                 return (
                     Some(View::Empty),
@@ -83,14 +90,14 @@ impl CreateAssetAccountDialog {
                                 finance_manager
                                     .lock()
                                     .await
-                                    .update_asset_account(some_id, name, note, iban, bic)
+                                    .update_asset_account(some_id, name, note, iban, bic, offset)
                                     .await
                                     .unwrap()
                             } else {
                                 finance_manager
                                     .lock()
                                     .await
-                                    .create_asset_account(name, note, iban, bic)
+                                    .create_asset_account(name, note, iban, bic, offset)
                                     .await
                                     .unwrap()
                             };
@@ -128,6 +135,12 @@ impl CreateAssetAccountDialog {
                 iced::widget::text_input("BIC", &self.bic_input).on_input(Message::BicInput)
             ]
             .spacing(10),
+            iced::widget::row![
+                iced::widget::text("Offset"),
+                iced::widget::text_input("Offset", &self.offset_input)
+                    .on_input(Message::OffsetInput)
+            ]
+            .spacing(10),
             iced::widget::button("Submit").on_press_maybe(if self.can_submit() {
                 Some(Message::Submit)
             } else {
@@ -140,6 +153,9 @@ impl CreateAssetAccountDialog {
 
     fn can_submit(&self) -> bool {
         if self.name_input.is_empty() {
+            return false;
+        }
+        if self.offset_input.parse::<f64>().is_err() {
             return false;
         }
         true

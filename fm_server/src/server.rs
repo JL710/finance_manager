@@ -123,6 +123,7 @@ async fn create_asset_account(
         Option<String>,
         Option<String>,
         Option<String>,
+        fm_core::Currency,
     )>,
 ) -> Json<Value> {
     let account = state
@@ -134,6 +135,7 @@ async fn create_asset_account(
             account_data.1,
             account_data.2,
             account_data.3,
+            account_data.4,
         )
         .await
         .unwrap();
@@ -147,11 +149,13 @@ async fn get_account_sum(
         fm_core::DateTime,
     )>,
 ) -> Json<Value> {
+    use fm_core::PrivateFinanceManager;
+
     let sum = state
         .finance_manager
         .lock()
         .await
-        .get_account_sum(&account_data.0, account_data.1)
+        .private_get_account_sum(&account_data.0, account_data.1)
         .await
         .unwrap();
     json!(sum).into()
@@ -271,13 +275,14 @@ async fn update_asset_account(
         Option<String>,
         Option<String>,
         Option<String>,
+        fm_core::Currency,
     )>,
 ) -> Json<Value> {
     let account = state
         .finance_manager
         .lock()
         .await
-        .update_asset_account(data.0, data.1, data.2, data.3, data.4)
+        .update_asset_account(data.0, data.1, data.2, data.3, data.4, data.5)
         .await
         .unwrap();
     json!(account).into()
