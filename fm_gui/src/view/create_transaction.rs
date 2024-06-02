@@ -173,7 +173,7 @@ impl CreateTransactionView {
             date_input: transaction.date().format("%d.%m.%Y").to_string(),
             metadata: transaction.metadata().clone(),
             available_categories,
-            selected_categories: transaction.categories().iter().copied().collect(),
+            selected_categories: transaction.categories().to_vec(),
         }
     }
 

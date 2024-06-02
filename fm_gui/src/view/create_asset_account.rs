@@ -55,7 +55,7 @@ impl CreateAssetAccountDialog {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + Send + 'static>>,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::NameInput(input) => self.name_input = input,

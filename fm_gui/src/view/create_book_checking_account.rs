@@ -49,7 +49,7 @@ impl CreateBookCheckingAccount {
     }
 
     pub async fn fetch(
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + Send + 'static>>,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
         account_id: fm_core::Id,
     ) -> Result<Self> {
         let account = finance_manager
@@ -70,7 +70,7 @@ impl CreateBookCheckingAccount {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + Send + 'static>>,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::NameInput(input) => self.name_input = input,
