@@ -1,5 +1,6 @@
 use iced::advanced::Application;
 
+mod finance_managers;
 mod table;
 mod table_view;
 mod timespan_input;
@@ -18,6 +19,7 @@ pub enum AppMessage {
     SwitchToAssetAccountsView,
     SwitchToCategoryOverview,
     SwitchToBookCheckingAccountOverview,
+    SwtichToSettingsView,
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
@@ -30,6 +32,8 @@ pub enum AppMessage {
     ViewCategoryMessage(view::view_category::Message),
     BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
     CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
+    SettingsMessage(view::settings::Message),
+    ChangeFM(Arc<Mutex<finance_managers::FinanceManagers>>),
 }
 
 #[derive(Debug, Clone)]
@@ -48,10 +52,11 @@ enum View {
     ViewCategory(view::view_category::ViewCategory),
     BookCheckingAccountOverview(view::book_checking_account_overview::BookCheckingAccountOverview),
     CreateBookCheckingAccount(view::create_book_checking_account::CreateBookCheckingAccount),
+    Settings(view::settings::SettingsView),
 }
 
 pub struct App {
-    finance_manager: Arc<Mutex<fm_server::client::Client>>,
+    finance_manager: Arc<Mutex<finance_managers::FinanceManagers>>,
     current_view: View,
 }
 
@@ -63,7 +68,9 @@ impl Application for App {
     type Renderer = iced::Renderer;
 
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let finance_manager = fm_server::client::Client::new(String::from("http://localhost:3000"));
+        let finance_manager = finance_managers::FinanceManagers::Server(
+            fm_server::client::Client::new(String::from("http://localhost:3000")),
+        );
         (
             App {
                 current_view: View::Empty,
@@ -253,6 +260,22 @@ impl Application for App {
                 }
                 return cmd;
             }
+            AppMessage::SwtichToSettingsView => {
+                self.current_view = View::Settings(view::settings::SettingsView::new());
+            }
+            AppMessage::SettingsMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::Settings(ref mut view) => view.update(m),
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
+            AppMessage::ChangeFM(fm) => {
+                self.finance_manager = fm;
+            }
         }
         iced::Command::none()
     }
@@ -276,6 +299,10 @@ impl Application for App {
                 iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToCreateTransActionView),
+                iced::widget::vertical_space(),
+                iced::widget::button("Settings")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwtichToSettingsView),
             ]
             .align_items(iced::Alignment::Start)
             .spacing(10)
@@ -307,6 +334,7 @@ impl Application for App {
                 View::CreateBookCheckingAccount(ref view) => view
                     .view()
                     .map(AppMessage::CreateBookCheckingAccountMessage),
+                View::Settings(ref view) => view.view().map(AppMessage::SettingsMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]
