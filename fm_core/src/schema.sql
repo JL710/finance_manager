@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS transaction_category (
     transaction_id INTEGER NOT NULL,
     category_id INTEGER NOT NULL,
+    sign BOOLEAN NOT NULL, -- true for positive and false for negative
     FOREIGN KEY (transaction_id) REFERENCES transactions(id),
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );

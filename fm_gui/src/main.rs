@@ -261,7 +261,9 @@ impl Application for App {
                 return cmd;
             }
             AppMessage::SwtichToSettingsView => {
-                self.current_view = View::Settings(view::settings::SettingsView::new());
+                self.current_view = View::Settings(view::settings::SettingsView::new(
+                    self.finance_manager.clone(),
+                ));
             }
             AppMessage::SettingsMessage(m) => {
                 let (new_view, cmd) = match self.current_view {

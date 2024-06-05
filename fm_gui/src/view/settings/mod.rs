@@ -1,3 +1,5 @@
+use crate::finance_managers::FinanceManagers;
+
 use super::super::{AppMessage, View};
 use fm_server::client::Client;
 
@@ -17,15 +19,26 @@ pub enum Message {
 
 #[derive(Debug, Clone)]
 pub struct SettingsView {
+    current_status: String,
     api_url: String,
     sqlite_path: String,
 }
 
 impl SettingsView {
-    pub fn new() -> Self {
+    pub fn new(finance_manager: Arc<Mutex<FinanceManagers>>) -> Self {
+        let locked_fm = finance_manager.try_lock().unwrap();
         Self {
-            api_url: String::from("http://localhost:3000"),
-            sqlite_path: String::new(),
+            current_status: locked_fm.to_string(),
+            api_url: if let FinanceManagers::Server(fm) = &*locked_fm {
+                fm.url().to_string()
+            } else {
+                String::from("http://localhost:3000")
+            },
+            sqlite_path: if let FinanceManagers::Sqlite(fm) = &*locked_fm {
+                fm.path().to_string()
+            } else {
+                String::new()
+            },
         }
     }
 
@@ -84,6 +97,8 @@ impl SettingsView {
 
     pub fn view(&self) -> iced::Element<Message> {
         widget::column![
+            widget::text(format!("Current Status: {}", self.current_status)),
+            widget::Rule::horizontal(10),
             widget::row![
                 widget::text("API URL:"),
                 widget::text_input::TextInput::new("API Url", &self.api_url)

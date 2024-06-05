@@ -79,6 +79,7 @@ pub enum Message {
     ClearBudget,
     Submit,
     SelectCategory(fm_core::Id),
+    ChangeSelectedCategorySign(fm_core::Id, fm_core::Sign),
 }
 
 #[derive(Debug, Clone)]
@@ -96,7 +97,7 @@ pub struct CreateTransactionView {
     date_input: String,
     metadata: std::collections::HashMap<String, String>,
     available_categories: Vec<fm_core::Category>,
-    selected_categories: Vec<fm_core::Id>,
+    selected_categories: Vec<(fm_core::Id, fm_core::Sign)>,
 }
 
 impl CreateTransactionView {
@@ -245,10 +246,22 @@ impl CreateTransactionView {
                 self.budget_input = None;
             }
             Message::SelectCategory(id) => {
-                if self.selected_categories.contains(&id) {
-                    self.selected_categories.retain(|x| x != &id);
+                if self
+                    .selected_categories
+                    .iter()
+                    .map(|x| x.0)
+                    .collect::<Vec<_>>()
+                    .contains(&id)
+                {
+                    self.selected_categories.retain(|x| x.0 != id);
                 } else {
-                    self.selected_categories.push(id);
+                    self.selected_categories.push((id, fm_core::Sign::Positive));
+                }
+            }
+            Message::ChangeSelectedCategorySign(id, sign) => {
+                if let Some(x) = self.selected_categories.iter_mut().find(|x| x.0 == id) {
+                    x.1 = sign;
+                    println!("asd");
                 }
             }
         }
@@ -258,10 +271,34 @@ impl CreateTransactionView {
     pub fn view(&self) -> iced::Element<'_, Message> {
         let mut categories = widget::column![].spacing(10);
         for category in &self.available_categories {
-            let selected = self.selected_categories.contains(category.id());
+            let selected = self
+                .selected_categories
+                .iter()
+                .find(|x| x.0 == *category.id());
             categories = categories.push(
-                widget::checkbox(category.name(), selected)
-                    .on_toggle(|_| Message::SelectCategory(*category.id())),
+                widget::row![
+                    widget::checkbox(category.name(), selected.is_some())
+                        .on_toggle(move |_| { Message::SelectCategory(*category.id()) }),
+                    widget::checkbox(
+                        "Negative",
+                        if let Some(s) = selected {
+                            s.1 == fm_core::Sign::Negative
+                        } else {
+                            false
+                        }
+                    )
+                    .on_toggle_maybe(selected.map(|s| |_| {
+                        Message::ChangeSelectedCategorySign(
+                            *category.id(),
+                            if s.1 == fm_core::Sign::Negative {
+                                fm_core::Sign::Positive
+                            } else {
+                                fm_core::Sign::Negative
+                            },
+                        )
+                    }))
+                ]
+                .spacing(10),
             );
         }
 

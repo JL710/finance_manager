@@ -17,6 +17,16 @@ impl std::fmt::Debug for FinanceManagers {
     }
 }
 
+impl std::fmt::Display for FinanceManagers {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FinanceManagers::Server(fm) => write!(f, "Server {}", fm.url()),
+            FinanceManagers::Sqlite(fm) => write!(f, "Sqlite {}", fm.path()),
+            FinanceManagers::Ram(_) => write!(f, "Ram"),
+        }
+    }
+}
+
 impl Default for FinanceManagers {
     fn default() -> Self {
         FinanceManagers::Ram(fm_core::ram_finance_manager::RamFinanceManager::default())
@@ -236,7 +246,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
-        categories: Vec<fm_core::Id>,
+        categories: Vec<(fm_core::Id, fm_core::Sign)>,
     ) -> Result<fm_core::Transaction> {
         match self {
             FinanceManagers::Server(client) => {
@@ -579,7 +589,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
-        categoris: Vec<fm_core::Id>,
+        categories: Vec<(fm_core::Id, fm_core::Sign)>,
     ) -> Result<fm_core::Transaction> {
         match self {
             FinanceManagers::Server(client) => {
@@ -594,7 +604,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                         budget,
                         date,
                         metadata,
-                        categoris,
+                        categories,
                     )
                     .await
             }
@@ -610,7 +620,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                         budget,
                         date,
                         metadata,
-                        categoris,
+                        categories,
                     )
                     .await
             }
@@ -625,7 +635,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     budget,
                     date,
                     metadata,
-                    categoris,
+                    categories,
                 )
                 .await
             }

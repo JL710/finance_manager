@@ -169,6 +169,12 @@ impl Category {
     }
 }
 
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq)]
+pub enum Sign {
+    Positive,
+    Negative,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Transaction {
     id: Id,
@@ -180,7 +186,7 @@ pub struct Transaction {
     budget: Option<Id>,
     date: DateTime,
     metadata: HashMap<String, String>,
-    categories: Vec<Id>,
+    categories: Vec<(Id, Sign)>,
 }
 
 impl Transaction {
@@ -194,7 +200,7 @@ impl Transaction {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<Id>,
+        categories: Vec<(Id, Sign)>,
     ) -> Self {
         Self {
             id,
@@ -262,7 +268,7 @@ impl Transaction {
         &self.metadata
     }
 
-    pub fn categories(&self) -> &Vec<Id> {
+    pub fn categories(&self) -> &Vec<(Id, Sign)> {
         &self.categories
     }
 }
@@ -427,7 +433,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<Id>,
+        categories: Vec<(Id, Sign)>,
     ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
     fn update_transaction(
@@ -441,7 +447,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categoris: Vec<Id>,
+        categoris: Vec<(Id, Sign)>,
     ) -> impl futures::Future<Output = Result<Transaction>> + Send;
 
     fn create_book_checking_account(
@@ -634,7 +640,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         timespan: Timespan,
     ) -> impl futures::Future<Output = Result<Vec<(DateTime, Currency)>>> + Send {
         let transactions_future = self.get_transactions_of_category(id, timespan);
-        async {
+        async move {
             let mut transactions = transactions_future.await?;
             transactions.sort_by(|a, b| a.date().cmp(b.date()));
 
@@ -651,12 +657,19 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
                         0,
                     )
                     .unwrap();
-                let amount = if values.is_empty() {
-                    transaction.amount()
-                } else {
-                    values.last().unwrap().1.clone() + transaction.amount()
+                let sign = transaction
+                    .categories()
+                    .clone()
+                    .iter()
+                    .find(|(x, _)| *x == id)
+                    .unwrap()
+                    .1;
+                let mut amount = match sign {
+                    Sign::Positive => transaction.amount(),
+                    Sign::Negative => transaction.amount().negative(),
                 };
                 if !values.is_empty() {
+                    amount += values.last().unwrap().1.clone();
                     let entry = values.last().unwrap().clone();
                     if entry.0 == time {
                         let i = values.len() - 1;

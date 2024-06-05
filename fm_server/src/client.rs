@@ -9,6 +9,10 @@ impl Client {
     pub fn new(url: String) -> Self {
         Self { url }
     }
+
+    pub fn url(&self) -> &str {
+        &self.url
+    }
 }
 
 #[macro_export]
@@ -130,7 +134,7 @@ impl fm_core::FinanceManager for Client {
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
-        categories: Vec<fm_core::Id>,
+        categories: Vec<(fm_core::Id, fm_core::Sign)>,
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
@@ -193,7 +197,7 @@ impl fm_core::FinanceManager for Client {
         budget: Option<fm_core::Id>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
-        categories: Vec<fm_core::Id>,
+        categories: Vec<(fm_core::Id, fm_core::Sign)>,
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,

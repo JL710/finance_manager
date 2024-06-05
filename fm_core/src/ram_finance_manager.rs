@@ -1,5 +1,5 @@
 use super::{
-    account, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring, Timespan,
+    account, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring, Sign, Timespan,
     Transaction,
 };
 use anyhow::Result;
@@ -202,7 +202,7 @@ impl FinanceManager for RamFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<Id>,
+        categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
@@ -262,7 +262,7 @@ impl FinanceManager for RamFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<Id>,
+        categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
         let source_id = match source {
             super::Or::One(id) => id,
@@ -437,7 +437,7 @@ impl FinanceManager for RamFinanceManager {
 
         // remove from transactions
         for transaction in &mut self.transactions {
-            transaction.categories.retain(|x| *x != id);
+            transaction.categories.retain(|x| x.0 != id);
         }
 
         Ok(())
@@ -449,10 +449,16 @@ impl FinanceManager for RamFinanceManager {
         timespan: super::Timespan,
     ) -> Result<Vec<Transaction>> {
         let mut transactions = self.transactions.clone();
-        transactions.retain(|x| x.categories.contains(&id));
+        transactions.retain(|x| {
+            x.categories
+                .iter()
+                .map(|x| x.0)
+                .collect::<Vec<Id>>()
+                .contains(&id)
+        });
 
         if let Some(begin) = timespan.0 {
-            transactions.retain(|transaction| transaction.date >= begin)
+            transactions.retain(|transaction| transaction.date >= begin);
         }
 
         if let Some(end) = timespan.1 {

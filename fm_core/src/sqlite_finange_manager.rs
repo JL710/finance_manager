@@ -100,6 +100,10 @@ impl SqliteFinanceManager {
     fn connect(&self) -> Result<rusqlite::Connection> {
         rusqlite::Connection::open(&self.path).context("failed to open database")
     }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
 }
 
 impl super::PrivateFinanceManager for SqliteFinanceManager {
@@ -252,7 +256,7 @@ impl FinanceManager for SqliteFinanceManager {
         )?;
         let categories = get_categories_of_transaction(&connection, result.0)?
             .iter()
-            .map(|x| *x.id())
+            .map(|x| (*x.0.id(), x.1))
             .collect();
         let transaction: Transaction = result.try_into()?;
         Ok(Some(Transaction::new(
@@ -323,7 +327,7 @@ impl FinanceManager for SqliteFinanceManager {
             let transaction: Transaction = row?.try_into()?;
             let categories = get_categories_of_transaction(&connection, *transaction.id())?
                 .iter()
-                .map(|x| *x.id())
+                .map(|x| (*x.0.id(), x.1))
                 .collect();
             transactions.push(Transaction::new(
                 *transaction.id(),
@@ -352,7 +356,7 @@ impl FinanceManager for SqliteFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<Id>,
+        categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
         let connection = self.connect()?;
 
@@ -505,7 +509,7 @@ impl FinanceManager for SqliteFinanceManager {
         budget: Option<Id>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<Id>,
+        categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
         let connection = self.connect()?;
 
@@ -610,7 +614,7 @@ impl FinanceManager for SqliteFinanceManager {
             let transaction: Transaction = row?.try_into()?;
             let categories = get_categories_of_transaction(&connection, *transaction.id())?
                 .iter()
-                .map(|x| *x.id())
+                .map(|x| (*x.0.id(), x.1))
                 .collect();
             transactions.push(Transaction::new(
                 *transaction.id(),
@@ -706,7 +710,7 @@ impl FinanceManager for SqliteFinanceManager {
             let transaction: Transaction = row?.try_into()?;
             let categories = get_categories_of_transaction(&connection, *transaction.id())?
                 .iter()
-                .map(|x| *x.id())
+                .map(|x| (*x.0.id(), x.1))
                 .collect();
             transactions.push(Transaction::new(
                 *transaction.id(),
@@ -820,7 +824,7 @@ impl FinanceManager for SqliteFinanceManager {
             let transaction: Transaction = row?.try_into()?;
             let categories = get_categories_of_transaction(&connection, *transaction.id())?
                 .iter()
-                .map(|x| *x.id())
+                .map(|x| (*x.0.id(), x.1))
                 .collect();
             transactions.push(Transaction::new(
                 *transaction.id(),
@@ -933,7 +937,7 @@ fn create_book_checking_account(
 fn set_categories_for_transaction(
     connection: &rusqlite::Connection,
     transaction_id: Id,
-    categories: &Vec<Id>,
+    categories: &Vec<(Id, Sign)>,
 ) -> Result<()> {
     connection.execute(
         "DELETE FROM transaction_category WHERE transaction_id=?1",
@@ -941,8 +945,8 @@ fn set_categories_for_transaction(
     )?;
     for category in categories {
         connection.execute(
-            "INSERT INTO transaction_category (transaction_id, category_id) VALUES (?1, ?2)",
-            (transaction_id, category),
+            "INSERT INTO transaction_category (transaction_id, category_id, sign) VALUES (?1, ?2, ?3)",
+            (transaction_id, category.0, category.1 == Sign::Positive),
         )?;
     }
     Ok(())
@@ -963,16 +967,23 @@ fn get_category(connection: &rusqlite::Connection, category_id: Id) -> Result<Op
 fn get_categories_of_transaction(
     connection: &rusqlite::Connection,
     transaction_id: Id,
-) -> Result<Vec<Category>> {
+) -> Result<Vec<(Category, Sign)>> {
     let mut categories = Vec::new();
     let mut statement = connection
-        .prepare("SELECT category_id FROM transaction_category WHERE transaction_id=?1")?;
-    let rows: Vec<std::result::Result<Id, rusqlite::Error>> = statement
-        .query_map((transaction_id,), |row| row.get(0))?
+        .prepare("SELECT category_id, sign FROM transaction_category WHERE transaction_id=?1")?;
+    let rows: Vec<std::result::Result<(Id, bool), rusqlite::Error>> = statement
+        .query_map((transaction_id,), |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect();
     for row in rows {
         let row = row?;
-        categories.push(get_category(connection, row)?.unwrap());
+        categories.push((
+            get_category(connection, row.0)?.unwrap(),
+            if row.1 {
+                Sign::Positive
+            } else {
+                Sign::Negative
+            },
+        ));
     }
     Ok(categories)
 }

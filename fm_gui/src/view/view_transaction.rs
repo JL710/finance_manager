@@ -158,14 +158,20 @@ impl TransactionView {
 
         let mut category_column = widget::Column::new().spacing(10);
         for category in self.transaction.categories() {
-            category_column = category_column.push(widget::checkbox(
-                self.categories
-                    .iter()
-                    .find(|x| x.id() == category)
-                    .unwrap()
-                    .name(),
-                true,
-            ));
+            category_column = category_column.push(
+                widget::row![
+                    widget::checkbox(
+                        self.categories
+                            .iter()
+                            .find(|x| *x.id() == category.0)
+                            .unwrap()
+                            .name(),
+                        true,
+                    ),
+                    widget::checkbox("Negative", category.1 == fm_core::Sign::Negative)
+                ]
+                .spacing(10),
+            );
         }
 
         widget::column![
