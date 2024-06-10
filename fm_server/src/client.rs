@@ -23,6 +23,21 @@ macro_rules! client_post_macro {
             .post(&format!("{}/{}", $url, $path))
             .body(serde_json::json!($x).to_string())
             .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .header(reqwest::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+            .send()
+            .await
+            .unwrap();
+        Ok(serde_json::from_str(&response.text().await.unwrap())?)
+    }};
+}
+
+#[macro_export]
+macro_rules! client_get_macro {
+    ( $url:expr, $path:expr ) => {{
+        let client = reqwest::Client::new();
+        let response = client
+            .get(&format!("{}/{}", $url, $path))
+            .header("Access-Control-Allow-Origin", "*")
             .send()
             .await
             .unwrap();
@@ -102,10 +117,7 @@ impl fm_core::PrivateFinanceManager for Client {
 
 impl fm_core::FinanceManager for Client {
     async fn get_accounts(&self) -> Result<Vec<fm_core::account::Account>> {
-        let response = reqwest::get(&format!("{}/get_accounts", self.url))
-            .await
-            .unwrap();
-        Ok(serde_json::from_str(&response.text().await?)?)
+        client_get_macro!(self.url, "get_accounts")
     }
 
     async fn get_account(&self, id: fm_core::Id) -> Result<Option<fm_core::account::Account>> {
@@ -168,10 +180,7 @@ impl fm_core::FinanceManager for Client {
     }
 
     async fn get_budgets(&self) -> Result<Vec<fm_core::Budget>> {
-        let response = reqwest::get(&format!("{}/get_budgets", self.url))
-            .await
-            .unwrap();
-        Ok(serde_json::from_str(&response.text().await?)?)
+        client_get_macro!(self.url, "get_budgets")
     }
 
     async fn get_transactions_of_budget(
@@ -244,10 +253,7 @@ impl fm_core::FinanceManager for Client {
     }
 
     async fn get_categories(&self) -> Result<Vec<fm_core::Category>> {
-        let response = reqwest::get(&format!("{}/get_categories", self.url))
-            .await
-            .unwrap();
-        Ok(serde_json::from_str(&response.text().await?)?)
+        client_get_macro!(self.url, "get_categories")
     }
 
     async fn create_category(&mut self, name: String) -> Result<fm_core::Category> {

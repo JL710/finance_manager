@@ -8,6 +8,18 @@ pub mod ram_finance_manager;
 #[cfg(feature = "sqlite")]
 pub mod sqlite_finange_manager;
 
+#[cfg(target_arch = "wasm32")]
+pub trait MaybeSend {}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub trait MaybeSend: Send {}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: Send> MaybeSend for T {}
+
+#[cfg(target_arch = "wasm32")]
+impl<T> MaybeSend for T {}
+
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 pub type Id = u64;
 
@@ -309,7 +321,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         iban: Option<String>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
     fn private_update_asset_account(
         &mut self,
@@ -319,7 +331,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         iban: Option<String>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send;
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
     fn private_create_book_checking_account(
         &mut self,
@@ -327,7 +339,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         notes: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send;
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
     fn private_update_book_checking_account(
         &mut self,
@@ -336,7 +348,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send;
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
     /// Only get the sum of the transactions for the account at the given date.
     /// Do not include any offset or similar!
@@ -344,7 +356,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         &self,
         account: &account::Account,
         date: DateTime,
-    ) -> impl futures::Future<Output = Result<Currency>> + Send;
+    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend;
 }
 
 fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
@@ -359,7 +371,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         iban: Option<String>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send {
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend {
         self.private_create_asset_account(
             name,
             note,
@@ -377,7 +389,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         iban: Option<String>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + Send {
+    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend {
         self.private_update_asset_account(
             id,
             name,
@@ -388,18 +400,20 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         )
     }
 
-    fn get_accounts(&self) -> impl futures::Future<Output = Result<Vec<account::Account>>> + Send;
+    fn get_accounts(
+        &self,
+    ) -> impl futures::Future<Output = Result<Vec<account::Account>>> + MaybeSend;
 
     fn get_account(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<account::Account>>> + Send;
+    ) -> impl futures::Future<Output = Result<Option<account::Account>>> + MaybeSend;
 
     fn get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
-    ) -> impl futures::Future<Output = Result<Currency>> + Send {
+    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
         let future = self.private_get_account_sum(account, date);
 
         async move {
@@ -415,13 +429,13 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
     fn get_transaction(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<Transaction>>> + Send;
+    ) -> impl futures::Future<Output = Result<Option<Transaction>>> + MaybeSend;
 
     fn get_transactions_of_account(
         &self,
         account: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
     fn create_transaction(
         &mut self,
@@ -434,7 +448,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
-    ) -> impl futures::Future<Output = Result<Transaction>> + Send;
+    ) -> impl futures::Future<Output = Result<Transaction>> + MaybeSend;
 
     fn update_transaction(
         &mut self,
@@ -448,7 +462,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         date: DateTime,
         metadata: HashMap<String, String>,
         categoris: Vec<(Id, Sign)>,
-    ) -> impl futures::Future<Output = Result<Transaction>> + Send;
+    ) -> impl futures::Future<Output = Result<Transaction>> + MaybeSend;
 
     fn create_book_checking_account(
         &mut self,
@@ -456,7 +470,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         notes: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send {
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend {
         self.private_create_book_checking_account(
             name,
             notes,
@@ -472,7 +486,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         note: Option<String>,
         iban: Option<String>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + Send {
+    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend {
         self.private_update_book_checking_account(
             id,
             name,
@@ -488,7 +502,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         description: Option<String>,
         total_value: Currency,
         timespan: Recouring,
-    ) -> impl futures::Future<Output = Result<Budget>> + Send;
+    ) -> impl futures::Future<Output = Result<Budget>> + MaybeSend;
 
     fn update_budget(
         &mut self,
@@ -497,29 +511,35 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         description: Option<String>,
         total_value: Currency,
         timespan: Recouring,
-    ) -> impl futures::Future<Output = Result<Budget>> + Send;
+    ) -> impl futures::Future<Output = Result<Budget>> + MaybeSend;
 
-    fn get_budgets(&self) -> impl futures::Future<Output = Result<Vec<Budget>>> + Send;
+    fn get_budgets(&self) -> impl futures::Future<Output = Result<Vec<Budget>>> + MaybeSend;
 
-    fn get_budget(&self, id: Id) -> impl futures::Future<Output = Result<Option<Budget>>> + Send;
+    fn get_budget(
+        &self,
+        id: Id,
+    ) -> impl futures::Future<Output = Result<Option<Budget>>> + MaybeSend;
 
-    fn delete_transaction(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + Send;
+    fn delete_transaction(
+        &mut self,
+        id: Id,
+    ) -> impl futures::Future<Output = Result<()>> + MaybeSend;
 
     fn get_transactions(
         &self,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
     fn get_transactions_of_budget(
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
     fn get_current_budget_transactions(
         &self,
         budget: &Budget,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send {
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend {
         let (start, end) = match budget.timespan() {
             Recouring::Days(start, days) => {
                 let since_start = chrono::Utc::now() - start;
@@ -579,7 +599,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
     fn get_current_budget_value(
         &self,
         budget: &Budget,
-    ) -> impl futures::Future<Output = Result<Currency>> + Send {
+    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
         let transactions_future = self.get_current_budget_transactions(budget);
         async {
             let transactions = transactions_future.await?;
@@ -593,7 +613,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
 
     fn get_accounts_hash_map(
         &self,
-    ) -> impl futures::Future<Output = Result<HashMap<Id, account::Account>>> + Send {
+    ) -> impl futures::Future<Output = Result<HashMap<Id, account::Account>>> + MaybeSend {
         let accounts_future = self.get_accounts();
         async {
             let accounts = accounts_future.await?;
@@ -605,31 +625,31 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         }
     }
 
-    fn get_categories(&self) -> impl futures::Future<Output = Result<Vec<Category>>> + Send;
+    fn get_categories(&self) -> impl futures::Future<Output = Result<Vec<Category>>> + MaybeSend;
 
     fn get_category(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<Category>>> + Send;
+    ) -> impl futures::Future<Output = Result<Option<Category>>> + MaybeSend;
 
     fn create_category(
         &mut self,
         name: String,
-    ) -> impl futures::Future<Output = Result<Category>> + Send;
+    ) -> impl futures::Future<Output = Result<Category>> + MaybeSend;
 
     fn update_category(
         &mut self,
         id: Id,
         name: String,
-    ) -> impl futures::Future<Output = Result<Category>> + Send;
+    ) -> impl futures::Future<Output = Result<Category>> + MaybeSend;
 
-    fn delete_category(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + Send;
+    fn delete_category(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + MaybeSend;
 
     fn get_transactions_of_category(
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + Send;
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
     /// Gets the values of the category over time.
     /// The first value is the value at the start of the timespan.
@@ -638,7 +658,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<(DateTime, Currency)>>> + Send {
+    ) -> impl futures::Future<Output = Result<Vec<(DateTime, Currency)>>> + MaybeSend {
         let transactions_future = self.get_transactions_of_category(id, timespan);
         async move {
             let mut transactions = transactions_future.await?;

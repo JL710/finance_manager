@@ -72,6 +72,7 @@ pub async fn run(url: String, db: String) {
             "/update_book_checking_account",
             post(update_book_checking_account),
         )
+        .layer(tower_http::cors::CorsLayer::permissive())
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
 
