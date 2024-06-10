@@ -84,24 +84,23 @@ impl AssetAccountOverview {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        let mut account_table = super::super::table::Table::new(2)
-            .set_headers(vec!["Name".to_owned(), "Current Value".to_owned()]);
-
-        for account in &self.accounts {
-            account_table.push_row(vec![
-                widget::button(account.0.name())
-                    .style(utils::button_link_style)
-                    .padding(0)
-                    .on_press(Message::AccountView(account.0.clone()))
-                    .into(),
-                utils::colored_currency_display(&account.1),
-            ]);
-        }
+        let account_table =
+            super::super::table_view::TableView::new(self.accounts.clone(), |account| {
+                [
+                    widget::button(widget::text(account.0.name().to_string()))
+                        .on_press(Message::AccountView(account.0.clone()))
+                        .padding(0)
+                        .style(utils::button_link_style)
+                        .into(),
+                    utils::colored_currency_display(&account.1),
+                ]
+            })
+            .headers(["Account".to_string(), "Current Value".to_string()]);
 
         widget::column![
             widget::row![widget::button("New AssetAccount").on_press(Message::CreateAssetAccount)],
             widget::horizontal_rule(10),
-            account_table.convert_to_view(),
+            account_table.into_element(),
         ]
         .into()
     }

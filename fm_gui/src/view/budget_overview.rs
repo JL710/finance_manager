@@ -67,35 +67,28 @@ impl BudgetOverview {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
+        let budget_table =
+            super::super::table_view::TableView::new(self.budgets.clone(), |budget| {
+                [
+                    widget::button(widget::text(budget.0.name().to_string()))
+                        .on_press(Message::ViewBudget(*budget.0.id()))
+                        .padding(0)
+                        .style(utils::button_link_style)
+                        .into(),
+                    widget::text(format!("{}", &budget.1)).into(),
+                    widget::text(format!("{}", budget.0.total_value())).into(),
+                ]
+            })
+            .headers([
+                "Name".to_string(),
+                "Current".to_string(),
+                "Total".to_string(),
+            ]);
         widget::column![
             widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
             widget::horizontal_rule(10),
-            generate_budget_list(&self.budgets),
+            budget_table.into_element(),
         ]
         .into()
     }
-}
-
-fn generate_budget_list(
-    budgets: &Vec<(fm_core::Budget, fm_core::Currency)>,
-) -> iced::Element<'_, Message> {
-    let mut budget_table = super::super::table::Table::new(3).set_headers(vec![
-        "Name".to_string(),
-        "Current".to_string(),
-        "Total".to_string(),
-    ]);
-
-    for budget in budgets {
-        budget_table.push_row(vec![
-            widget::button(budget.0.name())
-                .on_press(Message::ViewBudget(*budget.0.id()))
-                .padding(0)
-                .style(utils::button_link_style)
-                .into(),
-            widget::text(format!("{}", &budget.1)).into(),
-            widget::text(format!("{}", budget.0.total_value())).into(),
-        ]);
-    }
-
-    budget_table.convert_to_view()
 }
