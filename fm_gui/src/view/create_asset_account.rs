@@ -1,9 +1,8 @@
 use super::super::{AppMessage, View};
 use fm_core;
 
-use core::f64;
+use async_std::sync::Mutex;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub enum Message {

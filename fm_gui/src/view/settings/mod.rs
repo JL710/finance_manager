@@ -5,8 +5,8 @@ use fm_server::client::Client;
 
 use iced::widget;
 
+use async_std::sync::Mutex;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -34,11 +34,14 @@ impl SettingsView {
             } else {
                 String::from("http://localhost:3000")
             },
+            #[cfg(feature = "native")]
             sqlite_path: if let FinanceManagers::Sqlite(fm) = &*locked_fm {
                 fm.path().to_string()
             } else {
                 String::new()
             },
+            #[cfg(not(feature = "native"))]
+            sqlite_path: String::new(),
         }
     }
 
@@ -63,6 +66,7 @@ impl SettingsView {
                     }),
                 );
             }
+            #[cfg(feature = "native")]
             Message::SwitchToSqlite => {
                 let sqlite_path = self.sqlite_path.clone();
                 return (
@@ -78,6 +82,10 @@ impl SettingsView {
                         )))
                     }),
                 );
+            }
+            #[cfg(not(feature = "native"))]
+            Message::SwitchToSqlite => {
+                return (None, iced::Command::none());
             }
             Message::SwitchToRAM => {
                 return (

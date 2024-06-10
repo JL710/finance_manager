@@ -2,9 +2,9 @@ use fm_core::{self, FinanceManager};
 
 use super::super::{utils, AppMessage, View};
 
+use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,

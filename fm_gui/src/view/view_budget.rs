@@ -1,8 +1,8 @@
 use super::super::{utils, AppMessage, View};
 use anyhow::Result;
+use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub fn switch_view_command(
     id: fm_core::Id,

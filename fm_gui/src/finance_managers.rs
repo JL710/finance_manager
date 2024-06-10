@@ -3,6 +3,7 @@ use anyhow::Result;
 #[derive(Clone)]
 pub enum FinanceManagers {
     Server(fm_server::client::Client),
+    #[cfg(feature = "native")]
     Sqlite(fm_core::sqlite_finange_manager::SqliteFinanceManager),
     Ram(fm_core::ram_finance_manager::RamFinanceManager),
 }
@@ -11,6 +12,7 @@ impl std::fmt::Debug for FinanceManagers {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FinanceManagers::Server(_) => write!(f, "Server"),
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(_) => write!(f, "Sqlite"),
             FinanceManagers::Ram(_) => write!(f, "Ram"),
         }
@@ -21,6 +23,7 @@ impl std::fmt::Display for FinanceManagers {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FinanceManagers::Server(fm) => write!(f, "Server {}", fm.url()),
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(fm) => write!(f, "Sqlite {}", fm.path()),
             FinanceManagers::Ram(_) => write!(f, "Ram"),
         }
@@ -48,6 +51,7 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
                     .private_create_asset_account(name, note, iban, bic, offset)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .private_create_asset_account(name, note, iban, bic, offset)
@@ -73,6 +77,7 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
                     .private_create_book_checking_account(name, note, iban, bic)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .private_create_book_checking_account(name, note, iban, bic)
@@ -92,6 +97,7 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
     ) -> Result<fm_core::Currency> {
         match self {
             FinanceManagers::Server(client) => client.private_get_account_sum(account, date).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.private_get_account_sum(account, date).await,
             FinanceManagers::Ram(ram) => ram.private_get_account_sum(account, date).await,
         }
@@ -112,6 +118,7 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
                     .private_update_asset_account(id, name, note, iban, bic, offset)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .private_update_asset_account(id, name, note, iban, bic, offset)
@@ -138,6 +145,7 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
                     .private_update_book_checking_account(id, name, note, iban, bic)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .private_update_book_checking_account(id, name, note, iban, bic)
@@ -166,6 +174,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     .create_asset_account(name, note, iban, bic, offset)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .create_asset_account(name, note, iban, bic, offset)
@@ -191,6 +200,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     .create_book_checking_account(name, notes, iban, bic)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .create_book_checking_account(name, notes, iban, bic)
@@ -216,6 +226,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     .create_budget(name, description, total_value, timespan)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .create_budget(name, description, total_value, timespan)
@@ -231,6 +242,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn create_category(&mut self, name: String) -> Result<fm_core::Category> {
         match self {
             FinanceManagers::Server(client) => client.create_category(name).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.create_category(name).await,
             FinanceManagers::Ram(ram) => ram.create_category(name).await,
         }
@@ -264,6 +276,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     )
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .create_transaction(
@@ -299,6 +312,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn delete_category(&mut self, id: fm_core::Id) -> Result<()> {
         match self {
             FinanceManagers::Server(client) => client.delete_category(id).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.delete_category(id).await,
             FinanceManagers::Ram(ram) => ram.delete_category(id).await,
         }
@@ -307,6 +321,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn delete_transaction(&mut self, id: fm_core::Id) -> Result<()> {
         match self {
             FinanceManagers::Server(client) => client.delete_transaction(id).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.delete_transaction(id).await,
             FinanceManagers::Ram(ram) => ram.delete_transaction(id).await,
         }
@@ -315,6 +330,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn get_account(&self, id: fm_core::Id) -> Result<Option<fm_core::account::Account>> {
         match self {
             FinanceManagers::Server(client) => client.get_account(id).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_account(id).await,
             FinanceManagers::Ram(ram) => ram.get_account(id).await,
         }
@@ -327,6 +343,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     ) -> Result<fm_core::Currency> {
         match self {
             FinanceManagers::Server(client) => client.get_account_sum(account, date).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_account_sum(account, date).await,
             FinanceManagers::Ram(ram) => ram.get_account_sum(account, date).await,
         }
@@ -335,6 +352,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn get_accounts(&self) -> Result<Vec<fm_core::account::Account>> {
         match self {
             FinanceManagers::Server(client) => client.get_accounts().await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_accounts().await,
             FinanceManagers::Ram(ram) => ram.get_accounts().await,
         }
@@ -343,6 +361,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn get_budget(&self, id: fm_core::Id) -> Result<Option<fm_core::Budget>> {
         match self {
             FinanceManagers::Server(client) => client.get_budget(id).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_budget(id).await,
             FinanceManagers::Ram(ram) => ram.get_budget(id).await,
         }
@@ -351,6 +370,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn get_budgets(&self) -> Result<Vec<fm_core::Budget>> {
         match self {
             FinanceManagers::Server(client) => client.get_budgets().await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_budgets().await,
             FinanceManagers::Ram(ram) => ram.get_budgets().await,
         }
@@ -359,6 +379,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn get_category(&self, id: fm_core::Id) -> Result<Option<fm_core::Category>> {
         match self {
             FinanceManagers::Server(client) => client.get_category(id).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_category(id).await,
             FinanceManagers::Ram(ram) => ram.get_category(id).await,
         }
@@ -367,6 +388,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn get_categories(&self) -> Result<Vec<fm_core::Category>> {
         match self {
             FinanceManagers::Server(client) => client.get_categories().await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_categories().await,
             FinanceManagers::Ram(ram) => ram.get_categories().await,
         }
@@ -375,6 +397,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     async fn get_transaction(&self, id: fm_core::Id) -> Result<Option<fm_core::Transaction>> {
         match self {
             FinanceManagers::Server(client) => client.get_transaction(id).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_transaction(id).await,
             FinanceManagers::Ram(ram) => ram.get_transaction(id).await,
         }
@@ -386,6 +409,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     ) -> Result<Vec<fm_core::Transaction>> {
         match self {
             FinanceManagers::Server(client) => client.get_transactions(timespan).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_transactions(timespan).await,
             FinanceManagers::Ram(ram) => ram.get_transactions(timespan).await,
         }
@@ -396,6 +420,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     ) -> Result<std::collections::HashMap<fm_core::Id, fm_core::account::Account>> {
         match self {
             FinanceManagers::Server(client) => client.get_accounts_hash_map().await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_accounts_hash_map().await,
             FinanceManagers::Ram(ram) => ram.get_accounts_hash_map().await,
         }
@@ -407,6 +432,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     ) -> Result<Vec<fm_core::Transaction>> {
         match self {
             FinanceManagers::Server(client) => client.get_current_budget_transactions(budget).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_current_budget_transactions(budget).await,
             FinanceManagers::Ram(ram) => ram.get_current_budget_transactions(budget).await,
         }
@@ -418,6 +444,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     ) -> Result<fm_core::Currency> {
         match self {
             FinanceManagers::Server(client) => client.get_current_budget_value(budget).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_current_budget_value(budget).await,
             FinanceManagers::Ram(ram) => ram.get_current_budget_value(budget).await,
         }
@@ -432,6 +459,7 @@ impl fm_core::FinanceManager for FinanceManagers {
             FinanceManagers::Server(client) => {
                 client.get_relative_category_values(id, timespan).await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite.get_relative_category_values(id, timespan).await
             }
@@ -448,6 +476,7 @@ impl fm_core::FinanceManager for FinanceManagers {
             FinanceManagers::Server(client) => {
                 client.get_transactions_of_account(account, timespan).await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite.get_transactions_of_account(account, timespan).await
             }
@@ -464,6 +493,7 @@ impl fm_core::FinanceManager for FinanceManagers {
             FinanceManagers::Server(client) => {
                 client.get_transactions_of_budget(id, timespan).await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite.get_transactions_of_budget(id, timespan).await
             }
@@ -480,6 +510,7 @@ impl fm_core::FinanceManager for FinanceManagers {
             FinanceManagers::Server(client) => {
                 client.get_transactions_of_category(id, timespan).await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite.get_transactions_of_category(id, timespan).await
             }
@@ -502,6 +533,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     .update_asset_account(id, name, note, iban, bic, offset)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .update_asset_account(id, name, note, iban, bic, offset)
@@ -528,6 +560,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     .update_book_checking_account(id, name, note, iban, bic)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .update_book_checking_account(id, name, note, iban, bic)
@@ -554,6 +587,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     .update_budget(id, name, description, total_value, timespan)
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .update_budget(id, name, description, total_value, timespan)
@@ -573,6 +607,7 @@ impl fm_core::FinanceManager for FinanceManagers {
     ) -> Result<fm_core::Category> {
         match self {
             FinanceManagers::Server(client) => client.update_category(id, name).await,
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.update_category(id, name).await,
             FinanceManagers::Ram(ram) => ram.update_category(id, name).await,
         }
@@ -608,6 +643,7 @@ impl fm_core::FinanceManager for FinanceManagers {
                     )
                     .await
             }
+            #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
                     .update_transaction(

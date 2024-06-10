@@ -3,9 +3,9 @@ use crate::utils;
 use super::super::{AppMessage, View};
 
 use anyhow::Result;
+use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,

@@ -16,6 +16,5 @@ iced = { version = "0.1.0", path = "../iced-dynamic", package = "iced-dynamic" }
 uuid = { version = "1.8.0", features = ["v4"] }
 fm_core = { path = "../fm_core", default-features = false, features = ["ram", "wasm"]}
 fm_server = { path = "../fm_server", features = ["client"], default-features = false }
-#tokio = { version = "1.37.0", features = ["sync"] }
-tokio = { git = "https://github.com/async-rs/async-std.git", package="async-std" }
+async-std = "1.12.0"
 

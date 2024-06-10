@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", features = ["advanced", "lazy", "tokio", "svg"]}
+iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", features = ["advanced", "lazy", "tokio", "svg", "webgl"]}
 
 [lib]
-crate-type = ["dylib"]
+crate-type = ["dylib", "lib"]

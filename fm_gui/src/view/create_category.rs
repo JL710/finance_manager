@@ -1,8 +1,8 @@
 use super::super::{AppMessage, View};
 
+use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub enum Message {

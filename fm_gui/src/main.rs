@@ -7,8 +7,8 @@ mod timespan_input;
 mod utils;
 mod view;
 
+use async_std::sync::Mutex;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub enum AppMessage {

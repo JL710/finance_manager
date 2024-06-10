@@ -3,8 +3,8 @@ use fm_core::{self, FinanceManager};
 use iced::widget;
 
 use anyhow::Result;
+use async_std::sync::Mutex;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,

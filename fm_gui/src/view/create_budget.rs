@@ -4,8 +4,8 @@ use fm_core;
 use iced::widget;
 
 use anyhow::Result;
+use async_std::sync::Mutex;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub fn switch_view_command_edit(
     id: fm_core::Id,
