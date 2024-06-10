@@ -1,3 +1,5 @@
+fm_gui/dist/*
+
 *.db
 *.sqlite
 
