@@ -1,5 +1,4 @@
 use super::super::{utils, AppMessage, View};
-use anyhow::Error;
 use anyhow::Result;
 use async_std::sync::Mutex;
 use fm_core::transaction_filter::TransactionFilter;
