@@ -108,8 +108,7 @@ impl TransactionFilter {
                 .accounts
                 .iter()
                 .filter(|account| {
-                    *transaction.source() == account.0
-                        || *transaction.destination() == account.0
+                    *transaction.source() == account.0 || *transaction.destination() == account.0
                 })
                 .map(|x| (x.1, x.2));
             let category_iterator = self

@@ -3,11 +3,11 @@ use chrono::{Datelike, TimeZone};
 use std::collections::HashMap;
 
 pub mod account;
-pub mod transaction_filter; 
 #[cfg(feature = "ram")]
 pub mod ram_finance_manager;
 #[cfg(feature = "sqlite")]
 pub mod sqlite_finange_manager;
+pub mod transaction_filter;
 
 #[cfg(target_arch = "wasm32")]
 pub trait MaybeSend {}
