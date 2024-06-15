@@ -3,6 +3,7 @@ use chrono::{Datelike, TimeZone};
 use std::collections::HashMap;
 
 pub mod account;
+pub mod transaction_filter; 
 #[cfg(feature = "ram")]
 pub mod ram_finance_manager;
 #[cfg(feature = "sqlite")]
@@ -364,6 +365,17 @@ fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
 }
 
 pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
+    fn get_filtered_transactions(
+        &self,
+        filter: transaction_filter::TransactionFilter,
+    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend {
+        let transactions_future = self.get_transactions(filter.total_timespan());
+        async move {
+            let transactions = transactions_future.await?;
+            Ok(filter.filter_transactions(transactions))
+        }
+    }
+
     fn create_asset_account(
         &mut self,
         name: String,
