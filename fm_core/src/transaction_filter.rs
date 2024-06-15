@@ -7,7 +7,7 @@ pub type CategoryFilter = (Id, bool, Option<Timespan>);
 /// Default timespan is used as default for every selected category and account.
 /// Included timespan includes for that account/category transactions that are in range (by default nothing is included).
 /// Exclude timespan excludes only transaction in that range but does not include everything else and has higher priority than includes.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFilter {
     default_timespan: Timespan,
     accounts: Vec<AccountFilter>, // id, include (true) or exclude (false)

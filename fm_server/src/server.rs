@@ -72,6 +72,10 @@ pub async fn run(url: String, db: String) {
             "/update_book_checking_account",
             post(update_book_checking_account),
         )
+        .route(
+            "/get_filtered_transactions",
+            post(get_filtered_transactions),
+        )
         .layer(tower_http::cors::CorsLayer::permissive())
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
@@ -477,4 +481,18 @@ async fn update_book_checking_account(
         .await
         .unwrap();
     json!(account).into()
+}
+
+async fn get_filtered_transactions(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::transaction_filter::TransactionFilter>,
+) -> Json<Value> {
+    let transactions = state
+        .finance_manager
+        .lock()
+        .await
+        .get_filtered_transactions(data)
+        .await
+        .unwrap();
+    json!(transactions).into()
 }

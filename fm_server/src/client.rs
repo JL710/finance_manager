@@ -116,6 +116,13 @@ impl fm_core::PrivateFinanceManager for Client {
 }
 
 impl fm_core::FinanceManager for Client {
+    async fn get_filtered_transactions(
+        &self,
+        filter: fm_core::transaction_filter::TransactionFilter,
+    ) -> Result<Vec<fm_core::Transaction>> {
+        client_post_macro!(self.url, "get_filtered_transactions", filter)
+    }
+
     async fn get_accounts(&self) -> Result<Vec<fm_core::account::Account>> {
         client_get_macro!(self.url, "get_accounts")
     }

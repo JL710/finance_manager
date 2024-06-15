@@ -160,6 +160,18 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
 }
 
 impl fm_core::FinanceManager for FinanceManagers {
+    async fn get_filtered_transactions(
+        &self,
+        filter: fm_core::transaction_filter::TransactionFilter,
+    ) -> Result<Vec<fm_core::Transaction>> {
+        match self {
+            FinanceManagers::Server(client) => client.get_filtered_transactions(filter).await,
+            #[cfg(feature = "native")]
+            FinanceManagers::Sqlite(sqlite) => sqlite.get_filtered_transactions(filter).await,
+            FinanceManagers::Ram(ram) => ram.get_filtered_transactions(filter).await,
+        }
+    }
+
     async fn create_asset_account(
         &mut self,
         name: String,
