@@ -64,11 +64,37 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
     }
 
     fn view(&self, state: &Self::State) -> iced::Element<'_, Self::Event> {
+        fn incorrect_style(
+            theme: &iced::Theme,
+            status: widget::text_input::Status,
+        ) -> widget::text_input::Style {
+            let mut style = widget::text_input::default(theme, status);
+            style.border = style.border.with_color(theme.palette().danger);
+            style
+        }
+
+        let start_correct =
+            utils::parse_to_datetime(&state.start).is_ok() || state.start.is_empty();
+        let end_correct = utils::parse_to_datetime(&state.end).is_ok() || state.end.is_empty();
         widget::row![
-            widget::text_input("Start", &state.start).on_input(TimespanInputMsg::SetStart),
+            widget::text_input("Start", &state.start)
+                .style(if start_correct {
+                    widget::text_input::default
+                } else {
+                    incorrect_style
+                })
+                .on_input(TimespanInputMsg::SetStart),
             widget::text(" - "),
-            widget::text_input("End", &state.end).on_input(TimespanInputMsg::SetEnd),
+            widget::text_input("End", &state.end)
+                .style(if end_correct {
+                    widget::text_input::default
+                } else {
+                    incorrect_style
+                })
+                .on_input(TimespanInputMsg::SetEnd),
         ]
+        .align_items(iced::Alignment::Center)
+        .width(iced::Length::Fixed(300.0))
         .into()
     }
 }
