@@ -167,6 +167,13 @@ pub enum Account {
 }
 
 impl Account {
+    pub fn name(&self) -> &str {
+        match self {
+            Account::AssetAccount(acc) => acc.name(),
+            Account::BookCheckingAccount(acc) => acc.name(),
+        }
+    }
+
     pub fn id(&self) -> &Id {
         match self {
             Account::AssetAccount(acc) => &acc.id,
