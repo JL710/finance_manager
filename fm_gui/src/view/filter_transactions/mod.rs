@@ -80,19 +80,20 @@ impl FilterTransactionView {
                                 .get_filtered_transactions(filter.clone())
                                 .await
                                 .unwrap();
+                            let accounts = locked_manager.get_accounts().await.unwrap();
 
                             let mut tuples = Vec::new();
                             for transaction in transactions {
-                                let source = locked_manager
-                                    .get_account(*transaction.source())
-                                    .await
+                                let source = accounts
+                                    .iter()
+                                    .find(|x| x.id() == transaction.source())
                                     .unwrap()
-                                    .unwrap();
-                                let destination = locked_manager
-                                    .get_account(*transaction.destination())
-                                    .await
+                                    .clone();
+                                let destination = accounts
+                                    .iter()
+                                    .find(|x| x.id() == transaction.destination())
                                     .unwrap()
-                                    .unwrap();
+                                    .clone();
                                 tuples.push((transaction, source, destination));
                             }
                             tuples
@@ -102,10 +103,16 @@ impl FilterTransactionView {
                 );
             }
             Message::ViewAccount(id) => {
-                todo!()
+                return (
+                    Some(View::Empty),
+                    super::view_account::switch_view_command(id, finance_manager),
+                );
             }
             Message::ViewTransaction(id) => {
-                todo!()
+                return (
+                    Some(View::Empty),
+                    super::view_transaction::switch_view_command(id, finance_manager),
+                );
             }
             Message::UpdateTransactions(transactions) => {
                 self.transactions = transactions;
