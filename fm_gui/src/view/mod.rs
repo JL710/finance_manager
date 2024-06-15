@@ -6,6 +6,7 @@ pub mod create_book_checking_account;
 pub mod create_budget;
 pub mod create_category;
 pub mod create_transaction;
+pub mod filter_transactions;
 pub mod settings;
 pub mod show_asset_accounts;
 pub mod view_account;

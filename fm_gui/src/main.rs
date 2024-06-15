@@ -18,7 +18,8 @@ pub enum AppMessage {
     SwitchToAssetAccountsView,
     SwitchToCategoryOverview,
     SwitchToBookCheckingAccountOverview,
-    SwtichToSettingsView,
+    SwitchToSettingsView,
+    SwitchToFilterTransactionView,
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
@@ -33,6 +34,7 @@ pub enum AppMessage {
     CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
     SettingsMessage(view::settings::Message),
     ChangeFM(Arc<Mutex<finance_managers::FinanceManagers>>),
+    FilterTransactionMessage(view::filter_transactions::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +54,7 @@ enum View {
     BookCheckingAccountOverview(view::book_checking_account_overview::BookCheckingAccountOverview),
     CreateBookCheckingAccount(view::create_book_checking_account::CreateBookCheckingAccount),
     Settings(view::settings::SettingsView),
+    FilterTransaction(view::filter_transactions::FilterTransactionView),
 }
 
 pub struct App {
@@ -259,7 +262,7 @@ impl Application for App {
                 }
                 return cmd;
             }
-            AppMessage::SwtichToSettingsView => {
+            AppMessage::SwitchToSettingsView => {
                 self.current_view = View::Settings(view::settings::SettingsView::new(
                     self.finance_manager.clone(),
                 ));
@@ -276,6 +279,23 @@ impl Application for App {
             }
             AppMessage::ChangeFM(fm) => {
                 self.finance_manager = fm;
+            }
+            AppMessage::FilterTransactionMessage(m) => {
+                let (new_view, cmd) = match self.current_view {
+                    View::FilterTransaction(ref mut view) => {
+                        view.update(m, self.finance_manager.clone())
+                    }
+                    _ => panic!(),
+                };
+                if let Some(new_view) = new_view {
+                    self.current_view = new_view;
+                }
+                return cmd;
+            }
+            AppMessage::SwitchToFilterTransactionView => {
+                return view::filter_transactions::switch_view_command(
+                    self.finance_manager.clone(),
+                );
             }
         }
         iced::Command::none()
@@ -296,6 +316,9 @@ impl Application for App {
                 iced::widget::button("Categories")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToCategoryOverview),
+                iced::widget::button("Transactions")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwitchToFilterTransactionView),
                 iced::widget::horizontal_rule(5),
                 iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
@@ -303,7 +326,7 @@ impl Application for App {
                 iced::widget::vertical_space(),
                 iced::widget::button("Settings")
                     .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwtichToSettingsView),
+                    .on_press(AppMessage::SwitchToSettingsView),
             ]
             .align_items(iced::Alignment::Start)
             .spacing(10)
@@ -336,6 +359,8 @@ impl Application for App {
                     .view()
                     .map(AppMessage::CreateBookCheckingAccountMessage),
                 View::Settings(ref view) => view.view().map(AppMessage::SettingsMessage),
+                View::FilterTransaction(ref view) =>
+                    view.view().map(AppMessage::FilterTransactionMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]
