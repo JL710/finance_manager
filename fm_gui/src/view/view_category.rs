@@ -218,7 +218,7 @@ impl ViewCategory {
                 .spacing(10)
             ]
             .spacing(10),
-            super::super::timespan_input::TimespanInput::new(Message::ChangedTimespan)
+            super::super::timespan_input::TimespanInput::new(Message::ChangedTimespan, None)
                 .into_element(),
             utils::transaction_table(
                 self.transactions.clone(),

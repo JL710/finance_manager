@@ -161,9 +161,15 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                 ]
                 .push_maybe(if filter.2.is_some() {
                     Some(
-                        timespan_input::TimespanInput::new(|x| {
-                            ComponentMessage::ChangeAccount(*filter, (filter.0, filter.1, Some(x)))
-                        })
+                        timespan_input::TimespanInput::new(
+                            |x| {
+                                ComponentMessage::ChangeAccount(
+                                    *filter,
+                                    (filter.0, filter.1, Some(x)),
+                                )
+                            },
+                            None,
+                        )
                         .into_element(),
                     )
                 } else {
@@ -218,9 +224,15 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                 ]
                 .push_maybe(if filter.2.is_some() {
                     Some(
-                        timespan_input::TimespanInput::new(|x| {
-                            ComponentMessage::ChangeCategory(*filter, (filter.0, filter.1, Some(x)))
-                        })
+                        timespan_input::TimespanInput::new(
+                            |x| {
+                                ComponentMessage::ChangeCategory(
+                                    *filter,
+                                    (filter.0, filter.1, Some(x)),
+                                )
+                            },
+                            None,
+                        )
                         .into_element(),
                     )
                 } else {
@@ -239,8 +251,11 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             widget::column![
                 widget::row![
                     widget::text("Default Timespan: "),
-                    timespan_input::TimespanInput::new(ComponentMessage::ChangeDefaultTimespan)
-                        .into_element(),
+                    timespan_input::TimespanInput::new(
+                        ComponentMessage::ChangeDefaultTimespan,
+                        Some(*self.filter.get_default_timespan())
+                    )
+                    .into_element(),
                 ],
                 widget::row![
                     widget::text("Accounts"),

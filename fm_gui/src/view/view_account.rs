@@ -185,7 +185,7 @@ fn asset_account_view<'a>(
             widget::button("Edit").on_press(Message::Edit),
         ],
         widget::horizontal_rule(10),
-        super::super::timespan_input::TimespanInput::new(Message::ChangeTransactionTimespan)
+        super::super::timespan_input::TimespanInput::new(Message::ChangeTransactionTimespan, None)
             .into_element(),
         utils::transaction_table(
             transactions.to_vec(),
@@ -222,7 +222,7 @@ fn book_checking_account_view<'a>(
             widget::button("Edit").on_press(Message::Edit),
         ],
         widget::horizontal_rule(10),
-        super::super::timespan_input::TimespanInput::new(Message::ChangeTransactionTimespan)
+        super::super::timespan_input::TimespanInput::new(Message::ChangeTransactionTimespan, None)
             .into_element(),
         utils::transaction_table(
             transactions.to_vec(),
