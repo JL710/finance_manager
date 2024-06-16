@@ -9,6 +9,19 @@ mod view;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
+macro_rules! message_match {
+    ($app:expr, $m:expr, $v:path) => {
+        let (new_view, cmd) = match $app.current_view {
+            $v(ref mut view) => view.update($m, $app.finance_manager.clone()),
+            _ => panic!(),
+        };
+        if let Some(new_view) = new_view {
+            $app.current_view = new_view;
+        }
+        return cmd;
+    };
+}
+
 #[derive(Debug, Clone)]
 pub enum AppMessage {
     SwitchView(View),
@@ -90,70 +103,25 @@ impl Application for App {
         match message {
             AppMessage::SwitchView(view) => self.current_view = view,
             AppMessage::BudgetOverViewMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::BudgetOverview(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::BudgetOverview);
             }
             AppMessage::SwitchToBudgetOverview => {
                 return view::budget_overview::switch_view_command(self.finance_manager.clone())
             }
             AppMessage::CreateAssetAccountMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::CreateAssetAccountDialog(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::CreateAssetAccountDialog);
             }
             AppMessage::CreateBudgetViewMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::CreateBudgetView(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::CreateBudgetView);
             }
             AppMessage::CreateTransactionViewMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::CreateTransactionView(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::CreateTransactionView);
             }
             AppMessage::SwitchToCreateTransActionView => {
                 return view::create_transaction::switch_view_command(self.finance_manager.clone());
             }
             AppMessage::AssetAccountsMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::AssetAccounts(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::AssetAccounts);
             }
             AppMessage::SwitchToAssetAccountsView => {
                 return view::show_asset_accounts::switch_view_command(
@@ -161,89 +129,28 @@ impl Application for App {
                 );
             }
             AppMessage::ViewAccountMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::ViewAccount(ref mut view) => view.update(m, self.finance_manager.clone()),
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::ViewAccount);
             }
             AppMessage::TransactionViewMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::TransactionView(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::TransactionView);
             }
             AppMessage::ViewBudgetMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::ViewBudgetView(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::ViewBudgetView);
             }
             AppMessage::CreateCategoryMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::CreateCategory(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::CreateCategory);
             }
             AppMessage::CategoryOverviewMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::CategoryOverview(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::CategoryOverview);
             }
             AppMessage::SwitchToCategoryOverview => {
                 return view::category_overview::switch_view_command(self.finance_manager.clone());
             }
             AppMessage::ViewCategoryMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::ViewCategory(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::ViewCategory);
             }
             AppMessage::BookCheckingAccountOverviewMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::BookCheckingAccountOverview(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::BookCheckingAccountOverview);
             }
             AppMessage::SwitchToBookCheckingAccountOverview => {
                 return view::book_checking_account_overview::switch_view_command(
@@ -251,16 +158,7 @@ impl Application for App {
                 );
             }
             AppMessage::CreateBookCheckingAccountMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::CreateBookCheckingAccount(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::CreateBookCheckingAccount);
             }
             AppMessage::SwitchToSettingsView => {
                 self.current_view = View::Settings(view::settings::SettingsView::new(
@@ -268,29 +166,13 @@ impl Application for App {
                 ));
             }
             AppMessage::SettingsMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::Settings(ref mut view) => view.update(m),
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::Settings);
             }
             AppMessage::ChangeFM(fm) => {
                 self.finance_manager = fm;
             }
             AppMessage::FilterTransactionMessage(m) => {
-                let (new_view, cmd) = match self.current_view {
-                    View::FilterTransaction(ref mut view) => {
-                        view.update(m, self.finance_manager.clone())
-                    }
-                    _ => panic!(),
-                };
-                if let Some(new_view) = new_view {
-                    self.current_view = new_view;
-                }
-                return cmd;
+                message_match!(self, m, View::FilterTransaction);
             }
             AppMessage::SwitchToFilterTransactionView => {
                 return view::filter_transactions::switch_view_command(

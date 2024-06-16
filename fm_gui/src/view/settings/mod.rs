@@ -45,7 +45,11 @@ impl SettingsView {
         }
     }
 
-    pub fn update(&mut self, message: Message) -> (Option<View>, iced::Command<AppMessage>) {
+    pub fn update(
+        &mut self,
+        message: Message,
+        finance_manager: Arc<Mutex<FinanceManagers>>,
+    ) -> (Option<View>, iced::Command<AppMessage>) {
         match message {
             Message::ChangeAPIUrl(url) => {
                 self.api_url = url;
