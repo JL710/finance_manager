@@ -1,6 +1,6 @@
 use super::{Id, Timespan, Transaction};
-pub type AccountFilter = (Id, bool, Option<Timespan>);
-pub type CategoryFilter = (Id, bool, Option<Timespan>);
+pub type AccountFilter = (bool, Id, bool, Option<Timespan>); // true if negated, id, include (true) or exclude (false), optional timespan
+pub type CategoryFilter = (bool, Id, bool, Option<Timespan>); // true if negated, id, include (true) or exclude (false), optional timespan
 
 /// exclude > include
 ///
@@ -10,8 +10,8 @@ pub type CategoryFilter = (Id, bool, Option<Timespan>);
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFilter {
     default_timespan: Timespan,
-    accounts: Vec<AccountFilter>, // id, include (true) or exclude (false)
-    categories: Vec<CategoryFilter>, // id, include (true) or exclude (false)
+    accounts: Vec<AccountFilter>,
+    categories: Vec<CategoryFilter>,
 }
 
 impl TransactionFilter {
@@ -70,8 +70,8 @@ impl TransactionFilter {
         for account_timespan in self
             .accounts
             .iter()
-            .map(|x| x.2)
-            .chain(self.categories.iter().map(|x| x.2))
+            .map(|x| x.3)
+            .chain(self.categories.iter().map(|x| x.3))
         {
             if account_timespan.is_none() {
                 continue;
@@ -107,22 +107,21 @@ impl TransactionFilter {
             let account_iterator = self
                 .accounts
                 .iter()
-                .filter(|account| {
-                    *transaction.source() == account.0 || *transaction.destination() == account.0
-                })
-                .map(|x| (x.1, x.2));
+                .filter(|account| transaction.connection_with_account(account.1) != account.0)
+                .map(|x| (x.2, x.3));
             let category_iterator = self
                 .categories
                 .iter()
                 .filter(|category| {
-                    transaction
+                    (transaction
                         .categories
                         .iter()
-                        .filter(|x| x.0 == category.0)
+                        .filter(|x| x.0 == category.1)
                         .count()
-                        >= 1
+                        >= 1)
+                        != category.0
                 })
-                .map(|x| (x.1, x.2));
+                .map(|x| (x.2, x.3));
 
             // check the accounts and categories
             for (include, timespan) in account_iterator

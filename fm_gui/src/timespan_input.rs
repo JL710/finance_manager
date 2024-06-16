@@ -1,5 +1,5 @@
 use super::utils;
-use iced::{advanced::graphics::futures::backend::default, widget};
+use iced::widget;
 
 pub struct TimespanInput<Message, PM: Fn(fm_core::Timespan) -> Message> {
     produce_message: PM,

@@ -99,8 +99,12 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             }
             ComponentMessage::NewAccount => {
                 if !self.accounts.is_empty() {
-                    self.filter
-                        .add_account((*self.accounts.first().unwrap().id(), true, None));
+                    self.filter.add_account((
+                        false,
+                        *self.accounts.first().unwrap().id(),
+                        true,
+                        None,
+                    ));
                 }
             }
             ComponentMessage::DeleteAccount(account) => {
@@ -111,8 +115,12 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             }
             ComponentMessage::NewCategory => {
                 if !self.categories.is_empty() {
-                    self.filter
-                        .add_category((*self.categories.first().unwrap().id(), true, None));
+                    self.filter.add_category((
+                        false,
+                        *self.categories.first().unwrap().id(),
+                        true,
+                        None,
+                    ));
                 }
             }
             ComponentMessage::DeleteCategory(category) => {
@@ -127,6 +135,9 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
         for filter in self.filter.get_account_filters() {
             account_column = account_column.push(
                 widget::row![
+                    widget::checkbox("Negate", filter.0).on_toggle(|x| {
+                        ComponentMessage::ChangeAccount(*filter, (x, filter.1, filter.2, filter.3))
+                    }),
                     widget::pick_list(
                         self.accounts
                             .iter()
@@ -136,36 +147,37 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                             account: self
                                 .accounts
                                 .iter()
-                                .find(|x| *x.id() == filter.0)
+                                .find(|x| *x.id() == filter.1)
                                 .unwrap()
                                 .clone()
                         }),
                         |x| ComponentMessage::ChangeAccount(
                             *filter,
-                            (*x.account.id(), filter.1, filter.2)
+                            (filter.0, *x.account.id(), filter.2, filter.3)
                         )
                     ),
-                    widget::checkbox("Exclude", !filter.1).on_toggle(|x| {
-                        ComponentMessage::ChangeAccount(*filter, (filter.0, !x, filter.2))
+                    widget::checkbox("Exclude", !filter.2).on_toggle(|x| {
+                        ComponentMessage::ChangeAccount(*filter, (filter.0, filter.1, !x, filter.3))
                     }),
-                    widget::checkbox("Custom Timespan", filter.2.is_some()).on_toggle(|x| {
+                    widget::checkbox("Custom Timespan", filter.3.is_some()).on_toggle(|x| {
                         ComponentMessage::ChangeAccount(
                             *filter,
                             (
                                 filter.0,
                                 filter.1,
+                                filter.2,
                                 if x { Some((None, None)) } else { None },
                             ),
                         )
                     })
                 ]
-                .push_maybe(if filter.2.is_some() {
+                .push_maybe(if filter.3.is_some() {
                     Some(
                         timespan_input::TimespanInput::new(
                             |x| {
                                 ComponentMessage::ChangeAccount(
                                     *filter,
-                                    (filter.0, filter.1, Some(x)),
+                                    (filter.0, filter.1, filter.2, Some(x)),
                                 )
                             },
                             None,
@@ -188,6 +200,9 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
         for filter in self.filter.get_category_filters() {
             category_column = category_column.push(
                 widget::row![
+                    widget::checkbox("Negate", filter.0).on_toggle(|x| {
+                        ComponentMessage::ChangeCategory(*filter, (x, filter.1, filter.2, filter.3))
+                    }),
                     widget::pick_list(
                         self.categories
                             .iter()
@@ -199,36 +214,40 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                             category: self
                                 .categories
                                 .iter()
-                                .find(|x| *x.id() == filter.0)
+                                .find(|x| *x.id() == filter.1)
                                 .unwrap()
                                 .clone()
                         }),
                         |x| ComponentMessage::ChangeCategory(
                             *filter,
-                            (*x.category.id(), filter.1, filter.2)
+                            (filter.0, *x.category.id(), filter.2, filter.3)
                         )
                     ),
-                    widget::checkbox("Exclude", !filter.1).on_toggle(|x| {
-                        ComponentMessage::ChangeCategory(*filter, (filter.0, !x, filter.2))
+                    widget::checkbox("Exclude", !filter.2).on_toggle(|x| {
+                        ComponentMessage::ChangeCategory(
+                            *filter,
+                            (filter.0, filter.1, !x, filter.3),
+                        )
                     }),
-                    widget::checkbox("Custom Timespan", filter.2.is_some()).on_toggle(|x| {
+                    widget::checkbox("Custom Timespan", filter.3.is_some()).on_toggle(|x| {
                         ComponentMessage::ChangeCategory(
                             *filter,
                             (
                                 filter.0,
                                 filter.1,
+                                filter.2,
                                 if x { Some((None, None)) } else { None },
                             ),
                         )
                     })
                 ]
-                .push_maybe(if filter.2.is_some() {
+                .push_maybe(if filter.3.is_some() {
                     Some(
                         timespan_input::TimespanInput::new(
                             |x| {
                                 ComponentMessage::ChangeCategory(
                                     *filter,
-                                    (filter.0, filter.1, Some(x)),
+                                    (filter.0, filter.1, filter.2, Some(x)),
                                 )
                             },
                             None,
