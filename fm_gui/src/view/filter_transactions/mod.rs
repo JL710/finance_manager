@@ -39,6 +39,7 @@ pub struct FilterTransactionView {
         fm_core::account::Account,
         fm_core::account::Account,
     )>,
+    sums: Vec<(fm_core::DateTime, fm_core::Currency)>,
     filter: TransactionFilter,
 }
 
@@ -54,6 +55,7 @@ impl FilterTransactionView {
             categories,
             change_filter: false,
             transactions: Vec::new(),
+            sums: Vec::new(),
             filter: TransactionFilter::default(),
         })
     }
@@ -115,6 +117,10 @@ impl FilterTransactionView {
             }
             Message::UpdateTransactions(transactions) => {
                 self.transactions = transactions;
+                self.sums = fm_core::sum_up_transactions_by_day(
+                    self.transactions.clone().into_iter().map(|x| x.0).collect(),
+                    |_| fm_core::Sign::Positive,
+                );
             }
         }
         (None, iced::Command::none())
@@ -123,6 +129,15 @@ impl FilterTransactionView {
     pub fn view(&self) -> iced::Element<Message> {
         iced::widget::column![
             iced::widget::text("Filter Transactions"),
+            iced::widget::row![
+                iced::widget::text("Total: "),
+                iced::widget::text(format!(
+                    "{}",
+                    self.sums
+                        .last()
+                        .map_or(fm_core::Currency::Eur(0.0), |x| x.1.clone())
+                ))
+            ],
             iced::widget::button(iced::widget::text("Edit Filter"))
                 .on_press(Message::ToggleEditFilter),
             if self.change_filter {
