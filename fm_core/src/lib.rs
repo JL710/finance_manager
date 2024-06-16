@@ -673,48 +673,59 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
     ) -> impl futures::Future<Output = Result<Vec<(DateTime, Currency)>>> + MaybeSend {
         let transactions_future = self.get_transactions_of_category(id, timespan);
         async move {
-            let mut transactions = transactions_future.await?;
-            transactions.sort_by(|a, b| a.date().cmp(b.date()));
-
-            let mut values: Vec<(DateTime, Currency)> = Vec::new();
-
-            for transaction in transactions {
-                let time = chrono::Utc
-                    .with_ymd_and_hms(
-                        transaction.date().year(),
-                        transaction.date().month(),
-                        transaction.date().day(),
-                        0,
-                        0,
-                        0,
-                    )
-                    .unwrap();
-                let sign = transaction
-                    .categories()
-                    .clone()
-                    .iter()
-                    .find(|(x, _)| *x == id)
-                    .unwrap()
-                    .1;
-                let mut amount = match sign {
-                    Sign::Positive => transaction.amount(),
-                    Sign::Negative => transaction.amount().negative(),
-                };
-                if !values.is_empty() {
-                    amount += values.last().unwrap().1.clone();
-                    let entry = values.last().unwrap().clone();
-                    if entry.0 == time {
-                        let i = values.len() - 1;
-                        values[i] = (time, amount);
-                    } else {
-                        values.push((time, amount));
-                    }
-                } else {
-                    values.push((time, amount));
-                }
-            }
-
-            Ok(values)
+            Ok(sum_up_transactions_by_day(
+                transactions_future.await?,
+                |transaction| {
+                    transaction
+                        .categories()
+                        .clone()
+                        .iter()
+                        .find(|(x, _)| *x == id)
+                        .unwrap()
+                        .1
+                },
+            ))
         }
     }
+}
+
+pub fn sum_up_transactions_by_day(
+    mut transactions: Vec<Transaction>,
+    sign_f: impl Fn(&Transaction) -> Sign,
+) -> Vec<(DateTime, Currency)> {
+    transactions.sort_by(|a, b| a.date().cmp(b.date()));
+
+    let mut values: Vec<(DateTime, Currency)> = Vec::new();
+
+    for transaction in transactions {
+        let time = chrono::Utc
+            .with_ymd_and_hms(
+                transaction.date().year(),
+                transaction.date().month(),
+                transaction.date().day(),
+                0,
+                0,
+                0,
+            )
+            .unwrap();
+        let sign = (sign_f)(&transaction);
+        let mut amount = match sign {
+            Sign::Positive => transaction.amount(),
+            Sign::Negative => transaction.amount().negative(),
+        };
+        if !values.is_empty() {
+            amount += values.last().unwrap().1.clone();
+            let entry = values.last().unwrap().clone();
+            if entry.0 == time {
+                let i = values.len() - 1;
+                values[i] = (time, amount);
+            } else {
+                values.push((time, amount));
+            }
+        } else {
+            values.push((time, amount));
+        }
+    }
+
+    values
 }
