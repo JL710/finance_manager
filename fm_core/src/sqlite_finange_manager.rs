@@ -557,6 +557,10 @@ impl FinanceManager for SqliteFinanceManager {
     async fn delete_transaction(&mut self, id: Id) -> Result<()> {
         let connection = self.connect()?;
         connection.execute("DELETE FROM transactions WHERE id=?1", (id,))?;
+        connection.execute(
+            "DELETE FROM transaction_category WHERE transaction_id=?1",
+            (id,),
+        )?;
         Ok(())
     }
 
