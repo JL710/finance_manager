@@ -32,7 +32,7 @@ impl CreateCategory {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::NameInput(content) => self.name = content,
             Message::Submit => {
@@ -40,7 +40,7 @@ impl CreateCategory {
                 let name = self.name.clone();
                 return (
                     None,
-                    iced::Command::perform(
+                    iced::Task::perform(
                         async move {
                             let mut locked_manager = finance_manager.lock().await;
                             if let Some(id) = id {
@@ -59,7 +59,7 @@ impl CreateCategory {
                 );
             }
         }
-        (None, iced::Command::none())
+        (None, iced::Task::none())
     }
 
     pub fn view(&self) -> iced::Element<Message> {

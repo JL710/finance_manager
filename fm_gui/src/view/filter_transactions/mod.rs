@@ -8,8 +8,8 @@ mod filter_component;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(FilterTransactionView::fetch(finance_manager), |x| {
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(FilterTransactionView::fetch(finance_manager), |x| {
         AppMessage::SwitchView(View::FilterTransaction(x.unwrap()))
     })
 }
@@ -64,7 +64,7 @@ impl FilterTransactionView {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::ToggleEditFilter => {
                 self.change_filter = !self.change_filter;
@@ -74,7 +74,7 @@ impl FilterTransactionView {
                 self.change_filter = false;
                 return (
                     None,
-                    iced::Command::perform(
+                    iced::Task::perform(
                         async move {
                             let locked_manager = finance_manager.lock().await;
                             let transactions = locked_manager
@@ -123,7 +123,7 @@ impl FilterTransactionView {
                 );
             }
         }
-        (None, iced::Command::none())
+        (None, iced::Task::none())
     }
 
     pub fn view(&self) -> iced::Element<Message> {

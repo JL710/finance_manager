@@ -7,8 +7,8 @@ use std::sync::Arc;
 pub fn switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(BudgetView::fetch(id, finance_manager), |result| {
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(BudgetView::fetch(id, finance_manager), |result| {
         AppMessage::SwitchView(View::ViewBudgetView(result.unwrap()))
     })
 }
@@ -82,7 +82,7 @@ impl BudgetView {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::ViewAccount(id) => (
                 Some(View::Empty),

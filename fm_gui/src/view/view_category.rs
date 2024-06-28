@@ -10,8 +10,8 @@ use std::sync::Arc;
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     category_id: fm_core::Id,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move {
             View::ViewCategory(
                 ViewCategory::fetch(finance_manager, category_id)
@@ -101,13 +101,13 @@ impl ViewCategory {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::Delete => {
                 let category_id = *self.category.id();
                 (
                     None,
-                    iced::Command::perform(
+                    iced::Task::perform(
                         async move {
                             finance_manager
                                 .lock()
@@ -132,14 +132,14 @@ impl ViewCategory {
                         self.category.name().to_string(),
                     ),
                 )),
-                iced::Command::none(),
+                iced::Task::none(),
             ),
             Message::ChangedTimespan(timespan) => {
                 self.timespan = timespan;
                 let id = *self.category.id();
                 (
                     None,
-                    iced::Command::perform(
+                    iced::Task::perform(
                         async move {
                             let transactions = finance_manager
                                 .lock()
@@ -181,7 +181,7 @@ impl ViewCategory {
                 self.timespan = timespan;
                 self.values = values;
                 self.transactions = transactions;
-                (None, iced::Command::none())
+                (None, iced::Task::none())
             }
             Message::ViewTransaction(transaction_id) => (
                 Some(View::Empty),

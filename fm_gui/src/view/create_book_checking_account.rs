@@ -71,7 +71,7 @@ impl CreateBookCheckingAccount {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::NameInput(input) => self.name_input = input,
             Message::NoteInput(input) => self.note_input = input,
@@ -97,7 +97,7 @@ impl CreateBookCheckingAccount {
                 let id = self.id;
                 return (
                     Some(View::Empty),
-                    iced::Command::perform(
+                    iced::Task::perform(
                         async move {
                             let account = if let Some(some_id) = id {
                                 finance_manager
@@ -123,7 +123,7 @@ impl CreateBookCheckingAccount {
                 );
             }
         }
-        (None, iced::Command::none())
+        (None, iced::Task::none())
     }
 
     pub fn view(&self) -> iced::Element<'static, Message> {

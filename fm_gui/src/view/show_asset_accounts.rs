@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move {
             let accounts = finance_manager
                 .lock()
@@ -63,17 +63,17 @@ impl AssetAccountOverview {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::CreateAssetAccount => (
                 Some(View::CreateAssetAccountDialog(
                     super::create_asset_account::CreateAssetAccountDialog::new(),
                 )),
-                iced::Command::none(),
+                iced::Task::none(),
             ),
             Message::AccountView(account) => (
                 None,
-                iced::Command::perform(
+                iced::Task::perform(
                     async move {
                         super::view_account::ViewAccount::fetch(finance_manager, account.id()).await
                     },

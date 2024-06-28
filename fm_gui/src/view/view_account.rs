@@ -7,8 +7,8 @@ use std::sync::Arc;
 pub fn switch_view_command(
     account_id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move { View::ViewAccount(ViewAccount::fetch(finance_manager, account_id).await) },
         AppMessage::SwitchView,
     )
@@ -89,20 +89,20 @@ impl ViewAccount {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::Edit => match &self.account {
                 fm_core::account::Account::AssetAccount(acc) => {
                     (
                             Some(View::CreateAssetAccountDialog(
                                 super::create_asset_account::CreateAssetAccountDialog::from_existing_account(acc)
-                            )), iced::Command::none())
+                            )), iced::Task::none())
                 }
                 fm_core::account::Account::BookCheckingAccount(acc) => {
                     (
                             Some(View::CreateBookCheckingAccount(
                                 super::create_book_checking_account::CreateBookCheckingAccount::from_existing_account(acc.clone())
-                            )), iced::Command::none()
+                            )), iced::Task::none()
                     )
                 },
             },
@@ -117,13 +117,13 @@ impl ViewAccount {
             }
             Message::SetTransactions(transactions) => {
                 self.transactions = transactions;
-                (None, iced::Command::none())
+                (None, iced::Task::none())
             }
             Message::ChangeTransactionTimespan(timespan) => {
                 let account_id = *self.account.id();
                 (
                     None,
-                    iced::Command::perform(
+                    iced::Task::perform(
                         async move {
                             let locked_manager = finance_manager.lock().await;
                             let transactions = locked_manager

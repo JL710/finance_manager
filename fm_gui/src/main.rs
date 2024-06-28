@@ -1,5 +1,3 @@
-use iced::advanced::Application;
-
 mod finance_managers;
 mod table_view;
 mod timespan_input;
@@ -75,31 +73,20 @@ pub struct App {
     current_view: View,
 }
 
-impl Application for App {
-    type Message = AppMessage;
-    type Flags = ();
-    type Executor = iced::executor::Default;
-    type Theme = iced::Theme;
-    type Renderer = iced::Renderer;
-
-    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
+impl Default for App {
+    fn default() -> Self {
         let finance_manager = finance_managers::FinanceManagers::Server(
             fm_server::client::Client::new(String::from("http://localhost:3000")),
         );
-        (
-            App {
-                current_view: View::Empty,
-                finance_manager: Arc::new(Mutex::new(finance_manager)),
-            },
-            iced::Command::none(),
-        )
+        App {
+            current_view: View::Empty,
+            finance_manager: Arc::new(Mutex::new(finance_manager)),
+        }
     }
+}
 
-    fn title(&self) -> String {
-        String::from("Finance Manager")
-    }
-
-    fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
+impl App {
+    fn update(&mut self, message: AppMessage) -> iced::Task<AppMessage> {
         match message {
             AppMessage::SwitchView(view) => self.current_view = view,
             AppMessage::BudgetOverViewMessage(m) => {
@@ -180,10 +167,10 @@ impl Application for App {
                 );
             }
         }
-        iced::Command::none()
+        iced::Task::none()
     }
 
-    fn view(&self) -> iced::Element<Self::Message> {
+    fn view(&self) -> iced::Element<AppMessage> {
         iced::widget::row![
             iced::widget::column![
                 iced::widget::button("AssetAccounts")
@@ -248,12 +235,11 @@ impl Application for App {
         ]
         .into()
     }
-
-    fn theme(&self) -> Self::Theme {
-        iced::Theme::Nord
-    }
 }
 
 fn main() {
-    App::run(iced::Settings::default()).unwrap();
+    iced::application("Finance Manager", App::update, App::view)
+        .theme(|_| iced::Theme::Nord)
+        .run()
+        .unwrap();
 }

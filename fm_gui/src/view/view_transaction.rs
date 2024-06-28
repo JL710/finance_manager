@@ -10,8 +10,8 @@ use super::super::{utils, AppMessage, View};
 pub fn switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move { TransactionView::fetch(id, finance_manager).await.unwrap() },
         |x| AppMessage::SwitchView(View::TransactionView(x)),
     )
@@ -82,7 +82,7 @@ impl TransactionView {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::Edit => (
                 Some(View::Empty),
@@ -95,7 +95,7 @@ impl TransactionView {
                 let id = *self.transaction.id();
                 (
                     Some(View::Empty),
-                    iced::Command::perform(
+                    iced::Task::perform(
                         async move {
                             finance_manager
                                 .lock()

@@ -11,8 +11,8 @@ use std::sync::Arc;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move {
             let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
             let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
@@ -30,8 +30,8 @@ pub fn switch_view_command(
 pub fn edit_switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move {
             CreateTransactionView::fetch(&id, finance_manager)
                 .await
@@ -216,7 +216,7 @@ impl CreateTransactionView {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::Submit => {
                 return (Some(View::Empty), self.submit_command(finance_manager));
@@ -265,7 +265,7 @@ impl CreateTransactionView {
                 }
             }
         }
-        (None, iced::Command::none())
+        (None, iced::Task::none())
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
@@ -396,7 +396,7 @@ impl CreateTransactionView {
     fn submit_command(
         &self,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> iced::Command<AppMessage> {
+    ) -> iced::Task<AppMessage> {
         let option_id = self.id;
         let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());
         let title = self.title_input.clone();
@@ -419,7 +419,7 @@ impl CreateTransactionView {
         let date = utils::parse_to_datetime(&self.date_input).unwrap();
         let metadata = self.metadata.clone();
         let categories = self.selected_categories.clone();
-        iced::Command::perform(
+        iced::Task::perform(
             async move {
                 let new_transaction = match option_id {
                     Some(id) => finance_manager

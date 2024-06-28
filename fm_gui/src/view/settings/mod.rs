@@ -49,7 +49,7 @@ impl SettingsView {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<FinanceManagers>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::ChangeAPIUrl(url) => {
                 self.api_url = url;
@@ -61,11 +61,9 @@ impl SettingsView {
                 let api_url = self.api_url.clone();
                 return (
                     Some(View::Empty),
-                    iced::Command::perform(async {}, |_| {
+                    iced::Task::perform(async move { api_url }, |x| {
                         AppMessage::ChangeFM(Arc::new(Mutex::new(
-                            super::super::finance_managers::FinanceManagers::Server(Client::new(
-                                api_url,
-                            )),
+                            super::super::finance_managers::FinanceManagers::Server(Client::new(x)),
                         )))
                     }),
                 );
@@ -75,13 +73,11 @@ impl SettingsView {
                 let sqlite_path = self.sqlite_path.clone();
                 return (
                     Some(View::Empty),
-                    iced::Command::perform(async {}, |_| {
+                    iced::Task::perform(async move { sqlite_path }, |x| {
                         AppMessage::ChangeFM(Arc::new(Mutex::new(
                             super::super::finance_managers::FinanceManagers::Sqlite(
-                                fm_core::sqlite_finange_manager::SqliteFinanceManager::new(
-                                    sqlite_path,
-                                )
-                                .unwrap(),
+                                fm_core::sqlite_finange_manager::SqliteFinanceManager::new(x)
+                                    .unwrap(),
                             ),
                         )))
                     }),
@@ -89,12 +85,12 @@ impl SettingsView {
             }
             #[cfg(not(feature = "native"))]
             Message::SwitchToSqlite => {
-                return (None, iced::Command::none());
+                return (None, iced::Task::none());
             }
             Message::SwitchToRAM => {
                 return (
                     Some(View::Empty),
-                    iced::Command::perform(async {}, |_| {
+                    iced::Task::perform(async {}, |_| {
                         AppMessage::ChangeFM(Arc::new(Mutex::new(
                             super::super::finance_managers::FinanceManagers::Ram(
                                 fm_core::ram_finance_manager::RamFinanceManager::default(),
@@ -104,7 +100,7 @@ impl SettingsView {
                 )
             }
         }
-        (None, iced::Command::none())
+        (None, iced::Task::none())
     }
 
     pub fn view(&self) -> iced::Element<Message> {

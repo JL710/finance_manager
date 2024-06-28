@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move { BudgetOverview::fetch(finance_manager).await.unwrap() },
         |x| AppMessage::SwitchView(View::BudgetOverview(x)),
     )
@@ -51,13 +51,13 @@ impl BudgetOverview {
         &mut self,
         message: Message,
         _finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::CreateBudget => (
                 Some(View::CreateBudgetView(
                     super::create_budget::CreateBudgetView::default(),
                 )),
-                iced::Command::none(),
+                iced::Task::none(),
             ),
             Message::ViewBudget(id) => (
                 Some(View::Empty),

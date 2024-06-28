@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move { View::CategoryOverview(CategoryOverview::fetch(finance_manager).await.unwrap()) },
         AppMessage::SwitchView,
     )
@@ -42,13 +42,13 @@ impl CategoryOverview {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::NewCategory => (
                 Some(View::CreateCategory(
                     super::create_category::CreateCategory::new(),
                 )),
-                iced::Command::none(),
+                iced::Task::none(),
             ),
             Message::ViewCategory(category_id) => (
                 None,

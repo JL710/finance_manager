@@ -10,8 +10,8 @@ use std::sync::Arc;
 pub fn switch_view_command_edit(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Command<AppMessage> {
-    iced::Command::perform(
+) -> iced::Task<AppMessage> {
+    iced::Task::perform(
         async move { CreateBudgetView::fetch(id, finance_manager).await.unwrap() },
         |x| AppMessage::SwitchView(View::CreateBudgetView(x)),
     )
@@ -139,7 +139,7 @@ impl CreateBudgetView {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Command<AppMessage>) {
+    ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::NameInput(name) => {
                 self.name_input = name;
@@ -158,7 +158,7 @@ impl CreateBudgetView {
                 let recouring_inputs = self.recouring_inputs.clone();
                 return (
                     Some(View::Empty),
-                    iced::Command::perform(
+                    iced::Task::perform(
                         async move {
                             let budget = match option_id {
                                 Some(id) => finance_manager
@@ -237,7 +237,7 @@ impl CreateBudgetView {
                 }
             },
         }
-        (None, iced::Command::none())
+        (None, iced::Task::none())
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
