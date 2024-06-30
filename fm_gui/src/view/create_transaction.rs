@@ -76,6 +76,7 @@ pub enum Message {
     DestinationInput(String),
     DestinationSelected(SelectedAccount),
     BudgetSelected(fm_core::Budget),
+    BudgetSignChange(bool),
     ClearBudget,
     Submit,
     SelectCategory(fm_core::Id),
@@ -93,7 +94,7 @@ pub struct CreateTransactionView {
     destination_input: Option<SelectedAccount>,
     destination_state: widget::combo_box::State<SelectedAccount>,
     budget_state: widget::combo_box::State<fm_core::Budget>,
-    budget_input: Option<fm_core::Budget>,
+    budget_input: Option<(fm_core::Budget, fm_core::Sign)>,
     date_input: String,
     metadata: std::collections::HashMap<String, String>,
     available_categories: Vec<fm_core::Category>,
@@ -169,7 +170,7 @@ impl CreateTransactionView {
                     .map(|acc| SelectedAccount::Account(acc.clone()))
                     .collect(),
             ),
-            budget_input: budget,
+            budget_input: budget.map(|x| (x, transaction.budget().unwrap().1)),
             budget_state: widget::combo_box::State::new(budgets),
             date_input: transaction.date().format("%d.%m.%Y").to_string(),
             metadata: transaction.metadata().clone(),
@@ -194,7 +195,7 @@ impl CreateTransactionView {
             .await?
             .unwrap();
         let budget = match transaction.budget() {
-            Some(x) => locked_manager.get_budget(*x).await?,
+            Some(x) => locked_manager.get_budget(x.0).await?,
             None => None,
         };
         let budgets = locked_manager.get_budgets().await?;
@@ -231,7 +232,12 @@ impl CreateTransactionView {
                 self.source_input = Some(SelectedAccount::New(content))
             }
             Message::BudgetSelected(content) => {
-                self.budget_input = Some(content);
+                self.budget_input = Some((
+                    content,
+                    self.budget_input
+                        .as_ref()
+                        .map_or(fm_core::Sign::Positive, |x| x.1),
+                ));
             }
             Message::SourceSelected(content) => {
                 self.source_input = Some(content);
@@ -262,6 +268,18 @@ impl CreateTransactionView {
                 if let Some(x) = self.selected_categories.iter_mut().find(|x| x.0 == id) {
                     x.1 = sign;
                     println!("asd");
+                }
+            }
+            Message::BudgetSignChange(x) => {
+                if let Some(budget) = &self.budget_input {
+                    self.budget_input = Some((
+                        budget.0.clone(),
+                        if x {
+                            fm_core::Sign::Negative
+                        } else {
+                            fm_core::Sign::Positive
+                        },
+                    ));
                 }
             }
         }
@@ -338,9 +356,20 @@ impl CreateTransactionView {
                 widget::ComboBox::new(
                     &self.budget_state,
                     "Budget",
-                    self.budget_input.as_ref(),
+                    self.budget_input.as_ref().map(|x| &x.0),
                     Message::BudgetSelected
                 ),
+                widget::checkbox(
+                    "Negative",
+                    self.budget_input
+                        .as_ref()
+                        .map_or(false, |x| x.1 == fm_core::Sign::Negative)
+                )
+                .on_toggle_maybe(if self.budget_input.is_some() {
+                    Some(Message::BudgetSignChange)
+                } else {
+                    None
+                }),
                 widget::button("X").on_press(Message::ClearBudget)
             ]
             .spacing(10),
@@ -415,7 +444,10 @@ impl CreateTransactionView {
             Some(SelectedAccount::New(name)) => fm_core::Or::Two(name.clone()),
             None => panic!(),
         };
-        let budget = self.budget_input.as_ref().map(|budget| *budget.id());
+        let budget = self
+            .budget_input
+            .as_ref()
+            .map(|budget| (*budget.0.id(), budget.1));
         let date = utils::parse_to_datetime(&self.date_input).unwrap();
         let metadata = self.metadata.clone();
         let categories = self.selected_categories.clone();

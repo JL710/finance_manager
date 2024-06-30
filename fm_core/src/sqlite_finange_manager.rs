@@ -12,9 +12,12 @@ type TransactionSignature = (
     Id,
     Id,
     Option<Id>,
+    Option<bool>,
     i64,
     String,
 );
+
+const TRANSACTION_FIELDS: &str = "id, amount_value, currency, title, description, source_id, destination_id, budget, budget_sign, timestamp, metadata";
 
 impl TryInto<Transaction> for TransactionSignature {
     type Error = anyhow::Error;
@@ -27,9 +30,18 @@ impl TryInto<Transaction> for TransactionSignature {
             self.4,
             self.5,
             self.6,
-            self.7,
-            DateTime::from_timestamp(self.8, 0).unwrap(),
-            serde_json::from_str(&self.9)?,
+            self.7.map(|x| {
+                (
+                    x,
+                    if self.8.unwrap() {
+                        Sign::Positive
+                    } else {
+                        Sign::Negative
+                    },
+                )
+            }),
+            DateTime::from_timestamp(self.9, 0).unwrap(),
+            serde_json::from_str(&self.10)?,
             Vec::new(),
         ))
     }
@@ -250,9 +262,27 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
         let connection = self.connect()?;
         let result: TransactionSignature = connection.query_row(
-            "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE id=?1", 
+            format!(
+                "SELECT {} FROM transactions WHERE id=?1",
+                TRANSACTION_FIELDS
+            )
+            .as_str(),
             (&id,),
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?, row.get(8)?, row.get(9)?))
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                    row.get(8)?,
+                    row.get(9)?,
+                    row.get(10)?,
+                ))
+            },
         )?;
         let categories = get_categories_of_transaction(&connection, result.0)?
             .iter()
@@ -296,6 +326,7 @@ impl FinanceManager for SqliteFinanceManager {
                             row.get(7)?,
                             row.get(8)?,
                             row.get(9)?,
+                            row.get(10)?,
                         ))
                     })?
                     .collect()
@@ -304,19 +335,19 @@ impl FinanceManager for SqliteFinanceManager {
 
         let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
             (None, None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE source_id=?1 OR destination_id=?2", 
+                format!("SELECT {} FROM transactions WHERE source_id=?1 OR destination_id=?2", TRANSACTION_FIELDS).as_str(),
                 (account, account)
             ),
             (Some(start), None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3", 
+                format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3", TRANSACTION_FIELDS).as_str(),
                 (account, account, start.timestamp())
             ),
             (None, Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp <= ?3", 
+                format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp <= ?3", TRANSACTION_FIELDS).as_str(),
                 (account, account, end.timestamp())
             ),
             (Some(start), Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3 AND timestamp <= ?4", 
+                format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3 AND timestamp <= ?4", TRANSACTION_FIELDS).as_str(),
                 (account, account, start.timestamp(), end.timestamp())
             )
         };
@@ -353,7 +384,7 @@ impl FinanceManager for SqliteFinanceManager {
         description: Option<String>,
         source: Or<Id, String>, // id = Existing | String = New
         destination: Or<Id, String>,
-        budget: Option<Id>,
+        budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
@@ -384,10 +415,11 @@ impl FinanceManager for SqliteFinanceManager {
                 source_id,
                 destination_id,
                 budget,
+                budget_sign,
                 timestamp,
                 metadata
             ) VALUES (
-                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10
             )
             ",
             (
@@ -397,7 +429,11 @@ impl FinanceManager for SqliteFinanceManager {
                 &description,
                 &source,
                 &destination,
-                &budget,
+                &budget.map(|x| x.0),
+                &budget.map(|x| match x.1 {
+                    Sign::Positive => true,
+                    Sign::Negative => false,
+                }),
                 &date.timestamp(),
                 serde_json::to_string(&metadata)?,
             ),
@@ -506,7 +542,7 @@ impl FinanceManager for SqliteFinanceManager {
         description: Option<String>,
         source: Or<Id, String>,
         destination: Or<Id, String>,
-        budget: Option<Id>,
+        budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
@@ -534,8 +570,8 @@ impl FinanceManager for SqliteFinanceManager {
         };
 
         connection.execute(
-            "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, timestamp=?8, metadata=?9 WHERE id=?10", 
-            (amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget, date.timestamp(), serde_json::to_string(&metadata)?, id)
+            "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, budget_sign=?8, timestamp=?9, metadata=?10 WHERE id=?11", 
+            (amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget.map(|x| x.0), budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}), date.timestamp(), serde_json::to_string(&metadata)?, id)
         )?;
 
         set_categories_for_transaction(&connection, id, &categories)?; // set categories for transaction
@@ -587,6 +623,7 @@ impl FinanceManager for SqliteFinanceManager {
                             row.get(7)?,
                             row.get(8)?,
                             row.get(9)?,
+                            row.get(10)?,
                         ))
                     })?
                     .collect()
@@ -595,19 +632,19 @@ impl FinanceManager for SqliteFinanceManager {
 
         let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
             (None, None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE budget=?1", 
+                format!("SELECT {} FROM transactions WHERE budget=?1", TRANSACTION_FIELDS).as_str(),
                 (id,)
             ),
             (Some(start), None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE budget=?1 AND timestamp >= ?2", 
+                format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp >= ?2", TRANSACTION_FIELDS).as_str(),
                 (id, start.timestamp())
             ),
             (None, Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE budget=?1 AND timestamp <= ?2", 
+                format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp <= ?2", TRANSACTION_FIELDS).as_str(),
                 (id, end.timestamp())
             ),
             (Some(start), Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE budget=?1 AND timestamp >= ?2 AND timestamp <= ?3", 
+                format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp >= ?2 AND timestamp <= ?3", TRANSACTION_FIELDS).as_str(),
                 (id, start.timestamp(), end.timestamp())
             )
         };
@@ -683,29 +720,43 @@ impl FinanceManager for SqliteFinanceManager {
                             row.get(7)?,
                             row.get(8)?,
                             row.get(9)?,
+                            row.get(10)?,
                         ))
                     })?
                     .collect()
             };
         }
 
-        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
+        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan
+        {
             (None, None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions", 
+                format!("SELECT {} FROM transactions", TRANSACTION_FIELDS).as_str(),
                 ()
             ),
             (Some(start), None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE timestamp >= ?1", 
+                format!(
+                    "SELECT {} FROM transactions WHERE timestamp >= ?1",
+                    TRANSACTION_FIELDS
+                )
+                .as_str(),
                 (start.timestamp(),)
             ),
             (None, Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE timestamp <= ?1", 
+                format!(
+                    "SELECT {} FROM transactions WHERE timestamp <= ?1",
+                    TRANSACTION_FIELDS
+                )
+                .as_str(),
                 (end.timestamp(),)
             ),
             (Some(start), Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions WHERE timestamp >= ?1 AND timestamp <= ?2", 
+                format!(
+                    "SELECT {} FROM transactions WHERE timestamp >= ?1 AND timestamp <= ?2",
+                    TRANSACTION_FIELDS
+                )
+                .as_str(),
                 (start.timestamp(), end.timestamp())
-            )
+            ),
         };
 
         let mut transactions: Vec<Transaction> = Vec::new();
@@ -797,6 +848,7 @@ impl FinanceManager for SqliteFinanceManager {
                             row.get(7)?,
                             row.get(8)?,
                             row.get(9)?,
+                            row.get(10)?,
                         ))
                     })?
                     .collect()
@@ -805,19 +857,31 @@ impl FinanceManager for SqliteFinanceManager {
 
         let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
             (None, None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE category_id=?1", 
+                format!(
+                    "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE category_id=?1",
+                    TRANSACTION_FIELDS
+                ).as_str(),
                 (&id,)
             ),
             (Some(start), None) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND category_id=?2", 
+                format!(
+                    "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND category_id=?2",
+                    TRANSACTION_FIELDS
+                ).as_str(),
                 (start.timestamp(), &id)
             ),
             (None, Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp <= ?1  AND category_id=?2", 
+                format!(
+                    "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp <= ?1  AND category_id=?2",
+                    TRANSACTION_FIELDS
+                ).as_str(),
                 (end.timestamp(), &id)
             ),
             (Some(start), Some(end)) => transaction_query!(
-                "SELECT id, amount_value, currency, title, description, source_id, destination_id, budget, timestamp, metadata FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND timestamp <= ?2  AND category_id=?3", 
+                format!(
+                    "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND timestamp <= ?2  AND category_id=?3",
+                    TRANSACTION_FIELDS
+                ).as_str(),
                 (start.timestamp(), end.timestamp(), &id)
             )
         };

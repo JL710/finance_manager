@@ -196,7 +196,7 @@ pub struct Transaction {
     description: Option<String>,
     source: Id,
     destination: Id,
-    budget: Option<Id>,
+    budget: Option<(Id, Sign)>,
     date: DateTime,
     metadata: HashMap<String, String>,
     categories: Vec<(Id, Sign)>,
@@ -210,7 +210,7 @@ impl Transaction {
         description: Option<String>,
         source: Id,
         destination: Id,
-        budget: Option<Id>,
+        budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
@@ -266,11 +266,8 @@ impl Transaction {
         &self.destination
     }
 
-    pub fn budget(&self) -> Option<&Id> {
-        match &self.budget {
-            Some(budget) => Some(budget),
-            None => None,
-        }
+    pub fn budget(&self) -> Option<&(Id, Sign)> {
+        self.budget.as_ref()
     }
 
     pub fn date(&self) -> &DateTime {
@@ -456,7 +453,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         description: Option<String>,
         source: Or<Id, String>, // id = Existing | String = New
         destination: Or<Id, String>,
-        budget: Option<Id>,
+        budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
@@ -470,7 +467,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         description: Option<String>,
         source: Or<Id, String>, // id = Existing | String = New
         destination: Or<Id, String>,
-        budget: Option<Id>,
+        budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categoris: Vec<(Id, Sign)>,
@@ -617,7 +614,11 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
             let transactions = transactions_future.await?;
             let mut sum = Currency::Eur(0.0);
             for transaction in transactions {
-                sum += transaction.amount();
+                let sign = transaction.budget().unwrap().1;
+                match sign {
+                    Sign::Positive => sum += transaction.amount(),
+                    Sign::Negative => sum -= transaction.amount(),
+                }
             }
             Ok(sum)
         }

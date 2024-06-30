@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     source_id INTEGER NOT NULL,
     destination_id INTEGER NOT NULL,
     budget INTEGER,
+    budget_sign BOOLEAN, -- true for positive and false for negative
     timestamp INTEGER,
     metadata TEXT NOT NULL,
     FOREIGN KEY(source_id) REFERENCES account(id),

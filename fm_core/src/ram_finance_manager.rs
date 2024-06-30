@@ -199,7 +199,7 @@ impl FinanceManager for RamFinanceManager {
         description: Option<String>,
         source: super::Or<Id, String>,
         destination: super::Or<Id, String>,
-        budget: Option<Id>,
+        budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
@@ -259,7 +259,7 @@ impl FinanceManager for RamFinanceManager {
         description: Option<String>,
         source: super::Or<Id, String>,
         destination: super::Or<Id, String>,
-        budget: Option<Id>,
+        budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
@@ -330,7 +330,7 @@ impl FinanceManager for RamFinanceManager {
             .iter()
             .filter(|transaction| {
                 if let Some(budget_id) = transaction.budget {
-                    if budget_id != id {
+                    if budget_id.0 != id {
                         return false;
                     }
                 } else {

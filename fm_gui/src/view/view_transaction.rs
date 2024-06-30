@@ -65,7 +65,7 @@ impl TransactionView {
             .await?
             .unwrap();
         let budget = match transaction.budget() {
-            Some(budget_id) => locked_manager.get_budget(*budget_id).await?,
+            Some(budget_id) => locked_manager.get_budget(budget_id.0).await?,
             None => None,
         };
         let categories = locked_manager.get_categories().await?;
@@ -141,7 +141,18 @@ impl TransactionView {
         .spacing(10);
 
         if let Some(budget) = &self.budget {
-            column = column.push(widget::text(format!("Budget: {}", budget.name())));
+            column = column.push(
+                widget::row![
+                    widget::text(format!("Budget: {}", budget.name())),
+                    widget::checkbox(
+                        "Negative",
+                        self.transaction
+                            .budget()
+                            .map_or(false, |x| x.1 == fm_core::Sign::Negative)
+                    )
+                ]
+                .spacing(10),
+            );
         }
 
         if let Some(content) = self.transaction.description() {

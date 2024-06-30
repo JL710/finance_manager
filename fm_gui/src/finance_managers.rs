@@ -267,7 +267,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         description: Option<String>,
         source: fm_core::Or<fm_core::Id, String>, // id = Existing | String = New
         destination: fm_core::Or<fm_core::Id, String>,
-        budget: Option<fm_core::Id>,
+        budget: Option<(fm_core::Id, fm_core::Sign)>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
         categories: Vec<(fm_core::Id, fm_core::Sign)>,
@@ -633,7 +633,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         description: Option<String>,
         source: fm_core::Or<fm_core::Id, String>, // id = Existing | String = New
         destination: fm_core::Or<fm_core::Id, String>,
-        budget: Option<fm_core::Id>,
+        budget: Option<(fm_core::Id, fm_core::Sign)>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
         categories: Vec<(fm_core::Id, fm_core::Sign)>,

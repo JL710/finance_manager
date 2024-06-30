@@ -124,7 +124,7 @@ impl BudgetView {
             ),
             utils::transaction_table(
                 self.transactions.to_vec(),
-                |_| None,
+                |transaction| Some(transaction.budget().unwrap().1 == fm_core::Sign::Positive),
                 Message::ViewTransaction,
                 Message::ViewAccount,
             )
