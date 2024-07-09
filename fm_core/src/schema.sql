@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS budget (
 CREATE TABLE IF NOT EXISTS bill (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    description TEXT,
     value REAL NOT NULL,
     value_currency INTEGER NOT NULL,
     due_date INTEGER NOT NULL

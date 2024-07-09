@@ -127,6 +127,7 @@ impl fm_core::FinanceManager for Client {
     async fn create_bill(
         &mut self,
         name: String,
+        description: Option<String>,
         value: fm_core::Currency,
         transactions: Vec<(fm_core::Id, fm_core::Sign)>,
         due_date: Option<fm_core::DateTime>,
@@ -134,7 +135,7 @@ impl fm_core::FinanceManager for Client {
         client_post_macro!(
             self.url,
             "create_bill",
-            (name, value, transactions, due_date)
+            (name, description, value, transactions, due_date)
         )
     }
 
@@ -146,6 +147,7 @@ impl fm_core::FinanceManager for Client {
         &mut self,
         id: fm_core::Id,
         name: String,
+        description: Option<String>,
         value: fm_core::Currency,
         transactions: Vec<(fm_core::Id, fm_core::Sign)>,
         due_date: Option<fm_core::DateTime>,
@@ -153,7 +155,7 @@ impl fm_core::FinanceManager for Client {
         client_post_macro!(
             self.url,
             "update_bill",
-            (id, name, value, transactions, due_date)
+            (id, name, description, value, transactions, due_date)
         )
     }
 

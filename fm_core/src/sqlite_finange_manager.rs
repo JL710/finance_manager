@@ -91,7 +91,7 @@ impl TryInto<Budget> for BudgetSignature {
     }
 }
 
-type BillSignature = (Id, String, f64, i32);
+type BillSignature = (Id, String, Option<String>, f64, i32);
 
 impl TryInto<Bill> for BillSignature {
     type Error = anyhow::Error;
@@ -100,7 +100,8 @@ impl TryInto<Bill> for BillSignature {
         Ok(Bill::new(
             self.0,
             self.1,
-            Currency::from_currency_id(self.3, self.2)?,
+            self.2,
+            Currency::from_currency_id(self.4, self.3)?,
             Vec::new(),
             None,
         ))
@@ -257,8 +258,10 @@ impl FinanceManager for SqliteFinanceManager {
         let mut bills = Vec::new();
 
         let bills_result: Vec<std::result::Result<BillSignature, rusqlite::Error>> = connection
-            .prepare("SELECT id, name, value, value_currency FROM bill")?
-            .query_map((), |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?)))?
+            .prepare("SELECT id, name, description, value, value_currency FROM bill")?
+            .query_map((), |x| {
+                Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?))
+            })?
             .collect();
 
         for bill_result in bills_result {
@@ -269,6 +272,7 @@ impl FinanceManager for SqliteFinanceManager {
             bills.push(Bill::new(
                 *bill.id(),
                 bill.name().clone(),
+                bill.description().clone(),
                 bill.value().clone(),
                 transactions,
                 bill.due_date().copied(),
@@ -282,9 +286,9 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
 
         let bill_result: BillSignature = connection.query_row(
-            "SELECT id, name, value, value_currency FROM bill WHERE id=? ",
+            "SELECT id, name, description, value, value_currency FROM bill WHERE id=? ",
             (id,),
-            |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?)),
+            |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?)),
         )?;
 
         let transactions = get_transactions_of_bill(&connection, bill_result.0)?;
@@ -292,7 +296,8 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(Some(Bill::new(
             bill_result.0,
             bill_result.1,
-            Currency::from_currency_id(bill_result.3, bill_result.2)?,
+            bill_result.2,
+            Currency::from_currency_id(bill_result.4, bill_result.3)?,
             transactions,
             None,
         )))
@@ -301,6 +306,7 @@ impl FinanceManager for SqliteFinanceManager {
     async fn create_bill(
         &mut self,
         name: String,
+        description: Option<String>,
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
@@ -308,9 +314,10 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
 
         connection.execute(
-            "INSERT INTO bill (name, value, value_currency, due_date) VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO bill (name, description, value, value_currency, due_date) VALUES (?1, ?2, ?3, ?4)",
             (
                 &name,
+                &description,
                 value.get_num(),
                 value.get_currency_id(),
                 due_date.map(|x| x.timestamp()),
@@ -332,6 +339,7 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(Bill::new(
             bill_id as Id,
             name,
+            description,
             value,
             transactions,
             due_date,
@@ -350,6 +358,7 @@ impl FinanceManager for SqliteFinanceManager {
         &mut self,
         id: Id,
         name: String,
+        description: Option<String>,
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
@@ -357,9 +366,10 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
 
         connection.execute(
-            "UPDATE bill SET name=?1, value=?2, value_currency=?3, due_date=?4 WHERE id=?5",
+            "UPDATE bill SET name=?1, description=2, value=?3, value_currency=?4, due_date=?5 WHERE id=?6",
             (
                 &name,
+                description,
                 value.get_num(),
                 value.get_currency_id(),
                 due_date.map(|x| x.timestamp()),

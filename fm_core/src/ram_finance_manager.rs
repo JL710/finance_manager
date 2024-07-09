@@ -123,13 +123,14 @@ impl FinanceManager for RamFinanceManager {
     async fn create_bill(
         &mut self,
         name: String,
+        description: Option<String>,
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
     ) -> Result<Bill> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
-        let new_bill = Bill::new(id, name, value, transactions, due_date);
+        let new_bill = Bill::new(id, name, description, value, transactions, due_date);
 
         self.bills.push(new_bill.clone());
         Ok(new_bill)
@@ -144,6 +145,7 @@ impl FinanceManager for RamFinanceManager {
         &mut self,
         id: Id,
         name: String,
+        description: Option<String>,
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
@@ -151,6 +153,7 @@ impl FinanceManager for RamFinanceManager {
         for bill in &mut self.bills {
             if bill.id == id {
                 bill.name = name;
+                bill.description = description;
                 bill.value = value;
                 bill.transactions = transactions;
                 bill.due_date = due_date;

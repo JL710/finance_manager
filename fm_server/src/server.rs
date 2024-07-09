@@ -506,6 +506,7 @@ async fn create_bill(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<(
         String,
+        Option<String>,
         fm_core::Currency,
         Vec<(fm_core::Id, fm_core::Sign)>,
         Option<fm_core::DateTime>,
@@ -515,7 +516,7 @@ async fn create_bill(
         .finance_manager
         .lock()
         .await
-        .create_bill(data.0, data.1, data.2, data.3)
+        .create_bill(data.0, data.1, data.2, data.3, data.4)
         .await
         .unwrap();
     json!(bill).into()
@@ -540,6 +541,7 @@ async fn update_bill(
     axum::extract::Json(data): axum::extract::Json<(
         fm_core::Id,
         String,
+        Option<String>,
         fm_core::Currency,
         Vec<(fm_core::Id, fm_core::Sign)>,
         Option<fm_core::DateTime>,
@@ -549,7 +551,7 @@ async fn update_bill(
         .finance_manager
         .lock()
         .await
-        .update_bill(data.0, data.1, data.2, data.3, data.4)
+        .update_bill(data.0, data.1, data.2, data.3, data.4, data.5)
         .await
         .unwrap();
     json!(()).into()

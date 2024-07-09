@@ -317,6 +317,7 @@ impl std::fmt::Display for Recouring {
 pub struct Bill {
     id: Id,
     name: String,
+    description: Option<String>,
     value: Currency,
     transactions: Vec<(Id, Sign)>,
     due_date: Option<DateTime>,
@@ -326,6 +327,7 @@ impl Bill {
     pub fn new(
         id: Id,
         name: String,
+        description: Option<String>,
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
@@ -333,6 +335,7 @@ impl Bill {
         Self {
             id,
             name,
+            description,
             value,
             transactions,
             due_date,
@@ -345,6 +348,10 @@ impl Bill {
 
     pub fn name(&self) -> &String {
         &self.name
+    }
+
+    pub fn description(&self) -> &Option<String> {
+        &self.description
     }
 
     pub fn value(&self) -> &Currency {
@@ -426,6 +433,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
     fn create_bill(
         &mut self,
         name: String,
+        description: Option<String>,
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
@@ -437,6 +445,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         &mut self,
         id: Id,
         name: String,
+        description: Option<String>,
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
