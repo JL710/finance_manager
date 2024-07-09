@@ -1,6 +1,6 @@
 use super::{
-    account, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring, Sign, Timespan,
-    Transaction,
+    account, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring, Sign,
+    Timespan, Transaction,
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -11,6 +11,7 @@ pub struct RamFinanceManager {
     transactions: Vec<Transaction>,
     budgets: HashMap<Id, Budget>,
     categories: Vec<Category>,
+    bills: Vec<Bill>,
 }
 
 impl super::PrivateFinanceManager for RamFinanceManager {
@@ -106,6 +107,59 @@ impl super::PrivateFinanceManager for RamFinanceManager {
 }
 
 impl FinanceManager for RamFinanceManager {
+    async fn get_bills(&self) -> Result<Vec<Bill>> {
+        Ok(self.bills.clone())
+    }
+
+    async fn get_bill(&self, id: &Id) -> Result<Option<Bill>> {
+        for bill in &self.bills {
+            if bill.id == *id {
+                return Ok(Some(bill.clone()));
+            }
+        }
+        Ok(None)
+    }
+
+    async fn create_bill(
+        &mut self,
+        name: String,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> Result<Bill> {
+        let id = uuid::Uuid::new_v4().as_u64_pair().0;
+
+        let new_bill = Bill::new(id, name, value, transactions, due_date);
+
+        self.bills.push(new_bill.clone());
+        Ok(new_bill)
+    }
+
+    async fn delete_bill(&mut self, id: Id) -> Result<()> {
+        self.bills.retain(|x| x.id != id);
+        Ok(())
+    }
+
+    async fn update_bill(
+        &mut self,
+        id: Id,
+        name: String,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> Result<()> {
+        for bill in &mut self.bills {
+            if bill.id == id {
+                bill.name = name;
+                bill.value = value;
+                bill.transactions = transactions;
+                bill.due_date = due_date;
+                return Ok(());
+            }
+        }
+        Ok(())
+    }
+
     async fn get_accounts(&self) -> Result<Vec<account::Account>> {
         return Ok(self
             .accounts

@@ -116,6 +116,47 @@ impl fm_core::PrivateFinanceManager for Client {
 }
 
 impl fm_core::FinanceManager for Client {
+    async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {
+        client_get_macro!(self.url, "get_bills")
+    }
+
+    async fn get_bill(&self, id: &fm_core::Id) -> Result<Option<fm_core::Bill>> {
+        client_post_macro!(self.url, "get_bill", id)
+    }
+
+    async fn create_bill(
+        &mut self,
+        name: String,
+        value: fm_core::Currency,
+        transactions: Vec<(fm_core::Id, fm_core::Sign)>,
+        due_date: Option<fm_core::DateTime>,
+    ) -> Result<fm_core::Bill> {
+        client_post_macro!(
+            self.url,
+            "create_bill",
+            (name, value, transactions, due_date)
+        )
+    }
+
+    async fn delete_bill(&mut self, id: fm_core::Id) -> Result<()> {
+        client_post_macro!(self.url, "delete_bill", id)
+    }
+
+    async fn update_bill(
+        &mut self,
+        id: fm_core::Id,
+        name: String,
+        value: fm_core::Currency,
+        transactions: Vec<(fm_core::Id, fm_core::Sign)>,
+        due_date: Option<fm_core::DateTime>,
+    ) -> Result<()> {
+        client_post_macro!(
+            self.url,
+            "update_bill",
+            (id, name, value, transactions, due_date)
+        )
+    }
+
     async fn get_filtered_transactions(
         &self,
         filter: fm_core::transaction_filter::TransactionFilter,

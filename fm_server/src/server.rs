@@ -76,6 +76,11 @@ pub async fn run(url: String, db: String) {
             "/get_filtered_transactions",
             post(get_filtered_transactions),
         )
+        .route("/create_bill", post(create_bill))
+        .route("/delete_bill", post(delete_bill))
+        .route("/update_bill", post(update_bill))
+        .route("/get_bills", get(get_bills))
+        .route("/get_bill", post(get_bill))
         .layer(tower_http::cors::CorsLayer::permissive())
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
@@ -495,4 +500,82 @@ async fn get_filtered_transactions(
         .await
         .unwrap();
     json!(transactions).into()
+}
+
+async fn create_bill(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<(
+        String,
+        fm_core::Currency,
+        Vec<(fm_core::Id, fm_core::Sign)>,
+        Option<fm_core::DateTime>,
+    )>,
+) -> Json<Value> {
+    let bill = state
+        .finance_manager
+        .lock()
+        .await
+        .create_bill(data.0, data.1, data.2, data.3)
+        .await
+        .unwrap();
+    json!(bill).into()
+}
+
+async fn delete_bill(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
+) -> Json<Value> {
+    state
+        .finance_manager
+        .lock()
+        .await
+        .delete_bill(data)
+        .await
+        .unwrap();
+    json!(()).into()
+}
+
+async fn update_bill(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<(
+        fm_core::Id,
+        String,
+        fm_core::Currency,
+        Vec<(fm_core::Id, fm_core::Sign)>,
+        Option<fm_core::DateTime>,
+    )>,
+) -> Json<Value> {
+    state
+        .finance_manager
+        .lock()
+        .await
+        .update_bill(data.0, data.1, data.2, data.3, data.4)
+        .await
+        .unwrap();
+    json!(()).into()
+}
+
+async fn get_bills(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
+    let bills = state
+        .finance_manager
+        .lock()
+        .await
+        .get_bills()
+        .await
+        .unwrap();
+    json!(bills).into()
+}
+
+async fn get_bill(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
+) -> Json<Value> {
+    let bill = state
+        .finance_manager
+        .lock()
+        .await
+        .get_bill(&data)
+        .await
+        .unwrap();
+    json!(bill).into()
 }

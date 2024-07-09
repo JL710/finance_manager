@@ -24,7 +24,7 @@ impl<T> MaybeSend for T {}
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 pub type Id = u64;
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
 pub enum Currency {
     Eur(f64),
 }
@@ -188,6 +188,16 @@ pub enum Sign {
     Negative,
 }
 
+impl From<bool> for Sign {
+    fn from(value: bool) -> Self {
+        if value {
+            Sign::Positive
+        } else {
+            Sign::Negative
+        }
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Transaction {
     id: Id,
@@ -303,6 +313,53 @@ impl std::fmt::Display for Recouring {
     }
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct Bill {
+    id: Id,
+    name: String,
+    value: Currency,
+    transactions: Vec<(Id, Sign)>,
+    due_date: Option<DateTime>,
+}
+
+impl Bill {
+    pub fn new(
+        id: Id,
+        name: String,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            value,
+            transactions,
+            due_date,
+        }
+    }
+
+    pub fn id(&self) -> &Id {
+        &self.id
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn value(&self) -> &Currency {
+        &self.value
+    }
+
+    pub fn transactions(&self) -> &Vec<(Id, Sign)> {
+        &self.transactions
+    }
+
+    pub fn due_date(&self) -> Option<&DateTime> {
+        self.due_date.as_ref()
+    }
+}
+
 pub type Timespan = (Option<DateTime>, Option<DateTime>);
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -362,6 +419,29 @@ fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
 }
 
 pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
+    fn get_bills(&self) -> impl futures::Future<Output = Result<Vec<Bill>>> + MaybeSend;
+
+    fn get_bill(&self, id: &Id) -> impl futures::Future<Output = Result<Option<Bill>>> + MaybeSend;
+
+    fn create_bill(
+        &mut self,
+        name: String,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> impl futures::Future<Output = Result<Bill>> + MaybeSend;
+
+    fn delete_bill(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + MaybeSend;
+
+    fn update_bill(
+        &mut self,
+        id: Id,
+        name: String,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> impl futures::Future<Output = Result<()>> + MaybeSend;
+
     fn get_filtered_transactions(
         &self,
         filter: transaction_filter::TransactionFilter,

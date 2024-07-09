@@ -64,3 +64,19 @@ CREATE TABLE IF NOT EXISTS budget (
     timespan_field1 INTEGER NOT NULL,
     timespan_field2 INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS bill (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    value REAL NOT NULL,
+    value_currency INTEGER NOT NULL,
+    due_date INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bill_transaction (
+    transaction_id INTEGER NOT NULL,
+    bill_id INTEGER NOT NULL,
+    sign BOOLEAN,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id),
+    FOREIGN KEY (bill_id) REFERENCES bill(id)
+);
