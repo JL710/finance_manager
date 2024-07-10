@@ -47,8 +47,15 @@ where
     }
 
     /// set the headers
-    pub fn headers(mut self, headers: [String; COLUMNS]) -> Self {
-        self.headers = Some(headers);
+    pub fn headers(mut self, headers: [impl Into<String>; COLUMNS]) -> Self {
+        self.headers = Some(
+            headers
+                .into_iter()
+                .map(|x| x.into())
+                .collect::<Vec<String>>()
+                .try_into()
+                .unwrap(),
+        );
         self
     }
 
