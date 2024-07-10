@@ -73,10 +73,10 @@ impl CreateBillView {
         for (transaction_id, sign) in bill.transactions() {
             transactions.push((
                 locked_manager
-                    .get_transaction(transaction_id)
+                    .get_transaction(*transaction_id)
                     .await?
                     .unwrap(),
-                sign,
+                *sign,
             ));
         }
 
@@ -85,7 +85,7 @@ impl CreateBillView {
             name_input: bill.name().to_owned(),
             description_input: bill.description().clone().unwrap_or(String::new()),
             value: Some(bill.value().clone()),
-            due_date: bill.due_date().clone().map(|x| *x),
+            due_date: bill.due_date().clone(),
             transactions: transactions,
             add_transaction: None,
         })
