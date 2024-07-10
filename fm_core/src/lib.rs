@@ -362,8 +362,8 @@ impl Bill {
         &self.transactions
     }
 
-    pub fn due_date(&self) -> Option<&DateTime> {
-        self.due_date.as_ref()
+    pub fn due_date(&self) -> &Option<DateTime> {
+        &self.due_date
     }
 }
 

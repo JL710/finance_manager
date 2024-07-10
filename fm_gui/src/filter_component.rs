@@ -1,4 +1,4 @@
-use super::super::super::{timespan_input, utils};
+use super::{timespan_input, utils};
 use fm_core::transaction_filter::{self, TransactionFilter};
 use iced::widget;
 

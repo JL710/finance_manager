@@ -4,7 +4,7 @@ use async_std::sync::Mutex;
 use fm_core::transaction_filter::TransactionFilter;
 use std::sync::Arc;
 
-mod filter_component;
+use super::super::filter_component;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,

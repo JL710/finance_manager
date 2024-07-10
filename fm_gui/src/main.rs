@@ -1,3 +1,6 @@
+mod currency_input;
+mod date_input;
+mod filter_component;
 mod finance_managers;
 mod table_view;
 mod timespan_input;
@@ -31,6 +34,7 @@ pub enum AppMessage {
     SwitchToBookCheckingAccountOverview,
     SwitchToSettingsView,
     SwitchToFilterTransactionView,
+    SwitchToCreateBillView,
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
@@ -46,6 +50,7 @@ pub enum AppMessage {
     SettingsMessage(view::settings::Message),
     ChangeFM(Arc<Mutex<finance_managers::FinanceManagers>>),
     FilterTransactionMessage(view::filter_transactions::Message),
+    CreateBillMessage(view::create_bill::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -66,6 +71,7 @@ enum View {
     CreateBookCheckingAccount(view::create_book_checking_account::CreateBookCheckingAccount),
     Settings(view::settings::SettingsView),
     FilterTransaction(view::filter_transactions::FilterTransactionView),
+    CreateBill(view::create_bill::CreateBillView),
 }
 
 pub struct App {
@@ -161,10 +167,17 @@ impl App {
             AppMessage::FilterTransactionMessage(m) => {
                 message_match!(self, m, View::FilterTransaction);
             }
+            AppMessage::CreateBillMessage(m) => {
+                message_match!(self, m, View::CreateBill);
+            }
             AppMessage::SwitchToFilterTransactionView => {
+                self.current_view = View::Empty;
                 return view::filter_transactions::switch_view_command(
                     self.finance_manager.clone(),
                 );
+            }
+            AppMessage::SwitchToCreateBillView => {
+                self.current_view = View::CreateBill(view::create_bill::CreateBillView::default());
             }
         }
         iced::Task::none()
@@ -192,6 +205,9 @@ impl App {
                 iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToCreateTransActionView),
+                iced::widget::button("Create Bill")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwitchToCreateBillView),
                 iced::widget::vertical_space(),
                 iced::widget::button("Settings")
                     .width(iced::Length::Fill)
@@ -230,6 +246,7 @@ impl App {
                 View::Settings(ref view) => view.view().map(AppMessage::SettingsMessage),
                 View::FilterTransaction(ref view) =>
                     view.view().map(AppMessage::FilterTransactionMessage),
+                View::CreateBill(ref view) => view.view().map(AppMessage::CreateBillMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]
