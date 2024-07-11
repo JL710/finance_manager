@@ -22,6 +22,7 @@ pub fn switch_view_command(
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewTransaction(fm_core::Id),
+    Edit,
 }
 
 #[derive(Debug, Clone)]
@@ -60,25 +61,33 @@ impl ViewBill {
                 Some(View::Empty),
                 super::view_transaction::switch_view_command(transaction_id, finance_manager),
             ),
+            Message::Edit => (
+                Some(View::Empty),
+                super::create_bill::switch_view_command(*self.bill.id(), finance_manager),
+            ),
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         widget::column![
-            widget::button(widget::text!("Name: {}", self.bill.name()))
-                .style(utils::button_link_style)
-                .padding(0),
-            widget::text!(
-                "Description: {}",
-                self.bill.description().clone().unwrap_or(String::new())
-            ),
-            widget::text!("Amount: {}€", self.bill.value().to_num_string()),
-            widget::text!(
-                "Due Date: {}",
-                self.bill
-                    .due_date()
-                    .map_or(String::new(), |d| d.format("%d.%m.%Y").to_string())
-            ),
+            widget::row![
+                widget::column![
+                    widget::text!("Name: {}", self.bill.name()),
+                    widget::text!(
+                        "Description: {}",
+                        self.bill.description().clone().unwrap_or(String::new())
+                    ),
+                    widget::text!("Amount: {}€", self.bill.value().to_num_string()),
+                    widget::text!(
+                        "Due Date: {}",
+                        self.bill
+                            .due_date()
+                            .map_or(String::new(), |d| d.format("%d.%m.%Y").to_string())
+                    ),
+                ],
+                widget::horizontal_space(),
+                widget::button("Edit").on_press(Message::Edit),
+            ],
             widget::scrollable(
                 TableView::new(self.transactions.clone(), |(transaction, sign)| [
                     widget::checkbox("Negative", *sign == fm_core::Sign::Negative).into(),

@@ -77,6 +77,7 @@ impl BookCheckingAccountOverview {
                 [
                     widget::button(widget::text(account.name().to_string()))
                         .style(utils::button_link_style)
+                        .padding(0)
                         .on_press(Message::ViewAccount(account.id()))
                         .into(),
                     widget::text(format!("{}", sum)).into(),
