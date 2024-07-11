@@ -22,7 +22,7 @@ pub fn switch_view_command(
 pub enum Message {
     DueDateChanged(Option<fm_core::DateTime>),
     NameInputChanged(String),
-    ValueChanged(fm_core::Currency),
+    ValueChanged(Option<fm_core::Currency>),
     DescriptionInputChanged(String),
     AddTransactionToggle,
     AddTransactionFilterSubmit(fm_core::transaction_filter::TransactionFilter),
@@ -104,7 +104,7 @@ impl CreateBillView {
                 self.name_input = name;
             }
             Message::ValueChanged(value) => {
-                self.value = Some(value);
+                self.value = value;
             }
             Message::DescriptionInputChanged(description) => {
                 self.description_input = description;

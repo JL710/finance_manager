@@ -1,9 +1,9 @@
 pub struct CurrencyInput<Message: Clone> {
-    produce_message: Box<dyn Fn(fm_core::Currency) -> Message>,
+    produce_message: Box<dyn Fn(Option<fm_core::Currency>) -> Message>,
 }
 
 impl<'a, Message: Clone + 'a> CurrencyInput<Message> {
-    pub fn new(produce_message: impl Fn(fm_core::Currency) -> Message + 'static) -> Self {
+    pub fn new(produce_message: impl Fn(Option<fm_core::Currency>) -> Message + 'static) -> Self {
         Self {
             produce_message: Box::new(produce_message),
         }
@@ -33,11 +33,11 @@ impl<Message: Clone> iced::widget::Component<Message> for CurrencyInput<Message>
             Event::InputChanged(input) => {
                 state.input = input;
                 if let Ok(x) = state.input.parse::<f64>() {
-                    return Some((self.produce_message)(fm_core::Currency::Eur(x)));
+                    return Some((self.produce_message)(Some(fm_core::Currency::Eur(x))));
                 }
+                return Some((self.produce_message)(None));
             }
         }
-        None
     }
 
     fn view(&self, state: &Self::State) -> iced::Element<'_, Self::Event> {
