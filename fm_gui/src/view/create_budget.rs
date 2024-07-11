@@ -86,24 +86,6 @@ impl Default for CreateBudgetView {
 }
 
 impl CreateBudgetView {
-    pub fn new(
-        id: Option<fm_core::Id>,
-        name_input: String,
-        description_input: String,
-        value_input: String,
-        recouring_inputs: Recourung,
-        recouring_state: Option<String>,
-    ) -> Self {
-        Self {
-            id,
-            name_input,
-            description_input,
-            value_input,
-            recouring_inputs,
-            recouring_state,
-        }
-    }
-
     pub fn from_budget(budget: fm_core::Budget) -> Self {
         Self {
             id: Some(*budget.id()),
@@ -193,7 +175,7 @@ impl CreateBudgetView {
                                     .await
                                     .unwrap(),
                             };
-                            super::view_budget::BudgetView::fetch(*budget.id(), finance_manager)
+                            super::budget::Budget::fetch(*budget.id(), finance_manager)
                                 .await
                                 .unwrap()
                         },

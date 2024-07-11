@@ -39,12 +39,12 @@ pub enum AppMessage {
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
     AssetAccountsMessage(view::show_asset_accounts::Message),
-    ViewAccountMessage(view::view_account::Message),
-    TransactionViewMessage(view::view_transaction::Message),
-    ViewBudgetMessage(view::view_budget::Message),
+    ViewAccountMessage(view::account::Message),
+    TransactionViewMessage(view::transaction::Message),
+    ViewBudgetMessage(view::budget::Message),
     CreateCategoryMessage(view::create_category::Message),
     CategoryOverviewMessage(view::category_overview::Message),
-    ViewCategoryMessage(view::view_category::Message),
+    ViewCategoryMessage(view::category::Message),
     BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
     CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
     SettingsMessage(view::settings::Message),
@@ -52,10 +52,11 @@ pub enum AppMessage {
     FilterTransactionMessage(view::filter_transactions::Message),
     CreateBillMessage(view::create_bill::Message),
     BillOverviewMessage(view::bill_overview::Message),
-    ViewBillMessage(view::view_bill::Message),
+    ViewBillMessage(view::bill::Message),
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::enum_variant_names)]
 enum View {
     Empty,
     BudgetOverview(view::budget_overview::BudgetOverview),
@@ -63,19 +64,19 @@ enum View {
     CreateBudgetView(view::create_budget::CreateBudgetView),
     CreateTransactionView(view::create_transaction::CreateTransactionView),
     AssetAccounts(view::show_asset_accounts::AssetAccountOverview),
-    ViewAccount(view::view_account::ViewAccount),
-    TransactionView(view::view_transaction::TransactionView),
-    ViewBudgetView(view::view_budget::BudgetView),
+    ViewAccount(view::account::Account),
+    TransactionView(view::transaction::Transaction),
+    ViewBudgetView(view::budget::Budget),
     CreateCategory(view::create_category::CreateCategory),
     CategoryOverview(view::category_overview::CategoryOverview),
-    ViewCategory(view::view_category::ViewCategory),
+    ViewCategory(view::category::Category),
     BookCheckingAccountOverview(view::book_checking_account_overview::BookCheckingAccountOverview),
     CreateBookCheckingAccount(view::create_book_checking_account::CreateBookCheckingAccount),
     Settings(view::settings::SettingsView),
     FilterTransaction(view::filter_transactions::FilterTransactionView),
     CreateBill(view::create_bill::CreateBillView),
     BillOverview(view::bill_overview::BillOverview),
-    ViewBill(view::view_bill::ViewBill),
+    ViewBill(view::bill::Bill),
 }
 
 pub struct App {

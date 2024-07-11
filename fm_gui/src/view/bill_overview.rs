@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::utils;
 
 use super::super::{AppMessage, View};
@@ -48,20 +46,16 @@ impl BillOverview {
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
-            Message::ViewBill(bill_id) => {
-                return (
-                    Some(View::Empty),
-                    super::view_bill::switch_view_command(bill_id, finance_manager),
-                );
-            }
-            Message::NewBill => {
-                return (
-                    Some(View::CreateBill(
-                        super::create_bill::CreateBillView::default(),
-                    )),
-                    iced::Task::none(),
-                )
-            }
+            Message::ViewBill(bill_id) => (
+                Some(View::Empty),
+                super::bill::switch_view_command(bill_id, finance_manager),
+            ),
+            Message::NewBill => (
+                Some(View::CreateBill(
+                    super::create_bill::CreateBillView::default(),
+                )),
+                iced::Task::none(),
+            ),
         }
     }
 

@@ -14,7 +14,7 @@ pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
     iced::Task::future(async move {
-        let view = ViewBill::fetch(&id, finance_manager).await.unwrap();
+        let view = Bill::fetch(&id, finance_manager).await.unwrap();
         AppMessage::SwitchView(View::ViewBill(view))
     })
 }
@@ -26,12 +26,12 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
-pub struct ViewBill {
+pub struct Bill {
     bill: fm_core::Bill,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
 }
 
-impl ViewBill {
+impl Bill {
     pub async fn fetch(
         id: &fm_core::Id,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
@@ -59,7 +59,7 @@ impl ViewBill {
         match message {
             Message::ViewTransaction(transaction_id) => (
                 Some(View::Empty),
-                super::view_transaction::switch_view_command(transaction_id, finance_manager),
+                super::transaction::switch_view_command(transaction_id, finance_manager),
             ),
             Message::Edit => (
                 Some(View::Empty),
@@ -75,7 +75,7 @@ impl ViewBill {
                     widget::text!("Name: {}", self.bill.name()),
                     widget::text!(
                         "Description: {}",
-                        self.bill.description().clone().unwrap_or(String::new())
+                        self.bill.description().clone().unwrap_or_default()
                     ),
                     widget::text!("Amount: {}€", self.bill.value().to_num_string()),
                     widget::text!(

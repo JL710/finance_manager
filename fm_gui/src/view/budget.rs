@@ -8,7 +8,7 @@ pub fn switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(BudgetView::fetch(id, finance_manager), |result| {
+    iced::Task::perform(Budget::fetch(id, finance_manager), |result| {
         AppMessage::SwitchView(View::ViewBudgetView(result.unwrap()))
     })
 }
@@ -21,7 +21,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
-pub struct BudgetView {
+pub struct Budget {
     budget: fm_core::Budget,
     current_value: fm_core::Currency,
     transactions: Vec<(
@@ -31,7 +31,7 @@ pub struct BudgetView {
     )>,
 }
 
-impl BudgetView {
+impl Budget {
     pub fn new(
         budget: fm_core::Budget,
         current_value: fm_core::Currency,
@@ -86,11 +86,11 @@ impl BudgetView {
         match message {
             Message::ViewAccount(id) => (
                 Some(View::Empty),
-                super::view_account::switch_view_command(id, finance_manager),
+                super::account::switch_view_command(id, finance_manager),
             ),
             Message::ViewTransaction(id) => (
                 Some(View::Empty),
-                super::view_transaction::switch_view_command(id, finance_manager),
+                super::transaction::switch_view_command(id, finance_manager),
             ),
             Message::Edit => (
                 Some(View::Empty),

@@ -24,16 +24,6 @@ pub struct CreateBookCheckingAccount {
 }
 
 impl CreateBookCheckingAccount {
-    pub fn new() -> Self {
-        Self {
-            id: None,
-            name_input: String::new(),
-            note_input: String::new(),
-            iban_input: String::new(),
-            bic_input: String::new(),
-        }
-    }
-
     pub fn from_existing_account(account: fm_core::account::BookCheckingAccount) -> Self {
         Self {
             id: Some(account.id()),
@@ -115,7 +105,7 @@ impl CreateBookCheckingAccount {
                                     .unwrap()
                             };
 
-                            super::view_account::ViewAccount::fetch(finance_manager, account.id())
+                            super::account::Account::fetch(finance_manager, account.id())
                                 .await
                         },
                         |view| AppMessage::SwitchView(View::ViewAccount(view)),

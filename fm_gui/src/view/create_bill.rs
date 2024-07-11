@@ -34,7 +34,7 @@ pub enum Message {
     Submit,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CreateBillView {
     id: Option<fm_core::Id>,
     name_input: String,
@@ -43,20 +43,6 @@ pub struct CreateBillView {
     due_date: Option<fm_core::DateTime>,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
     add_transaction: Option<AddTransaction>,
-}
-
-impl Default for CreateBillView {
-    fn default() -> Self {
-        Self {
-            id: None,
-            name_input: String::new(),
-            description_input: String::new(),
-            value: None,
-            due_date: None,
-            transactions: Vec::new(),
-            add_transaction: None,
-        }
-    }
 }
 
 impl CreateBillView {
@@ -85,8 +71,8 @@ impl CreateBillView {
             name_input: bill.name().to_owned(),
             description_input: bill.description().clone().unwrap_or(String::new()),
             value: Some(bill.value().clone()),
-            due_date: bill.due_date().clone(),
-            transactions: transactions,
+            due_date: *bill.due_date(),
+            transactions,
             add_transaction: None,
         })
     }
@@ -113,10 +99,10 @@ impl CreateBillView {
                 if !self.submittable() {
                     panic!("Cant Submit!")
                 }
-                let id_option = self.id.clone();
+                let id_option = self.id;
                 let name = self.name_input.clone();
                 let description = self.description_input.clone();
-                let due_date = self.due_date.clone();
+                let due_date = self.due_date;
                 let value = self.value.clone().unwrap();
                 let transactions = self
                     .transactions
@@ -129,8 +115,9 @@ impl CreateBillView {
                         Some(View::Empty),
                         iced::Task::perform(
                             async move {
-                                let mut locked_manager = finance_manager.lock().await;
-                                let _ = locked_manager
+                                finance_manager
+                                    .lock()
+                                    .await
                                     .update_bill(
                                         id,
                                         name,
@@ -146,8 +133,7 @@ impl CreateBillView {
                                     .unwrap()
                                     .await
                                     .unwrap();
-                                drop(locked_manager);
-                                super::view_bill::ViewBill::fetch(&id, finance_manager)
+                                super::bill::Bill::fetch(&id, finance_manager)
                                     .await
                                     .unwrap()
                             },
@@ -176,7 +162,7 @@ impl CreateBillView {
                                     .await
                                     .unwrap();
                                 drop(locked_manager);
-                                super::view_bill::ViewBill::fetch(bill.id(), finance_manager)
+                                super::bill::Bill::fetch(bill.id(), finance_manager)
                                     .await
                                     .unwrap()
                             },
@@ -210,11 +196,10 @@ impl CreateBillView {
                     iced::Task::perform(
                         async move {
                             let locked_manager = finance_manager.lock().await;
-                            let transactions = locked_manager
+                            locked_manager
                                 .get_filtered_transactions(filter.clone())
                                 .await
-                                .unwrap();
-                            transactions
+                                .unwrap()
                         },
                         |x| {
                             AppMessage::CreateBillMessage(
@@ -233,7 +218,7 @@ impl CreateBillView {
                                 return false;
                             }
                         }
-                        return true;
+                        true
                     });
 
                     add_transaction.transactions = transactions;
@@ -291,7 +276,7 @@ impl CreateBillView {
             .spacing(10),
             "Transactions:",
             TableView::new(self.transactions.clone(), |(transaction, sign)| {
-                let transaction_id = transaction.id().clone();
+                let transaction_id = *transaction.id();
                 [
                     widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
                         .on_toggle(move |x| {

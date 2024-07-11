@@ -88,7 +88,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
     type State = State;
     type Event = ComponentMessage;
 
-    fn update(&mut self, state: &mut Self::State, event: Self::Event) -> Option<Message> {
+    fn update(&mut self, _state: &mut Self::State, event: Self::Event) -> Option<Message> {
         match event {
             ComponentMessage::Submit => return Some((self.on_submit)(self.filter.clone())),
             ComponentMessage::ChangeDefaultTimespan(timespan) => {
@@ -130,7 +130,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
         None
     }
 
-    fn view(&self, state: &Self::State) -> iced::Element<'_, Self::Event> {
+    fn view(&self, _state: &Self::State) -> iced::Element<'_, Self::Event> {
         let mut account_column = widget::Column::new();
         for filter in self.filter.get_account_filters() {
             account_column = account_column.push(

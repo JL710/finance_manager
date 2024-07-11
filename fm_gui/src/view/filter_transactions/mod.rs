@@ -106,13 +106,13 @@ impl FilterTransactionView {
             Message::ViewAccount(id) => {
                 return (
                     Some(View::Empty),
-                    super::view_account::switch_view_command(id, finance_manager),
+                    super::account::switch_view_command(id, finance_manager),
                 );
             }
             Message::ViewTransaction(id) => {
                 return (
                     Some(View::Empty),
-                    super::view_transaction::switch_view_command(id, finance_manager),
+                    super::transaction::switch_view_command(id, finance_manager),
                 );
             }
             Message::UpdateTransactions(transactions) => {

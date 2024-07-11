@@ -25,10 +25,6 @@ pub struct CategoryOverview {
 }
 
 impl CategoryOverview {
-    pub fn new(categories: Vec<fm_core::Category>) -> Self {
-        Self { categories }
-    }
-
     pub async fn fetch(
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> Result<Self> {
@@ -52,7 +48,7 @@ impl CategoryOverview {
             ),
             Message::ViewCategory(category_id) => (
                 None,
-                super::view_category::switch_view_command(finance_manager, category_id),
+                super::category::switch_view_command(finance_manager, category_id),
             ),
         }
     }

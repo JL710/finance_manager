@@ -66,7 +66,7 @@ impl BookCheckingAccountOverview {
         match message {
             Message::ViewAccount(id) => (
                 None,
-                super::view_account::switch_view_command(id, finance_manager),
+                super::account::switch_view_command(id, finance_manager),
             ),
         }
     }

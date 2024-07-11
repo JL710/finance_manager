@@ -101,8 +101,7 @@ impl CreateAssetAccountDialog {
                                     .unwrap()
                             };
 
-                            super::view_account::ViewAccount::fetch(finance_manager, account.id())
-                                .await
+                            super::account::Account::fetch(finance_manager, account.id()).await
                         },
                         |view| AppMessage::SwitchView(View::ViewAccount(view)),
                     ),

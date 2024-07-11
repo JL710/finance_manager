@@ -488,12 +488,9 @@ impl CreateTransactionView {
                         .await
                         .unwrap(),
                 };
-                super::view_transaction::TransactionView::fetch(
-                    *new_transaction.id(),
-                    finance_manager,
-                )
-                .await
-                .unwrap()
+                super::transaction::Transaction::fetch(*new_transaction.id(), finance_manager)
+                    .await
+                    .unwrap()
             },
             |x| AppMessage::SwitchView(View::TransactionView(x)),
         )

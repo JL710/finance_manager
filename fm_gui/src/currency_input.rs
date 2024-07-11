@@ -35,7 +35,7 @@ impl<Message: Clone> iced::widget::Component<Message> for CurrencyInput<Message>
                 if let Ok(x) = state.input.parse::<f64>() {
                     return Some((self.produce_message)(Some(fm_core::Currency::Eur(x))));
                 }
-                return Some((self.produce_message)(None));
+                Some((self.produce_message)(None))
             }
         }
     }

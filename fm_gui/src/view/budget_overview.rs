@@ -61,7 +61,7 @@ impl BudgetOverview {
             ),
             Message::ViewBudget(id) => (
                 Some(View::Empty),
-                super::view_budget::switch_view_command(id, _finance_manager),
+                super::budget::switch_view_command(id, _finance_manager),
             ),
         }
     }

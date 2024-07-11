@@ -9,7 +9,7 @@ pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
     iced::Task::perform(
-        async move { View::ViewAccount(ViewAccount::fetch(finance_manager, account_id).await) },
+        async move { View::ViewAccount(Account::fetch(finance_manager, account_id).await) },
         AppMessage::SwitchView,
     )
 }
@@ -30,7 +30,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
-pub struct ViewAccount {
+pub struct Account {
     account: fm_core::account::Account,
     transactions: Vec<(
         fm_core::Transaction,
@@ -40,7 +40,7 @@ pub struct ViewAccount {
     current_value: fm_core::Currency,
 }
 
-impl ViewAccount {
+impl Account {
     pub fn new(
         account: fm_core::account::Account,
         account_sum: fm_core::Currency,
@@ -109,7 +109,7 @@ impl ViewAccount {
             Message::ViewTransaction(id) => {
                 (
                     Some(View::Empty),
-                    super::view_transaction::switch_view_command(id, finance_manager),
+                    super::transaction::switch_view_command(id, finance_manager),
                 )
             }
             Message::ViewAccount(id) => {

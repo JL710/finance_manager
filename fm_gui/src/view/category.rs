@@ -12,13 +12,7 @@ pub fn switch_view_command(
     category_id: fm_core::Id,
 ) -> iced::Task<AppMessage> {
     iced::Task::perform(
-        async move {
-            View::ViewCategory(
-                ViewCategory::fetch(finance_manager, category_id)
-                    .await
-                    .unwrap(),
-            )
-        },
+        async move { View::ViewCategory(Category::fetch(finance_manager, category_id).await.unwrap()) },
         AppMessage::SwitchView,
     )
 }
@@ -42,7 +36,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
-pub struct ViewCategory {
+pub struct Category {
     category: fm_core::Category,
     transactions: Vec<(
         fm_core::Transaction,
@@ -53,24 +47,7 @@ pub struct ViewCategory {
     values: Vec<(fm_core::DateTime, fm_core::Currency)>,
 }
 
-impl ViewCategory {
-    pub fn new(
-        category: fm_core::Category,
-        transactions: Vec<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )>,
-        values: Vec<(fm_core::DateTime, fm_core::Currency)>,
-    ) -> Self {
-        Self {
-            category,
-            transactions,
-            timespan: (None, None),
-            values,
-        }
-    }
-
+impl Category {
     pub async fn fetch(
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
         category_id: fm_core::Id,
@@ -185,11 +162,11 @@ impl ViewCategory {
             }
             Message::ViewTransaction(transaction_id) => (
                 Some(View::Empty),
-                super::view_transaction::switch_view_command(transaction_id, finance_manager),
+                super::transaction::switch_view_command(transaction_id, finance_manager),
             ),
             Message::ViewAccount(account_id) => (
                 Some(View::Empty),
-                super::view_account::switch_view_command(account_id, finance_manager),
+                super::account::switch_view_command(account_id, finance_manager),
             ),
         }
     }

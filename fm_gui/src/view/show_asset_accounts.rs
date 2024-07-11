@@ -74,9 +74,7 @@ impl AssetAccountOverview {
             Message::AccountView(account) => (
                 None,
                 iced::Task::perform(
-                    async move {
-                        super::view_account::ViewAccount::fetch(finance_manager, account.id()).await
-                    },
+                    async move { super::account::Account::fetch(finance_manager, account.id()).await },
                     |view| AppMessage::SwitchView(View::ViewAccount(view)),
                 ),
             ),
