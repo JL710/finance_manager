@@ -212,6 +212,12 @@ pub struct Transaction {
     categories: Vec<(Id, Sign)>,
 }
 
+impl PartialEq for Transaction {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
 impl Transaction {
     fn new(
         id: Id,

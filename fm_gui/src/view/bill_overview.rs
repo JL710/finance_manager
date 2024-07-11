@@ -73,6 +73,18 @@ impl BillOverview {
                 widget::text(bill.transactions().len()).into()
             ])
             .headers(["Name", "Value", "Due Date", "Transaction"])
+            .sort_by(|a, b, column| {
+                match column {
+                    0 => a.name().cmp(b.name()),
+                    1 => a.value().get_num().total_cmp(&b.value().get_num()),
+                    2 => a.due_date().cmp(b.due_date()),
+                    3 => a.transactions().len().cmp(&b.transactions().len()),
+                    _ => {
+                        panic!()
+                    }
+                }
+            })
+            .columns_sortable([true, true, true, true])
             .into_element()
         ]
         .spacing(10)
