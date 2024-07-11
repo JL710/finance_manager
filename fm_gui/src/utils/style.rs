@@ -6,7 +6,7 @@ pub fn container_style_background_weak(theme: &iced::Theme) -> widget::container
     ))
 }
 
-pub fn container_style_background_strongg(theme: &iced::Theme) -> widget::container::Style {
+pub fn container_style_background_strong(theme: &iced::Theme) -> widget::container::Style {
     widget::container::Style::default().with_background(iced::Background::Color(
         theme.extended_palette().background.strong.color,
     ))

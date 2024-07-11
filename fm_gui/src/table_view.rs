@@ -171,7 +171,7 @@ where
             }
             column = column.push(
                 widget::container(row)
-                    .style(utils::style::container_style_background_strongg)
+                    .style(utils::style::container_style_background_strong)
                     .padding(self.padding),
             );
         }
