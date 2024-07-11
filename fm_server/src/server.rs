@@ -126,6 +126,7 @@ async fn get_accounts(axum::extract::State(state): axum::extract::State<State>) 
     json!(accounts).into()
 }
 
+#[allow(clippy::type_complexity)]
 async fn create_asset_account(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(account_data): axum::extract::Json<(
@@ -218,6 +219,7 @@ async fn create_budget(
     json!(budget).into()
 }
 
+#[allow(clippy::type_complexity)]
 async fn create_transaction(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<(
@@ -244,6 +246,7 @@ async fn create_transaction(
     json!(transaction).into()
 }
 
+#[allow(clippy::type_complexity)]
 async fn create_book_checking_account(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<(
@@ -277,6 +280,7 @@ async fn get_transaction(
     json!(transaction).into()
 }
 
+#[allow(clippy::type_complexity)]
 async fn update_asset_account(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<(
@@ -312,6 +316,7 @@ async fn get_budget(
     json!(budget).into()
 }
 
+#[allow(clippy::type_complexity)]
 async fn update_transaction(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<(
@@ -468,6 +473,7 @@ async fn get_transactions_of_category(
     json!(transactions).into()
 }
 
+#[allow(clippy::type_complexity)]
 async fn update_book_checking_account(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<(
@@ -502,6 +508,7 @@ async fn get_filtered_transactions(
     json!(transactions).into()
 }
 
+#[allow(clippy::type_complexity)]
 async fn create_bill(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<(
@@ -537,6 +544,7 @@ async fn delete_bill(
     json!(()).into()
 }
 
+#[allow(clippy::type_complexity)]
 async fn update_bill(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<(
