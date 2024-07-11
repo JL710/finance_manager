@@ -9,6 +9,12 @@ where
     sortable: [bool; COLUMNS],
     to_row: TR,
     sort_by_callback: Option<Box<dyn Fn(&T, &T, usize) -> std::cmp::Ordering + 'a>>,
+    alignment: Option<
+        Box<
+            dyn Fn(&T, usize, usize) -> (iced::alignment::Horizontal, iced::alignment::Vertical)
+                + 'a,
+        >,
+    >,
     spacing: u16,
     padding: u16,
 }
@@ -25,6 +31,7 @@ where
             sortable: [false; COLUMNS],
             to_row,
             sort_by_callback: None,
+            alignment: None,
             spacing: 10,
             padding: 10,
         }
@@ -76,6 +83,24 @@ where
         }
     }
 
+    /// Sets the alignment for the content of cells.
+    ///
+    /// Params:
+    ///     - row item
+    ///     - x
+    ///     - y
+    ///
+    /// Returns:
+    ///     vertical and horizontal alignment
+    pub fn alignment(
+        mut self,
+        callback: impl Fn(&T, usize, usize) -> (iced::alignment::Horizontal, iced::alignment::Vertical)
+            + 'a,
+    ) -> Self {
+        self.alignment = Some(Box::new(callback));
+        self
+    }
+
     pub fn into_element(self) -> iced::Element<'a, Message> {
         widget::component(self)
     }
@@ -120,11 +145,18 @@ where
 
     fn view(&self, state: &Self::State) -> iced::Element<'a, Self::Event> {
         let mut data_column = widget::column![].spacing(self.spacing);
-        for item in &self.items {
-            let row_elements = (self.to_row)(item).map(|x| x.map(|m| TableViewMessage::Message(m)));
+        for (row_index, item) in self.items.iter().enumerate() {
+            let row_elements: [iced::Element<TableViewMessage<Message>>; COLUMNS] =
+                (self.to_row)(item).map(|x| x.map(|m| TableViewMessage::Message(m)));
             let mut row = widget::row![].spacing(self.spacing);
-            for element in row_elements {
-                row = row.push(widget::container(element).width(iced::Length::FillPortion(1)));
+            for (column_index, element) in row_elements.into_iter().enumerate() {
+                let mut cell = widget::container(element).width(iced::Length::FillPortion(1));
+                if let Some(alignment) = &self.alignment {
+                    let (x_alignment, y_alignment) = (alignment)(item, column_index, row_index);
+                    cell = cell.align_x(x_alignment);
+                    cell = cell.align_y(y_alignment);
+                }
+                row = row.push(cell);
             }
             data_column = data_column.push(
                 widget::container(row)
