@@ -92,6 +92,12 @@ impl AssetAccountOverview {
                 utils::colored_currency_display(&account.1),
             ]
         })
+        .sort_by(|a, b, column| match column {
+            0 => a.0.name().cmp(b.0.name()),
+            1 => a.1.get_num().total_cmp(&b.1.get_num()),
+            _ => panic!(),
+        })
+        .columns_sortable([true, true])
         .headers(["Account".to_string(), "Current Value".to_string()]);
 
         widget::column![
