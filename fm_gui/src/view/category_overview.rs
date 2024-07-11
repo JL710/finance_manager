@@ -64,7 +64,8 @@ impl CategoryOverview {
             ]
         })
         .headers(["Name".to_string()])
-        .sort_by(|a, b, _| a.name().cmp(b.name()));
+        .sort_by(|a, b, _| a.name().cmp(b.name()))
+        .columns_sortable([true]);
         iced::widget::column![
             iced::widget::button("New Category").on_press(Message::NewCategory),
             iced::widget::horizontal_rule(10),
