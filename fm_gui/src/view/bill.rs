@@ -1,10 +1,8 @@
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
-use super::super::table_view::TableView;
-use super::super::utils;
 use iced::widget;
 
 use anyhow::Result;
@@ -89,7 +87,7 @@ impl Bill {
                 widget::button("Edit").on_press(Message::Edit),
             ],
             widget::scrollable(
-                TableView::new(self.transactions.clone(), |(transaction, sign)| [
+                utils::TableView::new(self.transactions.clone(), |(transaction, sign)| [
                     widget::checkbox("Negative", *sign == fm_core::Sign::Negative).into(),
                     widget::button(widget::text(transaction.title().clone()))
                         .style(utils::style::button_link_style)

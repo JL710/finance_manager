@@ -4,8 +4,6 @@ use async_std::sync::Mutex;
 use fm_core::transaction_filter::TransactionFilter;
 use std::sync::Arc;
 
-use super::super::filter_component;
-
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
@@ -141,7 +139,7 @@ impl FilterTransactionView {
             iced::widget::button(iced::widget::text("Edit Filter"))
                 .on_press(Message::ToggleEditFilter),
             if self.change_filter {
-                filter_component::FilterComponent::new(
+                utils::FilterComponent::new(
                     self.filter.clone(),
                     Message::ChangeFilter,
                     &self.accounts,

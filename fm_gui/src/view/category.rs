@@ -1,6 +1,4 @@
-use crate::utils;
-
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use anyhow::Result;
 use async_std::sync::Mutex;
@@ -195,8 +193,7 @@ impl Category {
                 .spacing(10)
             ]
             .spacing(10),
-            super::super::timespan_input::TimespanInput::new(Message::ChangedTimespan, None)
-                .into_element(),
+            utils::TimespanInput::new(Message::ChangedTimespan, None).into_element(),
             utils::transaction_table(
                 self.transactions.clone(),
                 |_| None,

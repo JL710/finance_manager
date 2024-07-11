@@ -2,8 +2,7 @@ use fm_core;
 
 use iced::widget;
 
-use super::super::utils;
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use anyhow::Result;
 use async_std::sync::Mutex;

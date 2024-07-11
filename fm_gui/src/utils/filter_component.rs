@@ -1,4 +1,4 @@
-use super::{timespan_input, utils};
+use super::timespan_input;
 use fm_core::transaction_filter::{self, TransactionFilter};
 use iced::widget;
 
@@ -302,7 +302,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             .spacing(10),
         )
         .padding(10)
-        .style(utils::style::container_style_background_weak)
+        .style(super::style::container_style_background_weak)
         .into()
     }
 }

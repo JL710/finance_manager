@@ -1,7 +1,18 @@
 use chrono::TimeZone;
 use iced::widget;
 
+mod currency_input;
+mod date_input;
+mod filter_component;
 pub mod style;
+mod table_view;
+mod timespan_input;
+
+pub use currency_input::CurrencyInput;
+pub use date_input::DateInput;
+pub use filter_component::FilterComponent;
+pub use table_view::TableView;
+pub use timespan_input::TimespanInput;
 
 pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,
@@ -63,7 +74,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
 ) -> iced::Element<'a, Message> {
     let mut transactions = transactions;
     transactions.sort_by(|(a, _, _), (b, _, _)| b.date().cmp(a.date()));
-    let table = super::table_view::TableView::new(
+    let table = TableView::new(
         transactions.clone(),
         move |(transaction, source, destination): &(
             fm_core::Transaction,

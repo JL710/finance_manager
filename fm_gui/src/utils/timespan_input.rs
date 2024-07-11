@@ -1,4 +1,3 @@
-use super::utils;
 use iced::widget;
 
 pub struct TimespanInput<Message, PM: Fn(fm_core::Timespan) -> Message> {
@@ -71,7 +70,7 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
             }
         }
 
-        let start = match utils::parse_to_datetime(state.start.as_ref().unwrap()) {
+        let start = match super::parse_to_datetime(state.start.as_ref().unwrap()) {
             Ok(x) => Some(x),
             Err(_) => {
                 if !state.start.as_ref().unwrap().is_empty() {
@@ -80,7 +79,7 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
                 None
             }
         };
-        let end = match utils::parse_to_datetime(state.end.as_ref().unwrap()) {
+        let end = match super::parse_to_datetime(state.end.as_ref().unwrap()) {
             Ok(x) => Some(x),
             Err(_) => {
                 if !state.end.as_ref().unwrap().is_empty() {
@@ -102,10 +101,10 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
             style
         }
 
-        let start_correct = utils::parse_to_datetime(&state.start.clone().unwrap_or_default())
+        let start_correct = super::parse_to_datetime(&state.start.clone().unwrap_or_default())
             .is_ok()
             || state.start.clone().unwrap_or_default().is_empty();
-        let end_correct = utils::parse_to_datetime(&state.end.clone().unwrap_or_default()).is_ok()
+        let end_correct = super::parse_to_datetime(&state.end.clone().unwrap_or_default()).is_ok()
             || state.end.clone().unwrap_or_default().is_empty();
         widget::row![
             widget::text_input(

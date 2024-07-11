@@ -1,9 +1,4 @@
-mod currency_input;
-mod date_input;
-mod filter_component;
 mod finance_managers;
-mod table_view;
-mod timespan_input;
 mod utils;
 mod view;
 

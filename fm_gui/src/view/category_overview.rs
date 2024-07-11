@@ -54,7 +54,7 @@ impl CategoryOverview {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let table = super::super::table_view::TableView::new(self.categories.clone(), |category| {
+        let table = utils::TableView::new(self.categories.clone(), |category| {
             [
                 iced::widget::button(iced::widget::text(category.name().to_string()))
                     .on_press(Message::ViewCategory(*category.id()))

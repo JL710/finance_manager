@@ -1,11 +1,10 @@
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use anyhow::Result;
 
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
-use super::super::table_view::TableView;
 use iced::widget;
 
 pub fn switch_view_command(
@@ -262,20 +261,19 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Value: ",
-                super::super::currency_input::CurrencyInput::new(Message::ValueChanged)
-                    .into_element(),
+                utils::CurrencyInput::new(Message::ValueChanged).into_element(),
                 iced::widget::horizontal_space().width(iced::Length::Fixed(5.0))
             ]
             .width(iced::Length::Fill)
             .spacing(10),
             widget::row![
                 "Due Date: ",
-                super::super::date_input::DateInput::new(Message::DueDateChanged).into_element(),
+                utils::DateInput::new(Message::DueDateChanged).into_element(),
             ]
             .width(iced::Length::Fill)
             .spacing(10),
             "Transactions:",
-            TableView::new(self.transactions.clone(), |(transaction, sign)| {
+            utils::TableView::new(self.transactions.clone(), |(transaction, sign)| {
                 let transaction_id = *transaction.id();
                 [
                     widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
@@ -343,7 +341,7 @@ impl AddTransaction {
         widget::column![
             widget::button("Back").on_press(Message::AddTransactionToggle),
             if let Some(filter) = &self.filter {
-                super::super::filter_component::FilterComponent::new(
+                utils::FilterComponent::new(
                     filter.clone(),
                     Message::AddTransactionFilterSubmit,
                     &self.accounts,
@@ -351,7 +349,7 @@ impl AddTransaction {
                 )
                 .into_element()
             } else {
-                TableView::new(self.transactions.clone(), |x| {
+                utils::TableView::new(self.transactions.clone(), |x| {
                     [
                         widget::button("Add")
                             .on_press(Message::AddTransaction(x.clone()))

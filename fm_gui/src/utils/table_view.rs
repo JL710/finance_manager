@@ -1,4 +1,3 @@
-use super::utils;
 use iced::widget;
 
 pub struct TableView<'a, T, Message, const COLUMNS: usize, TR>
@@ -129,7 +128,7 @@ where
             }
             data_column = data_column.push(
                 widget::container(row)
-                    .style(utils::style::container_style_background_weak)
+                    .style(super::style::container_style_background_weak)
                     .padding(self.padding),
             );
         }
@@ -147,12 +146,13 @@ where
                                     widget::svg::Svg::new(widget::svg::Handle::from_memory(
                                         std::borrow::Cow::from(if index == state.sort_column {
                                             if state.reverse {
-                                                &include_bytes!("assets/filter-circle-fill.svg")[..]
+                                                &include_bytes!("../assets/filter-circle-fill.svg")
+                                                    [..]
                                             } else {
-                                                &include_bytes!("assets/filter-circle.svg")[..]
+                                                &include_bytes!("../assets/filter-circle.svg")[..]
                                             }
                                         } else {
-                                            &include_bytes!("assets/filter.svg")[..]
+                                            &include_bytes!("../assets/filter.svg")[..]
                                         }),
                                     ))
                                     .content_fit(iced::ContentFit::Fill)
@@ -171,7 +171,7 @@ where
             }
             column = column.push(
                 widget::container(row)
-                    .style(utils::style::container_style_background_strong)
+                    .style(super::style::container_style_background_strong)
                     .padding(self.padding),
             );
         }

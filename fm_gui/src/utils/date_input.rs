@@ -32,7 +32,7 @@ impl<Message: Clone> iced::widget::Component<Message> for DateInput<Message> {
         match event {
             Event::InputChanged(input) => {
                 state.input = input;
-                if let Ok(x) = super::utils::parse_to_datetime(&state.input) {
+                if let Ok(x) = super::parse_to_datetime(&state.input) {
                     return Some((self.produce_message)(Some(x)));
                 }
                 if state.input.is_empty() {
@@ -45,7 +45,7 @@ impl<Message: Clone> iced::widget::Component<Message> for DateInput<Message> {
 
     fn view(&self, state: &Self::State) -> iced::Element<'_, Self::Event> {
         let date_is_correct =
-            !&state.input.is_empty() && super::utils::parse_to_datetime(&state.input).is_err();
+            !&state.input.is_empty() && super::parse_to_datetime(&state.input).is_err();
 
         iced::widget::text_input("Date", &state.input)
             .on_input(Event::InputChanged)

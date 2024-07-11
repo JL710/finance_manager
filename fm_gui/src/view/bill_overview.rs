@@ -1,14 +1,10 @@
-use crate::utils;
-
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use anyhow::Result;
 
 use async_std::sync::Mutex;
-use std::sync::Arc;
-
-use super::super::table_view::TableView;
 use iced::widget;
+use std::sync::Arc;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
@@ -62,7 +58,7 @@ impl BillOverview {
     pub fn view(&self) -> iced::Element<Message> {
         widget::column![
             widget::button("New").on_press(Message::NewBill),
-            TableView::new(self.bills.clone(), |bill| [
+            utils::TableView::new(self.bills.clone(), |bill| [
                 widget::button(widget::text(bill.name().clone()))
                     .on_press(Message::ViewBill(*bill.id()))
                     .style(utils::style::button_link_style)
