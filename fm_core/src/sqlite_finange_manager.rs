@@ -249,6 +249,84 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
 
         Ok(sum)
     }
+
+    async fn private_create_bill(
+        &mut self,
+        name: String,
+        description: Option<String>,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> Result<Bill> {
+        let connection = self.connect()?;
+
+        connection.execute(
+            "INSERT INTO bill (name, description, value, value_currency, due_date) VALUES (?1, ?2, ?3, ?4, ?5)",
+            (
+                &name,
+                &description,
+                value.get_num(),
+                value.get_currency_id(),
+                due_date.map(|x| x.timestamp()),
+            ),
+        )?;
+        let bill_id = connection.last_insert_rowid();
+
+        for transaction_pair in &transactions {
+            connection.execute(
+                "INSERT INTO bill_transaction (bill_id, transaction_id, sign) VALUES (?1, ?2, ?3)",
+                (
+                    bill_id,
+                    transaction_pair.0,
+                    transaction_pair.1 == Sign::Positive,
+                ),
+            )?;
+        }
+
+        Ok(Bill::new(
+            bill_id as Id,
+            name,
+            description,
+            value,
+            transactions,
+            due_date,
+        ))
+    }
+
+    async fn private_update_bill(
+        &mut self,
+        id: Id,
+        name: String,
+        description: Option<String>,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> Result<()> {
+        let connection = self.connect()?;
+
+        connection.execute(
+            "UPDATE bill SET name=?1, description=2, value=?3, value_currency=?4, due_date=?5 WHERE id=?6",
+            (
+                &name,
+                description,
+                value.get_num(),
+                value.get_currency_id(),
+                due_date.map(|x| x.timestamp()),
+                id,
+            ),
+        )?;
+
+        connection.execute("DELETE FROM bill_transaction WHERE bill_id=?1", (id,))?;
+
+        for transaction_pair in &transactions {
+            connection.execute(
+                "INSERT INTO bill_transaction (bill_id, transaction_id, sign) VALUES (?1, ?2, ?3)",
+                (id, transaction_pair.0, transaction_pair.1 == Sign::Positive),
+            )?;
+        }
+
+        Ok(())
+    }
 }
 
 impl FinanceManager for SqliteFinanceManager {
@@ -303,89 +381,11 @@ impl FinanceManager for SqliteFinanceManager {
         )))
     }
 
-    async fn create_bill(
-        &mut self,
-        name: String,
-        description: Option<String>,
-        value: Currency,
-        transactions: Vec<(Id, Sign)>,
-        due_date: Option<DateTime>,
-    ) -> Result<Bill> {
-        let connection = self.connect()?;
-
-        connection.execute(
-            "INSERT INTO bill (name, description, value, value_currency, due_date) VALUES (?1, ?2, ?3, ?4, ?5)",
-            (
-                &name,
-                &description,
-                value.get_num(),
-                value.get_currency_id(),
-                due_date.map(|x| x.timestamp()),
-            ),
-        )?;
-        let bill_id = connection.last_insert_rowid();
-
-        for transaction_pair in &transactions {
-            connection.execute(
-                "INSERT INTO bill_transaction (bill_id, transaction_id, sign) VALUES (?1, ?2, ?3)",
-                (
-                    bill_id,
-                    transaction_pair.0,
-                    transaction_pair.1 == Sign::Positive,
-                ),
-            )?;
-        }
-
-        Ok(Bill::new(
-            bill_id as Id,
-            name,
-            description,
-            value,
-            transactions,
-            due_date,
-        ))
-    }
-
     async fn delete_bill(&mut self, id: Id) -> Result<()> {
         let connection = self.connect()?;
 
         connection.execute("DELETE FROM bill WHERE id=?1", (id,))?;
         connection.execute("DELETE FROM bill_transaction WHERE bill_id=?1", (id,))?;
-        Ok(())
-    }
-
-    async fn update_bill(
-        &mut self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        value: Currency,
-        transactions: Vec<(Id, Sign)>,
-        due_date: Option<DateTime>,
-    ) -> Result<()> {
-        let connection = self.connect()?;
-
-        connection.execute(
-            "UPDATE bill SET name=?1, description=2, value=?3, value_currency=?4, due_date=?5 WHERE id=?6",
-            (
-                &name,
-                description,
-                value.get_num(),
-                value.get_currency_id(),
-                due_date.map(|x| x.timestamp()),
-                id,
-            ),
-        )?;
-
-        connection.execute("DELETE FROM bill_transaction WHERE bill_id=?1", (id,))?;
-
-        for transaction_pair in &transactions {
-            connection.execute(
-                "INSERT INTO bill_transaction (bill_id, transaction_id, sign) VALUES (?1, ?2, ?3)",
-                (id, transaction_pair.0, transaction_pair.1 == Sign::Positive),
-            )?;
-        }
-
         Ok(())
     }
 

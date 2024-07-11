@@ -1,4 +1,5 @@
 use anyhow::Result;
+use fm_core::FinanceManager;
 
 #[derive(Clone)]
 pub enum FinanceManagers {
@@ -157,6 +158,61 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
             }
         }
     }
+
+    async fn private_create_bill(
+        &mut self,
+        name: String,
+        description: Option<String>,
+        value: fm_core::Currency,
+        transactions: Vec<(fm_core::Id, fm_core::Sign)>,
+        due_date: Option<fm_core::DateTime>,
+    ) -> Result<fm_core::Bill> {
+        match self {
+            FinanceManagers::Server(client) => {
+                client
+                    .create_bill(name, description, value, transactions, due_date)?
+                    .await
+            }
+            #[cfg(feature = "native")]
+            FinanceManagers::Sqlite(sqlite) => {
+                sqlite
+                    .create_bill(name, description, value, transactions, due_date)?
+                    .await
+            }
+            FinanceManagers::Ram(ram) => {
+                ram.create_bill(name, description, value, transactions, due_date)?
+                    .await
+            }
+        }
+    }
+
+    async fn private_update_bill(
+        &mut self,
+        id: fm_core::Id,
+        name: String,
+        description: Option<String>,
+        value: fm_core::Currency,
+        transactions: Vec<(fm_core::Id, fm_core::Sign)>,
+        due_date: Option<fm_core::DateTime>,
+    ) -> Result<()> {
+        match self {
+            FinanceManagers::Server(client) => {
+                client
+                    .update_bill(id, name, description, value, transactions, due_date)?
+                    .await
+            }
+            #[cfg(feature = "native")]
+            FinanceManagers::Sqlite(sqlite) => {
+                sqlite
+                    .update_bill(id, name, description, value, transactions, due_date)?
+                    .await
+            }
+            FinanceManagers::Ram(ram) => {
+                ram.update_bill(id, name, description, value, transactions, due_date)?
+                    .await
+            }
+        }
+    }
 }
 
 impl fm_core::FinanceManager for FinanceManagers {
@@ -178,67 +234,12 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
-    async fn create_bill(
-        &mut self,
-        name: String,
-        description: Option<String>,
-        value: fm_core::Currency,
-        transactions: Vec<(fm_core::Id, fm_core::Sign)>,
-        due_date: Option<fm_core::DateTime>,
-    ) -> Result<fm_core::Bill> {
-        match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .create_bill(name, description, value, transactions, due_date)
-                    .await
-            }
-            #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .create_bill(name, description, value, transactions, due_date)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.create_bill(name, description, value, transactions, due_date)
-                    .await
-            }
-        }
-    }
-
     async fn delete_bill(&mut self, id: fm_core::Id) -> Result<()> {
         match self {
             FinanceManagers::Server(client) => client.delete_bill(id).await,
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.delete_bill(id).await,
             FinanceManagers::Ram(ram) => ram.delete_bill(id).await,
-        }
-    }
-
-    async fn update_bill(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-        description: Option<String>,
-        value: fm_core::Currency,
-        transactions: Vec<(fm_core::Id, fm_core::Sign)>,
-        due_date: Option<fm_core::DateTime>,
-    ) -> Result<()> {
-        match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .update_bill(id, name, description, value, transactions, due_date)
-                    .await
-            }
-            #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .update_bill(id, name, description, value, transactions, due_date)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.update_bill(id, name, description, value, transactions, due_date)
-                    .await
-            }
         }
     }
 

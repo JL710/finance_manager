@@ -113,18 +113,8 @@ impl fm_core::PrivateFinanceManager for Client {
     ) -> Result<fm_core::Currency> {
         client_post_macro!(self.url, "get_account_sum", (account, date))
     }
-}
 
-impl fm_core::FinanceManager for Client {
-    async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {
-        client_get_macro!(self.url, "get_bills")
-    }
-
-    async fn get_bill(&self, id: &fm_core::Id) -> Result<Option<fm_core::Bill>> {
-        client_post_macro!(self.url, "get_bill", id)
-    }
-
-    async fn create_bill(
+    async fn private_create_bill(
         &mut self,
         name: String,
         description: Option<String>,
@@ -139,11 +129,7 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
-    async fn delete_bill(&mut self, id: fm_core::Id) -> Result<()> {
-        client_post_macro!(self.url, "delete_bill", id)
-    }
-
-    async fn update_bill(
+    async fn private_update_bill(
         &mut self,
         id: fm_core::Id,
         name: String,
@@ -157,6 +143,20 @@ impl fm_core::FinanceManager for Client {
             "update_bill",
             (id, name, description, value, transactions, due_date)
         )
+    }
+}
+
+impl fm_core::FinanceManager for Client {
+    async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {
+        client_get_macro!(self.url, "get_bills")
+    }
+
+    async fn get_bill(&self, id: &fm_core::Id) -> Result<Option<fm_core::Bill>> {
+        client_post_macro!(self.url, "get_bill", id)
+    }
+
+    async fn delete_bill(&mut self, id: fm_core::Id) -> Result<()> {
+        client_post_macro!(self.url, "delete_bill", id)
     }
 
     async fn get_filtered_transactions(

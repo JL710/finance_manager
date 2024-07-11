@@ -143,6 +143,7 @@ impl CreateBillView {
                                         transactions,
                                         due_date,
                                     )
+                                    .unwrap()
                                     .await
                                     .unwrap();
                                 drop(locked_manager);
@@ -171,6 +172,7 @@ impl CreateBillView {
                                         transactions,
                                         due_date,
                                     )
+                                    .unwrap()
                                     .await
                                     .unwrap();
                                 drop(locked_manager);

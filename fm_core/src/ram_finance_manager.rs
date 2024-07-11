@@ -104,23 +104,8 @@ impl super::PrivateFinanceManager for RamFinanceManager {
         }
         Ok(total)
     }
-}
 
-impl FinanceManager for RamFinanceManager {
-    async fn get_bills(&self) -> Result<Vec<Bill>> {
-        Ok(self.bills.clone())
-    }
-
-    async fn get_bill(&self, id: &Id) -> Result<Option<Bill>> {
-        for bill in &self.bills {
-            if bill.id == *id {
-                return Ok(Some(bill.clone()));
-            }
-        }
-        Ok(None)
-    }
-
-    async fn create_bill(
+    async fn private_create_bill(
         &mut self,
         name: String,
         description: Option<String>,
@@ -136,12 +121,7 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_bill)
     }
 
-    async fn delete_bill(&mut self, id: Id) -> Result<()> {
-        self.bills.retain(|x| x.id != id);
-        Ok(())
-    }
-
-    async fn update_bill(
+    async fn private_update_bill(
         &mut self,
         id: Id,
         name: String,
@@ -160,6 +140,26 @@ impl FinanceManager for RamFinanceManager {
                 return Ok(());
             }
         }
+        Ok(())
+    }
+}
+
+impl FinanceManager for RamFinanceManager {
+    async fn get_bills(&self) -> Result<Vec<Bill>> {
+        Ok(self.bills.clone())
+    }
+
+    async fn get_bill(&self, id: &Id) -> Result<Option<Bill>> {
+        for bill in &self.bills {
+            if bill.id == *id {
+                return Ok(Some(bill.clone()));
+            }
+        }
+        Ok(None)
+    }
+
+    async fn delete_bill(&mut self, id: Id) -> Result<()> {
+        self.bills.retain(|x| x.id != id);
         Ok(())
     }
 

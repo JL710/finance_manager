@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::{Datelike, TimeZone};
-use std::collections::HashMap;
+use std::{collections::HashMap, future::IntoFuture};
 
 pub mod account;
 #[cfg(feature = "ram")]
@@ -413,12 +413,31 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
     ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
     /// Only get the sum of the transactions for the account at the given date.
-    /// Do not include any offset or similar!
+    /// Do not include any AssetAccount.offset or similar!
     fn private_get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
     ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend;
+
+    fn private_create_bill(
+        &mut self,
+        name: String,
+        description: Option<String>,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> impl futures::Future<Output = Result<Bill>> + MaybeSend;
+
+    fn private_update_bill(
+        &mut self,
+        id: Id,
+        name: String,
+        description: Option<String>,
+        value: Currency,
+        transactions: Vec<(Id, Sign)>,
+        due_date: Option<DateTime>,
+    ) -> impl futures::Future<Output = Result<()>> + MaybeSend;
 }
 
 fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
@@ -437,7 +456,16 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
-    ) -> impl futures::Future<Output = Result<Bill>> + MaybeSend;
+    ) -> Result<impl futures::Future<Output = Result<Bill>> + MaybeSend> {
+        let mut ids = Vec::with_capacity(transactions.len());
+        for transaction in &transactions {
+            if ids.contains(&transaction.0) {
+                anyhow::bail!("Bill cannot have a transaction twice")
+            }
+            ids.push(transaction.0);
+        }
+        Ok(self.private_create_bill(name, description, value, transactions, due_date))
+    }
 
     fn delete_bill(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + MaybeSend;
 
@@ -449,7 +477,16 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
-    ) -> impl futures::Future<Output = Result<()>> + MaybeSend;
+    ) -> Result<impl futures::Future<Output = Result<()>> + MaybeSend> {
+        let mut ids = Vec::with_capacity(transactions.len());
+        for transaction in &transactions {
+            if ids.contains(&transaction.0) {
+                anyhow::bail!("Bill cannot have a transaction twice")
+            }
+            ids.push(transaction.0);
+        }
+        Ok(self.private_update_bill(id, name, description, value, transactions, due_date))
+    }
 
     fn get_filtered_transactions(
         &self,

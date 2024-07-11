@@ -517,6 +517,7 @@ async fn create_bill(
         .lock()
         .await
         .create_bill(data.0, data.1, data.2, data.3, data.4)
+        .unwrap()
         .await
         .unwrap();
     json!(bill).into()
@@ -552,6 +553,7 @@ async fn update_bill(
         .lock()
         .await
         .update_bill(data.0, data.1, data.2, data.3, data.4, data.5)
+        .unwrap()
         .await
         .unwrap();
     json!(()).into()
