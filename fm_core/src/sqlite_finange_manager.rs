@@ -353,7 +353,7 @@ impl FinanceManager for SqliteFinanceManager {
                 bill.description().clone(),
                 bill.value().clone(),
                 transactions,
-                bill.due_date().clone(),
+                *bill.due_date(),
             ));
         }
 
