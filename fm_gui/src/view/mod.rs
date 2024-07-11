@@ -1,3 +1,4 @@
+pub mod bill_overview;
 pub mod book_checking_account_overview;
 pub mod budget_overview;
 pub mod category_overview;
@@ -11,6 +12,7 @@ pub mod filter_transactions;
 pub mod settings;
 pub mod show_asset_accounts;
 pub mod view_account;
+pub mod view_bill;
 pub mod view_budget;
 pub mod view_category;
 pub mod view_transaction;

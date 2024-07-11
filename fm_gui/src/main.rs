@@ -34,7 +34,7 @@ pub enum AppMessage {
     SwitchToBookCheckingAccountOverview,
     SwitchToSettingsView,
     SwitchToFilterTransactionView,
-    SwitchToCreateBillView,
+    SwitchToBillOverview,
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
@@ -51,6 +51,8 @@ pub enum AppMessage {
     ChangeFM(Arc<Mutex<finance_managers::FinanceManagers>>),
     FilterTransactionMessage(view::filter_transactions::Message),
     CreateBillMessage(view::create_bill::Message),
+    BillOverviewMessage(view::bill_overview::Message),
+    ViewBillMessage(view::view_bill::Message),
 }
 
 #[derive(Debug, Clone)]
@@ -72,6 +74,8 @@ enum View {
     Settings(view::settings::SettingsView),
     FilterTransaction(view::filter_transactions::FilterTransactionView),
     CreateBill(view::create_bill::CreateBillView),
+    BillOverview(view::bill_overview::BillOverview),
+    ViewBill(view::view_bill::ViewBill),
 }
 
 pub struct App {
@@ -170,14 +174,20 @@ impl App {
             AppMessage::CreateBillMessage(m) => {
                 message_match!(self, m, View::CreateBill);
             }
+            AppMessage::BillOverviewMessage(m) => {
+                message_match!(self, m, View::BillOverview);
+            }
             AppMessage::SwitchToFilterTransactionView => {
                 self.current_view = View::Empty;
                 return view::filter_transactions::switch_view_command(
                     self.finance_manager.clone(),
                 );
             }
-            AppMessage::SwitchToCreateBillView => {
-                self.current_view = View::CreateBill(view::create_bill::CreateBillView::default());
+            AppMessage::SwitchToBillOverview => {
+                return view::bill_overview::switch_view_command(self.finance_manager.clone());
+            }
+            AppMessage::ViewBillMessage(m) => {
+                message_match!(self, m, View::ViewBill);
             }
         }
         iced::Task::none()
@@ -201,13 +211,13 @@ impl App {
                 iced::widget::button("Transactions")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToFilterTransactionView),
+                iced::widget::button("Bills")
+                    .width(iced::Length::Fill)
+                    .on_press(AppMessage::SwitchToBillOverview),
                 iced::widget::horizontal_rule(5),
                 iced::widget::button("Create Transaction")
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToCreateTransActionView),
-                iced::widget::button("Create Bill")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToCreateBillView),
                 iced::widget::vertical_space(),
                 iced::widget::button("Settings")
                     .width(iced::Length::Fill)
@@ -247,6 +257,8 @@ impl App {
                 View::FilterTransaction(ref view) =>
                     view.view().map(AppMessage::FilterTransactionMessage),
                 View::CreateBill(ref view) => view.view().map(AppMessage::CreateBillMessage),
+                View::BillOverview(ref view) => view.view().map(AppMessage::BillOverviewMessage),
+                View::ViewBill(ref view) => view.view().map(AppMessage::ViewBillMessage),
             }]
             .width(iced::Length::FillPortion(9))
         ]

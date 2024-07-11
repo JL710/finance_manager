@@ -130,7 +130,7 @@ impl CreateBillView {
                         iced::Task::perform(
                             async move {
                                 let mut locked_manager = finance_manager.lock().await;
-                                let bill = locked_manager
+                                let _ = locked_manager
                                     .update_bill(
                                         id,
                                         name,
@@ -145,9 +145,12 @@ impl CreateBillView {
                                     )
                                     .await
                                     .unwrap();
-                                bill
+                                drop(locked_manager);
+                                super::view_bill::ViewBill::fetch(&id, finance_manager)
+                                    .await
+                                    .unwrap()
                             },
-                            |_| AppMessage::SwitchView(View::Empty),
+                            |view| AppMessage::SwitchView(View::ViewBill(view)),
                         ),
                     );
                 } else {
@@ -170,9 +173,12 @@ impl CreateBillView {
                                     )
                                     .await
                                     .unwrap();
-                                bill
+                                drop(locked_manager);
+                                super::view_bill::ViewBill::fetch(bill.id(), finance_manager)
+                                    .await
+                                    .unwrap()
                             },
-                            |_| AppMessage::SwitchView(View::Empty),
+                            |view| AppMessage::SwitchView(View::ViewBill(view)),
                         ),
                     );
                 }
