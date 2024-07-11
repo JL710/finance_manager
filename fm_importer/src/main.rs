@@ -140,7 +140,7 @@ async fn parse_csv_camt_v2(
                 continue;
             }
             // check if amount is equal
-            if transaction.0.amount().get_num() != entry.value {
+            if transaction.0.amount().get_eur_num() != entry.value {
                 continue;
             }
             // check if date is equal

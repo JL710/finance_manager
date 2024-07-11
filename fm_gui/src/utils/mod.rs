@@ -37,7 +37,7 @@ pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::
 pub fn colored_currency_display<Message>(
     value: &fm_core::Currency,
 ) -> iced::Element<'static, Message> {
-    if value.get_num() < 0.0 {
+    if value.get_eur_num() < 0.0 {
         widget::text(format!("{}", value))
             .style(|theme: &iced::Theme| widget::text::Style {
                 color: Some(theme.palette().danger),
@@ -118,7 +118,11 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
     .columns_sortable([false, true, true, false, false, false])
     .sort_by(|a, b, column_index| match column_index {
         1 => a.0.date().cmp(b.0.date()),
-        2 => a.0.amount().get_num().total_cmp(&b.0.amount().get_num()),
+        2 => {
+            a.0.amount()
+                .get_eur_num()
+                .total_cmp(&b.0.amount().get_eur_num())
+        }
         _ => std::cmp::Ordering::Equal,
     });
 

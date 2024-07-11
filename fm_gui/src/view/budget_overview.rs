@@ -85,11 +85,11 @@ impl BudgetOverview {
         ])
         .sort_by(|a, b, column| match column {
             0 => a.0.name().cmp(b.0.name()),
-            1 => a.1.get_num().total_cmp(&b.1.get_num()),
+            1 => a.1.get_eur_num().total_cmp(&b.1.get_eur_num()),
             2 => {
                 a.0.total_value()
-                    .get_num()
-                    .total_cmp(&b.0.total_value().get_num())
+                    .get_eur_num()
+                    .total_cmp(&b.0.total_value().get_eur_num())
             }
             _ => panic!(),
         })

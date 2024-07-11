@@ -152,7 +152,7 @@ impl CreateTransactionView {
 
         Self {
             id: Some(*transaction.id()),
-            amount_input: transaction.amount().get_num().to_string(),
+            amount_input: transaction.amount().get_eur_num().to_string(),
             title_input: transaction.title().clone(),
             description_input: string_convert(transaction.description()),
             source_input: Some(SelectedAccount::Account(source)),

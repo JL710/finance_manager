@@ -119,8 +119,8 @@ impl Budget {
                 widget::button("Edit").on_press(Message::Edit)
             ],
             widget::progress_bar(
-                0.0..=self.budget.total_value().get_num() as f32,
-                self.current_value.get_num() as f32
+                0.0..=self.budget.total_value().get_eur_num() as f32,
+                self.current_value.get_eur_num() as f32
             ),
             utils::transaction_table(
                 self.transactions.to_vec(),

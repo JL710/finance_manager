@@ -147,7 +147,7 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
         connection.execute(
             "INSERT INTO asset_account (name, notes, iban, bic, offset_value, offset_currency) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
-            (&name, &note, &iban, &bic, offset.get_num(), offset.get_currency_id()),
+            (&name, &note, &iban, &bic, offset.get_eur_num(), offset.get_currency_id()),
         )?;
         connection.execute(
             "INSERT INTO account (asset_account) VALUES (?1)",
@@ -178,7 +178,7 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
 
         connection.execute(
             "UPDATE asset_account SET name=?1, notes=?2, iban=?3, bic=?4, offset_value=?5, offset_currency=?6 WHERE id=?7",
-            (&name, &note, &iban, &bic, offset.get_num(), offset.get_currency_id(), asset_account_id),
+            (&name, &note, &iban, &bic, offset.get_eur_num(), offset.get_currency_id(), asset_account_id),
         )?;
         Ok(account::AssetAccount::new(
             id, name, note, iban, bic, offset,
@@ -265,7 +265,7 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
             (
                 &name,
                 &description,
-                value.get_num(),
+                value.get_eur_num(),
                 value.get_currency_id(),
                 due_date.map(|x| x.timestamp()),
             ),
@@ -309,7 +309,7 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
             (
                 &name,
                 description,
-                value.get_num(),
+                value.get_eur_num(),
                 value.get_currency_id(),
                 due_date.map(|x| x.timestamp()),
                 id,
@@ -577,7 +577,7 @@ impl FinanceManager for SqliteFinanceManager {
             )
             ",
             (
-                amount.get_num(),
+                amount.get_eur_num(),
                 amount.get_currency_id(),
                 &title,
                 &description,
@@ -642,7 +642,7 @@ impl FinanceManager for SqliteFinanceManager {
             (
                 &name,
                 &description,
-                total_value.get_num(),
+                total_value.get_eur_num(),
                 total_value.get_currency_id(),
                 timespan_tuple.0,
                 timespan_tuple.1,
@@ -725,7 +725,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         connection.execute(
             "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, budget_sign=?8, timestamp=?9, metadata=?10 WHERE id=?11", 
-            (amount.get_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget.map(|x| x.0), budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}), date.timestamp(), serde_json::to_string(&metadata)?, id)
+            (amount.get_eur_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget.map(|x| x.0), budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}), date.timestamp(), serde_json::to_string(&metadata)?, id)
         )?;
 
         set_categories_for_transaction(&connection, id, &categories)?; // set categories for transaction
@@ -848,7 +848,7 @@ impl FinanceManager for SqliteFinanceManager {
                 (
                     &name,
                     &description,
-                    total_value.get_num(),
+                    total_value.get_eur_num(),
                     total_value.get_currency_id(),
                     timespan_tuple.0,
                     timespan_tuple.1,

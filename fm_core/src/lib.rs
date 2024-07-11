@@ -36,7 +36,7 @@ impl Currency {
         }
     }
 
-    pub fn get_num(&self) -> f64 {
+    pub fn get_eur_num(&self) -> f64 {
         match self {
             Currency::Eur(x) => *x,
         }
