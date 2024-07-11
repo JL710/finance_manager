@@ -314,7 +314,7 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
 
         connection.execute(
-            "INSERT INTO bill (name, description, value, value_currency, due_date) VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO bill (name, description, value, value_currency, due_date) VALUES (?1, ?2, ?3, ?4, ?5)",
             (
                 &name,
                 &description,

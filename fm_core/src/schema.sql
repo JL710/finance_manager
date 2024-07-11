@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS bill (
     description TEXT,
     value REAL NOT NULL,
     value_currency INTEGER NOT NULL,
-    due_date INTEGER NOT NULL
+    due_date INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS bill_transaction (
