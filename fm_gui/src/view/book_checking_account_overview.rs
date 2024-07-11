@@ -76,7 +76,7 @@ impl BookCheckingAccountOverview {
             super::super::table_view::TableView::new(self.accounts.clone(), |(account, sum)| {
                 [
                     widget::button(widget::text(account.name().to_string()))
-                        .style(utils::button_link_style)
+                        .style(utils::style::button_link_style)
                         .padding(0)
                         .on_press(Message::ViewAccount(account.id()))
                         .into(),

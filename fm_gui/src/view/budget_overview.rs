@@ -73,7 +73,7 @@ impl BudgetOverview {
                     widget::button(widget::text(budget.0.name().to_string()))
                         .on_press(Message::ViewBudget(*budget.0.id()))
                         .padding(0)
-                        .style(utils::button_link_style)
+                        .style(utils::style::button_link_style)
                         .into(),
                     widget::text(format!("{}", &budget.1)).into(),
                     widget::text(format!("{}", budget.0.total_value())).into(),

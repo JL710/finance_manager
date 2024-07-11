@@ -58,7 +58,7 @@ impl CategoryOverview {
             [
                 iced::widget::button(iced::widget::text(category.name().to_string()))
                     .on_press(Message::ViewCategory(*category.id()))
-                    .style(utils::button_link_style)
+                    .style(utils::style::button_link_style)
                     .padding(0)
                     .into(),
             ]

@@ -302,7 +302,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             .spacing(10),
         )
         .padding(10)
-        .style(utils::container_style_background_weak)
+        .style(utils::style::container_style_background_weak)
         .into()
     }
 }

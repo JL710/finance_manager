@@ -127,11 +127,11 @@ impl Transaction {
             widget::text(format!("Name: {}", self.transaction.title())),
             widget::button(widget::text(format!("Source: {}", self.source)))
                 .padding(0)
-                .style(utils::button_link_style)
+                .style(utils::style::button_link_style)
                 .on_press(Message::ViewAccount(*self.source.id())),
             widget::button(widget::text(format!("Destination: {}", self.destination)))
                 .padding(0)
-                .style(utils::button_link_style)
+                .style(utils::style::button_link_style)
                 .on_press(Message::ViewAccount(*self.source.id())),
             widget::text(format!(
                 "Date: {}",
@@ -161,7 +161,7 @@ impl Transaction {
                     widget::text("Description: "),
                     widget::container(widget::text(content.to_string()))
                         .padding(3)
-                        .style(utils::container_style_background_weak)
+                        .style(utils::style::container_style_background_weak)
                 ]
                 .spacing(10),
             );

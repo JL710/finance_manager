@@ -1,6 +1,8 @@
 use chrono::TimeZone;
 use iced::widget;
 
+pub mod style;
+
 pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,
     content: &str,
@@ -12,18 +14,6 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
     ]
     .spacing(10)
     .into()
-}
-
-pub fn container_style_background_weak(theme: &iced::Theme) -> widget::container::Style {
-    widget::container::Style::default().with_background(iced::Background::Color(
-        theme.extended_palette().background.weak.color,
-    ))
-}
-
-pub fn container_style_background_strongg(theme: &iced::Theme) -> widget::container::Style {
-    widget::container::Style::default().with_background(iced::Background::Color(
-        theme.extended_palette().background.strong.color,
-    ))
 }
 
 pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
@@ -48,17 +38,6 @@ pub fn colored_currency_display<Message>(
                 color: Some(theme.palette().success),
             })
             .into()
-    }
-}
-
-pub fn button_link_style(
-    theme: &iced::Theme,
-    _status: widget::button::Status,
-) -> widget::button::Style {
-    widget::button::Style {
-        background: None,
-        text_color: theme.palette().text,
-        ..Default::default()
     }
 }
 
@@ -94,7 +73,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
             [
                 widget::button(widget::text(transaction.title().clone()))
                     .on_press(view_transaction(*transaction.id()))
-                    .style(button_link_style)
+                    .style(style::button_link_style)
                     .padding(0)
                     .into(),
                 widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
@@ -105,12 +84,12 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
                 },
                 widget::button(widget::text(source.to_string().clone()))
                     .on_press(view_account(*source.id()))
-                    .style(button_link_style)
+                    .style(style::button_link_style)
                     .padding(0)
                     .into(),
                 widget::button(widget::text(destination.to_string().clone()))
                     .on_press(view_account(*destination.id()))
-                    .style(button_link_style)
+                    .style(style::button_link_style)
                     .padding(0)
                     .into(),
                 widget::text(transaction.categories().len().to_string()).into(),

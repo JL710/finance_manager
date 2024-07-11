@@ -88,7 +88,7 @@ impl AssetAccountOverview {
                     widget::button(widget::text(account.0.name().to_string()))
                         .on_press(Message::AccountView(account.0.clone()))
                         .padding(0)
-                        .style(utils::button_link_style)
+                        .style(utils::style::button_link_style)
                         .into(),
                     utils::colored_currency_display(&account.1),
                 ]

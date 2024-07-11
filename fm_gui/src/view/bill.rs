@@ -92,7 +92,7 @@ impl Bill {
                 TableView::new(self.transactions.clone(), |(transaction, sign)| [
                     widget::checkbox("Negative", *sign == fm_core::Sign::Negative).into(),
                     widget::button(widget::text(transaction.title().clone()))
-                        .style(utils::button_link_style)
+                        .style(utils::style::button_link_style)
                         .padding(0)
                         .on_press(Message::ViewTransaction(*transaction.id()))
                         .into(),
