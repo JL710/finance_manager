@@ -82,7 +82,18 @@ impl BudgetOverview {
             "Name".to_string(),
             "Current".to_string(),
             "Total".to_string(),
-        ]);
+        ])
+        .sort_by(|a, b, column| match column {
+            0 => a.0.name().cmp(b.0.name()),
+            1 => a.1.get_num().total_cmp(&b.1.get_num()),
+            2 => {
+                a.0.total_value()
+                    .get_num()
+                    .total_cmp(&b.0.total_value().get_num())
+            }
+            _ => panic!(),
+        })
+        .columns_sortable([true, true, true]);
         widget::column![
             widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
             widget::horizontal_rule(10),
