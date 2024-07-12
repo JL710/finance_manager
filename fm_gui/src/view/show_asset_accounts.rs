@@ -92,17 +92,19 @@ impl AssetAccountOverview {
         })
         .sort_by(|a, b, column| match column {
             0 => a.0.name().cmp(b.0.name()),
-            1 => a.1.get_eur_num().total_cmp(&b.1.get_eur_num()),
+            1 => a.1.cmp(&b.1),
             _ => panic!(),
         })
         .columns_sortable([true, true])
         .headers(["Account".to_string(), "Current Value".to_string()]);
 
         widget::column![
-            widget::row![widget::button("New AssetAccount").on_press(Message::CreateAssetAccount)],
+            utils::heading("Asset Account Overview", utils::HeadingLevel::H1),
+            widget::row![widget::button("New Asset Account").on_press(Message::CreateAssetAccount)],
             widget::horizontal_rule(10),
             account_table.into_element(),
         ]
+        .spacing(10)
         .into()
     }
 }

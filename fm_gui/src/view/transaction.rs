@@ -179,6 +179,7 @@ impl Transaction {
         }
 
         widget::column![
+            utils::heading("Transaction", utils::HeadingLevel::H1),
             widget::row![
                 column,
                 widget::Space::with_width(iced::Length::Fill),

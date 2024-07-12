@@ -112,11 +112,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
     .columns_sortable([false, true, true, false, false, false])
     .sort_by(|a, b, column_index| match column_index {
         1 => a.0.date().cmp(b.0.date()),
-        2 => {
-            a.0.amount()
-                .get_eur_num()
-                .total_cmp(&b.0.amount().get_eur_num())
-        }
+        2 => a.0.amount().cmp(&b.0.amount()),
         _ => std::cmp::Ordering::Equal,
     });
 
@@ -125,8 +121,48 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
 
 pub fn link<'a, Message>(
     content: impl Into<iced::Element<'a, Message>>,
-) -> iced::widget::Button<'a, Message> {
-    iced::widget::button(content)
+) -> widget::Button<'a, Message> {
+    widget::button(content)
         .padding(0)
         .style(style::button_link_style)
+}
+
+pub enum HeadingLevel {
+    H1,
+    H2,
+    H3,
+    H4,
+    H5,
+}
+
+pub fn heading<'a, Message: 'a>(
+    text: impl Into<String>,
+    level: HeadingLevel,
+) -> iced::Element<'a, Message> {
+    let default_size = iced::Settings::default().default_text_size;
+    widget::container(widget::column![
+        widget::text(text.into())
+            .size(match level {
+                HeadingLevel::H1 => default_size.0 + 20.,
+                HeadingLevel::H2 => default_size.0 + 15.,
+                HeadingLevel::H3 => default_size.0 + 10.,
+                HeadingLevel::H4 => default_size.0 + 5.,
+                HeadingLevel::H5 => default_size.0 + 3.,
+            })
+            .font(iced::Font {
+                weight: iced::font::Weight::Bold,
+                ..Default::default()
+            }),
+        widget::horizontal_rule(2.).style(|theme: &iced::Theme| widget::rule::Style {
+            color: theme.palette().text,
+            ..widget::rule::default(theme)
+        })
+    ])
+    .padding(iced::Padding {
+        top: 0.,
+        right: 0.,
+        bottom: 10.,
+        left: 0.,
+    })
+    .into()
 }

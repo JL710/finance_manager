@@ -1,4 +1,4 @@
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 use fm_core;
 
 use async_std::sync::Mutex;
@@ -113,6 +113,7 @@ impl CreateAssetAccountDialog {
 
     pub fn view(&self) -> iced::Element<'static, Message> {
         iced::widget::column![
+            utils::heading("Create Asset Account", utils::HeadingLevel::H1),
             iced::widget::row![
                 iced::widget::text("Name"),
                 iced::widget::text_input("Name", &self.name_input).on_input(Message::NameInput)

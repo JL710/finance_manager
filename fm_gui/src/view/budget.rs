@@ -113,6 +113,7 @@ impl Budget {
         }
 
         widget::column![
+            utils::heading("Budget", utils::HeadingLevel::H1),
             widget::row![
                 column,
                 widget::Space::with_width(iced::Length::Fill),

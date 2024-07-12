@@ -320,6 +320,7 @@ impl CreateTransactionView {
         }
 
         widget::column![
+            utils::heading("Create Transaction", utils::HeadingLevel::H1),
             utils::labeled_entry("Amount", &self.amount_input, Message::AmountInput),
             utils::labeled_entry("Title", &self.title_input, Message::TitleInput),
             utils::labeled_entry(

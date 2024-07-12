@@ -1,4 +1,4 @@
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 use fm_core;
 
 use anyhow::Result;
@@ -105,8 +105,7 @@ impl CreateBookCheckingAccount {
                                     .unwrap()
                             };
 
-                            super::account::Account::fetch(finance_manager, account.id())
-                                .await
+                            super::account::Account::fetch(finance_manager, account.id()).await
                         },
                         |view| AppMessage::SwitchView(View::ViewAccount(view)),
                     ),
@@ -118,6 +117,7 @@ impl CreateBookCheckingAccount {
 
     pub fn view(&self) -> iced::Element<'static, Message> {
         iced::widget::column![
+            utils::heading("Create Book Checking Account", utils::HeadingLevel::H1),
             iced::widget::row![
                 iced::widget::text("Name"),
                 iced::widget::text_input("Name", &self.name_input).on_input(Message::NameInput)

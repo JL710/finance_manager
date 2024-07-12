@@ -1,6 +1,6 @@
 use crate::finance_managers::FinanceManagers;
 
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 use fm_server::client::Client;
 
 use iced::widget;
@@ -105,6 +105,7 @@ impl SettingsView {
 
     pub fn view(&self) -> iced::Element<Message> {
         widget::column![
+            utils::heading("Setting", utils::HeadingLevel::H1),
             widget::text!("Current Status: {}", self.current_status),
             widget::Rule::horizontal(10),
             widget::row![

@@ -57,6 +57,7 @@ impl BillOverview {
 
     pub fn view(&self) -> iced::Element<Message> {
         widget::column![
+            utils::heading("Bill Overview", utils::HeadingLevel::H1),
             widget::button("New").on_press(Message::NewBill),
             utils::TableView::new(self.bills.clone(), |bill| [
                 utils::link(widget::text(bill.name().clone()))
@@ -74,7 +75,7 @@ impl BillOverview {
             .sort_by(|a, b, column| {
                 match column {
                     0 => a.name().cmp(b.name()),
-                    1 => a.value().get_eur_num().total_cmp(&b.value().get_eur_num()),
+                    1 => a.value().cmp(&b.value()),
                     2 => a.due_date().cmp(b.due_date()),
                     3 => a.transactions().len().cmp(&b.transactions().len()),
                     _ => {

@@ -126,6 +126,7 @@ impl FilterTransactionView {
 
     pub fn view(&self) -> iced::Element<Message> {
         iced::widget::column![
+            utils::heading("Find Transactions", utils::HeadingLevel::H1),
             iced::widget::text("Filter Transactions"),
             iced::widget::row![
                 iced::widget::text("Total: "),
@@ -155,6 +156,7 @@ impl FilterTransactionView {
                 )
             }
         ]
+        .spacing(10)
         .width(iced::Length::Fill)
         .into()
     }

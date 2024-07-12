@@ -171,6 +171,7 @@ impl Category {
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         widget::column![
+            utils::heading("Category", utils::HeadingLevel::H1),
             widget::row![
                 widget::column![
                     widget::row![

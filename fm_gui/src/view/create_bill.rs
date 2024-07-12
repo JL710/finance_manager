@@ -248,6 +248,7 @@ impl CreateBillView {
         }
 
         widget::column![
+            utils::heading("Create Bill", utils::HeadingLevel::H1),
             widget::row![
                 "Name: ",
                 widget::text_input("Name", &self.name_input).on_input(Message::NameInputChanged),
@@ -343,15 +344,22 @@ impl AddTransaction {
 
     fn view(&self) -> iced::Element<Message> {
         widget::column![
-            widget::button("Back").on_press(Message::AddTransactionToggle),
+            utils::heading("Add Transaction to Bill", utils::HeadingLevel::H1),
+            widget::button("Back to Bill Edit").on_press(Message::AddTransactionToggle),
             if let Some(filter) = &self.filter {
-                utils::FilterComponent::new(
-                    filter.clone(),
-                    Message::AddTransactionFilterSubmit,
-                    &self.accounts,
-                    &self.categories,
-                )
-                .into_element()
+                widget::column![
+                    "Create Filter for Transactions:",
+                    utils::FilterComponent::new(
+                        filter.clone(),
+                        Message::AddTransactionFilterSubmit,
+                        &self.accounts,
+                        &self.categories,
+                    )
+                    .into_element()
+                ]
+                .spacing(10)
+                .width(iced::Length::Fill)
+                .into()
             } else {
                 utils::TableView::new(self.transactions.clone(), |x| {
                     [
@@ -369,6 +377,13 @@ impl AddTransaction {
                     "Amount".to_string(),
                     "Date".to_string(),
                 ])
+                .sort_by(|a, b, column| match column {
+                    1 => a.title().cmp(&b.title()),
+                    2 => a.amount().cmp(&b.amount()),
+                    3 => a.date().cmp(&b.date()),
+                    _ => panic!(),
+                })
+                .columns_sortable([false, true, true, true])
                 .into_element()
             }
         ]

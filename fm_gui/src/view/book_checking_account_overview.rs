@@ -72,15 +72,21 @@ impl BookCheckingAccountOverview {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let table = utils::TableView::new(self.accounts.clone(), |(account, sum)| {
-            [
-                utils::link(widget::text(account.name().to_string()))
-                    .on_press(Message::ViewAccount(account.id()))
-                    .into(),
-                widget::text!("{}", sum).into(),
-            ]
-        })
-        .headers(["Account".to_string(), "Sum".to_string()]);
-        table.into_element()
+        iced::widget::column![
+            utils::heading("Book Checking Account Overview", utils::HeadingLevel::H1),
+            utils::TableView::new(self.accounts.clone(), |(account, sum)| {
+                [
+                    utils::link(widget::text(account.name().to_string()))
+                        .on_press(Message::ViewAccount(account.id()))
+                        .into(),
+                    widget::text!("{}", sum).into(),
+                ]
+            })
+            .headers(["Account".to_string(), "Sum".to_string()])
+            .into_element()
+        ]
+        .spacing(10)
+        .width(iced::Length::Fill)
+        .into()
     }
 }

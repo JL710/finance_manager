@@ -68,6 +68,7 @@ impl Bill {
 
     pub fn view(&self) -> iced::Element<Message> {
         widget::column![
+            utils::heading("Bill", utils::HeadingLevel::H1),
             widget::row![
                 widget::column![
                     widget::text!("Name: {}", self.bill.name()),
@@ -86,6 +87,7 @@ impl Bill {
                 widget::horizontal_space(),
                 widget::button("Edit").on_press(Message::Edit),
             ],
+            widget::horizontal_rule(10),
             widget::scrollable(
                 utils::TableView::new(self.transactions.clone(), |(transaction, sign)| [
                     widget::checkbox("Negative", *sign == fm_core::Sign::Negative).into(),

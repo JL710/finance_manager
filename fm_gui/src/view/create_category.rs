@@ -1,4 +1,4 @@
-use super::super::{AppMessage, View};
+use super::super::{utils, AppMessage, View};
 
 use async_std::sync::Mutex;
 use iced::widget;
@@ -64,6 +64,7 @@ impl CreateCategory {
 
     pub fn view(&self) -> iced::Element<Message> {
         widget::column![
+            utils::heading("Create Category", utils::HeadingLevel::H1),
             widget::row![
                 widget::text("Name:"),
                 widget::text_input("Name", &self.name).on_input(Message::NameInput),

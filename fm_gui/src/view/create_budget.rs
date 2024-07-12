@@ -223,6 +223,7 @@ impl CreateBudgetView {
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         widget::column![
+            utils::heading("Create Budget", utils::HeadingLevel::H1),
             utils::labeled_entry("Name", &self.name_input, Message::NameInput),
             utils::labeled_entry(
                 "Description",

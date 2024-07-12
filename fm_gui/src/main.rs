@@ -223,7 +223,7 @@ impl App {
             .spacing(10)
             .width(iced::Length::FillPortion(2)),
             iced::widget::vertical_rule(5),
-            iced::widget::column![match self.current_view {
+            iced::widget::container(match self.current_view {
                 View::Empty => iced::widget::text("comming soon").into(),
                 View::BudgetOverview(ref view) =>
                     view.view().map(AppMessage::BudgetOverViewMessage),
@@ -255,7 +255,8 @@ impl App {
                 View::CreateBill(ref view) => view.view().map(AppMessage::CreateBillMessage),
                 View::BillOverview(ref view) => view.view().map(AppMessage::BillOverviewMessage),
                 View::ViewBill(ref view) => view.view().map(AppMessage::ViewBillMessage),
-            }]
+            })
+            .padding(10)
             .width(iced::Length::FillPortion(9))
         ]
         .into()

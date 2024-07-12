@@ -55,6 +55,7 @@ impl CategoryOverview {
 
     pub fn view(&self) -> iced::Element<Message> {
         iced::widget::column![
+            utils::heading("Category Overview", utils::HeadingLevel::H1),
             iced::widget::button("New Category").on_press(Message::NewCategory),
             iced::widget::horizontal_rule(10),
             utils::TableView::new(self.categories.clone(), |category| {
@@ -67,6 +68,7 @@ impl CategoryOverview {
             .columns_sortable([true])
             .into_element()
         ]
+        .spacing(10)
         .width(iced::Length::Fill)
         .into()
     }

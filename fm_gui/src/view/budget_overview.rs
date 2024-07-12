@@ -83,20 +83,18 @@ impl BudgetOverview {
         ])
         .sort_by(|a, b, column| match column {
             0 => a.0.name().cmp(b.0.name()),
-            1 => a.1.get_eur_num().total_cmp(&b.1.get_eur_num()),
-            2 => {
-                a.0.total_value()
-                    .get_eur_num()
-                    .total_cmp(&b.0.total_value().get_eur_num())
-            }
+            1 => a.1.cmp(&b.1),
+            2 => a.0.total_value().cmp(&b.0.total_value()),
             _ => panic!(),
         })
         .columns_sortable([true, true, true]);
         widget::column![
+            utils::heading("Budget Overview", utils::HeadingLevel::H1),
             widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
             widget::horizontal_rule(10),
             budget_table.into_element(),
         ]
+        .spacing(10)
         .into()
     }
 }

@@ -169,6 +169,7 @@ fn asset_account_view<'a>(
     current_value: &fm_core::Currency,
 ) -> iced::Element<'a, Message> {
     widget::column![
+        utils::heading("Asset Account", utils::HeadingLevel::H1),
         widget::row![
             widget::column![
                 widget::text!("Account: {}", account.name()),
@@ -206,6 +207,7 @@ fn book_checking_account_view<'a>(
     current_value: &fm_core::Currency,
 ) -> iced::Element<'a, Message> {
     widget::column![
+        utils::heading("Book Checking Account", utils::HeadingLevel::H1),
         widget::row![
             widget::column![
                 widget::text!("Account: {}", account.name()),
