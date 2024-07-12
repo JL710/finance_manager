@@ -297,6 +297,10 @@ impl CreateBillView {
                 ]
             })
             .headers(["", "", "Title", "Amount", "Date",])
+            .alignment(|_, _, _| (
+                iced::alignment::Horizontal::Left,
+                iced::alignment::Vertical::Center
+            ))
             .into_element(),
             widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
             widget::button("Submit").on_press_maybe(if self.submittable() {
