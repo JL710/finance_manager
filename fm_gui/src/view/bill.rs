@@ -26,6 +26,7 @@ pub enum Message {
 #[derive(Debug, Clone)]
 pub struct Bill {
     bill: fm_core::Bill,
+    bill_sum: fm_core::Currency,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
 }
 
@@ -37,6 +38,8 @@ impl Bill {
         let locked_manager = finance_manager.lock().await;
         let bill = locked_manager.get_bill(id).await?.unwrap();
 
+        let bill_sum = locked_manager.get_bill_sum(&bill).await?;
+
         let mut transactions = Vec::new();
         for (transaction_id, sign) in bill.transactions() {
             let transaction = locked_manager
@@ -46,7 +49,11 @@ impl Bill {
             transactions.push((transaction, *sign));
         }
 
-        Ok(Self { bill, transactions })
+        Ok(Self {
+            bill,
+            transactions,
+            bill_sum,
+        })
     }
 
     pub fn update(
@@ -83,6 +90,8 @@ impl Bill {
                             .due_date()
                             .map_or(String::new(), |d| d.format("%d.%m.%Y").to_string())
                     ),
+                    widget::row!["Sum: ", utils::colored_currency_display(&self.bill_sum),]
+                        .spacing(10)
                 ],
                 widget::horizontal_space(),
                 widget::button("Edit").on_press(Message::Edit),

@@ -481,6 +481,30 @@ fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
 }
 
 pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
+    fn get_bill_sum(
+        &self,
+        bill: &Bill,
+    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
+        let transactions = bill
+            .transactions()
+            .clone()
+            .into_iter()
+            .map(|(id, sign)| (self.get_transaction(id), sign))
+            .collect::<Vec<_>>();
+
+        async move {
+            let mut sum = Currency::Eur(0.0);
+            for (transaction_future, sign) in transactions {
+                let transaction = transaction_future.await?.unwrap();
+                match sign {
+                    Sign::Positive => sum += transaction.amount(),
+                    Sign::Negative => sum -= transaction.amount(),
+                }
+            }
+            Ok(sum)
+        }
+    }
+
     fn get_bills(&self) -> impl futures::Future<Output = Result<Vec<Bill>>> + MaybeSend;
 
     fn get_bill(&self, id: &Id) -> impl futures::Future<Output = Result<Option<Bill>>> + MaybeSend;
