@@ -62,6 +62,36 @@ impl Currency {
     }
 }
 
+impl PartialOrd for Currency {
+    fn ge(&self, other: &Self) -> bool {
+        self.get_eur_num() >= other.get_eur_num()
+    }
+
+    fn gt(&self, other: &Self) -> bool {
+        self.get_eur_num() > other.get_eur_num()
+    }
+
+    fn le(&self, other: &Self) -> bool {
+        self.get_eur_num() <= other.get_eur_num()
+    }
+
+    fn lt(&self, other: &Self) -> bool {
+        self.get_eur_num() < other.get_eur_num()
+    }
+
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Currency {}
+
+impl Ord for Currency {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.get_eur_num().total_cmp(&other.get_eur_num())
+    }
+}
+
 impl std::fmt::Display for Currency {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
