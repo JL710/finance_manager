@@ -59,10 +59,8 @@ impl BillOverview {
         widget::column![
             widget::button("New").on_press(Message::NewBill),
             utils::TableView::new(self.bills.clone(), |bill| [
-                widget::button(widget::text(bill.name().clone()))
+                utils::link(widget::text(bill.name().clone()))
                     .on_press(Message::ViewBill(*bill.id()))
-                    .style(utils::style::button_link_style)
-                    .padding(0)
                     .into(),
                 widget::text!("{}€", bill.value().to_num_string()).into(),
                 widget::text(

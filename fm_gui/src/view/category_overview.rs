@@ -54,22 +54,18 @@ impl CategoryOverview {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let table = utils::TableView::new(self.categories.clone(), |category| {
-            [
-                iced::widget::button(iced::widget::text(category.name().to_string()))
-                    .on_press(Message::ViewCategory(*category.id()))
-                    .style(utils::style::button_link_style)
-                    .padding(0)
-                    .into(),
-            ]
-        })
-        .headers(["Name".to_string()])
-        .sort_by(|a, b, _| a.name().cmp(b.name()))
-        .columns_sortable([true]);
         iced::widget::column![
             iced::widget::button("New Category").on_press(Message::NewCategory),
             iced::widget::horizontal_rule(10),
-            table.into_element()
+            utils::TableView::new(self.categories.clone(), |category| {
+                [utils::link(iced::widget::text(category.name().to_string()))
+                    .on_press(Message::ViewCategory(*category.id()))
+                    .into()]
+            })
+            .headers(["Name".to_string()])
+            .sort_by(|a, b, _| a.name().cmp(b.name()))
+            .columns_sortable([true])
+            .into_element()
         ]
         .width(iced::Length::Fill)
         .into()

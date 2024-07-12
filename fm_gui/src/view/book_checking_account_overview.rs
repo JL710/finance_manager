@@ -74,12 +74,10 @@ impl BookCheckingAccountOverview {
     pub fn view(&self) -> iced::Element<Message> {
         let table = utils::TableView::new(self.accounts.clone(), |(account, sum)| {
             [
-                widget::button(widget::text(account.name().to_string()))
-                    .style(utils::style::button_link_style)
-                    .padding(0)
+                utils::link(widget::text(account.name().to_string()))
                     .on_press(Message::ViewAccount(account.id()))
                     .into(),
-                widget::text(format!("{}", sum)).into(),
+                widget::text!("{}", sum).into(),
             ]
         })
         .headers(["Account".to_string(), "Sum".to_string()]);

@@ -129,12 +129,12 @@ impl FilterTransactionView {
             iced::widget::text("Filter Transactions"),
             iced::widget::row![
                 iced::widget::text("Total: "),
-                iced::widget::text(format!(
+                iced::widget::text!(
                     "{}",
                     self.sums
                         .last()
                         .map_or(fm_core::Currency::Eur(0.0), |x| x.1.clone())
-                ))
+                )
             ],
             iced::widget::button(iced::widget::text("Edit Filter"))
                 .on_press(Message::ToggleEditFilter),

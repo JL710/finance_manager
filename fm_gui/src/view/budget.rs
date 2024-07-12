@@ -101,15 +101,15 @@ impl Budget {
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         let mut column = widget::column![
-            widget::text(format!("Name: {}", self.budget.name())),
-            widget::text(format!("Total Value: {}", self.budget.total_value())),
-            widget::text(format!("Current Value: {}", self.current_value)),
-            widget::text(format!("Recouring: {}", self.budget.timespan()))
+            widget::text!("Name: {}", self.budget.name()),
+            widget::text!("Total Value: {}", self.budget.total_value()),
+            widget::text!("Current Value: {}", self.current_value),
+            widget::text!("Recouring: {}", self.budget.timespan())
         ]
         .spacing(10);
 
         if let Some(content) = self.budget.description() {
-            column = column.push(widget::text(format!("Description: {}", content)));
+            column = column.push(widget::text!("Description: {}", content));
         }
 
         widget::column![

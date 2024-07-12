@@ -69,13 +69,11 @@ impl BudgetOverview {
     pub fn view(&self) -> iced::Element<'_, Message> {
         let budget_table = utils::TableView::new(self.budgets.clone(), |budget| {
             [
-                widget::button(widget::text(budget.0.name().to_string()))
+                utils::link(widget::text(budget.0.name().to_string()))
                     .on_press(Message::ViewBudget(*budget.0.id()))
-                    .padding(0)
-                    .style(utils::style::button_link_style)
                     .into(),
-                widget::text(format!("{}", &budget.1)).into(),
-                widget::text(format!("{}", budget.0.total_value())).into(),
+                widget::text!("{}", &budget.1).into(),
+                widget::text!("{}", budget.0.total_value()).into(),
             ]
         })
         .headers([

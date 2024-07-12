@@ -105,7 +105,7 @@ impl SettingsView {
 
     pub fn view(&self) -> iced::Element<Message> {
         widget::column![
-            widget::text(format!("Current Status: {}", self.current_status)),
+            widget::text!("Current Status: {}", self.current_status),
             widget::Rule::horizontal(10),
             widget::row![
                 widget::text("API URL:"),

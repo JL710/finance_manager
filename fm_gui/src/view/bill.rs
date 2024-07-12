@@ -89,9 +89,7 @@ impl Bill {
             widget::scrollable(
                 utils::TableView::new(self.transactions.clone(), |(transaction, sign)| [
                     widget::checkbox("Negative", *sign == fm_core::Sign::Negative).into(),
-                    widget::button(widget::text(transaction.title().clone()))
-                        .style(utils::style::button_link_style)
-                        .padding(0)
+                    utils::link(widget::text(transaction.title().clone()))
                         .on_press(Message::ViewTransaction(*transaction.id()))
                         .into(),
                     widget::text(

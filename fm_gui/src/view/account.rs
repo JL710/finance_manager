@@ -171,11 +171,11 @@ fn asset_account_view<'a>(
     widget::column![
         widget::row![
             widget::column![
-                widget::text(format!("Account: {}", account.name())),
-                widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
-                widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
-                widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
-                widget::text(format!("Offset: {}", account.offset())),
+                widget::text!("Account: {}", account.name()),
+                widget::text!("Notes: {}", account.note().unwrap_or("")),
+                widget::text!("IBAN: {}", account.iban().unwrap_or("")),
+                widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
+                widget::text!("Offset: {}", account.offset()),
                 widget::row![
                     widget::text("Current Amount: "),
                     utils::colored_currency_display(current_value)
@@ -208,10 +208,10 @@ fn book_checking_account_view<'a>(
     widget::column![
         widget::row![
             widget::column![
-                widget::text(format!("Account: {}", account.name())),
-                widget::text(format!("Notes: {}", account.note().unwrap_or(""))),
-                widget::text(format!("IBAN: {}", account.iban().unwrap_or(""))),
-                widget::text(format!("BIC/Swift: {}", account.bic().unwrap_or(""))),
+                widget::text!("Account: {}", account.name()),
+                widget::text!("Notes: {}", account.note().unwrap_or("")),
+                widget::text!("IBAN: {}", account.iban().unwrap_or("")),
+                widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
                 widget::row![
                     widget::text("Current Amount: "),
                     utils::colored_currency_display(current_value)

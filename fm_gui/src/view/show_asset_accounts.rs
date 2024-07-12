@@ -84,10 +84,8 @@ impl AssetAccountOverview {
     pub fn view(&self) -> iced::Element<'_, Message> {
         let account_table = utils::TableView::new(self.accounts.clone(), |account| {
             [
-                widget::button(widget::text(account.0.name().to_string()))
+                utils::link(widget::text(account.0.name().to_string()))
                     .on_press(Message::AccountView(account.0.clone()))
-                    .padding(0)
-                    .style(utils::style::button_link_style)
                     .into(),
                 utils::colored_currency_display(&account.1),
             ]

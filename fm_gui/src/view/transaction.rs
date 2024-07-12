@@ -124,26 +124,19 @@ impl Transaction {
                 widget::text("Value: "),
                 utils::colored_currency_display(&self.transaction.amount())
             ],
-            widget::text(format!("Name: {}", self.transaction.title())),
-            widget::button(widget::text(format!("Source: {}", self.source)))
-                .padding(0)
-                .style(utils::style::button_link_style)
+            widget::text!("Name: {}", self.transaction.title()),
+            utils::link(widget::text!("Source: {}", self.source))
                 .on_press(Message::ViewAccount(*self.source.id())),
-            widget::button(widget::text(format!("Destination: {}", self.destination)))
-                .padding(0)
-                .style(utils::style::button_link_style)
+            utils::link(widget::text!("Destination: {}", self.destination))
                 .on_press(Message::ViewAccount(*self.source.id())),
-            widget::text(format!(
-                "Date: {}",
-                self.transaction.date().format("%d.%m.%Y")
-            )),
+            widget::text!("Date: {}", self.transaction.date().format("%d.%m.%Y")),
         ]
         .spacing(10);
 
         if let Some(budget) = &self.budget {
             column = column.push(
                 widget::row![
-                    widget::text(format!("Budget: {}", budget.name())),
+                    widget::text!("Budget: {}", budget.name()),
                     widget::checkbox(
                         "Negative",
                         self.transaction

@@ -38,13 +38,13 @@ pub fn colored_currency_display<Message>(
     value: &fm_core::Currency,
 ) -> iced::Element<'static, Message> {
     if value.get_eur_num() < 0.0 {
-        widget::text(format!("{}", value))
+        widget::text!("{}", value)
             .style(|theme: &iced::Theme| widget::text::Style {
                 color: Some(theme.palette().danger),
             })
             .into()
     } else {
-        widget::text(format!("+{}", value))
+        widget::text!("+{}", value)
             .style(|theme: &iced::Theme| widget::text::Style {
                 color: Some(theme.palette().success),
             })
@@ -82,10 +82,8 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
             fm_core::account::Account,
         )| {
             [
-                widget::button(widget::text(transaction.title().clone()))
+                link(widget::text(transaction.title().clone()))
                     .on_press(view_transaction(*transaction.id()))
-                    .style(style::button_link_style)
-                    .padding(0)
                     .into(),
                 widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
                 match amount_color(transaction.clone()) {
@@ -93,15 +91,11 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
                     Some(false) => colored_currency_display(&transaction.amount().negative()),
                     None => widget::text(transaction.amount().to_string()).into(),
                 },
-                widget::button(widget::text(source.to_string().clone()))
+                link(widget::text(source.to_string().clone()))
                     .on_press(view_account(*source.id()))
-                    .style(style::button_link_style)
-                    .padding(0)
                     .into(),
-                widget::button(widget::text(destination.to_string().clone()))
+                link(widget::text(destination.to_string().clone()))
                     .on_press(view_account(*destination.id()))
-                    .style(style::button_link_style)
-                    .padding(0)
                     .into(),
                 widget::text(transaction.categories().len().to_string()).into(),
             ]
@@ -127,4 +121,12 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
     });
 
     table.into_element()
+}
+
+pub fn link<'a, Message>(
+    content: impl Into<iced::Element<'a, Message>>,
+) -> iced::widget::Button<'a, Message> {
+    iced::widget::button(content)
+        .padding(0)
+        .style(style::button_link_style)
 }
