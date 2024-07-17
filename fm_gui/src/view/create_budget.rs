@@ -174,7 +174,7 @@ impl CreateBudgetView {
                                     .await
                                     .unwrap(),
                             };
-                            super::budget::Budget::fetch(*budget.id(), finance_manager)
+                            super::budget::Budget::fetch(*budget.id(), 0, finance_manager)
                                 .await
                                 .unwrap()
                         },

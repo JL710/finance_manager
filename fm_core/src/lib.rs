@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{Datelike, TimeZone};
+use chrono::{Datelike, TimeZone, Timelike};
 use std::collections::HashMap;
 
 pub mod account;
@@ -731,71 +731,27 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         timespan: Timespan,
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
-    fn get_current_budget_transactions(
+    /// Gets the transactions of the budget at the current timespan if the offset is 0.
+    ///
+    /// If the offset is positive the timespan is in the future. If the offset is negative the timespan is in the past.
+    fn get_budget_transactions(
         &self,
         budget: &Budget,
+        offset: i32,
     ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend {
-        let (start, end) = match budget.timespan() {
-            Recouring::Days(start, days) => {
-                let since_start = chrono::Utc::now() - start;
-                let a: i64 = since_start.num_days() / *days as i64;
-                let timespan_start = *start + chrono::Duration::days(a * *days as i64);
-                let timespan_end = timespan_start + chrono::Duration::days(*days as i64);
-                (timespan_start, timespan_end)
-            }
-            Recouring::DayInMonth(day) => {
-                let now = chrono::Utc::now();
-                let day_in_current_month = now.with_day(*day as u32).unwrap();
-                if day_in_current_month > now {
-                    (
-                        now.with_day(*day as u32)
-                            .unwrap()
-                            .with_month(now.month() - 1)
-                            .unwrap(),
-                        now.with_day(*day as u32).unwrap(),
-                    )
-                } else {
-                    (
-                        now.with_day(*day as u32).unwrap(),
-                        now.with_day(*day as u32)
-                            .unwrap()
-                            .with_month(now.month() + 1)
-                            .unwrap(),
-                    )
-                }
-            }
-            Recouring::Yearly(month, day) => {
-                let current_year = chrono::Utc::now().year();
-                let in_current_year = chrono::Utc
-                    .with_ymd_and_hms(current_year, *month as u32, *day as u32, 0, 0, 0)
-                    .unwrap();
-
-                if in_current_year > chrono::Utc::now() {
-                    (
-                        chrono::Utc
-                            .with_ymd_and_hms(current_year - 1, *month as u32, *day as u32, 0, 0, 0)
-                            .unwrap(),
-                        in_current_year,
-                    )
-                } else {
-                    (
-                        in_current_year,
-                        chrono::Utc
-                            .with_ymd_and_hms(current_year + 1, *month as u32, *day as u32, 0, 0, 0)
-                            .unwrap(),
-                    )
-                }
-            }
-        };
-
-        self.get_transactions_of_budget(*budget.id(), (Some(start), Some(end)))
+        let timespan = calculate_budget_timespan(budget, offset, chrono::Utc::now());
+        self.get_transactions_of_budget(*budget.id(), timespan)
     }
 
-    fn get_current_budget_value(
+    /// Gets the value of the budget at the current timespan if the offset is 0.
+    ///
+    /// If the offset is positive the timespan is in the future. If the offset is negative the timespan is in the past.
+    fn get_budget_value(
         &self,
         budget: &Budget,
+        offset: i32,
     ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
-        let transactions_future = self.get_current_budget_transactions(budget);
+        let transactions_future = self.get_budget_transactions(budget, offset);
         async {
             let transactions = transactions_future.await?;
             let mut sum = Currency::Eur(0.0);
@@ -915,4 +871,148 @@ pub fn sum_up_transactions_by_day(
     }
 
     values
+}
+
+pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) -> Timespan {
+    let now: chrono::prelude::DateTime<chrono::prelude::Utc> = now
+        .with_hour(0)
+        .unwrap()
+        .with_minute(0)
+        .unwrap()
+        .with_second(0)
+        .unwrap()
+        .with_nanosecond(0)
+        .unwrap();
+
+    let (start, end) = match budget.timespan() {
+        Recouring::Days(start, days) => {
+            let since_start = now - start;
+            let a: i64 = since_start.num_days() / *days as i64;
+            let timespan_start = *start + chrono::Duration::days(a * *days as i64);
+            let timespan_end = timespan_start + chrono::Duration::days(*days as i64);
+            (timespan_start, timespan_end)
+        }
+        Recouring::DayInMonth(day) => {
+            let now = now;
+            let day_in_current_month = now.with_day(*day as u32).unwrap();
+            if day_in_current_month > now {
+                (
+                    now.with_day(*day as u32)
+                        .unwrap()
+                        .with_month(now.month() - 1)
+                        .unwrap(),
+                    now.with_day(*day as u32).unwrap(),
+                )
+            } else {
+                (
+                    now.with_day(*day as u32).unwrap(),
+                    now.with_day(*day as u32)
+                        .unwrap()
+                        .with_month(now.month() + 1)
+                        .unwrap(),
+                )
+            }
+        }
+        Recouring::Yearly(month, day) => {
+            let current_year = now.year();
+            let in_current_year = chrono::Utc
+                .with_ymd_and_hms(current_year, *month as u32, *day as u32, 0, 0, 0)
+                .unwrap();
+
+            if in_current_year > now {
+                (
+                    chrono::Utc
+                        .with_ymd_and_hms(current_year - 1, *month as u32, *day as u32, 0, 0, 0)
+                        .unwrap(),
+                    in_current_year,
+                )
+            } else {
+                (
+                    in_current_year,
+                    chrono::Utc
+                        .with_ymd_and_hms(current_year + 1, *month as u32, *day as u32, 0, 0, 0)
+                        .unwrap(),
+                )
+            }
+        }
+    };
+
+    if offset == 0 {
+        (Some(start), Some(end))
+    } else if offset > 0 {
+        calculate_budget_timespan(budget, offset - 1, end + chrono::Duration::days(1))
+    } else {
+        calculate_budget_timespan(budget, offset + 1, start - chrono::Duration::days(1))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_budget_timespan() {
+        let timespan = calculate_budget_timespan(
+            &Budget::new(
+                0,
+                "Test".to_string(),
+                None,
+                Currency::Eur(0.0),
+                Recouring::DayInMonth(1),
+            ),
+            0,
+            chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),
+        );
+        assert_eq!(
+            timespan,
+            (
+                Some(chrono::Utc.with_ymd_and_hms(2020, 5, 1, 0, 0, 0).unwrap()),
+                Some(chrono::Utc.with_ymd_and_hms(2020, 6, 1, 0, 0, 0).unwrap())
+            )
+        );
+    }
+
+    #[test]
+    fn test_calculate_budget_timespan_positive_offset() {
+        let timespan = calculate_budget_timespan(
+            &Budget::new(
+                0,
+                "Test".to_string(),
+                None,
+                Currency::Eur(0.0),
+                Recouring::DayInMonth(1),
+            ),
+            2,
+            chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),
+        );
+        assert_eq!(
+            timespan,
+            (
+                Some(chrono::Utc.with_ymd_and_hms(2020, 7, 1, 0, 0, 0).unwrap()),
+                Some(chrono::Utc.with_ymd_and_hms(2020, 8, 1, 0, 0, 0).unwrap())
+            )
+        );
+    }
+
+    #[test]
+    fn test_calculate_budget_timespan_negative_offset() {
+        let timespan = calculate_budget_timespan(
+            &Budget::new(
+                0,
+                "Test".to_string(),
+                None,
+                Currency::Eur(0.0),
+                Recouring::DayInMonth(1),
+            ),
+            -2,
+            chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),
+        );
+        assert_eq!(
+            timespan,
+            (
+                Some(chrono::Utc.with_ymd_and_hms(2020, 3, 1, 0, 0, 0).unwrap()),
+                Some(chrono::Utc.with_ymd_and_hms(2020, 4, 1, 0, 0, 0).unwrap())
+            )
+        );
+    }
 }

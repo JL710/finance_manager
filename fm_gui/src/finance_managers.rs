@@ -521,27 +521,29 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
-    async fn get_current_budget_transactions(
+    async fn get_budget_transactions(
         &self,
         budget: &fm_core::Budget,
+        offset: i32,
     ) -> Result<Vec<fm_core::Transaction>> {
         match self {
-            FinanceManagers::Server(client) => client.get_current_budget_transactions(budget).await,
+            FinanceManagers::Server(client) => client.get_budget_transactions(budget, offset).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => sqlite.get_current_budget_transactions(budget).await,
-            FinanceManagers::Ram(ram) => ram.get_current_budget_transactions(budget).await,
+            FinanceManagers::Sqlite(sqlite) => sqlite.get_budget_transactions(budget, offset).await,
+            FinanceManagers::Ram(ram) => ram.get_budget_transactions(budget, offset).await,
         }
     }
 
-    async fn get_current_budget_value(
+    async fn get_budget_value(
         &self,
         budget: &fm_core::Budget,
+        offset: i32,
     ) -> Result<fm_core::Currency> {
         match self {
-            FinanceManagers::Server(client) => client.get_current_budget_value(budget).await,
+            FinanceManagers::Server(client) => client.get_budget_value(budget, offset).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => sqlite.get_current_budget_value(budget).await,
-            FinanceManagers::Ram(ram) => ram.get_current_budget_value(budget).await,
+            FinanceManagers::Sqlite(sqlite) => sqlite.get_budget_value(budget, offset).await,
+            FinanceManagers::Ram(ram) => ram.get_budget_value(budget, offset).await,
         }
     }
 

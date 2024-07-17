@@ -37,10 +37,7 @@ impl BudgetOverview {
         let mut tuples = Vec::new();
 
         for budget in budgets {
-            let current_value = locked_manager
-                .get_current_budget_value(&budget)
-                .await
-                .unwrap();
+            let current_value = locked_manager.get_budget_value(&budget, 0).await.unwrap();
             tuples.push((budget, current_value));
         }
 

@@ -8,7 +8,7 @@ pub fn switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(Budget::fetch(id, finance_manager), |result| {
+    iced::Task::perform(Budget::fetch(id, 0, finance_manager), |result| {
         AppMessage::SwitchView(View::ViewBudgetView(result.unwrap()))
     })
 }
@@ -18,6 +18,8 @@ pub enum Message {
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
     Edit,
+    IncreaseOffset,
+    DecreaseOffset,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +31,8 @@ pub struct Budget {
         fm_core::account::Account,
         fm_core::account::Account,
     )>,
+    offset: i32,
+    time_span: fm_core::Timespan,
 }
 
 impl Budget {
@@ -40,29 +44,34 @@ impl Budget {
             fm_core::account::Account,
             fm_core::account::Account,
         )>,
+        offset: i32,
     ) -> Self {
+        let timespan = fm_core::calculate_budget_timespan(&budget, offset, chrono::Utc::now());
         Self {
             budget,
             current_value,
             transactions,
+            offset,
+            time_span: timespan,
         }
     }
 
     pub async fn fetch(
         id: fm_core::Id,
+        offset: i32,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> Result<Self> {
         let locked_manager = finance_manager.lock().await;
         let budget = locked_manager.get_budget(id).await?.unwrap();
         let transactions = locked_manager
-            .get_current_budget_transactions(&budget)
+            .get_budget_transactions(&budget, offset)
             .await?;
         let mut current_value = fm_core::Currency::Eur(0.0);
         for transaction in &transactions {
             current_value += transaction.amount();
         }
 
-        let mut transactop_tuples = Vec::new();
+        let mut transaction_tuples = Vec::new();
         for transaction in transactions {
             let source = locked_manager
                 .get_account(*transaction.source())
@@ -72,10 +81,10 @@ impl Budget {
                 .get_account(*transaction.destination())
                 .await?
                 .unwrap();
-            transactop_tuples.push((transaction, source, destination));
+            transaction_tuples.push((transaction, source, destination));
         }
 
-        Ok(Self::new(budget, current_value, transactop_tuples))
+        Ok(Self::new(budget, current_value, transaction_tuples, offset))
     }
 
     pub fn update(
@@ -96,11 +105,53 @@ impl Budget {
                 Some(View::Empty),
                 super::create_budget::switch_view_command_edit(*self.budget.id(), finance_manager),
             ),
+            Message::IncreaseOffset => {
+                self.offset += 1;
+                self.time_span = fm_core::calculate_budget_timespan(
+                    &self.budget,
+                    self.offset,
+                    chrono::Utc::now(),
+                );
+                (
+                    None,
+                    iced::Task::perform(
+                        Self::fetch(*self.budget.id(), self.offset, finance_manager),
+                        |result| AppMessage::SwitchView(View::ViewBudgetView(result.unwrap())),
+                    ),
+                )
+            }
+            Message::DecreaseOffset => {
+                self.offset -= 1;
+                self.time_span = fm_core::calculate_budget_timespan(
+                    &self.budget,
+                    self.offset,
+                    chrono::Utc::now(),
+                );
+                (
+                    None,
+                    iced::Task::perform(
+                        Self::fetch(*self.budget.id(), self.offset, finance_manager),
+                        |result| AppMessage::SwitchView(View::ViewBudgetView(result.unwrap())),
+                    ),
+                )
+            }
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         let mut column = widget::column![
+            widget::row![
+                widget::button("<").on_press(Message::DecreaseOffset),
+                widget::text!("Offset: {}", self.offset),
+                widget::text!(
+                    "Time Span: {} - {}",
+                    self.time_span.0.unwrap().format("%d.%m.%Y").to_string(),
+                    self.time_span.1.unwrap().format("%d.%m.%Y").to_string()
+                ),
+                widget::button(">").on_press(Message::IncreaseOffset),
+            ]
+            .align_items(iced::Alignment::Center)
+            .spacing(10),
             widget::text!("Name: {}", self.budget.name()),
             widget::text!("Total Value: {}", self.budget.total_value()),
             widget::text!("Current Value: {}", self.current_value),
