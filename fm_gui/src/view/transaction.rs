@@ -128,7 +128,7 @@ impl Transaction {
             utils::link(widget::text!("Source: {}", self.source))
                 .on_press(Message::ViewAccount(*self.source.id())),
             utils::link(widget::text!("Destination: {}", self.destination))
-                .on_press(Message::ViewAccount(*self.source.id())),
+                .on_press(Message::ViewAccount(*self.destination.id())),
             widget::text!("Date: {}", self.transaction.date().format("%d.%m.%Y")),
         ]
         .spacing(10);

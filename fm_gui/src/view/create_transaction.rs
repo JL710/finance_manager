@@ -266,7 +266,6 @@ impl CreateTransactionView {
             Message::ChangeSelectedCategorySign(id, sign) => {
                 if let Some(x) = self.selected_categories.iter_mut().find(|x| x.0 == id) {
                     x.1 = sign;
-                    println!("asd");
                 }
             }
             Message::BudgetSignChange(x) => {
