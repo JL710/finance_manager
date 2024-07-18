@@ -893,7 +893,6 @@ pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) ->
             (timespan_start, timespan_end)
         }
         Recouring::DayInMonth(day) => {
-            let now = now;
             let day_in_current_month = now.with_day(*day as u32).unwrap();
             if day_in_current_month > now {
                 (
@@ -936,13 +935,14 @@ pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) ->
             }
         }
     };
-
-    if offset == 0 {
-        (Some(start), Some(end))
-    } else if offset > 0 {
-        calculate_budget_timespan(budget, offset - 1, end + chrono::Duration::days(1))
-    } else {
-        calculate_budget_timespan(budget, offset + 1, start - chrono::Duration::days(1))
+    match offset.cmp(&0) {
+        std::cmp::Ordering::Equal => (Some(start), Some(end - chrono::TimeDelta::seconds(1))),
+        std::cmp::Ordering::Greater => {
+            calculate_budget_timespan(budget, offset - 1, end + chrono::Duration::days(1))
+        }
+        std::cmp::Ordering::Less => {
+            calculate_budget_timespan(budget, offset + 1, start - chrono::Duration::days(1))
+        }
     }
 }
 
@@ -967,7 +967,11 @@ mod tests {
             timespan,
             (
                 Some(chrono::Utc.with_ymd_and_hms(2020, 5, 1, 0, 0, 0).unwrap()),
-                Some(chrono::Utc.with_ymd_and_hms(2020, 6, 1, 0, 0, 0).unwrap())
+                Some(
+                    chrono::Utc
+                        .with_ymd_and_hms(2020, 5, 31, 23, 59, 59)
+                        .unwrap()
+                )
             )
         );
     }
@@ -989,7 +993,11 @@ mod tests {
             timespan,
             (
                 Some(chrono::Utc.with_ymd_and_hms(2020, 7, 1, 0, 0, 0).unwrap()),
-                Some(chrono::Utc.with_ymd_and_hms(2020, 8, 1, 0, 0, 0).unwrap())
+                Some(
+                    chrono::Utc
+                        .with_ymd_and_hms(2020, 7, 31, 23, 59, 59)
+                        .unwrap()
+                )
             )
         );
     }
@@ -1011,7 +1019,11 @@ mod tests {
             timespan,
             (
                 Some(chrono::Utc.with_ymd_and_hms(2020, 3, 1, 0, 0, 0).unwrap()),
-                Some(chrono::Utc.with_ymd_and_hms(2020, 4, 1, 0, 0, 0).unwrap())
+                Some(
+                    chrono::Utc
+                        .with_ymd_and_hms(2020, 3, 31, 23, 59, 59)
+                        .unwrap()
+                )
             )
         );
     }
