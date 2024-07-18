@@ -191,7 +191,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                     widget::horizontal_space(),
                     widget::button("Delete").on_press(ComponentMessage::DeleteAccount(*filter))
                 ])
-                .align_items(iced::Alignment::Center)
+                .align_y(iced::Alignment::Center)
                 .spacing(30),
             );
         }
@@ -261,7 +261,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                     widget::horizontal_space(),
                     widget::button("Delete").on_press(ComponentMessage::DeleteCategory(*filter))
                 ])
-                .align_items(iced::Alignment::Center)
+                .align_y(iced::Alignment::Center)
                 .spacing(30),
             );
         }
@@ -282,7 +282,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                     widget::horizontal_rule(3)
                 ]
                 .spacing(10)
-                .align_items(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center),
                 widget::container(widget::scrollable(account_column.width(iced::Length::Fill)))
                     .max_height(150),
                 widget::row![
@@ -291,7 +291,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                     widget::horizontal_rule(3)
                 ]
                 .spacing(10)
-                .align_items(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center),
                 widget::container(widget::scrollable(
                     category_column.width(iced::Length::Fill)
                 ))

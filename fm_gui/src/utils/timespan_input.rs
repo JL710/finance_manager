@@ -97,7 +97,7 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
             status: widget::text_input::Status,
         ) -> widget::text_input::Style {
             let mut style = widget::text_input::default(theme, status);
-            style.border = style.border.with_color(theme.palette().danger);
+            style.border = style.border.color(theme.palette().danger);
             style
         }
 
@@ -139,7 +139,7 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
             })
             .on_input(TimespanInputMsg::SetEnd),
         ]
-        .align_items(iced::Alignment::Center)
+        .align_y(iced::Alignment::Center)
         .width(iced::Length::Fixed(300.0))
         .into()
     }

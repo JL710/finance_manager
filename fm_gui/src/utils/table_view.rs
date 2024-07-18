@@ -197,7 +197,7 @@ where
                             None
                         })
                         .spacing(10)
-                        .align_items(iced::Alignment::Center)
+                        .align_y(iced::Alignment::Center)
                         .width(iced::Length::FillPortion(1)),
                 );
             }

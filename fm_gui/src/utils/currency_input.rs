@@ -55,7 +55,7 @@ impl<Message: Clone> iced::widget::Component<Message> for CurrencyInput<Message>
                 }),
             "€",
         ]
-        .align_items(iced::Alignment::Center)
+        .align_y(iced::Alignment::Center)
         .spacing(10)
         .into()
     }

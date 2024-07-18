@@ -150,7 +150,7 @@ impl Budget {
                 ),
                 widget::button(">").on_press(Message::IncreaseOffset),
             ]
-            .align_items(iced::Alignment::Center)
+            .align_y(iced::Alignment::Center)
             .spacing(10),
             widget::text!("Name: {}", self.budget.name()),
             widget::text!("Total Value: {}", self.budget.total_value()),

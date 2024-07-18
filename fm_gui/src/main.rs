@@ -219,7 +219,7 @@ impl App {
                     .width(iced::Length::Fill)
                     .on_press(AppMessage::SwitchToSettingsView),
             ]
-            .align_items(iced::Alignment::Start)
+            .align_x(iced::Alignment::Start)
             .spacing(10)
             .width(iced::Length::FillPortion(2)),
             iced::widget::vertical_rule(5),
