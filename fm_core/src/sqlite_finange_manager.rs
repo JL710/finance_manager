@@ -305,7 +305,7 @@ impl super::PrivateFinanceManager for SqliteFinanceManager {
         let connection = self.connect()?;
 
         connection.execute(
-            "UPDATE bill SET name=?1, description=2, value=?3, value_currency=?4, due_date=?5 WHERE id=?6",
+            "UPDATE bill SET name=?1, description=?2, value=?3, value_currency=?4, due_date=?5 WHERE id=?6",
             (
                 &name,
                 description,
