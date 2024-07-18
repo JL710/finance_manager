@@ -79,10 +79,10 @@ impl Bill {
             widget::row![
                 widget::column![
                     widget::text!("Name: {}", self.bill.name()),
-                    widget::text!(
-                        "Description: {}",
-                        self.bill.description().clone().unwrap_or_default()
-                    ),
+                    widget::row![
+                        "Description: ",
+                        widget::text(self.bill.description().clone().unwrap_or_default())
+                    ],
                     widget::text!("Amount: {}€", self.bill.value().to_num_string()),
                     widget::text!(
                         "Due Date: {}",

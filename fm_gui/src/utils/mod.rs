@@ -4,6 +4,7 @@ use iced::widget;
 mod currency_input;
 mod date_input;
 mod filter_component;
+pub mod multiline_text_input;
 pub mod style;
 mod table_view;
 mod timespan_input;
