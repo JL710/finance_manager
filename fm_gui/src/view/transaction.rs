@@ -22,6 +22,7 @@ pub enum Message {
     Edit,
     Delete,
     ViewAccount(fm_core::Id),
+    ViewBudget(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -115,6 +116,13 @@ impl Transaction {
                     super::account::switch_view_command(id, finance_manager),
                 )
             }
+            Message::ViewBudget(budget) => {
+                let id = budget;
+                (
+                    Some(View::Empty),
+                    super::budget::switch_view_command(id, finance_manager),
+                )
+            }
         }
     }
 
@@ -136,7 +144,8 @@ impl Transaction {
         if let Some(budget) = &self.budget {
             column = column.push(
                 widget::row![
-                    widget::text!("Budget: {}", budget.name()),
+                    utils::link(widget::text!("Budget: {}", budget.name()))
+                        .on_press(Message::ViewBudget(*budget.id())),
                     widget::checkbox(
                         "Negative",
                         self.transaction

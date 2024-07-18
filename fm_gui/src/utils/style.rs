@@ -14,11 +14,15 @@ pub fn container_style_background_strong(theme: &iced::Theme) -> widget::contain
 
 pub fn button_link_style(
     theme: &iced::Theme,
-    _status: widget::button::Status,
+    status: widget::button::Status,
 ) -> widget::button::Style {
     widget::button::Style {
         background: None,
-        text_color: theme.palette().text,
+        text_color: if status == widget::button::Status::Hovered {
+            theme.palette().text.scale_alpha(0.5)
+        } else {
+            theme.palette().text
+        },
         ..Default::default()
     }
 }
