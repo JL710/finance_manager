@@ -56,7 +56,7 @@ impl BillOverview {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> Action {
         match message {
             Message::Initialize(bills) => {

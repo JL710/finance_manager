@@ -105,7 +105,17 @@ impl App {
         match message {
             AppMessage::SwitchView(view) => self.current_view = view,
             AppMessage::BudgetOverViewMessage(m) => {
-                message_match!(self, m, View::BudgetOverview);
+                match message_match_action!(self, m, View::BudgetOverview) {
+                    view::budget_overview::Action::None => {}
+                    view::budget_overview::Action::ViewBudget(id) => {
+                        return view::budget::switch_view_command(id, self.finance_manager.clone());
+                    }
+                    view::budget_overview::Action::CreateBudget => {
+                        self.current_view = View::CreateBudgetView(
+                            view::create_budget::CreateBudgetView::default(),
+                        );
+                    }
+                }
             }
             AppMessage::SwitchToBudgetOverview => {
                 return view::budget_overview::switch_view_command(self.finance_manager.clone())

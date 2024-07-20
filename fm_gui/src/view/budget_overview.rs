@@ -2,23 +2,28 @@ use super::super::{utils, AppMessage, View};
 use fm_core::{self, FinanceManager};
 use iced::widget;
 
-use anyhow::Result;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async move { BudgetOverview::fetch(finance_manager).await.unwrap() },
-        |x| AppMessage::SwitchView(View::BudgetOverview(x)),
-    )
+    let (view, task) = BudgetOverview::fetch(finance_manager.clone());
+    iced::Task::done(AppMessage::SwitchView(View::BudgetOverview(view)))
+        .chain(task.map(AppMessage::BudgetOverViewMessage))
+}
+
+pub enum Action {
+    None,
+    ViewBudget(fm_core::Id),
+    CreateBudget,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     CreateBudget,
     ViewBudget(fm_core::Id),
+    Initialize(Vec<(fm_core::Budget, fm_core::Currency)>),
 }
 
 #[derive(Debug, Clone)]
@@ -31,35 +36,44 @@ impl BudgetOverview {
         Self { budgets }
     }
 
-    pub async fn fetch(finance_manager: Arc<Mutex<impl FinanceManager + 'static>>) -> Result<Self> {
-        let locked_manager = finance_manager.lock().await;
-        let budgets = locked_manager.get_budgets().await.unwrap();
-        let mut tuples = Vec::new();
+    pub fn fetch(
+        finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self {
+                budgets: Vec::new(),
+            },
+            iced::Task::future(async move {
+                let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
+                let mut tuples = Vec::new();
 
-        for budget in budgets {
-            let current_value = locked_manager.get_budget_value(&budget, 0).await.unwrap();
-            tuples.push((budget, current_value));
-        }
+                for budget in budgets {
+                    let current_value = finance_manager
+                        .lock()
+                        .await
+                        .get_budget_value(&budget, 0)
+                        .await
+                        .unwrap();
+                    tuples.push((budget, current_value));
+                }
 
-        Ok(BudgetOverview::new(tuples))
+                Message::Initialize(tuples)
+            }),
+        )
     }
 
     pub fn update(
         &mut self,
         message: Message,
         _finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
-            Message::CreateBudget => (
-                Some(View::CreateBudgetView(
-                    super::create_budget::CreateBudgetView::default(),
-                )),
-                iced::Task::none(),
-            ),
-            Message::ViewBudget(id) => (
-                Some(View::Empty),
-                super::budget::switch_view_command(id, _finance_manager),
-            ),
+            Message::CreateBudget => Action::CreateBudget,
+            Message::ViewBudget(id) => Action::ViewBudget(id),
+            Message::Initialize(budgets) => {
+                self.budgets = budgets;
+                Action::None
+            }
         }
     }
 
