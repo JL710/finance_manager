@@ -83,7 +83,7 @@ impl BillOverview {
             .sort_by(|a, b, column| {
                 match column {
                     0 => a.0.name().cmp(b.0.name()),
-                    1 => a.0.value().cmp(&b.0.value()),
+                    1 => a.0.value().cmp(b.0.value()),
                     2 => a.0.due_date().cmp(b.0.due_date()),
                     3 => a.1.cmp(&b.1),
                     4 => a.0.transactions().len().cmp(&b.0.transactions().len()),

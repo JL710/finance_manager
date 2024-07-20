@@ -105,32 +105,30 @@ where
                         widget::text_input("", line)
                     },
                     widget::button("Delete").on_press_maybe(
-                        if let Some(on_action) = &self.on_action {
-                            Some((on_action)(Action::DeleteLine(index)))
-                        } else {
-                            None
-                        }
+                        self.on_action
+                            .as_ref()
+                            .map(|on_action| (on_action)(Action::DeleteLine(index)))
                     )
                 ]);
             }
             return widget::column![
                 content,
-                widget::button("Submit").on_press_maybe(if let Some(on_action) = &self.on_action {
-                    Some((on_action)(Action::Submit))
-                } else {
-                    None
-                }),
+                widget::button("Submit").on_press_maybe(
+                    self.on_action
+                        .as_ref()
+                        .map(|on_action| (on_action)(Action::Submit))
+                ),
             ]
             .spacing(10)
             .into();
         }
         widget::row![
             widget::text(self.state.content.clone()),
-            widget::button("Edit").on_press_maybe(if let Some(on_action) = &self.on_action {
-                Some((on_action)(Action::Edit))
-            } else {
-                None
-            })
+            widget::button("Edit").on_press_maybe(
+                self.on_action
+                    .as_ref()
+                    .map(|on_action| (on_action)(Action::Edit))
+            )
         ]
         .spacing(10)
         .into()

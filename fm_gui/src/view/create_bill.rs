@@ -441,9 +441,9 @@ mod add_transaction {
                         "Date".to_string(),
                     ])
                     .sort_by(|a, b, column| match column {
-                        1 => a.title().cmp(&b.title()),
+                        1 => a.title().cmp(b.title()),
                         2 => a.amount().cmp(&b.amount()),
-                        3 => a.date().cmp(&b.date()),
+                        3 => a.date().cmp(b.date()),
                         _ => panic!(),
                     })
                     .columns_sortable([false, true, true, true])
