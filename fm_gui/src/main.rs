@@ -121,7 +121,17 @@ impl App {
                 return view::budget_overview::switch_view_command(self.finance_manager.clone())
             }
             AppMessage::CreateAssetAccountMessage(m) => {
-                message_match!(self, m, View::CreateAssetAccountDialog);
+                match message_match_action!(self, m, View::CreateAssetAccountDialog) {
+                    view::create_asset_account::Action::CreateAssetAccount(t) => {
+                        let manager = self.finance_manager.clone();
+                        return t.then(move |id| {
+                            let (v, task) = view::account::Account::fetch(manager.clone(), id);
+                            iced::Task::done(AppMessage::SwitchView(View::ViewAccount(v)))
+                                .chain(task.map(AppMessage::ViewAccountMessage))
+                        });
+                    }
+                    view::create_asset_account::Action::None => {}
+                }
             }
             AppMessage::CreateBudgetViewMessage(m) => {
                 message_match!(self, m, View::CreateBudgetView);
@@ -161,7 +171,9 @@ impl App {
                     }
                     view::account::Action::None => {}
                     view::account::Action::EditAssetAccount(acc) => {
-                        self.current_view = View::CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog::from_existing_account(&acc))
+                        let (v, t) = view::create_asset_account::CreateAssetAccountDialog::fetch(acc.id(), self.finance_manager.clone());
+                        self.current_view = View::CreateAssetAccountDialog(v);
+                        return t.map(AppMessage::CreateAssetAccountMessage);
                     }
                     view::account::Action::EditBookCheckingAccount(acc) => {
                         self.current_view = View::CreateBookCheckingAccount(view::create_book_checking_account::CreateBookCheckingAccount::from_existing_account(acc))

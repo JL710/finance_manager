@@ -67,7 +67,7 @@ impl AssetAccountOverview {
         match message {
             Message::CreateAssetAccount => (
                 Some(View::CreateAssetAccountDialog(
-                    super::create_asset_account::CreateAssetAccountDialog::new(),
+                    super::create_asset_account::CreateAssetAccountDialog::default(),
                 )),
                 iced::Task::none(),
             ),
