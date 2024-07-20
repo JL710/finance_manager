@@ -134,7 +134,17 @@ impl App {
                 }
             }
             AppMessage::CreateBudgetViewMessage(m) => {
-                message_match!(self, m, View::CreateBudgetView);
+                match message_match_action!(self, m, View::CreateBudgetView) {
+                    view::create_budget::Action::CreateBudget(t) => {
+                        let manager = self.finance_manager.clone();
+                        return t.then(move |id| {
+                            let (v, task) = view::budget::Budget::fetch(id, 0, manager.clone());
+                            iced::Task::done(AppMessage::SwitchView(View::ViewBudgetView(v)))
+                                .chain(task.map(AppMessage::ViewBudgetMessage))
+                        });
+                    }
+                    view::create_budget::Action::None => {}
+                }
             }
             AppMessage::CreateTransactionViewMessage(m) => {
                 match message_match_action!(self, m, View::CreateTransactionView) {

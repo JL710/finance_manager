@@ -2,7 +2,6 @@ use super::super::{utils, AppMessage, View};
 use fm_core;
 use iced::widget;
 
-use anyhow::Result;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -10,10 +9,14 @@ pub fn switch_view_command_edit(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async move { CreateBudgetView::fetch(id, finance_manager).await.unwrap() },
-        |x| AppMessage::SwitchView(View::CreateBudgetView(x)),
-    )
+    let (view, task) = CreateBudgetView::fetch(id, finance_manager);
+    iced::Task::done(AppMessage::SwitchView(View::CreateBudgetView(view)))
+        .chain(task.map(AppMessage::CreateBudgetViewMessage))
+}
+
+pub enum Action {
+    None,
+    CreateBudget(iced::Task<fm_core::Id>),
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +28,7 @@ pub enum Message {
     RecouringFirstInput(String),
     RecouringSecondInput(String),
     Submit,
+    Initialize(Option<fm_core::Budget>),
 }
 
 #[derive(Debug, Clone)]
@@ -108,20 +112,36 @@ impl CreateBudgetView {
         }
     }
 
-    pub async fn fetch(
+    pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> Result<Self> {
-        let budget = finance_manager.lock().await.get_budget(id).await?.unwrap();
-        Ok(Self::from_budget(budget))
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self::default(),
+            iced::Task::future(async move {
+                let budget = finance_manager
+                    .lock()
+                    .await
+                    .get_budget(id)
+                    .await
+                    .unwrap()
+                    .unwrap();
+                Message::Initialize(Some(budget))
+            }),
+        )
     }
 
     pub fn update(
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
+            Message::Initialize(budget) => {
+                if let Some(budget) = budget {
+                    *self = Self::from_budget(budget);
+                }
+            }
             Message::NameInput(name) => {
                 self.name_input = name;
             }
@@ -137,51 +157,42 @@ impl CreateBudgetView {
                 let description_input = self.description_input.clone();
                 let value_input = self.value_input.clone();
                 let recouring_inputs = self.recouring_inputs.clone();
-                let manager = finance_manager.clone();
-                return (
-                    Some(View::Empty),
-                    iced::Task::future(async move {
-                        let budget = match option_id {
-                            Some(id) => finance_manager
-                                .lock()
-                                .await
-                                .update_budget(
-                                    id,
-                                    name_input,
-                                    if description_input.is_empty() {
-                                        None
-                                    } else {
-                                        Some(description_input)
-                                    },
-                                    fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
-                                    recouring_inputs.into(),
-                                )
-                                .await
-                                .unwrap(),
-                            None => finance_manager
-                                .lock()
-                                .await
-                                .create_budget(
-                                    name_input,
-                                    if description_input.is_empty() {
-                                        None
-                                    } else {
-                                        Some(description_input)
-                                    },
-                                    fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
-                                    recouring_inputs.into(),
-                                )
-                                .await
-                                .unwrap(),
-                        };
-                        *budget.id()
-                    })
-                    .then(move |x| {
-                        let (view, task) = super::budget::Budget::fetch(x, 0, manager.clone());
-                        iced::Task::done(AppMessage::SwitchView(View::ViewBudgetView(view)))
-                            .chain(task.map(AppMessage::ViewBudgetMessage))
-                    }),
-                );
+                return Action::CreateBudget(iced::Task::future(async move {
+                    let budget = match option_id {
+                        Some(id) => finance_manager
+                            .lock()
+                            .await
+                            .update_budget(
+                                id,
+                                name_input,
+                                if description_input.is_empty() {
+                                    None
+                                } else {
+                                    Some(description_input)
+                                },
+                                fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                recouring_inputs.into(),
+                            )
+                            .await
+                            .unwrap(),
+                        None => finance_manager
+                            .lock()
+                            .await
+                            .create_budget(
+                                name_input,
+                                if description_input.is_empty() {
+                                    None
+                                } else {
+                                    Some(description_input)
+                                },
+                                fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                recouring_inputs.into(),
+                            )
+                            .await
+                            .unwrap(),
+                    };
+                    *budget.id()
+                }));
             }
             Message::RecouringPickList(recouring) => {
                 self.recouring_state = Some(recouring.clone());
@@ -219,7 +230,7 @@ impl CreateBudgetView {
                 }
             },
         }
-        (None, iced::Task::none())
+        Action::None
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
