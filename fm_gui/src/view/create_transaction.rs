@@ -19,7 +19,7 @@ pub fn edit_switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    let (view, task) = CreateTransactionView::from_existing_transaction(finance_manager, id);
+    let (view, task) = CreateTransactionView::fetch(finance_manager, id);
     iced::Task::done(AppMessage::SwitchView(View::CreateTransactionView(view)))
         .chain(task.map(AppMessage::CreateTransactionViewMessage))
 }
@@ -134,7 +134,7 @@ impl CreateTransactionView {
         )
     }
 
-    pub fn from_existing_transaction(
+    pub fn fetch(
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
         transaction_id: fm_core::Id,
     ) -> (Self, iced::Task<Message>) {

@@ -1,5 +1,3 @@
-use anyhow::Result;
-
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -11,10 +9,17 @@ pub fn switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async move { Transaction::fetch(id, finance_manager).await.unwrap() },
-        |x| AppMessage::SwitchView(View::TransactionView(x)),
-    )
+    let (view, task) = Transaction::fetch(id, finance_manager);
+    iced::Task::done(AppMessage::SwitchView(View::TransactionView(view)))
+        .chain(task.map(AppMessage::TransactionViewMessage))
+}
+
+pub enum Action {
+    None,
+    Edit(fm_core::Id),
+    Delete(iced::Task<()>),
+    ViewAccount(fm_core::Id),
+    ViewBudget(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -23,15 +28,25 @@ pub enum Message {
     Delete,
     ViewAccount(fm_core::Id),
     ViewBudget(fm_core::Id),
+    Initialize {
+        transaction: fm_core::Transaction,
+        source: fm_core::account::Account,
+        destination: fm_core::account::Account,
+        budget: Option<fm_core::Budget>,
+        categories: Vec<fm_core::Category>,
+    },
 }
 
 #[derive(Debug, Clone)]
-pub struct Transaction {
-    transaction: fm_core::Transaction,
-    source: fm_core::account::Account,
-    destination: fm_core::account::Account,
-    budget: Option<fm_core::Budget>,
-    categories: Vec<fm_core::Category>,
+pub enum Transaction {
+    NotLoaded,
+    Loaded {
+        transaction: fm_core::Transaction,
+        source: fm_core::account::Account,
+        destination: fm_core::account::Account,
+        budget: Option<fm_core::Budget>,
+        categories: Vec<fm_core::Category>,
+    },
 }
 
 impl Transaction {
@@ -42,7 +57,7 @@ impl Transaction {
         budget: Option<fm_core::Budget>,
         categories: Vec<fm_core::Category>,
     ) -> Self {
-        Self {
+        Self::Loaded {
             transaction,
             source,
             destination,
@@ -51,156 +66,176 @@ impl Transaction {
         }
     }
 
-    pub async fn fetch(
+    pub fn fetch(
         id: fm_core::Id,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager>>,
-    ) -> Result<Self> {
-        let locked_manager = finance_manager.lock().await;
-        let transaction = locked_manager.get_transaction(id).await?.unwrap();
-        let source = locked_manager
-            .get_account(*transaction.source())
-            .await?
-            .unwrap();
-        let destination = locked_manager
-            .get_account(*transaction.destination())
-            .await?
-            .unwrap();
-        let budget = match transaction.budget() {
-            Some(budget_id) => locked_manager.get_budget(budget_id.0).await?,
-            None => None,
-        };
-        let categories = locked_manager.get_categories().await?;
-        Ok(Self::new(
-            transaction,
-            source,
-            destination,
-            budget,
-            categories,
-        ))
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self::NotLoaded,
+            iced::Task::future(async move {
+                let locked_manager = finance_manager.lock().await;
+                let transaction = locked_manager.get_transaction(id).await.unwrap().unwrap();
+                let source = locked_manager
+                    .get_account(*transaction.source())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let destination = locked_manager
+                    .get_account(*transaction.destination())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let budget = match transaction.budget() {
+                    Some(budget_id) => locked_manager.get_budget(budget_id.0).await.unwrap(),
+                    None => None,
+                };
+                let categories = locked_manager.get_categories().await.unwrap();
+                Message::Initialize {
+                    transaction,
+                    source,
+                    destination,
+                    budget,
+                    categories,
+                }
+            }),
+        )
     }
 
     pub fn update(
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
-            Message::Edit => (
-                Some(View::Empty),
-                super::create_transaction::edit_switch_view_command(
-                    *self.transaction.id(),
-                    finance_manager,
-                ),
-            ),
+            Message::Initialize {
+                transaction,
+                source,
+                destination,
+                budget,
+                categories,
+            } => {
+                *self = Self::Loaded {
+                    transaction,
+                    source,
+                    destination,
+                    budget,
+                    categories,
+                };
+                Action::None
+            }
+            Message::Edit => {
+                if let Self::Loaded { transaction, .. } = self {
+                    Action::Edit(*transaction.id())
+                } else {
+                    Action::None
+                }
+            }
             Message::Delete => {
-                let id = *self.transaction.id();
-                (
-                    Some(View::Empty),
-                    iced::Task::perform(
-                        async move {
-                            finance_manager
-                                .lock()
-                                .await
-                                .delete_transaction(id)
-                                .await
-                                .unwrap();
-                        },
-                        |_| AppMessage::SwitchView(View::Empty),
-                    ),
-                )
+                if let Self::Loaded { transaction, .. } = self {
+                    let id = *transaction.id();
+                    Action::Delete(iced::Task::future(async move {
+                        finance_manager
+                            .lock()
+                            .await
+                            .delete_transaction(id)
+                            .await
+                            .unwrap();
+                    }))
+                } else {
+                    Action::None
+                }
             }
-            Message::ViewAccount(acc) => {
-                let id = acc;
-                (
-                    Some(View::Empty),
-                    super::account::switch_view_command(id, finance_manager),
-                )
-            }
-            Message::ViewBudget(budget) => {
-                let id = budget;
-                (
-                    Some(View::Empty),
-                    super::budget::switch_view_command(id, finance_manager),
-                )
-            }
+            Message::ViewAccount(acc) => Action::ViewAccount(acc),
+            Message::ViewBudget(budget) => Action::ViewBudget(budget),
         }
     }
 
     pub fn view(&self) -> iced::Element<'static, Message> {
-        let mut column = widget::column![
-            widget::row![
-                widget::text("Value: "),
-                utils::colored_currency_display(&self.transaction.amount())
-            ],
-            widget::text!("Name: {}", self.transaction.title()),
-            utils::link(widget::text!("Source: {}", self.source))
-                .on_press(Message::ViewAccount(*self.source.id())),
-            utils::link(widget::text!("Destination: {}", self.destination))
-                .on_press(Message::ViewAccount(*self.destination.id())),
-            widget::text!("Date: {}", self.transaction.date().format("%d.%m.%Y")),
-        ]
-        .spacing(10);
-
-        if let Some(budget) = &self.budget {
-            column = column.push(
+        if let Self::Loaded {
+            transaction,
+            source,
+            destination,
+            budget,
+            categories,
+        } = self
+        {
+            let mut column = widget::column![
                 widget::row![
-                    utils::link(widget::text!("Budget: {}", budget.name()))
-                        .on_press(Message::ViewBudget(*budget.id())),
-                    widget::checkbox(
-                        "Negative",
-                        self.transaction
-                            .budget()
-                            .map_or(false, |x| x.1 == fm_core::Sign::Negative)
-                    )
-                ]
-                .spacing(10),
-            );
-        }
+                    widget::text("Value: "),
+                    utils::colored_currency_display(&transaction.amount())
+                ],
+                widget::text!("Name: {}", transaction.title()),
+                utils::link(widget::text!("Source: {}", source))
+                    .on_press(Message::ViewAccount(*source.id())),
+                utils::link(widget::text!("Destination: {}", destination))
+                    .on_press(Message::ViewAccount(*destination.id())),
+                widget::text!("Date: {}", transaction.date().format("%d.%m.%Y")),
+            ]
+            .spacing(10);
 
-        if let Some(content) = self.transaction.description() {
-            column = column.push(
+            if let Some(budget) = &budget {
+                column = column.push(
+                    widget::row![
+                        utils::link(widget::text!("Budget: {}", budget.name()))
+                            .on_press(Message::ViewBudget(*budget.id())),
+                        widget::checkbox(
+                            "Negative",
+                            transaction
+                                .budget()
+                                .map_or(false, |x| x.1 == fm_core::Sign::Negative)
+                        )
+                    ]
+                    .spacing(10),
+                );
+            }
+
+            if let Some(content) = transaction.description() {
+                column = column.push(
+                    widget::row![
+                        widget::text("Description: "),
+                        widget::container(widget::text(content.to_string()))
+                            .padding(3)
+                            .style(utils::style::container_style_background_weak)
+                    ]
+                    .spacing(10),
+                );
+            }
+
+            let mut category_column = widget::Column::new().spacing(10);
+            for category in transaction.categories() {
+                category_column = category_column.push(
+                    widget::row![
+                        widget::checkbox(
+                            categories
+                                .iter()
+                                .find(|x| *x.id() == category.0)
+                                .unwrap()
+                                .name(),
+                            true,
+                        ),
+                        widget::checkbox("Negative", category.1 == fm_core::Sign::Negative)
+                    ]
+                    .spacing(10),
+                );
+            }
+
+            widget::column![
+                utils::heading("Transaction", utils::HeadingLevel::H1),
                 widget::row![
-                    widget::text("Description: "),
-                    widget::container(widget::text(content.to_string()))
-                        .padding(3)
-                        .style(utils::style::container_style_background_weak)
-                ]
-                .spacing(10),
-            );
+                    column,
+                    widget::Space::with_width(iced::Length::Fill),
+                    widget::column![
+                        widget::button("Edit").on_press(Message::Edit),
+                        widget::button("Delete").on_press(Message::Delete)
+                    ]
+                    .spacing(10)
+                ],
+                widget::horizontal_rule(10),
+                widget::scrollable(category_column)
+            ]
+            .into()
+        } else {
+            widget::text("Loading...").into()
         }
-
-        let mut category_column = widget::Column::new().spacing(10);
-        for category in self.transaction.categories() {
-            category_column = category_column.push(
-                widget::row![
-                    widget::checkbox(
-                        self.categories
-                            .iter()
-                            .find(|x| *x.id() == category.0)
-                            .unwrap()
-                            .name(),
-                        true,
-                    ),
-                    widget::checkbox("Negative", category.1 == fm_core::Sign::Negative)
-                ]
-                .spacing(10),
-            );
-        }
-
-        widget::column![
-            utils::heading("Transaction", utils::HeadingLevel::H1),
-            widget::row![
-                column,
-                widget::Space::with_width(iced::Length::Fill),
-                widget::column![
-                    widget::button("Edit").on_press(Message::Edit),
-                    widget::button("Delete").on_press(Message::Delete)
-                ]
-                .spacing(10)
-            ],
-            widget::horizontal_rule(10),
-            widget::scrollable(category_column)
-        ]
-        .into()
     }
 }

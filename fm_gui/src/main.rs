@@ -225,7 +225,29 @@ impl App {
                 }
             }
             AppMessage::TransactionViewMessage(m) => {
-                message_match!(self, m, View::TransactionView);
+                match message_match_action!(self, m, View::TransactionView) {
+                    view::transaction::Action::None => {}
+                    view::transaction::Action::Edit(id) => {
+                        let (v, t) = view::create_transaction::CreateTransactionView::fetch(
+                            self.finance_manager.clone(),
+                            id,
+                        );
+                        self.current_view = View::CreateTransactionView(v);
+                        return t.map(AppMessage::CreateTransactionViewMessage);
+                    }
+                    view::transaction::Action::ViewAccount(id) => {
+                        return view::account::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::transaction::Action::Delete(task) => {
+                        return task.map(|_| AppMessage::SwitchToFilterTransactionView);
+                    }
+                    view::transaction::Action::ViewBudget(id) => {
+                        return view::budget::switch_view_command(id, self.finance_manager.clone());
+                    }
+                }
             }
             AppMessage::ViewBudgetMessage(m) => {
                 match message_match_action!(self, m, View::ViewBudgetView) {
