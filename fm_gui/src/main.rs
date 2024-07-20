@@ -42,7 +42,7 @@ pub enum AppMessage {
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
-    AssetAccountsMessage(view::show_asset_accounts::Message),
+    AssetAccountsMessage(view::asset_accounts_overview::Message),
     ViewAccountMessage(view::account::Message),
     TransactionViewMessage(view::transaction::Message),
     ViewBudgetMessage(view::budget::Message),
@@ -67,7 +67,7 @@ enum View {
     CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog),
     CreateBudgetView(view::create_budget::CreateBudgetView),
     CreateTransactionView(view::create_transaction::CreateTransactionView),
-    AssetAccounts(view::show_asset_accounts::AssetAccountOverview),
+    AssetAccounts(view::asset_accounts_overview::AssetAccountOverview),
     ViewAccount(view::account::Account),
     TransactionView(view::transaction::Transaction),
     ViewBudgetView(view::budget::Budget),
@@ -168,22 +168,22 @@ impl App {
             }
             AppMessage::AssetAccountsMessage(m) => {
                 match message_match_action!(self, m, View::AssetAccounts) {
-                    view::show_asset_accounts::Action::ViewAccount(id) => {
+                    view::asset_accounts_overview::Action::ViewAccount(id) => {
                         return view::account::switch_view_command(
                             id,
                             self.finance_manager.clone(),
                         );
                     }
-                    view::show_asset_accounts::Action::CreateAssetAccount => {
+                    view::asset_accounts_overview::Action::CreateAssetAccount => {
                         self.current_view = View::CreateAssetAccountDialog(
                             view::create_asset_account::CreateAssetAccountDialog::default(),
                         );
                     }
-                    view::show_asset_accounts::Action::None => {}
+                    view::asset_accounts_overview::Action::None => {}
                 }
             }
             AppMessage::SwitchToAssetAccountsView => {
-                return view::show_asset_accounts::switch_view_command(
+                return view::asset_accounts_overview::switch_view_command(
                     self.finance_manager.clone(),
                 );
             }
