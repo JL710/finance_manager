@@ -21,7 +21,7 @@ pub struct State {
 impl State {
     pub fn new(content: String) -> Self {
         Self {
-            content: content,
+            content,
             lines: None,
         }
     }

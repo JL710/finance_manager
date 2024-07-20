@@ -85,30 +85,32 @@ impl CreateBookCheckingAccount {
                     Some(self.bic_input.clone())
                 };
                 let id = self.id;
+                let manager = finance_manager.clone();
                 return (
                     Some(View::Empty),
-                    iced::Task::perform(
-                        async move {
-                            let account = if let Some(some_id) = id {
-                                finance_manager
-                                    .lock()
-                                    .await
-                                    .update_book_checking_account(some_id, name, note, iban, bic)
-                                    .await
-                                    .unwrap()
-                            } else {
-                                finance_manager
-                                    .lock()
-                                    .await
-                                    .create_book_checking_account(name, note, iban, bic)
-                                    .await
-                                    .unwrap()
-                            };
-
-                            super::account::Account::fetch(finance_manager, account.id()).await
-                        },
-                        |view| AppMessage::SwitchView(View::ViewAccount(view)),
-                    ),
+                    iced::Task::future(async move {
+                        let account = if let Some(some_id) = id {
+                            finance_manager
+                                .lock()
+                                .await
+                                .update_book_checking_account(some_id, name, note, iban, bic)
+                                .await
+                                .unwrap()
+                        } else {
+                            finance_manager
+                                .lock()
+                                .await
+                                .create_book_checking_account(name, note, iban, bic)
+                                .await
+                                .unwrap()
+                        };
+                        account.id()
+                    })
+                    .then(move |id| {
+                        let (view, task) = super::account::Account::fetch(manager.clone(), id);
+                        iced::Task::done(AppMessage::SwitchView(View::ViewAccount(view)))
+                            .chain(task.map(AppMessage::ViewAccountMessage))
+                    }),
                 );
             }
         }

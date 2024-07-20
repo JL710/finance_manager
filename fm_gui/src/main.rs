@@ -117,8 +117,7 @@ impl App {
                 message_match!(self, m, View::CreateBudgetView);
             }
             AppMessage::CreateTransactionViewMessage(m) => {
-                let action = message_match_action!(self, m, View::CreateTransactionView);
-                match action {
+                match message_match_action!(self, m, View::CreateTransactionView) {
                     view::create_transaction::Action::Task(t) => {
                         return t.map(AppMessage::CreateTransactionViewMessage);
                     }
@@ -146,7 +145,24 @@ impl App {
                 );
             }
             AppMessage::ViewAccountMessage(m) => {
-                message_match!(self, m, View::ViewAccount);
+                match message_match_action!(self, m, View::ViewAccount) {
+                    view::account::Action::Task(t) => {
+                        return t.map(AppMessage::ViewAccountMessage);
+                    }
+                    view::account::Action::None => {}
+                    view::account::Action::EditAssetAccount(acc) => {
+                        self.current_view = View::CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog::from_existing_account(&acc))
+                    }
+                    view::account::Action::EditBookCheckingAccount(acc) => {
+                        self.current_view = View::CreateBookCheckingAccount(view::create_book_checking_account::CreateBookCheckingAccount::from_existing_account(acc))
+                    }
+                    view::account::Action::ViewTransaction(id) => {
+                        return view::transaction::switch_view_command(id, self.finance_manager.clone());
+                    }
+                    view::account::Action::ViewAccount(id) => {
+                        return view::account::switch_view_command(id, self.finance_manager.clone());
+                    }
+                }
             }
             AppMessage::TransactionViewMessage(m) => {
                 message_match!(self, m, View::TransactionView);

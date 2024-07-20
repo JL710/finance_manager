@@ -71,13 +71,15 @@ impl AssetAccountOverview {
                 )),
                 iced::Task::none(),
             ),
-            Message::AccountView(account) => (
-                None,
-                iced::Task::perform(
-                    async move { super::account::Account::fetch(finance_manager, account.id()).await },
-                    |view| AppMessage::SwitchView(View::ViewAccount(view)),
-                ),
-            ),
+            Message::AccountView(account) => {
+                let (view, task) =
+                    super::account::Account::fetch(finance_manager.clone(), account.id());
+                (
+                    None,
+                    iced::Task::done(AppMessage::SwitchView(View::ViewAccount(view)))
+                        .chain(task.map(AppMessage::ViewAccountMessage)),
+                )
+            }
         }
     }
 
