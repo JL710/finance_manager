@@ -207,7 +207,19 @@ impl App {
                 message_match!(self, m, View::CreateCategory);
             }
             AppMessage::CategoryOverviewMessage(m) => {
-                message_match!(self, m, View::CategoryOverview);
+                match message_match_action!(self, m, View::CategoryOverview) {
+                    view::category_overview::Action::ViewCategory(id) => {
+                        return view::category::switch_view_command(
+                            self.finance_manager.clone(),
+                            id,
+                        );
+                    }
+                    view::category_overview::Action::NewCategory => {
+                        self.current_view =
+                            View::CreateCategory(view::create_category::CreateCategory::default());
+                    }
+                    view::category_overview::Action::None => {}
+                }
             }
             AppMessage::SwitchToCategoryOverview => {
                 return view::category_overview::switch_view_command(self.finance_manager.clone());

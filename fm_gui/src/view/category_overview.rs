@@ -1,22 +1,27 @@
 use super::super::{utils, AppMessage, View};
 
-use anyhow::Result;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async move { View::CategoryOverview(CategoryOverview::fetch(finance_manager).await.unwrap()) },
-        AppMessage::SwitchView,
-    )
+    let (view, task) = CategoryOverview::fetch(finance_manager.clone());
+    iced::Task::done(AppMessage::SwitchView(View::CategoryOverview(view)))
+        .chain(task.map(AppMessage::CategoryOverviewMessage))
+}
+
+pub enum Action {
+    None,
+    ViewCategory(fm_core::Id),
+    NewCategory,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewCategory(fm_core::Id),
     NewCategory,
+    Initialize(Vec<fm_core::Category>),
 }
 
 #[derive(Debug, Clone)]
@@ -25,31 +30,33 @@ pub struct CategoryOverview {
 }
 
 impl CategoryOverview {
-    pub async fn fetch(
+    pub fn fetch(
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> Result<Self> {
-        let locked_manager = finance_manager.lock().await;
-        Ok(Self {
-            categories: locked_manager.get_categories().await.unwrap(),
-        })
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self {
+                categories: Vec::new(),
+            },
+            iced::Task::future(async move {
+                let locked_manager = finance_manager.lock().await;
+                let categories = locked_manager.get_categories().await.unwrap();
+                Message::Initialize(categories)
+            }),
+        )
     }
 
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+    ) -> Action {
         match message {
-            Message::NewCategory => (
-                Some(View::CreateCategory(
-                    super::create_category::CreateCategory::new(),
-                )),
-                iced::Task::none(),
-            ),
-            Message::ViewCategory(category_id) => (
-                None,
-                super::category::switch_view_command(finance_manager, category_id),
-            ),
+            Message::NewCategory => Action::NewCategory,
+            Message::ViewCategory(category_id) => Action::ViewCategory(category_id),
+            Message::Initialize(categories) => {
+                self.categories = categories;
+                Action::None
+            }
         }
     }
 

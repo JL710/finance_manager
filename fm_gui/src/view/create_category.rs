@@ -10,21 +10,14 @@ pub enum Message {
     NameInput(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CreateCategory {
     id: Option<fm_core::Id>,
     name: String,
 }
 
 impl CreateCategory {
-    pub fn new() -> Self {
-        Self {
-            id: None,
-            name: String::new(),
-        }
-    }
-
-    pub fn from_existing(id: Option<fm_core::Id>, name: String) -> Self {
+    pub fn new(id: Option<fm_core::Id>, name: String) -> Self {
         Self { id, name }
     }
 
@@ -38,24 +31,24 @@ impl CreateCategory {
             Message::Submit => {
                 let id = self.id;
                 let name = self.name.clone();
+                let manager = finance_manager.clone();
                 return (
                     None,
-                    iced::Task::perform(
-                        async move {
-                            let mut locked_manager = finance_manager.lock().await;
-                            if let Some(id) = id {
-                                locked_manager.update_category(id, name).await.unwrap();
-                            } else {
-                                locked_manager.create_category(name).await.unwrap();
-                            }
-                            drop(locked_manager);
-
-                            super::category_overview::CategoryOverview::fetch(finance_manager)
-                                .await
-                                .unwrap()
-                        },
-                        |x| AppMessage::SwitchView(View::CategoryOverview(x)),
-                    ),
+                    iced::Task::future(async move {
+                        let mut locked_manager = finance_manager.lock().await;
+                        if let Some(id) = id {
+                            locked_manager.update_category(id, name).await.unwrap();
+                        } else {
+                            locked_manager.create_category(name).await.unwrap();
+                        }
+                        ()
+                    })
+                    .then(move |_| {
+                        let (view, task) =
+                            super::category_overview::CategoryOverview::fetch(manager.clone());
+                        iced::Task::done(AppMessage::SwitchView(View::CategoryOverview(view)))
+                            .chain(task.map(AppMessage::CategoryOverviewMessage))
+                    }),
                 );
             }
         }

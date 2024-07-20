@@ -80,29 +80,29 @@ impl Category {
         match message {
             Message::Delete => {
                 let category_id = *self.category.id();
+                let manager = finance_manager.clone();
                 (
                     None,
-                    iced::Task::perform(
-                        async move {
-                            finance_manager
-                                .lock()
-                                .await
-                                .delete_category(category_id)
-                                .await
-                                .unwrap();
-                            AppMessage::SwitchView(View::CategoryOverview(
-                                super::category_overview::CategoryOverview::fetch(finance_manager)
-                                    .await
-                                    .unwrap(),
-                            ))
-                        },
-                        |msg| msg,
-                    ),
+                    iced::Task::future(async move {
+                        finance_manager
+                            .lock()
+                            .await
+                            .delete_category(category_id)
+                            .await
+                            .unwrap();
+                        ()
+                    })
+                    .then(move |_| {
+                        let (view, task) =
+                            super::category_overview::CategoryOverview::fetch(manager.clone());
+                        iced::Task::done(AppMessage::SwitchView(View::CategoryOverview(view)))
+                            .chain(task.map(AppMessage::CategoryOverviewMessage))
+                    }),
                 )
             }
             Message::Edit => (
                 Some(View::CreateCategory(
-                    super::create_category::CreateCategory::from_existing(
+                    super::create_category::CreateCategory::new(
                         Some(*self.category.id()),
                         self.category.name().to_string(),
                     ),
