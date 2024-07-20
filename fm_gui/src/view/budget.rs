@@ -8,9 +8,17 @@ pub fn switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(Budget::fetch(id, 0, finance_manager), |result| {
-        AppMessage::SwitchView(View::ViewBudgetView(result.unwrap()))
-    })
+    let (view, task) = Budget::fetch(id, 0, finance_manager.clone());
+    iced::Task::done(AppMessage::SwitchView(View::ViewBudgetView(view)))
+        .chain(task.map(AppMessage::ViewBudgetMessage))
+}
+
+pub enum Action {
+    None,
+    ViewTransaction(fm_core::Id),
+    ViewAccount(fm_core::Id),
+    Edit(fm_core::Id),
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -20,19 +28,32 @@ pub enum Message {
     Edit,
     IncreaseOffset,
     DecreaseOffset,
+    Initialize(
+        fm_core::Budget,
+        fm_core::Currency,
+        Vec<(
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+        )>,
+        i32,
+    ),
 }
 
 #[derive(Debug, Clone)]
-pub struct Budget {
-    budget: fm_core::Budget,
-    current_value: fm_core::Currency,
-    transactions: Vec<(
-        fm_core::Transaction,
-        fm_core::account::Account,
-        fm_core::account::Account,
-    )>,
-    offset: i32,
-    time_span: fm_core::Timespan,
+pub enum Budget {
+    NotLoaded,
+    Loaded {
+        budget: fm_core::Budget,
+        current_value: fm_core::Currency,
+        transactions: Vec<(
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+        )>,
+        offset: i32,
+        time_span: fm_core::Timespan,
+    },
 }
 
 impl Budget {
@@ -47,7 +68,7 @@ impl Budget {
         offset: i32,
     ) -> Self {
         let timespan = fm_core::calculate_budget_timespan(&budget, offset, chrono::Utc::now());
-        Self {
+        Self::Loaded {
             budget,
             current_value,
             transactions,
@@ -56,16 +77,130 @@ impl Budget {
         }
     }
 
-    pub async fn fetch(
+    pub fn fetch(
         id: fm_core::Id,
         offset: i32,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> Result<Self> {
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self::NotLoaded,
+            iced::Task::perform(Self::initial_message(finance_manager, id, offset), |x| {
+                x.unwrap()
+            }),
+        )
+    }
+
+    pub fn update(
+        &mut self,
+        message: Message,
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+    ) -> Action {
+        match message {
+            Message::Initialize(budget, value, transactions, offset) => {
+                *self = Self::new(budget, value, transactions, offset);
+                Action::None
+            }
+            Message::ViewAccount(id) => Action::ViewAccount(id),
+            Message::ViewTransaction(id) => Action::ViewTransaction(id),
+            Message::Edit => {
+                if let Self::Loaded { budget, .. } = self {
+                    Action::Edit(*budget.id())
+                } else {
+                    Action::None
+                }
+            }
+            Message::IncreaseOffset => {
+                if let Self::Loaded { budget, offset, .. } = self {
+                    Action::Task(iced::Task::perform(
+                        Self::initial_message(finance_manager, *budget.id(), *offset + 1),
+                        |x| x.unwrap(),
+                    ))
+                } else {
+                    Action::None
+                }
+            }
+            Message::DecreaseOffset => {
+                if let Self::Loaded { budget, offset, .. } = self {
+                    Action::Task(iced::Task::perform(
+                        Self::initial_message(finance_manager, *budget.id(), *offset - 1),
+                        |x| x.unwrap(),
+                    ))
+                } else {
+                    Action::None
+                }
+            }
+        }
+    }
+
+    pub fn view(&self) -> iced::Element<'_, Message> {
+        if let Self::Loaded {
+            budget,
+            current_value,
+            transactions,
+            offset,
+            time_span,
+        } = self
+        {
+            let mut column = widget::column![
+                widget::row![
+                    widget::button("<").on_press(Message::DecreaseOffset),
+                    widget::text!("Offset: {}", offset),
+                    widget::text!(
+                        "Time Span: {} - {}",
+                        time_span.0.unwrap().format("%d.%m.%Y").to_string(),
+                        time_span.1.unwrap().format("%d.%m.%Y").to_string()
+                    ),
+                    widget::button(">").on_press(Message::IncreaseOffset),
+                ]
+                .align_y(iced::Alignment::Center)
+                .spacing(10),
+                widget::text!("Name: {}", budget.name()),
+                widget::text!("Total Value: {}", budget.total_value()),
+                widget::text!("Current Value: {}", current_value),
+                widget::text!("Recouring: {}", budget.timespan())
+            ]
+            .spacing(10);
+
+            if let Some(content) = budget.description() {
+                column = column.push(widget::text!("Description: {}", content));
+            }
+
+            widget::column![
+                utils::heading("Budget", utils::HeadingLevel::H1),
+                widget::row![
+                    column,
+                    widget::Space::with_width(iced::Length::Fill),
+                    widget::button("Edit").on_press(Message::Edit)
+                ],
+                widget::progress_bar(
+                    0.0..=budget.total_value().get_eur_num() as f32,
+                    current_value.get_eur_num() as f32
+                ),
+                utils::transaction_table(
+                    transactions.to_vec(),
+                    |transaction| Some(transaction.budget().unwrap().1 == fm_core::Sign::Positive),
+                    Message::ViewTransaction,
+                    Message::ViewAccount,
+                )
+            ]
+            .spacing(10)
+            .into()
+        } else {
+            widget::text("Loading...").into()
+        }
+    }
+
+    async fn initial_message(
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        id: fm_core::Id,
+        offset: i32,
+    ) -> Result<Message> {
         let locked_manager = finance_manager.lock().await;
         let budget = locked_manager.get_budget(id).await?.unwrap();
         let transactions = locked_manager
             .get_budget_transactions(&budget, offset)
-            .await?;
+            .await
+            .unwrap();
         let mut current_value = fm_core::Currency::Eur(0.0);
         for transaction in &transactions {
             current_value += transaction.amount();
@@ -84,104 +219,11 @@ impl Budget {
             transaction_tuples.push((transaction, source, destination));
         }
 
-        Ok(Self::new(budget, current_value, transaction_tuples, offset))
-    }
-
-    pub fn update(
-        &mut self,
-        message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
-        match message {
-            Message::ViewAccount(id) => (
-                Some(View::Empty),
-                super::account::switch_view_command(id, finance_manager),
-            ),
-            Message::ViewTransaction(id) => (
-                Some(View::Empty),
-                super::transaction::switch_view_command(id, finance_manager),
-            ),
-            Message::Edit => (
-                Some(View::Empty),
-                super::create_budget::switch_view_command_edit(*self.budget.id(), finance_manager),
-            ),
-            Message::IncreaseOffset => {
-                self.offset += 1;
-                self.time_span = fm_core::calculate_budget_timespan(
-                    &self.budget,
-                    self.offset,
-                    chrono::Utc::now(),
-                );
-                (
-                    None,
-                    iced::Task::perform(
-                        Self::fetch(*self.budget.id(), self.offset, finance_manager),
-                        |result| AppMessage::SwitchView(View::ViewBudgetView(result.unwrap())),
-                    ),
-                )
-            }
-            Message::DecreaseOffset => {
-                self.offset -= 1;
-                self.time_span = fm_core::calculate_budget_timespan(
-                    &self.budget,
-                    self.offset,
-                    chrono::Utc::now(),
-                );
-                (
-                    None,
-                    iced::Task::perform(
-                        Self::fetch(*self.budget.id(), self.offset, finance_manager),
-                        |result| AppMessage::SwitchView(View::ViewBudgetView(result.unwrap())),
-                    ),
-                )
-            }
-        }
-    }
-
-    pub fn view(&self) -> iced::Element<'_, Message> {
-        let mut column = widget::column![
-            widget::row![
-                widget::button("<").on_press(Message::DecreaseOffset),
-                widget::text!("Offset: {}", self.offset),
-                widget::text!(
-                    "Time Span: {} - {}",
-                    self.time_span.0.unwrap().format("%d.%m.%Y").to_string(),
-                    self.time_span.1.unwrap().format("%d.%m.%Y").to_string()
-                ),
-                widget::button(">").on_press(Message::IncreaseOffset),
-            ]
-            .align_y(iced::Alignment::Center)
-            .spacing(10),
-            widget::text!("Name: {}", self.budget.name()),
-            widget::text!("Total Value: {}", self.budget.total_value()),
-            widget::text!("Current Value: {}", self.current_value),
-            widget::text!("Recouring: {}", self.budget.timespan())
-        ]
-        .spacing(10);
-
-        if let Some(content) = self.budget.description() {
-            column = column.push(widget::text!("Description: {}", content));
-        }
-
-        widget::column![
-            utils::heading("Budget", utils::HeadingLevel::H1),
-            widget::row![
-                column,
-                widget::Space::with_width(iced::Length::Fill),
-                widget::button("Edit").on_press(Message::Edit)
-            ],
-            widget::progress_bar(
-                0.0..=self.budget.total_value().get_eur_num() as f32,
-                self.current_value.get_eur_num() as f32
-            ),
-            utils::transaction_table(
-                self.transactions.to_vec(),
-                |transaction| Some(transaction.budget().unwrap().1 == fm_core::Sign::Positive),
-                Message::ViewTransaction,
-                Message::ViewAccount,
-            )
-        ]
-        .spacing(10)
-        .into()
+        Ok(Message::Initialize(
+            budget,
+            current_value,
+            transaction_tuples,
+            offset,
+        ))
     }
 }

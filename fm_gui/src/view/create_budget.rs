@@ -137,49 +137,50 @@ impl CreateBudgetView {
                 let description_input = self.description_input.clone();
                 let value_input = self.value_input.clone();
                 let recouring_inputs = self.recouring_inputs.clone();
+                let manager = finance_manager.clone();
                 return (
                     Some(View::Empty),
-                    iced::Task::perform(
-                        async move {
-                            let budget = match option_id {
-                                Some(id) => finance_manager
-                                    .lock()
-                                    .await
-                                    .update_budget(
-                                        id,
-                                        name_input,
-                                        if description_input.is_empty() {
-                                            None
-                                        } else {
-                                            Some(description_input)
-                                        },
-                                        fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
-                                        recouring_inputs.into(),
-                                    )
-                                    .await
-                                    .unwrap(),
-                                None => finance_manager
-                                    .lock()
-                                    .await
-                                    .create_budget(
-                                        name_input,
-                                        if description_input.is_empty() {
-                                            None
-                                        } else {
-                                            Some(description_input)
-                                        },
-                                        fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
-                                        recouring_inputs.into(),
-                                    )
-                                    .await
-                                    .unwrap(),
-                            };
-                            super::budget::Budget::fetch(*budget.id(), 0, finance_manager)
+                    iced::Task::future(async move {
+                        let budget = match option_id {
+                            Some(id) => finance_manager
+                                .lock()
                                 .await
-                                .unwrap()
-                        },
-                        |x| AppMessage::SwitchView(View::ViewBudgetView(x)),
-                    ),
+                                .update_budget(
+                                    id,
+                                    name_input,
+                                    if description_input.is_empty() {
+                                        None
+                                    } else {
+                                        Some(description_input)
+                                    },
+                                    fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                    recouring_inputs.into(),
+                                )
+                                .await
+                                .unwrap(),
+                            None => finance_manager
+                                .lock()
+                                .await
+                                .create_budget(
+                                    name_input,
+                                    if description_input.is_empty() {
+                                        None
+                                    } else {
+                                        Some(description_input)
+                                    },
+                                    fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                    recouring_inputs.into(),
+                                )
+                                .await
+                                .unwrap(),
+                        };
+                        *budget.id()
+                    })
+                    .then(move |x| {
+                        let (view, task) = super::budget::Budget::fetch(x, 0, manager.clone());
+                        iced::Task::done(AppMessage::SwitchView(View::ViewBudgetView(view)))
+                            .chain(task.map(AppMessage::ViewBudgetMessage))
+                    }),
                 );
             }
             Message::RecouringPickList(recouring) => {

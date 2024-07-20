@@ -178,7 +178,30 @@ impl App {
                 message_match!(self, m, View::TransactionView);
             }
             AppMessage::ViewBudgetMessage(m) => {
-                message_match!(self, m, View::ViewBudgetView);
+                match message_match_action!(self, m, View::ViewBudgetView) {
+                    view::budget::Action::None => {}
+                    view::budget::Action::ViewTransaction(id) => {
+                        return view::transaction::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::budget::Action::ViewAccount(id) => {
+                        return view::account::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::budget::Action::Edit(id) => {
+                        return view::create_budget::switch_view_command_edit(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::budget::Action::Task(t) => {
+                        return t.map(AppMessage::ViewBudgetMessage);
+                    }
+                }
             }
             AppMessage::CreateCategoryMessage(m) => {
                 message_match!(self, m, View::CreateCategory);
