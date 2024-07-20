@@ -354,7 +354,24 @@ impl App {
                 self.finance_manager = fm;
             }
             AppMessage::FilterTransactionMessage(m) => {
-                message_match!(self, m, View::FilterTransaction);
+                match message_match_action!(self, m, View::FilterTransaction) {
+                    view::filter_transactions::Action::None => {}
+                    view::filter_transactions::Action::ViewTransaction(id) => {
+                        return view::transaction::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::filter_transactions::Action::ViewAccount(id) => {
+                        return view::account::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::filter_transactions::Action::Task(t) => {
+                        return t.map(AppMessage::FilterTransactionMessage);
+                    }
+                }
             }
             AppMessage::CreateBillMessage(m) => {
                 match message_match_action!(self, m, View::CreateBill) {

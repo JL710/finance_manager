@@ -1,5 +1,4 @@
 use super::super::{utils, AppMessage, View};
-use anyhow::Result;
 use async_std::sync::Mutex;
 use fm_core::transaction_filter::TransactionFilter;
 use std::sync::Arc;
@@ -7,9 +6,16 @@ use std::sync::Arc;
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(FilterTransactionView::fetch(finance_manager), |x| {
-        AppMessage::SwitchView(View::FilterTransaction(x.unwrap()))
-    })
+    let (view, task) = FilterTransactionView::fetch(finance_manager.clone());
+    iced::Task::done(AppMessage::SwitchView(View::FilterTransaction(view)))
+        .chain(task.map(AppMessage::FilterTransactionMessage))
+}
+
+pub enum Action {
+    None,
+    Task(iced::Task<Message>),
+    ViewAccount(fm_core::Id),
+    ViewTransaction(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +31,10 @@ pub enum Message {
             fm_core::account::Account,
         )>,
     ),
+    Initialize {
+        accounts: Vec<fm_core::account::Account>,
+        categories: Vec<fm_core::Category>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -42,77 +52,76 @@ pub struct FilterTransactionView {
 }
 
 impl FilterTransactionView {
-    pub async fn fetch(
+    pub fn fetch(
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> Result<Self> {
-        let locked_manager = finance_manager.lock().await;
-        let accounts = locked_manager.get_accounts().await?;
-        let categories = locked_manager.get_categories().await?;
-        Ok(Self {
-            accounts,
-            categories,
-            change_filter: false,
-            transactions: Vec::new(),
-            sums: Vec::new(),
-            filter: TransactionFilter::default(),
-        })
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self {
+                accounts: Vec::new(),
+                categories: Vec::new(),
+                change_filter: false,
+                transactions: Vec::new(),
+                sums: Vec::new(),
+                filter: TransactionFilter::default(),
+            },
+            iced::Task::future(async move {
+                let locked_manager = finance_manager.lock().await;
+                let accounts = locked_manager.get_accounts().await.unwrap();
+                let categories = locked_manager.get_categories().await.unwrap();
+                Message::Initialize {
+                    accounts,
+                    categories,
+                }
+            }),
+        )
     }
 
     pub fn update(
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
+            Message::Initialize {
+                accounts,
+                categories,
+            } => {
+                self.accounts = accounts;
+                self.categories = categories;
+            }
             Message::ToggleEditFilter => {
                 self.change_filter = !self.change_filter;
             }
             Message::ChangeFilter(filter) => {
                 self.filter = filter.clone();
                 self.change_filter = false;
-                return (
-                    None,
-                    iced::Task::perform(
-                        async move {
-                            let locked_manager = finance_manager.lock().await;
-                            let transactions = locked_manager
-                                .get_filtered_transactions(filter.clone())
-                                .await
-                                .unwrap();
-                            let accounts = locked_manager.get_accounts().await.unwrap();
+                return Action::Task(iced::Task::future(async move {
+                    let locked_manager = finance_manager.lock().await;
+                    let transactions = locked_manager
+                        .get_filtered_transactions(filter.clone())
+                        .await
+                        .unwrap();
+                    let accounts = locked_manager.get_accounts().await.unwrap();
 
-                            let mut tuples = Vec::new();
-                            for transaction in transactions {
-                                let source = accounts
-                                    .iter()
-                                    .find(|x| x.id() == transaction.source())
-                                    .unwrap()
-                                    .clone();
-                                let destination = accounts
-                                    .iter()
-                                    .find(|x| x.id() == transaction.destination())
-                                    .unwrap()
-                                    .clone();
-                                tuples.push((transaction, source, destination));
-                            }
-                            tuples
-                        },
-                        |x| AppMessage::FilterTransactionMessage(Message::UpdateTransactions(x)),
-                    ),
-                );
+                    let mut tuples = Vec::new();
+                    for transaction in transactions {
+                        let source = accounts
+                            .iter()
+                            .find(|x| x.id() == transaction.source())
+                            .unwrap()
+                            .clone();
+                        let destination = accounts
+                            .iter()
+                            .find(|x| x.id() == transaction.destination())
+                            .unwrap()
+                            .clone();
+                        tuples.push((transaction, source, destination));
+                    }
+                    Message::UpdateTransactions(tuples)
+                }));
             }
-            Message::ViewAccount(id) => {
-                return (
-                    Some(View::Empty),
-                    super::account::switch_view_command(id, finance_manager),
-                );
-            }
-            Message::ViewTransaction(id) => {
-                return (
-                    Some(View::Empty),
-                    super::transaction::switch_view_command(id, finance_manager),
-                );
-            }
+            Message::ViewAccount(id) => return Action::ViewAccount(id),
+            Message::ViewTransaction(id) => return Action::ViewTransaction(id),
             Message::UpdateTransactions(transactions) => {
                 self.transactions = transactions;
                 self.sums = fm_core::sum_up_transactions_by_day(
@@ -121,7 +130,7 @@ impl FilterTransactionView {
                 );
             }
         }
-        (None, iced::Task::none())
+        Action::None
     }
 
     pub fn view(&self) -> iced::Element<Message> {
