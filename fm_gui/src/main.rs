@@ -183,7 +183,15 @@ impl App {
                 message_match!(self, m, View::ViewCategory);
             }
             AppMessage::BookCheckingAccountOverviewMessage(m) => {
-                message_match!(self, m, View::BookCheckingAccountOverview);
+                match message_match_action!(self, m, View::BookCheckingAccountOverview) {
+                    view::book_checking_account_overview::Action::ViewAccount(id) => {
+                        return view::account::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::book_checking_account_overview::Action::None => {}
+                }
             }
             AppMessage::SwitchToBookCheckingAccountOverview => {
                 return view::book_checking_account_overview::switch_view_command(
