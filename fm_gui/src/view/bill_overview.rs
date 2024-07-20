@@ -1,7 +1,5 @@
 use super::super::{utils, AppMessage, View};
 
-use anyhow::Result;
-
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -9,16 +7,22 @@ use std::sync::Arc;
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async { BillOverview::fetch(finance_manager).await.unwrap() },
-        |view| AppMessage::SwitchView(View::BillOverview(view)),
-    )
+    let (view, task) = BillOverview::new(finance_manager.clone());
+    iced::Task::done(AppMessage::SwitchView(View::BillOverview(view)))
+        .chain(task.map(AppMessage::BillOverviewMessage))
+}
+
+pub enum Action {
+    ViewBill(fm_core::Id),
+    NewBill,
+    None,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewBill(fm_core::Id),
     NewBill,
+    Initialize(Vec<(fm_core::Bill, fm_core::Currency)>),
 }
 
 #[derive(Debug, Clone)]
@@ -27,37 +31,40 @@ pub struct BillOverview {
 }
 
 impl BillOverview {
-    pub async fn fetch(
+    fn new(
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> Result<Self> {
-        let locked_manager = finance_manager.lock().await;
-        let raw_bills = locked_manager.get_bills().await?;
-
-        let mut bills = Vec::new();
-        for bill in raw_bills {
-            let sum = locked_manager.get_bill_sum(&bill).await?;
-            bills.push((bill, sum));
-        }
-
-        Ok(Self { bills })
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self { bills: Vec::new() },
+            iced::Task::future(async move {
+                let bills = finance_manager.lock().await.get_bills().await.unwrap();
+                let mut bill_tuples = Vec::new();
+                for bill in bills {
+                    let sum = finance_manager
+                        .lock()
+                        .await
+                        .get_bill_sum(&bill)
+                        .await
+                        .unwrap();
+                    bill_tuples.push((bill, sum));
+                }
+                Message::Initialize(bill_tuples)
+            }),
+        )
     }
 
     pub fn update(
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
-            Message::ViewBill(bill_id) => (
-                Some(View::Empty),
-                super::bill::switch_view_command(bill_id, finance_manager),
-            ),
-            Message::NewBill => (
-                Some(View::CreateBill(
-                    super::create_bill::CreateBillView::default(),
-                )),
-                iced::Task::none(),
-            ),
+            Message::Initialize(bills) => {
+                self.bills = bills;
+                Action::None
+            }
+            Message::ViewBill(bill_id) => Action::ViewBill(bill_id),
+            Message::NewBill => Action::NewBill,
         }
     }
 

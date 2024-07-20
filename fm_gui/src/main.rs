@@ -211,7 +211,16 @@ impl App {
                 message_match!(self, m, View::CreateBill);
             }
             AppMessage::BillOverviewMessage(m) => {
-                message_match!(self, m, View::BillOverview);
+                match message_match_action!(self, m, View::BillOverview) {
+                    view::bill_overview::Action::ViewBill(id) => {
+                        return view::bill::switch_view_command(id, self.finance_manager.clone());
+                    }
+                    view::bill_overview::Action::NewBill => {
+                        self.current_view =
+                            View::CreateBill(view::create_bill::CreateBillView::default());
+                    }
+                    view::bill_overview::Action::None => {}
+                }
             }
             AppMessage::SwitchToFilterTransactionView => {
                 self.current_view = View::Empty;
