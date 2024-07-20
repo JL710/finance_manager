@@ -167,7 +167,20 @@ impl App {
                 return view::create_transaction::switch_view_command(self.finance_manager.clone());
             }
             AppMessage::AssetAccountsMessage(m) => {
-                message_match!(self, m, View::AssetAccounts);
+                match message_match_action!(self, m, View::AssetAccounts) {
+                    view::show_asset_accounts::Action::ViewAccount(id) => {
+                        return view::account::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::show_asset_accounts::Action::CreateAssetAccount => {
+                        self.current_view = View::CreateAssetAccountDialog(
+                            view::create_asset_account::CreateAssetAccountDialog::default(),
+                        );
+                    }
+                    view::show_asset_accounts::Action::None => {}
+                }
             }
             AppMessage::SwitchToAssetAccountsView => {
                 return view::show_asset_accounts::switch_view_command(

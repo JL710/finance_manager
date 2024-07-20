@@ -39,10 +39,18 @@ pub fn switch_view_command(
     )
 }
 
+pub enum Action {
+    None,
+    CreateAssetAccount,
+    /// could be any kind of account type
+    ViewAccount(fm_core::Id),
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     CreateAssetAccount,
     AccountView(fm_core::account::AssetAccount),
+    Initialize(Vec<(fm_core::account::AssetAccount, fm_core::Currency)>),
 }
 
 #[derive(Debug, Clone)]
@@ -62,24 +70,15 @@ impl AssetAccountOverview {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+        _finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
+    ) -> Action {
         match message {
-            Message::CreateAssetAccount => (
-                Some(View::CreateAssetAccountDialog(
-                    super::create_asset_account::CreateAssetAccountDialog::default(),
-                )),
-                iced::Task::none(),
-            ),
-            Message::AccountView(account) => {
-                let (view, task) =
-                    super::account::Account::fetch(finance_manager.clone(), account.id());
-                (
-                    None,
-                    iced::Task::done(AppMessage::SwitchView(View::ViewAccount(view)))
-                        .chain(task.map(AppMessage::ViewAccountMessage)),
-                )
+            Message::Initialize(accounts) => {
+                self.accounts = accounts;
+                Action::None
             }
+            Message::CreateAssetAccount => Action::CreateAssetAccount,
+            Message::AccountView(account) => Action::ViewAccount(account.id()),
         }
     }
 
