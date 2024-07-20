@@ -2,27 +2,10 @@ use fm_core;
 
 use iced::widget;
 
-use super::super::{utils, AppMessage, View};
+use super::super::utils;
 
 use async_std::sync::Mutex;
 use std::sync::Arc;
-
-pub fn switch_view_command(
-    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Task<AppMessage> {
-    let (view, task) = CreateTransactionView::new(finance_manager);
-    iced::Task::done(AppMessage::SwitchView(View::CreateTransactionView(view)))
-        .chain(task.map(AppMessage::CreateTransactionViewMessage))
-}
-
-pub fn edit_switch_view_command(
-    id: fm_core::Id,
-    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Task<AppMessage> {
-    let (view, task) = CreateTransactionView::fetch(finance_manager, id);
-    iced::Task::done(AppMessage::SwitchView(View::CreateTransactionView(view)))
-        .chain(task.map(AppMessage::CreateTransactionViewMessage))
-}
 
 #[derive(Debug, Clone, PartialEq)]
 enum SelectedAccount {
@@ -50,7 +33,6 @@ impl std::fmt::Display for SelectedAccount {
 
 pub enum Action {
     None,
-    Task(iced::Task<Message>),
     FinishedTransaction(iced::Task<fm_core::Transaction>),
 }
 

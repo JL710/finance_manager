@@ -1,4 +1,4 @@
-use super::super::{utils, AppMessage, View};
+use super::super::utils;
 use fm_core;
 
 use async_std::sync::Mutex;
@@ -93,7 +93,6 @@ impl CreateAssetAccountDialog {
                 };
                 let offset = fm_core::Currency::Eur(self.offset_input.parse().unwrap());
                 let id = self.id;
-                let manager = finance_manager.clone();
                 return Action::CreateAssetAccount(iced::Task::future(async move {
                     let account = if let Some(some_id) = id {
                         finance_manager

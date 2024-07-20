@@ -1,17 +1,8 @@
-use super::super::{utils, AppMessage, View};
+use super::super::utils;
 
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
-
-pub fn switch_view_command(
-    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    category_id: fm_core::Id,
-) -> iced::Task<AppMessage> {
-    let (view, task) = Category::fetch(finance_manager.clone(), category_id);
-    iced::Task::done(AppMessage::SwitchView(View::ViewCategory(view)))
-        .chain(task.map(AppMessage::ViewCategoryMessage))
-}
 
 pub enum Action {
     None,

@@ -1,15 +1,7 @@
-use super::super::{utils, AppMessage, View};
+use super::super::utils;
 use async_std::sync::Mutex;
 use fm_core::transaction_filter::TransactionFilter;
 use std::sync::Arc;
-
-pub fn switch_view_command(
-    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Task<AppMessage> {
-    let (view, task) = FilterTransactionView::fetch(finance_manager.clone());
-    iced::Task::done(AppMessage::SwitchView(View::FilterTransaction(view)))
-        .chain(task.map(AppMessage::FilterTransactionMessage))
-}
 
 pub enum Action {
     None,
@@ -52,7 +44,7 @@ pub struct FilterTransactionView {
 }
 
 impl FilterTransactionView {
-    pub fn fetch(
+    pub fn new(
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Self, iced::Task<Message>) {
         (

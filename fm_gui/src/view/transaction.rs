@@ -3,16 +3,7 @@ use std::sync::Arc;
 
 use iced::widget;
 
-use super::super::{utils, AppMessage, View};
-
-pub fn switch_view_command(
-    id: fm_core::Id,
-    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Task<AppMessage> {
-    let (view, task) = Transaction::fetch(id, finance_manager);
-    iced::Task::done(AppMessage::SwitchView(View::TransactionView(view)))
-        .chain(task.map(AppMessage::TransactionViewMessage))
-}
+use super::super::utils;
 
 pub enum Action {
     None,

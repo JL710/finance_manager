@@ -1,21 +1,9 @@
-use super::super::{utils, AppMessage, View};
-
-use anyhow::Result;
+use super::super::utils;
 
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
 use iced::widget;
-
-pub fn switch_view_command(
-    id: fm_core::Id,
-    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async move { CreateBillView::fetch(id, finance_manager).await.unwrap() },
-        |view| AppMessage::SwitchView(View::CreateBill(view)),
-    )
-}
 
 pub enum Action {
     None,
@@ -51,37 +39,32 @@ pub struct CreateBillView {
 }
 
 impl CreateBillView {
-    pub async fn fetch(
+    pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> Result<Self> {
-        let locked_manager = finance_manager.lock().await;
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self::default(),
+            iced::Task::future(async move {
+                let locked_manager = finance_manager.lock().await;
 
-        let bill = locked_manager.get_bill(&id).await?.unwrap();
+                let bill = locked_manager.get_bill(&id).await.unwrap().unwrap();
 
-        let mut transactions = Vec::new();
+                let mut transactions = Vec::new();
 
-        for (transaction_id, sign) in bill.transactions() {
-            transactions.push((
-                locked_manager
-                    .get_transaction(*transaction_id)
-                    .await?
-                    .unwrap(),
-                *sign,
-            ));
-        }
-
-        Ok(Self {
-            id: Some(*bill.id()),
-            name_input: bill.name().to_owned(),
-            description_input: utils::multiline_text_input::State::new(
-                bill.description().clone().unwrap_or(String::new()),
-            ),
-            value: Some(bill.value().clone()),
-            due_date: *bill.due_date(),
-            transactions,
-            add_transaction: None,
-        })
+                for (transaction_id, sign) in bill.transactions() {
+                    transactions.push((
+                        locked_manager
+                            .get_transaction(*transaction_id)
+                            .await
+                            .unwrap()
+                            .unwrap(),
+                        *sign,
+                    ));
+                }
+                Message::Initialize(bill, transactions)
+            }),
+        )
     }
 
     pub fn update(

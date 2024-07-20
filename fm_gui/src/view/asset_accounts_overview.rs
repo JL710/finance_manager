@@ -1,43 +1,10 @@
 use fm_core::{self, FinanceManager};
 
-use super::super::{utils, AppMessage, View};
+use super::super::utils;
 
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
-
-pub fn switch_view_command(
-    finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async move {
-            let accounts = finance_manager
-                .lock()
-                .await
-                .get_accounts()
-                .await
-                .unwrap()
-                .iter()
-                .filter_map(|x| match &x {
-                    fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
-                    _ => None,
-                })
-                .collect::<Vec<_>>();
-            let mut tuples = Vec::new();
-            for account in accounts {
-                let amount = finance_manager
-                    .lock()
-                    .await
-                    .get_account_sum(&account.clone().into(), chrono::Utc::now())
-                    .await
-                    .unwrap();
-                tuples.push((account, amount));
-            }
-            tuples
-        },
-        |accounts| AppMessage::SwitchView(View::AssetAccounts(AssetAccountOverview::new(accounts))),
-    )
-}
 
 pub enum Action {
     None,
@@ -53,7 +20,7 @@ pub enum Message {
     Initialize(Vec<(fm_core::account::AssetAccount, fm_core::Currency)>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct AssetAccountOverview {
     accounts: Vec<(fm_core::account::AssetAccount, fm_core::Currency)>,
 }
@@ -65,6 +32,39 @@ impl AssetAccountOverview {
         Self {
             accounts: asset_accounts,
         }
+    }
+
+    pub fn fetch(
+        finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self::default(),
+            iced::Task::future(async move {
+                let accounts = finance_manager
+                    .lock()
+                    .await
+                    .get_accounts()
+                    .await
+                    .unwrap()
+                    .iter()
+                    .filter_map(|x| match &x {
+                        fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>();
+                let mut tuples = Vec::new();
+                for account in accounts {
+                    let amount = finance_manager
+                        .lock()
+                        .await
+                        .get_account_sum(&account.clone().into(), chrono::Utc::now())
+                        .await
+                        .unwrap();
+                    tuples.push((account, amount));
+                }
+                Message::Initialize(tuples)
+            }),
+        )
     }
 
     pub fn update(
