@@ -28,6 +28,7 @@ pub enum Message {
     Edit,
     ChangedTimespan(fm_core::Timespan),
     Set(
+        fm_core::Category,
         fm_core::Timespan,
         Vec<(fm_core::DateTime, fm_core::Currency)>,
         Vec<(
@@ -38,15 +39,6 @@ pub enum Message {
     ),
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
-    Initialize(
-        fm_core::Category,
-        Vec<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )>,
-        Vec<(fm_core::DateTime, fm_core::Currency)>,
-    ),
 }
 
 #[derive(Debug, Clone)]
@@ -94,7 +86,7 @@ impl Category {
                     .unwrap()
                     .unwrap();
 
-                Message::Initialize(category, transaction_tuples, values)
+                Message::Set(category, (None, None), values, transaction_tuples)
             }),
         )
     }
@@ -105,15 +97,6 @@ impl Category {
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> Action {
         match message {
-            Message::Initialize(category, transactions, values) => {
-                *self = Self::Loaded {
-                    category,
-                    transactions,
-                    timespan: (None, None),
-                    values,
-                };
-                Action::None
-            }
             Message::Delete => {
                 if let Self::Loaded { category, .. } = self {
                     let category_id = *category.id();
@@ -138,11 +121,8 @@ impl Category {
                 }
             }
             Message::ChangedTimespan(new_timespan) => {
-                if let Self::Loaded {
-                    category, timespan, ..
-                } = self
-                {
-                    *timespan = new_timespan;
+                if let Self::Loaded { category, .. } = self {
+                    let cloned_category = category.clone();
                     let id = *category.id();
                     Action::Task(iced::Task::future(async move {
                         let transactions = finance_manager
@@ -170,24 +150,18 @@ impl Category {
                             .get_relative_category_values(id, new_timespan)
                             .await
                             .unwrap();
-                        Message::Set(new_timespan, values, transaction_tuples)
+                        Message::Set(cloned_category, new_timespan, values, transaction_tuples)
                     }))
                 } else {
                     Action::None
                 }
             }
-            Message::Set(timespan, values, transactions) => {
-                if let Self::Loaded {
-                    category,
-                    transactions: _,
-                    timespan: _,
-                    values: _,
-                } = self
-                {
+            Message::Set(category, timespan, values, transactions) => {
+                if let Self::Loaded { .. } = self {
                     *self = Self::Loaded {
-                        category: category.clone(),
-                        transactions,
+                        category,
                         timespan,
+                        transactions,
                         values,
                     };
                 }
