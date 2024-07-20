@@ -17,6 +17,12 @@ pub fn switch_view_command(
     )
 }
 
+pub enum Action {
+    None,
+    CreateBill(iced::Task<fm_core::Id>),
+    Task(iced::Task<Message>),
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     DueDateChanged(Option<fm_core::DateTime>),
@@ -30,6 +36,7 @@ pub enum Message {
     AddTransactionMessage(add_transaction::Message),
     FetchedAddTransaction(add_transaction::AddTransaction),
     Submit,
+    Initialize(fm_core::Bill, Vec<(fm_core::Transaction, fm_core::Sign)>),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -81,8 +88,19 @@ impl CreateBillView {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
+            Message::Initialize(bill, transactions) => {
+                self.id = Some(*bill.id());
+                self.name_input = bill.name().to_owned();
+                self.description_input = utils::multiline_text_input::State::new(
+                    bill.description().clone().unwrap_or(String::new()),
+                );
+                self.value = Some(bill.value().clone());
+                self.due_date = *bill.due_date();
+                self.transactions = transactions;
+                self.add_transaction = None;
+            }
             Message::DueDateChanged(date) => {
                 self.due_date = date;
             }
@@ -112,87 +130,67 @@ impl CreateBillView {
                     .collect::<Vec<_>>();
                 if let Some(id) = id_option {
                     let manager = finance_manager.clone();
-                    return (
-                        Some(View::Empty),
-                        iced::Task::future(async move {
-                            finance_manager
-                                .lock()
-                                .await
-                                .update_bill(
-                                    id,
-                                    name,
-                                    if description.is_empty() {
-                                        None
-                                    } else {
-                                        Some(description)
-                                    },
-                                    value,
-                                    transactions,
-                                    due_date,
-                                )
-                                .unwrap()
-                                .await
-                                .unwrap();
-                            id
-                        })
-                        .then(move |x| {
-                            let (view, task) = super::bill::Bill::new(x, manager.clone());
-                            iced::Task::done(AppMessage::SwitchView(View::ViewBill(view)))
-                                .chain(task.map(AppMessage::ViewBillMessage))
-                        }),
-                    );
+                    return Action::CreateBill(iced::Task::future(async move {
+                        finance_manager
+                            .lock()
+                            .await
+                            .update_bill(
+                                id,
+                                name,
+                                if description.is_empty() {
+                                    None
+                                } else {
+                                    Some(description)
+                                },
+                                value,
+                                transactions,
+                                due_date,
+                            )
+                            .unwrap()
+                            .await
+                            .unwrap();
+                        id
+                    }));
                 } else {
                     let manager = finance_manager.clone();
-                    return (
-                        Some(View::Empty),
-                        iced::Task::future(async move {
-                            let mut locked_manager = finance_manager.lock().await;
-                            let bill = locked_manager
-                                .create_bill(
-                                    name,
-                                    if description.is_empty() {
-                                        None
-                                    } else {
-                                        Some(description)
-                                    },
-                                    value,
-                                    transactions,
-                                    due_date,
-                                )
-                                .unwrap()
-                                .await
-                                .unwrap();
-                            drop(locked_manager);
-                            *bill.id()
-                        })
-                        .then(move |x| {
-                            let (view, task) = super::bill::Bill::new(x, manager.clone());
-                            iced::Task::done(AppMessage::SwitchView(View::ViewBill(view)))
-                                .chain(task.map(AppMessage::ViewBillMessage))
-                        }),
-                    );
+                    return Action::CreateBill(iced::Task::future(async move {
+                        let mut locked_manager = finance_manager.lock().await;
+                        let bill = locked_manager
+                            .create_bill(
+                                name,
+                                if description.is_empty() {
+                                    None
+                                } else {
+                                    Some(description)
+                                },
+                                value,
+                                transactions,
+                                due_date,
+                            )
+                            .unwrap()
+                            .await
+                            .unwrap();
+                        drop(locked_manager);
+                        *bill.id()
+                    }));
                 }
             }
             Message::AddTransactionToggle => {
                 if self.add_transaction.is_some() {
                     self.add_transaction = None;
-                    return (None, iced::Task::none());
+                    return Action::None;
                 }
                 let ignored_transactions = self.transactions.iter().map(|x| *x.0.id()).collect();
-                return (
-                    None,
-                    iced::Task::perform(
-                        async move {
-                            add_transaction::AddTransaction::fetch(
-                                finance_manager,
-                                ignored_transactions,
-                            )
-                            .await
-                            .unwrap()
-                        },
-                        |x| AppMessage::CreateBillMessage(Message::FetchedAddTransaction(x)),
-                    ),
-                );
+                return Action::Task(iced::Task::future(async move {
+                    Message::FetchedAddTransaction(
+                        add_transaction::AddTransaction::fetch(
+                            finance_manager,
+                            ignored_transactions,
+                        )
+                        .await
+                        .unwrap(),
+                    )
+                }));
             }
             Message::FetchedAddTransaction(add_transaction) => {
                 self.add_transaction = Some(add_transaction);
@@ -222,19 +220,14 @@ impl CreateBillView {
                                 .push((transaction, fm_core::Sign::Positive));
                         }
                         add_transaction::Action::Task(task) => {
-                            return (
-                                None,
-                                task.map(|x| {
-                                    AppMessage::CreateBillMessage(Message::AddTransactionMessage(x))
-                                }),
-                            );
+                            return Action::Task(task.map(Message::AddTransactionMessage));
                         }
                         add_transaction::Action::None => {}
                     }
                 }
             }
         }
-        (None, iced::Task::none())
+        Action::None
     }
 
     pub fn view(&self) -> iced::Element<Message> {

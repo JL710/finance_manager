@@ -312,7 +312,20 @@ impl App {
                 message_match!(self, m, View::FilterTransaction);
             }
             AppMessage::CreateBillMessage(m) => {
-                message_match!(self, m, View::CreateBill);
+                match message_match_action!(self, m, View::CreateBill) {
+                    view::create_bill::Action::CreateBill(t) => {
+                        let manager = self.finance_manager.clone();
+                        return t.then(move |id| {
+                            let (v, task) = view::bill::Bill::fetch(id, manager.clone());
+                            iced::Task::done(AppMessage::SwitchView(View::ViewBill(v)))
+                                .chain(task.map(AppMessage::ViewBillMessage))
+                        });
+                    }
+                    view::create_bill::Action::None => {}
+                    view::create_bill::Action::Task(t) => {
+                        return t.map(AppMessage::CreateBillMessage);
+                    }
+                }
             }
             AppMessage::BillOverviewMessage(m) => {
                 match message_match_action!(self, m, View::BillOverview) {

@@ -9,7 +9,7 @@ pub fn switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    let (view, task) = Bill::new(id, finance_manager);
+    let (view, task) = Bill::fetch(id, finance_manager);
     iced::Task::done(AppMessage::SwitchView(View::ViewBill(view)))
         .chain(task.map(AppMessage::ViewBillMessage))
 }
@@ -42,7 +42,7 @@ pub enum Bill {
 }
 
 impl Bill {
-    pub fn new(
+    pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> (Self, iced::Task<Message>) {
