@@ -1,9 +1,13 @@
-use super::super::{utils, AppMessage, View};
+use super::super::utils;
 use fm_core;
 
-use anyhow::Result;
 use async_std::sync::Mutex;
 use std::sync::Arc;
+
+pub enum Action {
+    None,
+    CreateAccount(iced::Task<fm_core::Id>),
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -12,9 +16,10 @@ pub enum Message {
     IbanInput(String),
     BicInput(String),
     Submit,
+    Initialize(fm_core::account::BookCheckingAccount),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CreateBookCheckingAccount {
     id: Option<fm_core::Id>,
     name_input: String,
@@ -24,7 +29,7 @@ pub struct CreateBookCheckingAccount {
 }
 
 impl CreateBookCheckingAccount {
-    pub fn from_existing_account(account: fm_core::account::BookCheckingAccount) -> Self {
+    pub fn new(account: fm_core::account::BookCheckingAccount) -> Self {
         Self {
             id: Some(account.id()),
             name_input: account.name().to_string(),
@@ -38,31 +43,46 @@ impl CreateBookCheckingAccount {
         }
     }
 
-    pub async fn fetch(
+    pub fn fetch(
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
         account_id: fm_core::Id,
-    ) -> Result<Self> {
-        let account = finance_manager
-            .lock()
-            .await
-            .get_account(account_id)
-            .await
-            .unwrap()
-            .unwrap();
-        Ok(CreateBookCheckingAccount::from_existing_account(
-            match account {
-                fm_core::account::Account::BookCheckingAccount(acc) => acc,
-                _ => panic!("Wrong account type"),
-            },
-        ))
+    ) -> (Self, iced::Task<Message>) {
+        (
+            CreateBookCheckingAccount::default(),
+            iced::Task::future(async move {
+                let account = finance_manager
+                    .lock()
+                    .await
+                    .get_account(account_id)
+                    .await
+                    .unwrap()
+                    .unwrap();
+                if let fm_core::account::Account::BookCheckingAccount(acc) = account {
+                    Message::Initialize(acc)
+                } else {
+                    panic!("Wrong account type")
+                }
+            }),
+        )
     }
 
     pub fn update(
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
+            Message::Initialize(account) => {
+                self.id = Some(account.id());
+                self.name_input = account.name().to_string();
+                self.note_input = account
+                    .note()
+                    .map_or(String::new(), |note| note.to_string());
+                self.iban_input = account
+                    .iban()
+                    .map_or(String::new(), |iban| iban.to_string());
+                self.bic_input = account.bic().map_or(String::new(), |bic| bic.to_string());
+            }
             Message::NameInput(input) => self.name_input = input,
             Message::NoteInput(input) => self.note_input = input,
             Message::IbanInput(input) => self.iban_input = input,
@@ -85,36 +105,27 @@ impl CreateBookCheckingAccount {
                     Some(self.bic_input.clone())
                 };
                 let id = self.id;
-                let manager = finance_manager.clone();
-                return (
-                    Some(View::Empty),
-                    iced::Task::future(async move {
-                        let account = if let Some(some_id) = id {
-                            finance_manager
-                                .lock()
-                                .await
-                                .update_book_checking_account(some_id, name, note, iban, bic)
-                                .await
-                                .unwrap()
-                        } else {
-                            finance_manager
-                                .lock()
-                                .await
-                                .create_book_checking_account(name, note, iban, bic)
-                                .await
-                                .unwrap()
-                        };
-                        account.id()
-                    })
-                    .then(move |id| {
-                        let (view, task) = super::account::Account::fetch(manager.clone(), id);
-                        iced::Task::done(AppMessage::SwitchView(View::ViewAccount(view)))
-                            .chain(task.map(AppMessage::ViewAccountMessage))
-                    }),
-                );
+                return Action::CreateAccount(iced::Task::future(async move {
+                    let account = if let Some(some_id) = id {
+                        finance_manager
+                            .lock()
+                            .await
+                            .update_book_checking_account(some_id, name, note, iban, bic)
+                            .await
+                            .unwrap()
+                    } else {
+                        finance_manager
+                            .lock()
+                            .await
+                            .create_book_checking_account(name, note, iban, bic)
+                            .await
+                            .unwrap()
+                    };
+                    account.id()
+                }));
             }
         }
-        (None, iced::Task::none())
+        Action::None
     }
 
     pub fn view(&self) -> iced::Element<'static, Message> {

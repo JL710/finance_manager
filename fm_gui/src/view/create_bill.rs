@@ -129,7 +129,6 @@ impl CreateBillView {
                     .map(|(transaction, sign)| (*transaction.id(), sign))
                     .collect::<Vec<_>>();
                 if let Some(id) = id_option {
-                    let manager = finance_manager.clone();
                     return Action::CreateBill(iced::Task::future(async move {
                         finance_manager
                             .lock()
@@ -152,7 +151,6 @@ impl CreateBillView {
                         id
                     }));
                 } else {
-                    let manager = finance_manager.clone();
                     return Action::CreateBill(iced::Task::future(async move {
                         let mut locked_manager = finance_manager.lock().await;
                         let bill = locked_manager
