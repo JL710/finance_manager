@@ -18,6 +18,15 @@ macro_rules! message_match {
     };
 }
 
+macro_rules! message_match_action {
+    ($app:expr, $m:expr, $v:path) => {
+        match $app.current_view {
+            $v(ref mut view) => view.update($m, $app.finance_manager.clone()),
+            _ => panic!(),
+        }
+    };
+}
+
 #[derive(Debug, Clone)]
 pub enum AppMessage {
     SwitchView(View),
@@ -108,7 +117,22 @@ impl App {
                 message_match!(self, m, View::CreateBudgetView);
             }
             AppMessage::CreateTransactionViewMessage(m) => {
-                message_match!(self, m, View::CreateTransactionView);
+                let action = message_match_action!(self, m, View::CreateTransactionView);
+                match action {
+                    view::create_transaction::Action::Task(t) => {
+                        return t.map(AppMessage::CreateTransactionViewMessage);
+                    }
+                    view::create_transaction::Action::FinishedTransaction(task) => {
+                        let manager = self.finance_manager.clone();
+                        return task.then(move |transaction| {
+                            view::transaction::switch_view_command(
+                                *transaction.id(),
+                                manager.clone(),
+                            )
+                        });
+                    }
+                    view::create_transaction::Action::None => {}
+                }
             }
             AppMessage::SwitchToCreateTransActionView => {
                 return view::create_transaction::switch_view_command(self.finance_manager.clone());

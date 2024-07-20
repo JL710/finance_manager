@@ -4,40 +4,28 @@ use iced::widget;
 
 use super::super::{utils, AppMessage, View};
 
-use anyhow::Result;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
 pub fn switch_view_command(
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async move {
-            let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
-            let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
-            let categories = finance_manager.lock().await.get_categories().await.unwrap();
-            (budgets, accounts, categories)
-        },
-        |x| {
-            AppMessage::SwitchView(View::CreateTransactionView(
-                super::create_transaction::CreateTransactionView::new(x.0, x.1, x.2),
-            ))
-        },
-    )
+    let (view, task) = CreateTransactionView::new(finance_manager);
+    iced::Task::batch([
+        iced::Task::done(AppMessage::SwitchView(View::CreateTransactionView(view))),
+        task.map(AppMessage::CreateTransactionViewMessage),
+    ])
 }
 
 pub fn edit_switch_view_command(
     id: fm_core::Id,
     finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
 ) -> iced::Task<AppMessage> {
-    iced::Task::perform(
-        async move {
-            CreateTransactionView::fetch(&id, finance_manager)
-                .await
-                .unwrap()
-        },
-        |x| AppMessage::SwitchView(View::CreateTransactionView(x)),
-    )
+    let (view, task) = CreateTransactionView::from_existing_transaction(finance_manager, id);
+    iced::Task::batch([
+        iced::Task::done(AppMessage::SwitchView(View::CreateTransactionView(view))),
+        task.map(AppMessage::CreateTransactionViewMessage),
+    ])
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -64,6 +52,12 @@ impl std::fmt::Display for SelectedAccount {
     }
 }
 
+pub enum Action {
+    None,
+    Task(iced::Task<Message>),
+    FinishedTransaction(iced::Task<fm_core::Transaction>),
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     AmountInput(String),
@@ -80,6 +74,20 @@ pub enum Message {
     Submit,
     SelectCategory(fm_core::Id),
     ChangeSelectedCategorySign(fm_core::Id, fm_core::Sign),
+    Initialize(
+        Vec<fm_core::Budget>,
+        Vec<fm_core::account::Account>,
+        Vec<fm_core::Category>,
+    ),
+    InitializeFromExisting(
+        fm_core::Transaction,
+        fm_core::account::Account,
+        fm_core::account::Account,
+        Option<fm_core::Budget>,
+        Vec<fm_core::Budget>,
+        Vec<fm_core::account::Account>,
+        Vec<fm_core::Category>,
+    ),
 }
 
 #[derive(Debug, Clone)]
@@ -102,124 +110,87 @@ pub struct CreateTransactionView {
 
 impl CreateTransactionView {
     pub fn new(
-        budgets: Vec<fm_core::Budget>,
-        accounts: Vec<fm_core::account::Account>,
-        available_categories: Vec<fm_core::Category>,
-    ) -> Self {
-        Self {
-            id: None,
-            amount_input: String::new(),
-            title_input: String::new(),
-            description_input: String::new(),
-            source_input: None,
-            source_state: widget::combo_box::State::new(
-                accounts
-                    .iter()
-                    .map(|acc| SelectedAccount::Account(acc.clone()))
-                    .collect(),
-            ),
-            destination_input: None,
-            destination_state: widget::combo_box::State::new(
-                accounts
-                    .iter()
-                    .map(|acc| SelectedAccount::Account(acc.clone()))
-                    .collect(),
-            ),
-            budget_state: widget::combo_box::State::new(budgets),
-            budget_input: None,
-            date_input: String::new(),
-            metadata: std::collections::HashMap::new(),
-            selected_categories: Vec::new(),
-            available_categories,
-        }
+        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self {
+                id: None,
+                amount_input: String::new(),
+                title_input: String::new(),
+                description_input: String::new(),
+                source_input: None,
+                source_state: widget::combo_box::State::new(Vec::new()),
+                destination_input: None,
+                destination_state: widget::combo_box::State::new(Vec::new()),
+                budget_state: widget::combo_box::State::new(Vec::new()),
+                budget_input: None,
+                date_input: String::new(),
+                metadata: std::collections::HashMap::new(),
+                selected_categories: Vec::new(),
+                available_categories: Vec::new(),
+            },
+            iced::Task::future(async move {
+                let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
+                let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
+                let categories = finance_manager.lock().await.get_categories().await.unwrap();
+                Message::Initialize(budgets, accounts, categories)
+            }),
+        )
     }
 
     pub fn from_existing_transaction(
-        transaction: &fm_core::Transaction,
-        source: fm_core::account::Account,
-        destination: fm_core::account::Account,
-        budget: Option<fm_core::Budget>,
-        budgets: Vec<fm_core::Budget>,
-        accounts: Vec<fm_core::account::Account>,
-        available_categories: Vec<fm_core::Category>,
-    ) -> Self {
-        fn string_convert(input: Option<&str>) -> String {
-            match input {
-                Some(x) => x.to_owned(),
-                _ => String::new(),
-            }
-        }
-
-        Self {
-            id: Some(*transaction.id()),
-            amount_input: transaction.amount().get_eur_num().to_string(),
-            title_input: transaction.title().clone(),
-            description_input: string_convert(transaction.description()),
-            source_input: Some(SelectedAccount::Account(source)),
-            source_state: widget::combo_box::State::new(
-                accounts
-                    .iter()
-                    .map(|acc| SelectedAccount::Account(acc.clone()))
-                    .collect(),
-            ),
-            destination_input: Some(SelectedAccount::Account(destination)),
-            destination_state: widget::combo_box::State::new(
-                accounts
-                    .iter()
-                    .map(|acc| SelectedAccount::Account(acc.clone()))
-                    .collect(),
-            ),
-            budget_input: budget.map(|x| (x, transaction.budget().unwrap().1)),
-            budget_state: widget::combo_box::State::new(budgets),
-            date_input: transaction.date().format("%d.%m.%Y").to_string(),
-            metadata: transaction.metadata().clone(),
-            available_categories,
-            selected_categories: transaction.categories().to_vec(),
-        }
-    }
-
-    pub async fn fetch(
-        id: &fm_core::Id,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> Result<Self> {
-        let locked_manager = finance_manager.lock().await;
+        transaction_id: fm_core::Id,
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self::new(finance_manager.clone()).0,
+            iced::Task::future(async move {
+                let locked_manager = finance_manager.lock().await;
 
-        let transaction = locked_manager.get_transaction(*id).await?.unwrap();
-        let source_account = locked_manager
-            .get_account(*transaction.source())
-            .await?
-            .unwrap();
-        let destination_account = locked_manager
-            .get_account(*transaction.destination())
-            .await?
-            .unwrap();
-        let budget = match transaction.budget() {
-            Some(x) => locked_manager.get_budget(x.0).await?,
-            None => None,
-        };
-        let budgets = locked_manager.get_budgets().await?;
-        let accounts = locked_manager.get_accounts().await?;
-        let available_categories = locked_manager.get_categories().await?;
+                let transaction = locked_manager
+                    .get_transaction(transaction_id)
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let source = locked_manager
+                    .get_account(*transaction.source())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let destination = locked_manager
+                    .get_account(*transaction.destination())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let budget = match transaction.budget() {
+                    Some(x) => locked_manager.get_budget(x.0).await.unwrap(),
+                    None => None,
+                };
+                let budgets = locked_manager.get_budgets().await.unwrap();
+                let accounts = locked_manager.get_accounts().await.unwrap();
+                let available_categories = locked_manager.get_categories().await.unwrap();
 
-        Ok(Self::from_existing_transaction(
-            &transaction,
-            source_account,
-            destination_account,
-            budget,
-            budgets,
-            accounts,
-            available_categories,
-        ))
+                Message::InitializeFromExisting(
+                    transaction,
+                    source,
+                    destination,
+                    budget,
+                    budgets,
+                    accounts,
+                    available_categories,
+                )
+            }),
+        )
     }
 
     pub fn update(
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
             Message::Submit => {
-                return (Some(View::Empty), self.submit_command(finance_manager));
+                return Action::FinishedTransaction(self.submit_command(finance_manager));
             }
             Message::AmountInput(content) => {
                 self.amount_input = content;
@@ -280,8 +251,60 @@ impl CreateTransactionView {
                     ));
                 }
             }
+            Message::Initialize(budgets, accounts, categories) => {
+                self.budget_state = widget::combo_box::State::new(budgets);
+                self.available_categories = categories;
+                self.source_state = widget::combo_box::State::new(
+                    accounts
+                        .iter()
+                        .map(|acc| SelectedAccount::Account(acc.clone()))
+                        .collect(),
+                );
+                self.destination_state = widget::combo_box::State::new(
+                    accounts
+                        .iter()
+                        .map(|acc| SelectedAccount::Account(acc.clone()))
+                        .collect(),
+                );
+            }
+            Message::InitializeFromExisting(
+                transaction,
+                source,
+                destination,
+                budget,
+                budgets,
+                accounts,
+                available_categories,
+            ) => {
+                self.id = Some(*transaction.id());
+                self.amount_input = transaction.amount().get_eur_num().to_string();
+                self.title_input.clone_from(transaction.title());
+                self.description_input = transaction
+                    .description()
+                    .map_or(String::new(), |x| x.to_owned());
+                self.source_input = Some(SelectedAccount::Account(source));
+                self.source_state = widget::combo_box::State::new(
+                    accounts
+                        .iter()
+                        .map(|acc| SelectedAccount::Account(acc.clone()))
+                        .collect(),
+                );
+                self.destination_input = Some(SelectedAccount::Account(destination));
+                self.destination_state = widget::combo_box::State::new(
+                    accounts
+                        .iter()
+                        .map(|acc| SelectedAccount::Account(acc.clone()))
+                        .collect(),
+                );
+                self.budget_input = budget.map(|x| (x, transaction.budget().unwrap().1));
+                self.budget_state = widget::combo_box::State::new(budgets);
+                self.date_input = transaction.date().format("%d.%m.%Y").to_string();
+                self.metadata.clone_from(transaction.metadata());
+                self.available_categories = available_categories;
+                self.selected_categories = transaction.categories().to_vec();
+            }
         }
-        (None, iced::Task::none())
+        Action::None
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
@@ -424,7 +447,7 @@ impl CreateTransactionView {
     fn submit_command(
         &self,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> iced::Task<AppMessage> {
+    ) -> iced::Task<fm_core::Transaction> {
         let option_id = self.id;
         let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());
         let title = self.title_input.clone();
@@ -450,48 +473,42 @@ impl CreateTransactionView {
         let date = utils::parse_to_datetime(&self.date_input).unwrap();
         let metadata = self.metadata.clone();
         let categories = self.selected_categories.clone();
-        iced::Task::perform(
-            async move {
-                let new_transaction = match option_id {
-                    Some(id) => finance_manager
-                        .lock()
-                        .await
-                        .update_transaction(
-                            id,
-                            amount,
-                            title,
-                            description,
-                            source,
-                            destination,
-                            budget,
-                            date,
-                            metadata,
-                            categories,
-                        )
-                        .await
-                        .unwrap(),
-                    _ => finance_manager
-                        .lock()
-                        .await
-                        .create_transaction(
-                            amount,
-                            title,
-                            description,
-                            source,
-                            destination,
-                            budget,
-                            date,
-                            metadata,
-                            categories,
-                        )
-                        .await
-                        .unwrap(),
-                };
-                super::transaction::Transaction::fetch(*new_transaction.id(), finance_manager)
+        iced::Task::future(async move {
+            match option_id {
+                Some(id) => finance_manager
+                    .lock()
                     .await
-                    .unwrap()
-            },
-            |x| AppMessage::SwitchView(View::TransactionView(x)),
-        )
+                    .update_transaction(
+                        id,
+                        amount,
+                        title,
+                        description,
+                        source,
+                        destination,
+                        budget,
+                        date,
+                        metadata,
+                        categories,
+                    )
+                    .await
+                    .unwrap(),
+                _ => finance_manager
+                    .lock()
+                    .await
+                    .create_transaction(
+                        amount,
+                        title,
+                        description,
+                        source,
+                        destination,
+                        budget,
+                        date,
+                        metadata,
+                        categories,
+                    )
+                    .await
+                    .unwrap(),
+            }
+        })
     }
 }
