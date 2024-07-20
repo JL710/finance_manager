@@ -232,7 +232,21 @@ impl App {
                 return view::bill_overview::switch_view_command(self.finance_manager.clone());
             }
             AppMessage::ViewBillMessage(m) => {
-                message_match!(self, m, View::ViewBill);
+                match message_match_action!(self, m, View::ViewBill) {
+                    view::bill::Action::ViewTransaction(id) => {
+                        return view::transaction::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::bill::Action::Edit(id) => {
+                        return view::create_bill::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::bill::Action::None => {}
+                }
             }
         }
         iced::Task::none()
