@@ -225,7 +225,46 @@ impl App {
                 return view::category_overview::switch_view_command(self.finance_manager.clone());
             }
             AppMessage::ViewCategoryMessage(m) => {
-                message_match!(self, m, View::ViewCategory);
+                match message_match_action!(self, m, View::ViewCategory) {
+                    view::category::Action::Task(t) => {
+                        return t.map(AppMessage::ViewCategoryMessage);
+                    }
+                    view::category::Action::None => {}
+                    view::category::Action::EditCategory(id) => {
+                        let manager = self.finance_manager.clone();
+                        return iced::Task::future(async move {
+                            use fm_core::FinanceManager;
+                            let category = manager
+                                .lock()
+                                .await
+                                .get_category(id)
+                                .await
+                                .expect("Failed to get category")
+                                .unwrap();
+                            AppMessage::SwitchView(View::CreateCategory(
+                                view::create_category::CreateCategory::new(
+                                    Some(*category.id()),
+                                    category.name().to_owned(),
+                                ),
+                            ))
+                        });
+                    }
+                    view::category::Action::DeleteCategory(task) => {
+                        return task.map(|_| AppMessage::SwitchToCategoryOverview);
+                    }
+                    view::category::Action::ViewTransaction(id) => {
+                        return view::transaction::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                    view::category::Action::ViewAccount(id) => {
+                        return view::account::switch_view_command(
+                            id,
+                            self.finance_manager.clone(),
+                        );
+                    }
+                }
             }
             AppMessage::BookCheckingAccountOverviewMessage(m) => {
                 match message_match_action!(self, m, View::BookCheckingAccountOverview) {
