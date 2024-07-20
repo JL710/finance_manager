@@ -1,13 +1,19 @@
-use super::super::{utils, AppMessage, View};
+use super::super::utils;
 
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
 
+pub enum Action {
+    None,
+    CreateCategory(iced::Task<fm_core::Id>),
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     Submit,
     NameInput(String),
+    Initialize(fm_core::Category),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -25,34 +31,27 @@ impl CreateCategory {
         &mut self,
         message: Message,
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
+            Message::Initialize(category) => {
+                self.id = Some(*category.id());
+                self.name = category.name().to_string();
+            }
             Message::NameInput(content) => self.name = content,
             Message::Submit => {
                 let id = self.id;
                 let name = self.name.clone();
-                let manager = finance_manager.clone();
-                return (
-                    None,
-                    iced::Task::future(async move {
-                        let mut locked_manager = finance_manager.lock().await;
-                        if let Some(id) = id {
-                            locked_manager.update_category(id, name).await.unwrap();
-                        } else {
-                            locked_manager.create_category(name).await.unwrap();
-                        }
-                        ()
-                    })
-                    .then(move |_| {
-                        let (view, task) =
-                            super::category_overview::CategoryOverview::fetch(manager.clone());
-                        iced::Task::done(AppMessage::SwitchView(View::CategoryOverview(view)))
-                            .chain(task.map(AppMessage::CategoryOverviewMessage))
-                    }),
-                );
+                return Action::CreateCategory(iced::Task::future(async move {
+                    let mut locked_manager = finance_manager.lock().await;
+                    if let Some(id) = id {
+                        *locked_manager.update_category(id, name).await.unwrap().id()
+                    } else {
+                        *locked_manager.create_category(name).await.unwrap().id()
+                    }
+                }));
             }
         }
-        (None, iced::Task::none())
+        Action::None
     }
 
     pub fn view(&self) -> iced::Element<Message> {

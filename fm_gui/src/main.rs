@@ -241,7 +241,17 @@ impl App {
                 }
             }
             AppMessage::CreateCategoryMessage(m) => {
-                message_match!(self, m, View::CreateCategory);
+                match message_match_action!(self, m, View::CreateCategory) {
+                    view::create_category::Action::CreateCategory(t) => {
+                        let manager = self.finance_manager.clone();
+                        return t.then(move |id| {
+                            let (v, task) = view::category::Category::fetch(manager.clone(), id);
+                            iced::Task::done(AppMessage::SwitchView(View::ViewCategory(v)))
+                                .chain(task.map(AppMessage::ViewCategoryMessage))
+                        });
+                    }
+                    view::create_category::Action::None => {}
+                }
             }
             AppMessage::CategoryOverviewMessage(m) => {
                 match message_match_action!(self, m, View::CategoryOverview) {
