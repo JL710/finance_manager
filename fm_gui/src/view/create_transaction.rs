@@ -33,7 +33,8 @@ impl std::fmt::Display for SelectedAccount {
 
 pub enum Action {
     None,
-    FinishedTransaction(iced::Task<fm_core::Transaction>),
+    TransactionCreated(fm_core::Id),
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -66,6 +67,7 @@ pub enum Message {
         Vec<fm_core::account::Account>,
         Vec<fm_core::Category>,
     ),
+    TransactionCreated(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -84,6 +86,7 @@ pub struct CreateTransactionView {
     metadata: std::collections::HashMap<String, String>,
     available_categories: Vec<fm_core::Category>,
     selected_categories: Vec<(fm_core::Id, fm_core::Sign)>,
+    submitted: bool,
 }
 
 impl CreateTransactionView {
@@ -106,6 +109,7 @@ impl CreateTransactionView {
                 metadata: std::collections::HashMap::new(),
                 selected_categories: Vec::new(),
                 available_categories: Vec::new(),
+                submitted: false,
             },
             iced::Task::future(async move {
                 let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
@@ -167,8 +171,13 @@ impl CreateTransactionView {
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> Action {
         match message {
+            Message::TransactionCreated(id) => return Action::TransactionCreated(id),
             Message::Submit => {
-                return Action::FinishedTransaction(self.submit_command(finance_manager));
+                self.submitted = true;
+                return Action::Task(
+                    self.submit_command(finance_manager)
+                        .map(|x| Message::TransactionCreated(*x.id())),
+                );
             }
             Message::AmountInput(content) => {
                 self.amount_input = content;
@@ -286,6 +295,10 @@ impl CreateTransactionView {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
+        if self.submitted {
+            return "Loading...".into();
+        }
+
         let mut categories = widget::column![].spacing(10);
         for category in &self.available_categories {
             let selected = self

@@ -7,7 +7,7 @@ use iced::widget;
 
 pub enum Action {
     None,
-    CreateBill(iced::Task<fm_core::Id>),
+    BillCreated(fm_core::Id),
     Task(iced::Task<Message>),
 }
 
@@ -25,6 +25,7 @@ pub enum Message {
     FetchedAddTransaction(add_transaction::AddTransaction),
     Submit,
     Initialize(fm_core::Bill, Vec<(fm_core::Transaction, fm_core::Sign)>),
+    BillCreated(fm_core::Id),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -36,6 +37,7 @@ pub struct CreateBillView {
     due_date: Option<fm_core::DateTime>,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
     add_transaction: Option<add_transaction::AddTransaction>,
+    submitted: bool,
 }
 
 impl CreateBillView {
@@ -73,6 +75,9 @@ impl CreateBillView {
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> Action {
         match message {
+            Message::BillCreated(id) => {
+                return Action::BillCreated(id);
+            }
             Message::Initialize(bill, transactions) => {
                 self.id = Some(*bill.id());
                 self.name_input = bill.name().to_owned();
@@ -100,6 +105,7 @@ impl CreateBillView {
                 if !self.submittable() {
                     panic!("Cant Submit!")
                 }
+                self.submitted = true;
                 let id_option = self.id;
                 let name = self.name_input.clone();
                 let description = self.description_input.get_content().clone();
@@ -112,7 +118,7 @@ impl CreateBillView {
                     .map(|(transaction, sign)| (*transaction.id(), sign))
                     .collect::<Vec<_>>();
                 if let Some(id) = id_option {
-                    return Action::CreateBill(iced::Task::future(async move {
+                    return Action::Task(iced::Task::future(async move {
                         finance_manager
                             .lock()
                             .await
@@ -131,10 +137,10 @@ impl CreateBillView {
                             .unwrap()
                             .await
                             .unwrap();
-                        id
+                        Message::BillCreated(id)
                     }));
                 } else {
-                    return Action::CreateBill(iced::Task::future(async move {
+                    return Action::Task(iced::Task::future(async move {
                         let mut locked_manager = finance_manager.lock().await;
                         let bill = locked_manager
                             .create_bill(
@@ -152,7 +158,7 @@ impl CreateBillView {
                             .await
                             .unwrap();
                         drop(locked_manager);
-                        *bill.id()
+                        Message::BillCreated(*bill.id())
                     }));
                 }
             }

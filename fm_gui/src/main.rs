@@ -29,7 +29,6 @@ macro_rules! message_match_action {
 
 #[derive(Debug, Clone)]
 pub enum AppMessage {
-    SwitchView(View),
     BudgetOverViewMessage(view::budget_overview::Message),
     SwitchToBudgetOverview,
     SwitchToCreateTransActionView,
@@ -59,7 +58,7 @@ pub enum AppMessage {
     ViewBillMessage(view::bill::Message),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[allow(clippy::enum_variant_names)]
 enum View {
     Empty,
@@ -103,7 +102,6 @@ impl Default for App {
 impl App {
     fn update(&mut self, message: AppMessage) -> iced::Task<AppMessage> {
         match message {
-            AppMessage::SwitchView(view) => self.current_view = view,
             AppMessage::BudgetOverViewMessage(m) => {
                 match message_match_action!(self, m, View::BudgetOverview) {
                     view::budget_overview::Action::None => {}
@@ -122,44 +120,35 @@ impl App {
             }
             AppMessage::CreateAssetAccountMessage(m) => {
                 match message_match_action!(self, m, View::CreateAssetAccountDialog) {
-                    view::create_asset_account::Action::CreateAssetAccount(t) => {
-                        let manager = self.finance_manager.clone();
-                        return t.then(move |id| {
-                            let (v, task) = view::account::Account::fetch(manager.clone(), id);
-                            iced::Task::done(AppMessage::SwitchView(View::ViewAccount(v)))
-                                .chain(task.map(AppMessage::ViewAccountMessage))
-                        });
+                    view::create_asset_account::Action::AssetAccountCreated(id) => {
+                        return self.switch_view_account(id)
                     }
                     view::create_asset_account::Action::None => {}
+                    view::create_asset_account::Action::Task(t) => {
+                        return t.map(AppMessage::CreateAssetAccountMessage);
+                    }
                 }
             }
             AppMessage::CreateBudgetViewMessage(m) => {
                 match message_match_action!(self, m, View::CreateBudgetView) {
-                    view::create_budget::Action::CreateBudget(t) => {
-                        let manager = self.finance_manager.clone();
-                        return t.then(move |id| {
-                            let (v, task) = view::budget::Budget::fetch(id, 0, manager.clone());
-                            iced::Task::done(AppMessage::SwitchView(View::ViewBudgetView(v)))
-                                .chain(task.map(AppMessage::ViewBudgetMessage))
-                        });
+                    view::create_budget::Action::BudgetCreated(id) => {
+                        return self.switch_view_budget(id);
                     }
                     view::create_budget::Action::None => {}
+                    view::create_budget::Action::Task(t) => {
+                        return t.map(AppMessage::CreateBudgetViewMessage);
+                    }
                 }
             }
             AppMessage::CreateTransactionViewMessage(m) => {
                 match message_match_action!(self, m, View::CreateTransactionView) {
-                    view::create_transaction::Action::FinishedTransaction(task) => {
-                        let manager = self.finance_manager.clone();
-                        return task.then(move |transaction| {
-                            let (view, task) = view::transaction::Transaction::fetch(
-                                *transaction.id(),
-                                manager.clone(),
-                            );
-                            iced::Task::done(AppMessage::SwitchView(View::TransactionView(view)))
-                                .chain(task.map(AppMessage::TransactionViewMessage))
-                        });
+                    view::create_transaction::Action::TransactionCreated(id) => {
+                        return self.switch_view_transaction(id);
                     }
                     view::create_transaction::Action::None => {}
+                    view::create_transaction::Action::Task(t) => {
+                        return t.map(AppMessage::CreateTransactionViewMessage);
+                    }
                 }
             }
             AppMessage::SwitchToCreateTransActionView => {
@@ -253,15 +242,13 @@ impl App {
             }
             AppMessage::CreateCategoryMessage(m) => {
                 match message_match_action!(self, m, View::CreateCategory) {
-                    view::create_category::Action::CreateCategory(t) => {
-                        let manager = self.finance_manager.clone();
-                        return t.then(move |id| {
-                            let (v, task) = view::category::Category::fetch(manager.clone(), id);
-                            iced::Task::done(AppMessage::SwitchView(View::ViewCategory(v)))
-                                .chain(task.map(AppMessage::ViewCategoryMessage))
-                        });
+                    view::create_category::Action::CategoryCreated(id) => {
+                        return self.switch_view_category(id);
                     }
                     view::create_category::Action::None => {}
+                    view::create_category::Action::Task(t) => {
+                        return t.map(AppMessage::CreateCategoryMessage);
+                    }
                 }
             }
             AppMessage::CategoryOverviewMessage(m) => {
@@ -286,23 +273,7 @@ impl App {
                     }
                     view::category::Action::None => {}
                     view::category::Action::EditCategory(id) => {
-                        let manager = self.finance_manager.clone();
-                        return iced::Task::future(async move {
-                            use fm_core::FinanceManager;
-                            let category = manager
-                                .lock()
-                                .await
-                                .get_category(id)
-                                .await
-                                .expect("Failed to get category")
-                                .unwrap();
-                            AppMessage::SwitchView(View::CreateCategory(
-                                view::create_category::CreateCategory::new(
-                                    Some(*category.id()),
-                                    category.name().to_owned(),
-                                ),
-                            ))
-                        });
+                        return self.switch_view_category_edit(id);
                     }
                     view::category::Action::DeleteCategory(task) => {
                         return task.map(|_| AppMessage::SwitchToCategoryOverview);
@@ -328,13 +299,11 @@ impl App {
             }
             AppMessage::CreateBookCheckingAccountMessage(m) => {
                 match message_match_action!(self, m, View::CreateBookCheckingAccount) {
-                    view::create_book_checking_account::Action::CreateAccount(t) => {
-                        let manager = self.finance_manager.clone();
-                        return t.then(move |id| {
-                            let (v, task) = view::account::Account::fetch(manager.clone(), id);
-                            iced::Task::done(AppMessage::SwitchView(View::ViewAccount(v)))
-                                .chain(task.map(AppMessage::ViewAccountMessage))
-                        });
+                    view::create_book_checking_account::Action::Task(t) => {
+                        return t.map(AppMessage::CreateBookCheckingAccountMessage);
+                    }
+                    view::create_book_checking_account::Action::AccountCreated(id) => {
+                        return self.switch_view_account(id);
                     }
                     view::create_book_checking_account::Action::None => {}
                 }
@@ -366,13 +335,8 @@ impl App {
             }
             AppMessage::CreateBillMessage(m) => {
                 match message_match_action!(self, m, View::CreateBill) {
-                    view::create_bill::Action::CreateBill(t) => {
-                        let manager = self.finance_manager.clone();
-                        return t.then(move |id| {
-                            let (v, task) = view::bill::Bill::fetch(id, manager.clone());
-                            iced::Task::done(AppMessage::SwitchView(View::ViewBill(v)))
-                                .chain(task.map(AppMessage::ViewBillMessage))
-                        });
+                    view::create_bill::Action::BillCreated(id) => {
+                        return self.switch_view_bill(id);
                     }
                     view::create_bill::Action::None => {}
                     view::create_bill::Action::Task(t) => {
@@ -580,6 +544,13 @@ impl App {
             view::transaction::Transaction::fetch(transaction, self.finance_manager.clone());
         self.current_view = View::TransactionView(view);
         task.map(AppMessage::TransactionViewMessage)
+    }
+
+    fn switch_view_category_edit(&mut self, category: fm_core::Id) -> iced::Task<AppMessage> {
+        let (view, task) =
+            view::create_category::CreateCategory::fetch(category, self.finance_manager.clone());
+        self.current_view = View::CreateCategory(view);
+        task.map(AppMessage::CreateCategoryMessage)
     }
 }
 

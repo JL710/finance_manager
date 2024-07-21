@@ -1,12 +1,15 @@
 use super::super::utils;
 use fm_core;
 
+use iced::widget;
+
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
 pub enum Action {
     None,
-    CreateAssetAccount(iced::Task<fm_core::Id>),
+    AssetAccountCreated(fm_core::Id),
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -17,6 +20,7 @@ pub enum Message {
     BicInput(String),
     OffsetInput(String),
     Submit,
+    AssetAccountCreated(fm_core::Id),
     Initialize(fm_core::account::AssetAccount),
 }
 
@@ -28,6 +32,7 @@ pub struct CreateAssetAccountDialog {
     iban_input: String,
     bic_input: String,
     offset_input: String,
+    submitted: bool,
 }
 
 impl CreateAssetAccountDialog {
@@ -69,12 +74,14 @@ impl CreateAssetAccountDialog {
                 self.bic_input = account.bic().unwrap_or_default().to_string();
                 self.offset_input = account.offset().to_string();
             }
+            Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
             Message::NameInput(input) => self.name_input = input,
             Message::NoteInput(input) => self.note_input = input,
             Message::IbanInput(input) => self.iban_input = input,
             Message::BicInput(input) => self.bic_input = input,
             Message::OffsetInput(input) => self.offset_input = input,
             Message::Submit => {
+                self.submitted = true;
                 let name = self.name_input.clone();
                 let note = if self.note_input.is_empty() {
                     None
@@ -93,7 +100,7 @@ impl CreateAssetAccountDialog {
                 };
                 let offset = fm_core::Currency::Eur(self.offset_input.parse().unwrap());
                 let id = self.id;
-                return Action::CreateAssetAccount(iced::Task::future(async move {
+                return Action::Task(iced::Task::future(async move {
                     let account = if let Some(some_id) = id {
                         finance_manager
                             .lock()
@@ -109,7 +116,7 @@ impl CreateAssetAccountDialog {
                             .await
                             .unwrap()
                     };
-                    account.id()
+                    Message::AssetAccountCreated(account.id())
                 }));
             }
         }
@@ -117,35 +124,38 @@ impl CreateAssetAccountDialog {
     }
 
     pub fn view(&self) -> iced::Element<'static, Message> {
-        iced::widget::column![
+        if self.submitted {
+            return "Loading...".into();
+        }
+
+        widget::column![
             utils::heading("Create Asset Account", utils::HeadingLevel::H1),
-            iced::widget::row![
-                iced::widget::text("Name"),
-                iced::widget::text_input("Name", &self.name_input).on_input(Message::NameInput)
+            widget::row![
+                "Name",
+                widget::text_input("Name", &self.name_input).on_input(Message::NameInput)
             ]
             .spacing(10),
-            iced::widget::row![
-                iced::widget::text("Notes"),
-                iced::widget::text_input("Notes", &self.note_input).on_input(Message::NoteInput)
+            widget::row![
+                "Notes",
+                widget::text_input("Notes", &self.note_input).on_input(Message::NoteInput)
             ]
             .spacing(10),
-            iced::widget::row![
-                iced::widget::text("IBAN"),
-                iced::widget::text_input("IBAN", &self.iban_input).on_input(Message::IbanInput)
+            widget::row![
+                "IBAN",
+                widget::text_input("IBAN", &self.iban_input).on_input(Message::IbanInput)
             ]
             .spacing(10),
-            iced::widget::row![
-                iced::widget::text("BIC"),
-                iced::widget::text_input("BIC", &self.bic_input).on_input(Message::BicInput)
+            widget::row![
+                "BIC",
+                widget::text_input("BIC", &self.bic_input).on_input(Message::BicInput)
             ]
             .spacing(10),
-            iced::widget::row![
-                iced::widget::text("Offset"),
-                iced::widget::text_input("Offset", &self.offset_input)
-                    .on_input(Message::OffsetInput)
+            widget::row![
+                "Offset",
+                widget::text_input("Offset", &self.offset_input).on_input(Message::OffsetInput)
             ]
             .spacing(10),
-            iced::widget::button("Submit").on_press_maybe(if self.can_submit() {
+            widget::button("Submit").on_press_maybe(if self.can_submit() {
                 Some(Message::Submit)
             } else {
                 None

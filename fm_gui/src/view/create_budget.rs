@@ -7,7 +7,8 @@ use std::sync::Arc;
 
 pub enum Action {
     None,
-    CreateBudget(iced::Task<fm_core::Id>),
+    BudgetCreated(fm_core::Id),
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -19,6 +20,7 @@ pub enum Message {
     RecouringFirstInput(String),
     RecouringSecondInput(String),
     Submit,
+    BudgetCreated(fm_core::Id),
     Initialize(Option<fm_core::Budget>),
 }
 
@@ -64,6 +66,7 @@ pub struct CreateBudgetView {
     value_input: String,
     recouring_inputs: Recourung,
     recouring_state: Option<String>,
+    submitted: bool,
 }
 
 impl Default for CreateBudgetView {
@@ -75,6 +78,7 @@ impl Default for CreateBudgetView {
             value_input: String::new(),
             recouring_inputs: Recourung::Days(String::new(), String::new()),
             recouring_state: None,
+            submitted: false,
         }
     }
 }
@@ -100,6 +104,7 @@ impl CreateBudgetView {
                 fm_core::Recouring::DayInMonth(_) => Some("Day in month".to_string()),
                 fm_core::Recouring::Yearly(_, _) => Some("Yearly".to_string()),
             },
+            submitted: false,
         }
     }
 
@@ -128,6 +133,7 @@ impl CreateBudgetView {
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> Action {
         match message {
+            Message::BudgetCreated(id) => return Action::BudgetCreated(id),
             Message::Initialize(budget) => {
                 if let Some(budget) = budget {
                     *self = Self::from_budget(budget);
@@ -143,12 +149,13 @@ impl CreateBudgetView {
                 self.value_input = value;
             }
             Message::Submit => {
+                self.submitted = true;
                 let option_id = self.id;
                 let name_input = self.name_input.clone();
                 let description_input = self.description_input.clone();
                 let value_input = self.value_input.clone();
                 let recouring_inputs = self.recouring_inputs.clone();
-                return Action::CreateBudget(iced::Task::future(async move {
+                return Action::Task(iced::Task::future(async move {
                     let budget = match option_id {
                         Some(id) => finance_manager
                             .lock()
@@ -182,7 +189,7 @@ impl CreateBudgetView {
                             .await
                             .unwrap(),
                     };
-                    *budget.id()
+                    Message::BudgetCreated(*budget.id())
                 }));
             }
             Message::RecouringPickList(recouring) => {
@@ -225,6 +232,10 @@ impl CreateBudgetView {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
+        if self.submitted {
+            return "Loading...".into();
+        }
+
         widget::column![
             utils::heading("Create Budget", utils::HeadingLevel::H1),
             utils::labeled_entry("Name", &self.name_input, Message::NameInput),
@@ -235,7 +246,7 @@ impl CreateBudgetView {
             ),
             utils::labeled_entry("Value", &self.value_input, Message::ValueInput),
             self.generate_recouring_view(),
-            widget::button::Button::new("Submit").on_press_maybe(if self.submit() {
+            widget::button::Button::new("Submit").on_press_maybe(if self.submittable() {
                 Some(Message::Submit)
             } else {
                 None
@@ -277,7 +288,7 @@ impl CreateBudgetView {
         widget::column![widget::Text::new("Recouring"), row,].into()
     }
 
-    fn submit(&self) -> bool {
+    fn submittable(&self) -> bool {
         if self.name_input.is_empty() {
             return false;
         }

@@ -6,7 +6,8 @@ use std::sync::Arc;
 
 pub enum Action {
     None,
-    CreateAccount(iced::Task<fm_core::Id>),
+    AccountCreated(fm_core::Id),
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -17,6 +18,7 @@ pub enum Message {
     BicInput(String),
     Submit,
     Initialize(fm_core::account::BookCheckingAccount),
+    AccountCreated(fm_core::Id),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -26,6 +28,7 @@ pub struct CreateBookCheckingAccount {
     note_input: String,
     iban_input: String,
     bic_input: String,
+    submitted: bool,
 }
 
 impl CreateBookCheckingAccount {
@@ -40,6 +43,7 @@ impl CreateBookCheckingAccount {
                 .iban()
                 .map_or(String::new(), |iban| iban.to_string()),
             bic_input: account.bic().map_or(String::new(), |bic| bic.to_string()),
+            submitted: false,
         }
     }
 
@@ -72,6 +76,7 @@ impl CreateBookCheckingAccount {
         finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
     ) -> Action {
         match message {
+            Message::AccountCreated(id) => return Action::AccountCreated(id),
             Message::Initialize(account) => {
                 self.id = Some(account.id());
                 self.name_input = account.name().to_string();
@@ -88,6 +93,7 @@ impl CreateBookCheckingAccount {
             Message::IbanInput(input) => self.iban_input = input,
             Message::BicInput(input) => self.bic_input = input,
             Message::Submit => {
+                self.submitted = true;
                 let name = self.name_input.clone();
                 let note = if self.note_input.is_empty() {
                     None
@@ -105,7 +111,7 @@ impl CreateBookCheckingAccount {
                     Some(self.bic_input.clone())
                 };
                 let id = self.id;
-                return Action::CreateAccount(iced::Task::future(async move {
+                return Action::Task(iced::Task::future(async move {
                     let account = if let Some(some_id) = id {
                         finance_manager
                             .lock()
@@ -121,7 +127,7 @@ impl CreateBookCheckingAccount {
                             .await
                             .unwrap()
                     };
-                    account.id()
+                    Message::AccountCreated(account.id())
                 }));
             }
         }
@@ -129,6 +135,10 @@ impl CreateBookCheckingAccount {
     }
 
     pub fn view(&self) -> iced::Element<'static, Message> {
+        if self.submitted {
+            return "Loading...".into();
+        }
+
         iced::widget::column![
             utils::heading("Create Book Checking Account", utils::HeadingLevel::H1),
             iced::widget::row![
