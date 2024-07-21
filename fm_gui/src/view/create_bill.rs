@@ -16,7 +16,7 @@ pub enum Message {
     DueDateChanged(Option<fm_core::DateTime>),
     NameInputChanged(String),
     ValueChanged(Option<fm_core::Currency>),
-    DescriptionInputChanged(utils::multiline_text_input::Action),
+    DescriptionInputChanged(widget::text_editor::Action),
     AddTransactionToggle,
     AddTransaction(fm_core::Transaction),
     ChangeTransactionSign(fm_core::Id, fm_core::Sign),
@@ -28,11 +28,11 @@ pub enum Message {
     BillCreated(fm_core::Id),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct CreateBillView {
     id: Option<fm_core::Id>,
     name_input: String,
-    description_input: utils::multiline_text_input::State,
+    description_input: widget::text_editor::Content,
     value: Option<fm_core::Currency>,
     due_date: Option<fm_core::DateTime>,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
@@ -80,9 +80,9 @@ impl CreateBillView {
             }
             Message::Initialize(bill, transactions) => {
                 self.id = Some(*bill.id());
-                self.name_input = bill.name().to_owned();
-                self.description_input = utils::multiline_text_input::State::new(
-                    bill.description().clone().unwrap_or(String::new()),
+                bill.name().clone_into(&mut self.name_input);
+                self.description_input = widget::text_editor::Content::with_text(
+                    &bill.description().clone().unwrap_or_default(),
                 );
                 self.value = Some(bill.value().clone());
                 self.due_date = *bill.due_date();
@@ -108,7 +108,7 @@ impl CreateBillView {
                 self.submitted = true;
                 let id_option = self.id;
                 let name = self.name_input.clone();
-                let description = self.description_input.get_content().clone();
+                let description = self.description_input.text();
                 let due_date = self.due_date;
                 let value = self.value.clone().unwrap();
                 let transactions = self
@@ -231,11 +231,8 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Description: ",
-                utils::multiline_text_input::MultilineTextInput::new(
-                    self.description_input.clone(),
-                )
-                .on_action(Message::DescriptionInputChanged)
-                .view()
+                widget::text_editor(&self.description_input)
+                    .on_action(Message::DescriptionInputChanged)
             ]
             .spacing(10),
             widget::row![

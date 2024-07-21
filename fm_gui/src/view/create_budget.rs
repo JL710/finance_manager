@@ -14,7 +14,7 @@ pub enum Action {
 #[derive(Debug, Clone)]
 pub enum Message {
     NameInput(String),
-    DescriptionInput(String),
+    DescriptionInput(widget::text_editor::Action),
     ValueInput(String),
     RecouringPickList(String),
     RecouringFirstInput(String),
@@ -58,11 +58,11 @@ impl std::fmt::Display for Recourung {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CreateBudgetView {
     id: Option<fm_core::Id>,
     name_input: String,
-    description_input: String,
+    description_input: widget::text_editor::Content,
     value_input: String,
     recouring_inputs: Recourung,
     recouring_state: Option<String>,
@@ -74,7 +74,7 @@ impl Default for CreateBudgetView {
         Self {
             id: None,
             name_input: String::new(),
-            description_input: String::new(),
+            description_input: widget::text_editor::Content::default(),
             value_input: String::new(),
             recouring_inputs: Recourung::Days(String::new(), String::new()),
             recouring_state: None,
@@ -88,7 +88,9 @@ impl CreateBudgetView {
         Self {
             id: Some(*budget.id()),
             name_input: budget.name().to_string(),
-            description_input: budget.description().unwrap_or_default().to_string(),
+            description_input: widget::text_editor::Content::with_text(
+                budget.description().unwrap_or_default(),
+            ),
             value_input: budget.total_value().to_num_string(),
             recouring_inputs: match budget.timespan() {
                 fm_core::Recouring::Days(start, days) => {
@@ -142,8 +144,8 @@ impl CreateBudgetView {
             Message::NameInput(name) => {
                 self.name_input = name;
             }
-            Message::DescriptionInput(description) => {
-                self.description_input = description;
+            Message::DescriptionInput(action) => {
+                self.description_input.perform(action);
             }
             Message::ValueInput(value) => {
                 self.value_input = value;
@@ -152,7 +154,7 @@ impl CreateBudgetView {
                 self.submitted = true;
                 let option_id = self.id;
                 let name_input = self.name_input.clone();
-                let description_input = self.description_input.clone();
+                let description_input = self.description_input.text();
                 let value_input = self.value_input.clone();
                 let recouring_inputs = self.recouring_inputs.clone();
                 return Action::Task(iced::Task::future(async move {
@@ -239,11 +241,11 @@ impl CreateBudgetView {
         widget::column![
             utils::heading("Create Budget", utils::HeadingLevel::H1),
             utils::labeled_entry("Name", &self.name_input, Message::NameInput),
-            utils::labeled_entry(
+            widget::row![
                 "Description",
-                &self.description_input,
-                Message::DescriptionInput
-            ),
+                widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
+            ]
+            .spacing(10),
             utils::labeled_entry("Value", &self.value_input, Message::ValueInput),
             self.generate_recouring_view(),
             widget::button::Button::new("Submit").on_press_maybe(if self.submittable() {

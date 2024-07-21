@@ -98,7 +98,6 @@ impl Category {
                             .delete_category(category_id)
                             .await
                             .unwrap();
-                        ()
                     }))
                 } else {
                     Action::None
