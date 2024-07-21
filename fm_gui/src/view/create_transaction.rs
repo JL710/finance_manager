@@ -41,7 +41,7 @@ pub enum Action {
 pub enum Message {
     AmountInput(String),
     TitleInput(String),
-    DescriptionInput(String),
+    DescriptionInput(widget::text_editor::Action),
     DateInput(String),
     SourceInput(String),
     SourceSelected(SelectedAccount),
@@ -70,12 +70,12 @@ pub enum Message {
     TransactionCreated(fm_core::Id),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CreateTransactionView {
     id: Option<fm_core::Id>,
     amount_input: String,
     title_input: String,
-    description_input: String,
+    description_input: widget::text_editor::Content,
     source_input: Option<SelectedAccount>,
     source_state: widget::combo_box::State<SelectedAccount>,
     destination_input: Option<SelectedAccount>,
@@ -98,7 +98,7 @@ impl CreateTransactionView {
                 id: None,
                 amount_input: String::new(),
                 title_input: String::new(),
-                description_input: String::new(),
+                description_input: widget::text_editor::Content::new(),
                 source_input: None,
                 source_state: widget::combo_box::State::new(Vec::new()),
                 destination_input: None,
@@ -183,7 +183,7 @@ impl CreateTransactionView {
                 self.amount_input = content;
             }
             Message::TitleInput(content) => self.title_input = content,
-            Message::DescriptionInput(content) => self.description_input = content,
+            Message::DescriptionInput(action) => self.description_input.perform(action),
             Message::DateInput(content) => self.date_input = content,
             Message::SourceInput(content) => {
                 self.source_input = Some(SelectedAccount::New(content))
@@ -266,9 +266,9 @@ impl CreateTransactionView {
                 self.id = Some(*transaction.id());
                 self.amount_input = transaction.amount().get_eur_num().to_string();
                 self.title_input.clone_from(transaction.title());
-                self.description_input = transaction
-                    .description()
-                    .map_or(String::new(), |x| x.to_owned());
+                self.description_input = widget::text_editor::Content::with_text(
+                    transaction.description().unwrap_or_default(),
+                );
                 self.source_input = Some(SelectedAccount::Account(source));
                 self.source_state = widget::combo_box::State::new(
                     accounts
@@ -336,11 +336,11 @@ impl CreateTransactionView {
             utils::heading("Create Transaction", utils::HeadingLevel::H1),
             utils::labeled_entry("Amount", &self.amount_input, Message::AmountInput),
             utils::labeled_entry("Title", &self.title_input, Message::TitleInput),
-            utils::labeled_entry(
+            widget::row![
                 "Description",
-                &self.description_input,
-                Message::DescriptionInput
-            ),
+                widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
+            ]
+            .spacing(10),
             utils::labeled_entry("Date", &self.date_input, Message::DateInput),
             widget::row![
                 widget::text("Source"),
@@ -442,10 +442,10 @@ impl CreateTransactionView {
         let option_id = self.id;
         let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());
         let title = self.title_input.clone();
-        let description = if self.description_input.is_empty() {
+        let description = if self.description_input.text().is_empty() {
             None
         } else {
-            Some(self.description_input.clone())
+            Some(self.description_input.text())
         };
         let source = match &self.source_input {
             Some(SelectedAccount::Account(acc)) => fm_core::Or::One(*acc.id()),
