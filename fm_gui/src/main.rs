@@ -3,6 +3,7 @@ mod utils;
 mod view;
 
 use async_std::sync::Mutex;
+use iced::widget;
 use std::sync::Arc;
 
 macro_rules! message_match {
@@ -379,34 +380,69 @@ impl App {
     }
 
     fn view(&self) -> iced::Element<AppMessage> {
+        fn icon_menu_item<'a>(
+            text: &'a str,
+            icon: &'static [u8],
+            message: AppMessage,
+        ) -> iced::Element<'a, AppMessage> {
+            widget::button(
+                widget::row![
+                    text,
+                    widget::horizontal_space(),
+                    widget::Svg::new(widget::svg::Handle::from_memory(icon)).width(iced::Shrink)
+                ]
+                .align_y(iced::Center)
+                .spacing(10),
+            )
+            .width(iced::Length::Fill)
+            .on_press(message)
+            .into()
+        }
+
         iced::widget::row![
-            iced::widget::column![
-                iced::widget::button("AssetAccounts")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToAssetAccountsView),
-                iced::widget::button("BookCheckingAccounts")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToBookCheckingAccountOverview),
-                iced::widget::button("Budgets")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToBudgetOverview),
-                iced::widget::button("Categories")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToCategoryOverview),
-                iced::widget::button("Transactions")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToFilterTransactionView),
-                iced::widget::button("Bills")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToBillOverview),
-                iced::widget::horizontal_rule(5),
-                iced::widget::button("Create Transaction")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToCreateTransActionView),
-                iced::widget::vertical_space(),
-                iced::widget::button("Settings")
-                    .width(iced::Length::Fill)
-                    .on_press(AppMessage::SwitchToSettingsView),
+            widget::column![
+                icon_menu_item(
+                    "AssetAccounts",
+                    include_bytes!("assets/bank2.svg"),
+                    AppMessage::SwitchToAssetAccountsView
+                ),
+                icon_menu_item(
+                    "BookCheckingAccounts",
+                    include_bytes!("assets/cash.svg"),
+                    AppMessage::SwitchToBookCheckingAccountOverview
+                ),
+                icon_menu_item(
+                    "Budgets",
+                    include_bytes!("assets/piggy-bank-fill.svg"),
+                    AppMessage::SwitchToBudgetOverview
+                ),
+                icon_menu_item(
+                    "Categories",
+                    include_bytes!("assets/bookmark-fill.svg"),
+                    AppMessage::SwitchToCategoryOverview
+                ),
+                icon_menu_item(
+                    "Transactions",
+                    include_bytes!("assets/send-fill.svg"),
+                    AppMessage::SwitchToFilterTransactionView
+                ),
+                icon_menu_item(
+                    "Bills",
+                    include_bytes!("assets/folder-fill.svg"),
+                    AppMessage::SwitchToBillOverview
+                ),
+                widget::horizontal_rule(5),
+                icon_menu_item(
+                    "Create Transaction",
+                    include_bytes!("assets/plus-circle-fill.svg"),
+                    AppMessage::SwitchToCreateTransActionView
+                ),
+                widget::vertical_space(),
+                icon_menu_item(
+                    "Settings",
+                    include_bytes!("assets/gear-fill.svg"),
+                    AppMessage::SwitchToSettingsView
+                ),
             ]
             .align_x(iced::Alignment::Start)
             .spacing(10)

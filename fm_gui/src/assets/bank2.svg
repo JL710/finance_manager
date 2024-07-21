@@ -3,11 +3,11 @@
    width="18"
    height="18"
    fill="currentColor"
-   class="bi bi-filter-circle-fill"
+   class="bi bi-bank2"
    viewBox="0 0 18 18"
    version="1.1"
    id="svg1"
-   sodipodi:docname="filter-circle-fill.svg"
+   sodipodi:docname="bank2.svg"
    inkscape:version="1.3.2 (091e20e, 2023-11-25)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -34,6 +34,6 @@
      inkscape:window-maximized="1"
      inkscape:current-layer="svg1" />
   <path
-     d="M 9,17 A 8,8 0 1 0 9,1 8,8 0 0 0 9,17 M 4.5,6 h 9 a 0.5,0.5 0 0 1 0,1 h -9 a 0.5,0.5 0 0 1 0,-1 M 6,9.5 A 0.5,0.5 0 0 1 6.5,9 h 5 a 0.5,0.5 0 0 1 0,1 h -5 A 0.5,0.5 0 0 1 6,9.5 m 2,3 A 0.5,0.5 0 0 1 8.5,12 h 1 a 0.5,0.5 0 0 1 0,1 h -1 A 0.5,0.5 0 0 1 8,12.5"
+     d="m 9.277,1.0837417 a 0.5,0.5 0 0 0 -0.554,0 l -7.5,5 a 0.5,0.5 0 0 0 0.277,0.916 H 3.375 V 13.999742 H 2.5 a 0.5,0.5 0 0 0 0,1 h 13 a 0.5,0.5 0 1 0 0,-1 H 14.625 V 6.9997417 H 16.5 a 0.5,0.5 0 0 0 0.277,-0.916 z m 4.098,5.916 v 7.0000003 h -1.25 V 6.9997417 Z m -2.5,0 V 13.999742 H 9.625 V 6.9997417 Z m -2.5,0 V 13.999742 H 7.125 V 6.9997417 Z m -2.5,0 V 13.999742 H 4.625 V 6.9997417 Z m 3.125,-2 a 1,1 0 1 1 0,-2 1,1 0 0 1 0,2 M 1.5,15.999742 a 0.5,0.5 0 0 0 0,1 h 15 a 0.5,0.5 0 1 0 0,-1 z"
      id="path1" />
 </svg>
