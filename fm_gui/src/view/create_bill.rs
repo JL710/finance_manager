@@ -108,7 +108,11 @@ impl CreateBillView {
                 self.submitted = true;
                 let id_option = self.id;
                 let name = self.name_input.clone();
-                let description = self.description_input.text();
+                let description = if self.description_input.text().is_empty() {
+                    None
+                } else {
+                    Some(self.description_input.text())
+                };
                 let due_date = self.due_date;
                 let value = self.value.clone().unwrap();
                 let transactions = self
@@ -122,18 +126,7 @@ impl CreateBillView {
                         finance_manager
                             .lock()
                             .await
-                            .update_bill(
-                                id,
-                                name,
-                                if description.is_empty() {
-                                    None
-                                } else {
-                                    Some(description)
-                                },
-                                value,
-                                transactions,
-                                due_date,
-                            )
+                            .update_bill(id, name, description, value, transactions, due_date)
                             .unwrap()
                             .await
                             .unwrap();
@@ -143,17 +136,7 @@ impl CreateBillView {
                     return Action::Task(iced::Task::future(async move {
                         let mut locked_manager = finance_manager.lock().await;
                         let bill = locked_manager
-                            .create_bill(
-                                name,
-                                if description.is_empty() {
-                                    None
-                                } else {
-                                    Some(description)
-                                },
-                                value,
-                                transactions,
-                                due_date,
-                            )
+                            .create_bill(name, description, value, transactions, due_date)
                             .unwrap()
                             .await
                             .unwrap();
@@ -237,7 +220,7 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Value: ",
-                utils::CurrencyInput::new(Message::ValueChanged).into_element(),
+                utils::CurrencyInput::new(self.value.clone(), Message::ValueChanged).into_element(),
                 iced::widget::horizontal_space().width(iced::Length::Fixed(5.0))
             ]
             .width(iced::Length::Fill)

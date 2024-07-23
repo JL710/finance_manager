@@ -166,3 +166,12 @@ pub fn heading<'a, Message: 'a>(
     })
     .into()
 }
+
+pub fn parse_number(input: &str) -> Option<f64> {
+    let input = input
+        .replace(",", ".")
+        .chars()
+        .filter(|c| *c != '_')
+        .collect::<String>();
+    input.parse().ok()
+}

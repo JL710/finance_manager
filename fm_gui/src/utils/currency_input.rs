@@ -1,11 +1,16 @@
 pub struct CurrencyInput<Message: Clone> {
+    value: Option<fm_core::Currency>,
     produce_message: Box<dyn Fn(Option<fm_core::Currency>) -> Message>,
 }
 
 impl<'a, Message: Clone + 'a> CurrencyInput<Message> {
-    pub fn new(produce_message: impl Fn(Option<fm_core::Currency>) -> Message + 'static) -> Self {
+    pub fn new(
+        value: Option<fm_core::Currency>,
+        produce_message: impl Fn(Option<fm_core::Currency>) -> Message + 'static,
+    ) -> Self {
         Self {
             produce_message: Box::new(produce_message),
+            value,
         }
     }
 
@@ -16,7 +21,7 @@ impl<'a, Message: Clone + 'a> CurrencyInput<Message> {
 
 #[derive(Debug, Clone, Default)]
 pub struct State {
-    input: String,
+    input: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,8 +36,8 @@ impl<Message: Clone> iced::widget::Component<Message> for CurrencyInput<Message>
     fn update(&mut self, state: &mut Self::State, event: Self::Event) -> Option<Message> {
         match event {
             Event::InputChanged(input) => {
-                state.input = input;
-                if let Ok(x) = state.input.parse::<f64>() {
+                state.input = Some(input);
+                if let Some(x) = super::parse_number(state.input.as_ref().unwrap()) {
                     return Some((self.produce_message)(Some(fm_core::Currency::Eur(x))));
                 }
                 Some((self.produce_message)(None))
@@ -41,14 +46,23 @@ impl<Message: Clone> iced::widget::Component<Message> for CurrencyInput<Message>
     }
 
     fn view(&self, state: &Self::State) -> iced::Element<'_, Self::Event> {
-        let date_is_correct = !&state.input.is_empty() && state.input.parse::<f64>().is_err();
+        let value = if let Some(v) = &state.input {
+            v.clone()
+        } else {
+            if let Some(v) = &self.value {
+                v.to_num_string()
+            } else {
+                String::new()
+            }
+        };
+        let correct = !&value.is_empty() && super::parse_number(&value).is_none();
 
         iced::widget::row![
-            iced::widget::text_input("Value", &state.input)
+            iced::widget::text_input("Value", &value)
                 .on_input(Event::InputChanged)
                 .style(move |theme: &iced::Theme, status| {
                     let mut original = iced::widget::text_input::default(theme, status);
-                    if date_is_correct {
+                    if correct {
                         original.border.color = theme.palette().danger;
                     }
                     original
