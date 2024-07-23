@@ -147,14 +147,12 @@ impl Category {
                 }
             }
             Message::Set(category, timespan, values, transactions) => {
-                if let Self::Loaded { .. } = self {
-                    *self = Self::Loaded {
-                        category,
-                        timespan,
-                        transactions,
-                        values,
-                    };
-                }
+                *self = Self::Loaded {
+                    category,
+                    timespan,
+                    transactions,
+                    values,
+                };
                 Action::None
             }
             Message::ViewTransaction(transaction_id) => Action::ViewTransaction(transaction_id),

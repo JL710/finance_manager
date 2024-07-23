@@ -249,35 +249,38 @@ impl CreateBillView {
             .width(iced::Length::Fill)
             .spacing(10),
             "Transactions:",
-            utils::TableView::new(self.transactions.clone(), |(transaction, sign)| {
-                let transaction_id = *transaction.id();
-                [
-                    widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
-                        .on_toggle(move |x| {
-                            Message::ChangeTransactionSign(
-                                transaction_id,
-                                if x {
-                                    fm_core::Sign::Positive
-                                } else {
-                                    fm_core::Sign::Negative
-                                },
-                            )
-                        })
-                        .into(),
-                    widget::button("Delete")
-                        .on_press(Message::RemoveTransaction(transaction_id))
-                        .into(),
-                    widget::text(transaction.title().clone()).into(),
-                    widget::text(transaction.amount().to_num_string()).into(),
-                    widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
-                ]
-            })
-            .headers(["", "", "Title", "Amount", "Date",])
-            .alignment(|_, _, _| (
-                iced::alignment::Horizontal::Left,
-                iced::alignment::Vertical::Center
-            ))
-            .into_element(),
+            widget::container(
+                utils::TableView::new(self.transactions.clone(), |(transaction, sign)| {
+                    let transaction_id = *transaction.id();
+                    [
+                        widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
+                            .on_toggle(move |x| {
+                                Message::ChangeTransactionSign(
+                                    transaction_id,
+                                    if x {
+                                        fm_core::Sign::Positive
+                                    } else {
+                                        fm_core::Sign::Negative
+                                    },
+                                )
+                            })
+                            .into(),
+                        widget::button("Delete")
+                            .on_press(Message::RemoveTransaction(transaction_id))
+                            .into(),
+                        widget::text(transaction.title().clone()).into(),
+                        widget::text(transaction.amount().to_num_string()).into(),
+                        widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
+                    ]
+                })
+                .headers(["", "", "Title", "Amount", "Date",])
+                .alignment(|_, _, _| (
+                    iced::alignment::Horizontal::Left,
+                    iced::alignment::Vertical::Center
+                ))
+                .into_element()
+            )
+            .max_height(400),
             widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
             widget::button("Submit").on_press_maybe(if self.submittable() {
                 Some(Message::Submit)
