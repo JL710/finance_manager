@@ -2,6 +2,7 @@ use crate::account::AssetAccount;
 
 use super::*;
 use anyhow::{Context, Result};
+use rusqlite::OptionalExtension;
 
 type TransactionSignature = (
     Id,
@@ -123,6 +124,34 @@ impl SqliteFinanceManager {
     fn create_db(&self) -> Result<()> {
         let connection = self.connect()?;
         connection.execute_batch(include_str!("schema.sql"))?;
+        self.migrate_db()?;
+        Ok(())
+    }
+
+    fn migrate_db(&self) -> Result<()> {
+        let connection = self.connect()?;
+
+        let version_result: Option<i32> = connection
+            .query_row(
+                "SELECT tag FROM database_info WHERE tag='version'",
+                (),
+                |x| x.get(0),
+            )
+            .optional()
+            .unwrap()
+            .map(|x: String| x.parse().unwrap());
+
+        if let Some(version) = version_result {
+            match version {
+                0 => {}
+                _ => panic!("unknown database version"),
+            }
+        } else {
+            connection.execute(
+                "INSERT INTO database_info (tag, value) VALUES ('version', '0')",
+                (),
+            )?;
+        }
         Ok(())
     }
 
