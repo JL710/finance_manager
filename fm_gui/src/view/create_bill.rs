@@ -43,7 +43,7 @@ pub struct CreateBillView {
 impl CreateBillView {
     pub fn fetch(
         id: fm_core::Id,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
@@ -72,7 +72,7 @@ impl CreateBillView {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::BillCreated(id) => {
@@ -316,7 +316,7 @@ mod add_transaction {
 
     impl AddTransaction {
         pub async fn fetch(
-            finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+            finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
             ignored_transactions: Vec<fm_core::Id>,
         ) -> Result<Self> {
             let locked_manager = finance_manager.lock().await;
@@ -334,7 +334,7 @@ mod add_transaction {
         pub fn update(
             &mut self,
             message: Message,
-            finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+            finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         ) -> Action {
             match message {
                 Message::Back => Action::Escape,

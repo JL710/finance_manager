@@ -3,7 +3,10 @@ use chrono::{Datelike, TimeZone, Timelike};
 use std::collections::HashMap;
 
 mod finance_manager;
-pub use finance_manager::{FinanceManager, PrivateFinanceManager};
+pub use finance_manager::FinanceManager;
+
+mod fm_controller;
+pub use fm_controller::FMController;
 
 pub mod account;
 

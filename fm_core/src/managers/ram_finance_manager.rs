@@ -1,6 +1,6 @@
 use crate::{
-    account, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Or,
-    PrivateFinanceManager, Recouring, Sign, Timespan, Transaction,
+    account, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Or, Recouring, Sign,
+    Timespan, Transaction,
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -14,8 +14,14 @@ pub struct RamFinanceManager {
     bills: Vec<Bill>,
 }
 
-impl PrivateFinanceManager for RamFinanceManager {
-    async fn private_update_asset_account(
+impl FinanceManager for RamFinanceManager {
+    type Flags = ();
+
+    fn new(_flags: Self::Flags) -> Result<Self> {
+        Ok(Self::default())
+    }
+
+    async fn update_asset_account(
         &mut self,
         id: Id,
         name: String,
@@ -30,7 +36,7 @@ impl PrivateFinanceManager for RamFinanceManager {
         Ok(new_account)
     }
 
-    async fn private_create_asset_account(
+    async fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -51,7 +57,7 @@ impl PrivateFinanceManager for RamFinanceManager {
         Ok(new_account)
     }
 
-    async fn private_create_book_checking_account(
+    async fn create_book_checking_account(
         &mut self,
         name: String,
         notes: Option<String>,
@@ -71,7 +77,7 @@ impl PrivateFinanceManager for RamFinanceManager {
         Ok(new_account)
     }
 
-    async fn private_update_book_checking_account(
+    async fn update_book_checking_account(
         &mut self,
         id: Id,
         name: String,
@@ -85,7 +91,7 @@ impl PrivateFinanceManager for RamFinanceManager {
         Ok(new_account)
     }
 
-    async fn private_get_account_sum(
+    async fn get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
@@ -105,7 +111,7 @@ impl PrivateFinanceManager for RamFinanceManager {
         Ok(total)
     }
 
-    async fn private_create_bill(
+    async fn create_bill(
         &mut self,
         name: String,
         description: Option<String>,
@@ -121,7 +127,7 @@ impl PrivateFinanceManager for RamFinanceManager {
         Ok(new_bill)
     }
 
-    async fn private_update_bill(
+    async fn update_bill(
         &mut self,
         id: Id,
         name: String,
@@ -142,9 +148,7 @@ impl PrivateFinanceManager for RamFinanceManager {
         }
         Ok(())
     }
-}
 
-impl FinanceManager for RamFinanceManager {
     async fn get_bills(&self) -> Result<Vec<Bill>> {
         Ok(self.bills.clone())
     }

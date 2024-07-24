@@ -1,5 +1,4 @@
 use super::super::utils;
-use fm_core::{self, FinanceManager};
 use iced::widget;
 
 use async_std::sync::Mutex;
@@ -29,7 +28,7 @@ impl BudgetOverview {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self {
@@ -57,7 +56,7 @@ impl BudgetOverview {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::CreateBudget => Action::CreateBudget,

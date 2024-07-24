@@ -6,6 +6,8 @@ use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
 
+use fm_core::FinanceManager;
+
 macro_rules! message_match {
     ($app:expr, $m:expr, $v:path) => {
         let (new_view, cmd) = match $app.current_view {
@@ -52,7 +54,7 @@ pub enum AppMessage {
     BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
     CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
     SettingsMessage(view::settings::Message),
-    ChangeFM(Arc<Mutex<finance_managers::FinanceManagers>>),
+    ChangeFM(Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>),
     FilterTransactionMessage(view::filter_transactions::Message),
     CreateBillMessage(view::create_bill::Message),
     BillOverviewMessage(view::bill_overview::Message),
@@ -84,15 +86,16 @@ enum View {
 }
 
 pub struct App {
-    finance_manager: Arc<Mutex<finance_managers::FinanceManagers>>,
+    finance_manager: Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>,
     current_view: View,
 }
 
 impl Default for App {
     fn default() -> Self {
-        let finance_manager = finance_managers::FinanceManagers::Server(
-            fm_server::client::Client::new(String::from("http://localhost:3000")),
-        );
+        let finance_manager =
+            fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Server(
+                fm_server::client::Client::new(String::from("http://localhost:3000")).unwrap(),
+            ));
         App {
             current_view: View::Empty,
             finance_manager: Arc::new(Mutex::new(finance_manager)),

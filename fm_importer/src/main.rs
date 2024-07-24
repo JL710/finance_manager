@@ -20,7 +20,8 @@ struct Args {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    let mut finance_manager = fm_server::client::Client::new(args.url);
+    let mut finance_manager =
+        fm_core::FMController::<fm_server::client::Client>::new(args.url).unwrap();
     match args.format.as_str() {
         "CSV_CAMT_V2" => parse_csv_camt_v2(&args.source, &mut finance_manager)
             .await
@@ -70,7 +71,7 @@ impl TransactionEntry {
 
 async fn parse_csv_camt_v2(
     source: &str,
-    finance_manager: &mut impl fm_core::FinanceManager,
+    finance_manager: &mut fm_core::FMController<impl fm_core::FinanceManager>,
 ) -> Result<()> {
     println!("Parsing CSV_CAMT_V2 file: {}", source);
 

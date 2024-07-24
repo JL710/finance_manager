@@ -1,6 +1,7 @@
 use crate::finance_managers::FinanceManagers;
 
 use super::super::{utils, AppMessage, View};
+use fm_core::FinanceManager;
 use fm_server::client::Client;
 
 use iced::widget;
@@ -25,17 +26,17 @@ pub struct SettingsView {
 }
 
 impl SettingsView {
-    pub fn new(finance_manager: Arc<Mutex<FinanceManagers>>) -> Self {
+    pub fn new(finance_manager: Arc<Mutex<fm_core::FMController<FinanceManagers>>>) -> Self {
         let locked_fm = finance_manager.try_lock().unwrap();
         Self {
-            current_status: locked_fm.to_string(),
-            api_url: if let FinanceManagers::Server(fm) = &*locked_fm {
+            current_status: locked_fm.raw_fm().to_string(),
+            api_url: if let FinanceManagers::Server(fm) = (&*locked_fm).raw_fm() {
                 fm.url().to_string()
             } else {
                 String::from("http://localhost:3000")
             },
             #[cfg(feature = "native")]
-            sqlite_path: if let FinanceManagers::Sqlite(fm) = &*locked_fm {
+            sqlite_path: if let FinanceManagers::Sqlite(fm) = (&*locked_fm).raw_fm() {
                 fm.path().to_string()
             } else {
                 String::new()
@@ -48,7 +49,7 @@ impl SettingsView {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<FinanceManagers>>,
+        _finance_manager: Arc<Mutex<fm_core::FMController<FinanceManagers>>>,
     ) -> (Option<View>, iced::Task<AppMessage>) {
         match message {
             Message::ChangeAPIUrl(url) => {
@@ -63,7 +64,11 @@ impl SettingsView {
                     Some(View::Empty),
                     iced::Task::perform(async move { api_url }, |x| {
                         AppMessage::ChangeFM(Arc::new(Mutex::new(
-                            super::super::finance_managers::FinanceManagers::Server(Client::new(x)),
+                            fm_core::FMController::with_finance_manager(
+                                super::super::finance_managers::FinanceManagers::Server(
+                                    Client::new(x).unwrap(),
+                                ),
+                            ),
                         )))
                     }),
                 );
@@ -75,10 +80,12 @@ impl SettingsView {
                     Some(View::Empty),
                     iced::Task::perform(async move { sqlite_path }, |x| {
                         AppMessage::ChangeFM(Arc::new(Mutex::new(
-                            super::super::finance_managers::FinanceManagers::Sqlite(
-                                fm_core::managers::sqlite_finange_manager::SqliteFinanceManager::new(x)
-                                    .unwrap(),
-                            ),
+                            fm_core::FMController::with_finance_manager(
+                                super::super::finance_managers::FinanceManagers::Sqlite(
+                                    fm_core::managers::sqlite_finange_manager::SqliteFinanceManager::new(x)
+                                        .unwrap(),
+                                ),
+                            )
                         )))
                     }),
                 );
@@ -92,10 +99,11 @@ impl SettingsView {
                     Some(View::Empty),
                     iced::Task::perform(async {}, |_| {
                         AppMessage::ChangeFM(Arc::new(Mutex::new(
+                            fm_core::FMController::with_finance_manager(
                             super::super::finance_managers::FinanceManagers::Ram(
                                 fm_core::managers::ram_finance_manager::RamFinanceManager::default(
                                 ),
-                            ),
+                            ),)
                         )))
                     }),
                 )

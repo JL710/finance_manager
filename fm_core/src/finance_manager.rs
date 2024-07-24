@@ -1,7 +1,15 @@
 use super::*;
 
-pub trait PrivateFinanceManager: Send + Clone + Sized {
-    fn private_create_asset_account(
+fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
+    content.map(|content| content.to_uppercase().replace(' ', ""))
+}
+
+pub trait FinanceManager: Send + Clone + Sized {
+    type Flags;
+
+    fn new(flags: Self::Flags) -> Result<Self>;
+
+    fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -10,7 +18,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
-    fn private_update_asset_account(
+    fn update_asset_account(
         &mut self,
         id: Id,
         name: String,
@@ -20,7 +28,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
-    fn private_create_book_checking_account(
+    fn create_book_checking_account(
         &mut self,
         name: String,
         notes: Option<String>,
@@ -28,7 +36,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         bic: Option<String>,
     ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
-    fn private_update_book_checking_account(
+    fn update_book_checking_account(
         &mut self,
         id: Id,
         name: String,
@@ -39,13 +47,13 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
 
     /// Only get the sum of the transactions for the account at the given date.
     /// Do not include any AssetAccount.offset or similar!
-    fn private_get_account_sum(
+    fn get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
     ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend;
 
-    fn private_create_bill(
+    fn create_bill(
         &mut self,
         name: String,
         description: Option<String>,
@@ -54,7 +62,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         due_date: Option<DateTime>,
     ) -> impl futures::Future<Output = Result<Bill>> + MaybeSend;
 
-    fn private_update_bill(
+    fn update_bill(
         &mut self,
         id: Id,
         name: String,
@@ -63,13 +71,7 @@ pub trait PrivateFinanceManager: Send + Clone + Sized {
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
     ) -> impl futures::Future<Output = Result<()>> + MaybeSend;
-}
 
-fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
-    content.map(|content| content.to_uppercase().replace(' ', ""))
-}
-
-pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
     fn get_bill_sum(
         &self,
         bill: &Bill,
@@ -98,44 +100,7 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
 
     fn get_bill(&self, id: &Id) -> impl futures::Future<Output = Result<Option<Bill>>> + MaybeSend;
 
-    fn create_bill(
-        &mut self,
-        name: String,
-        description: Option<String>,
-        value: Currency,
-        transactions: Vec<(Id, Sign)>,
-        due_date: Option<DateTime>,
-    ) -> Result<impl futures::Future<Output = Result<Bill>> + MaybeSend> {
-        let mut ids = Vec::with_capacity(transactions.len());
-        for transaction in &transactions {
-            if ids.contains(&transaction.0) {
-                anyhow::bail!("Bill cannot have a transaction twice")
-            }
-            ids.push(transaction.0);
-        }
-        Ok(self.private_create_bill(name, description, value, transactions, due_date))
-    }
-
     fn delete_bill(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + MaybeSend;
-
-    fn update_bill(
-        &mut self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        value: Currency,
-        transactions: Vec<(Id, Sign)>,
-        due_date: Option<DateTime>,
-    ) -> Result<impl futures::Future<Output = Result<()>> + MaybeSend> {
-        let mut ids = Vec::with_capacity(transactions.len());
-        for transaction in &transactions {
-            if ids.contains(&transaction.0) {
-                anyhow::bail!("Bill cannot have a transaction twice")
-            }
-            ids.push(transaction.0);
-        }
-        Ok(self.private_update_bill(id, name, description, value, transactions, due_date))
-    }
 
     fn get_filtered_transactions(
         &self,
@@ -148,42 +113,6 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         }
     }
 
-    fn create_asset_account(
-        &mut self,
-        name: String,
-        note: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-        offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend {
-        self.private_create_asset_account(
-            name,
-            note,
-            make_iban_bic_unified(iban),
-            make_iban_bic_unified(bic),
-            offset,
-        )
-    }
-
-    fn update_asset_account(
-        &mut self,
-        id: Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-        offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend {
-        self.private_update_asset_account(
-            id,
-            name,
-            note,
-            make_iban_bic_unified(iban),
-            make_iban_bic_unified(bic),
-            offset,
-        )
-    }
-
     fn get_accounts(
         &self,
     ) -> impl futures::Future<Output = Result<Vec<account::Account>>> + MaybeSend;
@@ -192,23 +121,6 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         &self,
         id: Id,
     ) -> impl futures::Future<Output = Result<Option<account::Account>>> + MaybeSend;
-
-    fn get_account_sum(
-        &self,
-        account: &account::Account,
-        date: DateTime,
-    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
-        let future = self.private_get_account_sum(account, date);
-
-        async move {
-            let sum = future.await?;
-            if let account::Account::AssetAccount(asset_account) = account {
-                Ok(sum + asset_account.offset().clone())
-            } else {
-                Ok(sum)
-            }
-        }
-    }
 
     fn get_transaction(
         &self,
@@ -247,38 +159,6 @@ pub trait FinanceManager: Send + Clone + Sized + PrivateFinanceManager {
         metadata: HashMap<String, String>,
         categoris: Vec<(Id, Sign)>,
     ) -> impl futures::Future<Output = Result<Transaction>> + MaybeSend;
-
-    fn create_book_checking_account(
-        &mut self,
-        name: String,
-        notes: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend {
-        self.private_create_book_checking_account(
-            name,
-            notes,
-            make_iban_bic_unified(iban),
-            make_iban_bic_unified(bic),
-        )
-    }
-
-    fn update_book_checking_account(
-        &mut self,
-        id: Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend {
-        self.private_update_book_checking_account(
-            id,
-            name,
-            note,
-            make_iban_bic_unified(iban),
-            make_iban_bic_unified(bic),
-        )
-    }
 
     fn create_budget(
         &mut self,

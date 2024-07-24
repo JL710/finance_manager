@@ -69,7 +69,7 @@ impl Account {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         account_id: fm_core::Id,
     ) -> (Self, iced::Task<Message>) {
         (
@@ -104,7 +104,7 @@ impl Account {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::Initialize(account, current_value, transactions) => {

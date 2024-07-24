@@ -6,10 +6,6 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(url: String) -> Self {
-        Self { url }
-    }
-
     pub fn url(&self) -> &str {
         &self.url
     }
@@ -45,8 +41,14 @@ macro_rules! client_get_macro {
     }};
 }
 
-impl fm_core::PrivateFinanceManager for Client {
-    async fn private_create_asset_account(
+impl fm_core::FinanceManager for Client {
+    type Flags = String;
+
+    fn new(url: Self::Flags) -> Result<Self> {
+        Ok(Self { url })
+    }
+
+    async fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -61,7 +63,7 @@ impl fm_core::PrivateFinanceManager for Client {
         )
     }
 
-    async fn private_update_asset_account(
+    async fn update_asset_account(
         &mut self,
         id: fm_core::Id,
         name: String,
@@ -77,7 +79,7 @@ impl fm_core::PrivateFinanceManager for Client {
         )
     }
 
-    async fn private_create_book_checking_account(
+    async fn create_book_checking_account(
         &mut self,
         name: String,
         notes: Option<String>,
@@ -91,7 +93,7 @@ impl fm_core::PrivateFinanceManager for Client {
         )
     }
 
-    async fn private_update_book_checking_account(
+    async fn update_book_checking_account(
         &mut self,
         id: fm_core::Id,
         name: String,
@@ -106,7 +108,7 @@ impl fm_core::PrivateFinanceManager for Client {
         )
     }
 
-    async fn private_get_account_sum(
+    async fn get_account_sum(
         &self,
         account: &fm_core::account::Account,
         date: fm_core::DateTime,
@@ -114,7 +116,7 @@ impl fm_core::PrivateFinanceManager for Client {
         client_post_macro!(self.url, "get_account_sum", (account, date))
     }
 
-    async fn private_create_bill(
+    async fn create_bill(
         &mut self,
         name: String,
         description: Option<String>,
@@ -129,7 +131,7 @@ impl fm_core::PrivateFinanceManager for Client {
         )
     }
 
-    async fn private_update_bill(
+    async fn update_bill(
         &mut self,
         id: fm_core::Id,
         name: String,
@@ -144,9 +146,7 @@ impl fm_core::PrivateFinanceManager for Client {
             (id, name, description, value, transactions, due_date)
         )
     }
-}
 
-impl fm_core::FinanceManager for Client {
     async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {
         client_get_macro!(self.url, "get_bills")
     }

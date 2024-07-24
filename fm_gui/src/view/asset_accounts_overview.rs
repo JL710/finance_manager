@@ -1,5 +1,3 @@
-use fm_core::{self, FinanceManager};
-
 use super::super::utils;
 
 use async_std::sync::Mutex;
@@ -35,7 +33,7 @@ impl AssetAccountOverview {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
@@ -70,7 +68,7 @@ impl AssetAccountOverview {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<impl FinanceManager + 'static>>,
+        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::Initialize(accounts) => {

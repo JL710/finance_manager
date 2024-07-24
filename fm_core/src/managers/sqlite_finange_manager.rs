@@ -115,12 +115,6 @@ pub struct SqliteFinanceManager {
 }
 
 impl SqliteFinanceManager {
-    pub fn new(path: String) -> Result<Self> {
-        let new = Self { path };
-        new.create_db()?;
-        Ok(new)
-    }
-
     fn create_db(&self) -> Result<()> {
         let connection = self.connect()?;
         connection.execute_batch(include_str!("schema.sql"))?;
@@ -164,8 +158,16 @@ impl SqliteFinanceManager {
     }
 }
 
-impl PrivateFinanceManager for SqliteFinanceManager {
-    async fn private_create_asset_account(
+impl FinanceManager for SqliteFinanceManager {
+    type Flags = String;
+
+    fn new(path: Self::Flags) -> Result<Self> {
+        let new = Self { path };
+        new.create_db()?;
+        Ok(new)
+    }
+
+    async fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -192,7 +194,7 @@ impl PrivateFinanceManager for SqliteFinanceManager {
         ))
     }
 
-    async fn private_update_asset_account(
+    async fn update_asset_account(
         &mut self,
         id: Id,
         name: String,
@@ -214,7 +216,7 @@ impl PrivateFinanceManager for SqliteFinanceManager {
         ))
     }
 
-    async fn private_create_book_checking_account(
+    async fn create_book_checking_account(
         &mut self,
         name: String,
         notes: Option<String>,
@@ -225,7 +227,7 @@ impl PrivateFinanceManager for SqliteFinanceManager {
         create_book_checking_account(&connection, name, notes, iban, bic)
     }
 
-    async fn private_update_book_checking_account(
+    async fn update_book_checking_account(
         &mut self,
         id: Id,
         name: String,
@@ -244,7 +246,7 @@ impl PrivateFinanceManager for SqliteFinanceManager {
         ))
     }
 
-    async fn private_get_account_sum(
+    async fn get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
@@ -279,7 +281,7 @@ impl PrivateFinanceManager for SqliteFinanceManager {
         Ok(sum)
     }
 
-    async fn private_create_bill(
+    async fn create_bill(
         &mut self,
         name: String,
         description: Option<String>,
@@ -322,7 +324,7 @@ impl PrivateFinanceManager for SqliteFinanceManager {
         ))
     }
 
-    async fn private_update_bill(
+    async fn update_bill(
         &mut self,
         id: Id,
         name: String,
@@ -356,9 +358,7 @@ impl PrivateFinanceManager for SqliteFinanceManager {
 
         Ok(())
     }
-}
 
-impl FinanceManager for SqliteFinanceManager {
     async fn get_bills(&self) -> Result<Vec<Bill>> {
         let connection = self.connect()?;
 

@@ -112,7 +112,7 @@ impl CreateBudgetView {
 
     pub fn fetch(
         id: fm_core::Id,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
@@ -132,7 +132,7 @@ impl CreateBudgetView {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::BudgetCreated(id) => return Action::BudgetCreated(id),

@@ -91,7 +91,7 @@ pub struct CreateTransactionView {
 
 impl CreateTransactionView {
     pub fn new(
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self {
@@ -121,7 +121,7 @@ impl CreateTransactionView {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         transaction_id: fm_core::Id,
     ) -> (Self, iced::Task<Message>) {
         (
@@ -168,7 +168,7 @@ impl CreateTransactionView {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::TransactionCreated(id) => return Action::TransactionCreated(id),
@@ -437,7 +437,7 @@ impl CreateTransactionView {
 
     fn submit_command(
         &self,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> iced::Task<fm_core::Transaction> {
         let option_id = self.id;
         let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());

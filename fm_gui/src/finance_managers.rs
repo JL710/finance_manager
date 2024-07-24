@@ -1,12 +1,11 @@
 use anyhow::Result;
-use fm_core::FinanceManager;
 
 #[derive(Clone)]
 pub enum FinanceManagers {
     Server(fm_server::client::Client),
     #[cfg(feature = "native")]
-    Sqlite(fm_core::managers::sqlite_finange_manager::SqliteFinanceManager),
-    Ram(fm_core::managers::ram_finance_manager::RamFinanceManager),
+    Sqlite(fm_core::managers::SqliteFinanceManager),
+    Ram(fm_core::managers::RamFinanceManager),
 }
 
 impl std::fmt::Debug for FinanceManagers {
@@ -37,8 +36,24 @@ impl Default for FinanceManagers {
     }
 }
 
-impl fm_core::PrivateFinanceManager for FinanceManagers {
-    async fn private_create_asset_account(
+impl fm_core::FinanceManager for FinanceManagers {
+    type Flags = (
+        Option<fm_server::client::Client>,
+        Option<fm_core::managers::RamFinanceManager>,
+        Option<fm_core::managers::SqliteFinanceManager>,
+    );
+
+    fn new(flags: Self::Flags) -> Result<Self> {
+        match flags {
+            (Some(client), None, None) => Ok(FinanceManagers::Server(client)),
+            #[cfg(feature = "native")]
+            (None, Some(ram), None) => Ok(FinanceManagers::Ram(ram)),
+            (None, None, Some(sqlite)) => Ok(FinanceManagers::Sqlite(sqlite)),
+            _ => Err(anyhow::anyhow!("Invalid flags")),
+        }
+    }
+
+    async fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -49,23 +64,23 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
         match self {
             FinanceManagers::Server(client) => {
                 client
-                    .private_create_asset_account(name, note, iban, bic, offset)
+                    .create_asset_account(name, note, iban, bic, offset)
                     .await
             }
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
-                    .private_create_asset_account(name, note, iban, bic, offset)
+                    .create_asset_account(name, note, iban, bic, offset)
                     .await
             }
             FinanceManagers::Ram(ram) => {
-                ram.private_create_asset_account(name, note, iban, bic, offset)
+                ram.create_asset_account(name, note, iban, bic, offset)
                     .await
             }
         }
     }
 
-    async fn private_create_book_checking_account(
+    async fn create_book_checking_account(
         &mut self,
         name: String,
         note: Option<String>,
@@ -75,36 +90,36 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
         match self {
             FinanceManagers::Server(client) => {
                 client
-                    .private_create_book_checking_account(name, note, iban, bic)
+                    .create_book_checking_account(name, note, iban, bic)
                     .await
             }
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
-                    .private_create_book_checking_account(name, note, iban, bic)
+                    .create_book_checking_account(name, note, iban, bic)
                     .await
             }
             FinanceManagers::Ram(ram) => {
-                ram.private_create_book_checking_account(name, note, iban, bic)
+                ram.create_book_checking_account(name, note, iban, bic)
                     .await
             }
         }
     }
 
-    async fn private_get_account_sum(
+    async fn get_account_sum(
         &self,
         account: &fm_core::account::Account,
         date: fm_core::DateTime,
     ) -> Result<fm_core::Currency> {
         match self {
-            FinanceManagers::Server(client) => client.private_get_account_sum(account, date).await,
+            FinanceManagers::Server(client) => client.get_account_sum(account, date).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => sqlite.private_get_account_sum(account, date).await,
-            FinanceManagers::Ram(ram) => ram.private_get_account_sum(account, date).await,
+            FinanceManagers::Sqlite(sqlite) => sqlite.get_account_sum(account, date).await,
+            FinanceManagers::Ram(ram) => ram.get_account_sum(account, date).await,
         }
     }
 
-    async fn private_update_asset_account(
+    async fn update_asset_account(
         &mut self,
         id: fm_core::Id,
         name: String,
@@ -116,23 +131,23 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
         match self {
             FinanceManagers::Server(client) => {
                 client
-                    .private_update_asset_account(id, name, note, iban, bic, offset)
+                    .update_asset_account(id, name, note, iban, bic, offset)
                     .await
             }
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
-                    .private_update_asset_account(id, name, note, iban, bic, offset)
+                    .update_asset_account(id, name, note, iban, bic, offset)
                     .await
             }
             FinanceManagers::Ram(ram) => {
-                ram.private_update_asset_account(id, name, note, iban, bic, offset)
+                ram.update_asset_account(id, name, note, iban, bic, offset)
                     .await
             }
         }
     }
 
-    async fn private_update_book_checking_account(
+    async fn update_book_checking_account(
         &mut self,
         id: fm_core::Id,
         name: String,
@@ -143,23 +158,23 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
         match self {
             FinanceManagers::Server(client) => {
                 client
-                    .private_update_book_checking_account(id, name, note, iban, bic)
+                    .update_book_checking_account(id, name, note, iban, bic)
                     .await
             }
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
-                    .private_update_book_checking_account(id, name, note, iban, bic)
+                    .update_book_checking_account(id, name, note, iban, bic)
                     .await
             }
             FinanceManagers::Ram(ram) => {
-                ram.private_update_book_checking_account(id, name, note, iban, bic)
+                ram.update_book_checking_account(id, name, note, iban, bic)
                     .await
             }
         }
     }
 
-    async fn private_create_bill(
+    async fn create_bill(
         &mut self,
         name: String,
         description: Option<String>,
@@ -170,23 +185,23 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
         match self {
             FinanceManagers::Server(client) => {
                 client
-                    .create_bill(name, description, value, transactions, due_date)?
+                    .create_bill(name, description, value, transactions, due_date)
                     .await
             }
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
-                    .create_bill(name, description, value, transactions, due_date)?
+                    .create_bill(name, description, value, transactions, due_date)
                     .await
             }
             FinanceManagers::Ram(ram) => {
-                ram.create_bill(name, description, value, transactions, due_date)?
+                ram.create_bill(name, description, value, transactions, due_date)
                     .await
             }
         }
     }
 
-    async fn private_update_bill(
+    async fn update_bill(
         &mut self,
         id: fm_core::Id,
         name: String,
@@ -198,24 +213,22 @@ impl fm_core::PrivateFinanceManager for FinanceManagers {
         match self {
             FinanceManagers::Server(client) => {
                 client
-                    .update_bill(id, name, description, value, transactions, due_date)?
+                    .update_bill(id, name, description, value, transactions, due_date)
                     .await
             }
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
-                    .update_bill(id, name, description, value, transactions, due_date)?
+                    .update_bill(id, name, description, value, transactions, due_date)
                     .await
             }
             FinanceManagers::Ram(ram) => {
-                ram.update_bill(id, name, description, value, transactions, due_date)?
+                ram.update_bill(id, name, description, value, transactions, due_date)
                     .await
             }
         }
     }
-}
 
-impl fm_core::FinanceManager for FinanceManagers {
     async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {
         match self {
             FinanceManagers::Server(client) => client.get_bills().await,
@@ -252,59 +265,6 @@ impl fm_core::FinanceManager for FinanceManagers {
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_filtered_transactions(filter).await,
             FinanceManagers::Ram(ram) => ram.get_filtered_transactions(filter).await,
-        }
-    }
-
-    async fn create_asset_account(
-        &mut self,
-        name: String,
-        note: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-        offset: fm_core::Currency,
-    ) -> Result<fm_core::account::AssetAccount> {
-        match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .create_asset_account(name, note, iban, bic, offset)
-                    .await
-            }
-            #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .create_asset_account(name, note, iban, bic, offset)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.create_asset_account(name, note, iban, bic, offset)
-                    .await
-            }
-        }
-    }
-
-    async fn create_book_checking_account(
-        &mut self,
-        name: String,
-        notes: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-    ) -> Result<fm_core::account::BookCheckingAccount> {
-        match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .create_book_checking_account(name, notes, iban, bic)
-                    .await
-            }
-            #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .create_book_checking_account(name, notes, iban, bic)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.create_book_checking_account(name, notes, iban, bic)
-                    .await
-            }
         }
     }
 
@@ -428,19 +388,6 @@ impl fm_core::FinanceManager for FinanceManagers {
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => sqlite.get_account(id).await,
             FinanceManagers::Ram(ram) => ram.get_account(id).await,
-        }
-    }
-
-    async fn get_account_sum(
-        &self,
-        account: &fm_core::account::Account,
-        date: fm_core::DateTime,
-    ) -> Result<fm_core::Currency> {
-        match self {
-            FinanceManagers::Server(client) => client.get_account_sum(account, date).await,
-            #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => sqlite.get_account_sum(account, date).await,
-            FinanceManagers::Ram(ram) => ram.get_account_sum(account, date).await,
         }
     }
 
@@ -612,61 +559,6 @@ impl fm_core::FinanceManager for FinanceManagers {
                 sqlite.get_transactions_of_category(id, timespan).await
             }
             FinanceManagers::Ram(ram) => ram.get_transactions_of_category(id, timespan).await,
-        }
-    }
-
-    async fn update_asset_account(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-        offset: fm_core::Currency,
-    ) -> Result<fm_core::account::AssetAccount> {
-        match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .update_asset_account(id, name, note, iban, bic, offset)
-                    .await
-            }
-            #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .update_asset_account(id, name, note, iban, bic, offset)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.update_asset_account(id, name, note, iban, bic, offset)
-                    .await
-            }
-        }
-    }
-
-    async fn update_book_checking_account(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<String>,
-        bic: Option<String>,
-    ) -> Result<fm_core::account::BookCheckingAccount> {
-        match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .update_book_checking_account(id, name, note, iban, bic)
-                    .await
-            }
-            #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .update_book_checking_account(id, name, note, iban, bic)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.update_book_checking_account(id, name, note, iban, bic)
-                    .await
-            }
         }
     }
 

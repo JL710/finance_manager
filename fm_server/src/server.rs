@@ -10,15 +10,17 @@ use tokio::sync::Mutex;
 
 #[derive(Clone)]
 struct State {
-    finance_manager: Arc<Mutex<fm_core::sqlite_finange_manager::SqliteFinanceManager>>,
+    finance_manager: Arc<
+        Mutex<
+            fm_core::FMController<fm_core::managers::sqlite_finange_manager::SqliteFinanceManager>,
+        >,
+    >,
 }
 
 #[tokio::main]
 pub async fn run(url: String, db: String) {
     let state = State {
-        finance_manager: Arc::new(Mutex::new(
-            fm_core::sqlite_finange_manager::SqliteFinanceManager::new(db).unwrap(),
-        )),
+        finance_manager: Arc::new(Mutex::new(fm_core::FMController::new(db).unwrap())),
     };
 
     tracing_subscriber::registry()
@@ -160,13 +162,11 @@ async fn get_account_sum(
         fm_core::DateTime,
     )>,
 ) -> Json<Value> {
-    use fm_core::PrivateFinanceManager;
-
     let sum = state
         .finance_manager
         .lock()
         .await
-        .private_get_account_sum(&account_data.0, account_data.1)
+        .get_account_sum(&account_data.0, account_data.1)
         .await
         .unwrap();
     json!(sum).into()

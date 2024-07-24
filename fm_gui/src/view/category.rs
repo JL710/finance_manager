@@ -49,7 +49,7 @@ pub enum Category {
 
 impl Category {
     pub fn fetch(
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         category_id: fm_core::Id,
     ) -> (Self, iced::Task<Message>) {
         (
@@ -85,7 +85,7 @@ impl Category {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::Delete => {

@@ -71,7 +71,7 @@ impl Budget {
     pub fn fetch(
         id: fm_core::Id,
         offset: i32,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::NotLoaded,
@@ -84,7 +84,7 @@ impl Budget {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::Initialize(budget, value, transactions, offset) => {
@@ -182,7 +182,7 @@ impl Budget {
     }
 
     async fn initial_message(
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         id: fm_core::Id,
         offset: i32,
     ) -> Result<Message> {

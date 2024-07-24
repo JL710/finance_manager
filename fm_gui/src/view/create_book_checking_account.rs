@@ -48,7 +48,7 @@ impl CreateBookCheckingAccount {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         account_id: fm_core::Id,
     ) -> (Self, iced::Task<Message>) {
         (
@@ -73,7 +73,7 @@ impl CreateBookCheckingAccount {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<impl fm_core::FinanceManager + 'static>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::AccountCreated(id) => return Action::AccountCreated(id),
