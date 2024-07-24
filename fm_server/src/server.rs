@@ -4,7 +4,6 @@ use serde_json::{json, Value};
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-use fm_core::FinanceManager;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

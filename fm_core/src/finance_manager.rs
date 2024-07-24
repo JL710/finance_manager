@@ -1,9 +1,5 @@
 use super::*;
 
-fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
-    content.map(|content| content.to_uppercase().replace(' ', ""))
-}
-
 pub trait FinanceManager: Send + Clone + Sized {
     type Flags;
 
