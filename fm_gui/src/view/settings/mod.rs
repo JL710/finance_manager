@@ -76,7 +76,7 @@ impl SettingsView {
                     iced::Task::perform(async move { sqlite_path }, |x| {
                         AppMessage::ChangeFM(Arc::new(Mutex::new(
                             super::super::finance_managers::FinanceManagers::Sqlite(
-                                fm_core::sqlite_finange_manager::SqliteFinanceManager::new(x)
+                                fm_core::managers::sqlite_finange_manager::SqliteFinanceManager::new(x)
                                     .unwrap(),
                             ),
                         )))
@@ -93,7 +93,8 @@ impl SettingsView {
                     iced::Task::perform(async {}, |_| {
                         AppMessage::ChangeFM(Arc::new(Mutex::new(
                             super::super::finance_managers::FinanceManagers::Ram(
-                                fm_core::ram_finance_manager::RamFinanceManager::default(),
+                                fm_core::managers::ram_finance_manager::RamFinanceManager::default(
+                                ),
                             ),
                         )))
                     }),

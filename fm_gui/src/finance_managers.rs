@@ -5,8 +5,8 @@ use fm_core::FinanceManager;
 pub enum FinanceManagers {
     Server(fm_server::client::Client),
     #[cfg(feature = "native")]
-    Sqlite(fm_core::sqlite_finange_manager::SqliteFinanceManager),
-    Ram(fm_core::ram_finance_manager::RamFinanceManager),
+    Sqlite(fm_core::managers::sqlite_finange_manager::SqliteFinanceManager),
+    Ram(fm_core::managers::ram_finance_manager::RamFinanceManager),
 }
 
 impl std::fmt::Debug for FinanceManagers {
@@ -33,7 +33,7 @@ impl std::fmt::Display for FinanceManagers {
 
 impl Default for FinanceManagers {
     fn default() -> Self {
-        FinanceManagers::Ram(fm_core::ram_finance_manager::RamFinanceManager::default())
+        FinanceManagers::Ram(fm_core::managers::ram_finance_manager::RamFinanceManager::default())
     }
 }
 

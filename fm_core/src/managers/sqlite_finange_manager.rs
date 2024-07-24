@@ -1,6 +1,6 @@
 use crate::account::AssetAccount;
 
-use super::*;
+use crate::*;
 use anyhow::{Context, Result};
 use rusqlite::OptionalExtension;
 
@@ -164,7 +164,7 @@ impl SqliteFinanceManager {
     }
 }
 
-impl super::PrivateFinanceManager for SqliteFinanceManager {
+impl PrivateFinanceManager for SqliteFinanceManager {
     async fn private_create_asset_account(
         &mut self,
         name: String,

@@ -1,6 +1,6 @@
-use super::{
-    account, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring, Sign,
-    Timespan, Transaction,
+use crate::{
+    account, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Or,
+    PrivateFinanceManager, Recouring, Sign, Timespan, Transaction,
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -14,7 +14,7 @@ pub struct RamFinanceManager {
     bills: Vec<Bill>,
 }
 
-impl super::PrivateFinanceManager for RamFinanceManager {
+impl PrivateFinanceManager for RamFinanceManager {
     async fn private_update_asset_account(
         &mut self,
         id: Id,
@@ -254,8 +254,8 @@ impl FinanceManager for RamFinanceManager {
         amount: Currency,
         title: String,
         description: Option<String>,
-        source: super::Or<Id, String>,
-        destination: super::Or<Id, String>,
+        source: Or<Id, String>,
+        destination: Or<Id, String>,
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
@@ -264,8 +264,8 @@ impl FinanceManager for RamFinanceManager {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
         let source_id = match source {
-            super::Or::One(id) => id,
-            super::Or::Two(name) => {
+            Or::One(id) => id,
+            Or::Two(name) => {
                 let account = self
                     .create_book_checking_account(name, None, None, None)
                     .await?;
@@ -274,8 +274,8 @@ impl FinanceManager for RamFinanceManager {
         };
 
         let destination_id = match destination {
-            super::Or::One(id) => id,
-            super::Or::Two(name) => {
+            Or::One(id) => id,
+            Or::Two(name) => {
                 let account = self
                     .create_book_checking_account(name, None, None, None)
                     .await?;
@@ -314,16 +314,16 @@ impl FinanceManager for RamFinanceManager {
         amount: Currency,
         title: String,
         description: Option<String>,
-        source: super::Or<Id, String>,
-        destination: super::Or<Id, String>,
+        source: Or<Id, String>,
+        destination: Or<Id, String>,
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
         let source_id = match source {
-            super::Or::One(id) => id,
-            super::Or::Two(name) => {
+            Or::One(id) => id,
+            Or::Two(name) => {
                 let account = self
                     .create_book_checking_account(name, None, None, None)
                     .await?;
@@ -332,8 +332,8 @@ impl FinanceManager for RamFinanceManager {
         };
 
         let destination_id = match destination {
-            super::Or::One(id) => id,
-            super::Or::Two(name) => {
+            Or::One(id) => id,
+            Or::Two(name) => {
                 let account = self
                     .create_book_checking_account(name, None, None, None)
                     .await?;
@@ -502,8 +502,8 @@ impl FinanceManager for RamFinanceManager {
 
     async fn get_transactions_of_category(
         &self,
-        id: super::Id,
-        timespan: super::Timespan,
+        id: Id,
+        timespan: Timespan,
     ) -> Result<Vec<Transaction>> {
         let mut transactions = self.transactions.clone();
         transactions.retain(|x| {
