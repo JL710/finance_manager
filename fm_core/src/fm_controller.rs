@@ -216,8 +216,11 @@ where
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
-    ) -> impl futures::Future<Output = Result<Transaction>> + MaybeSend + '_ {
-        self.finance_manager.create_transaction(
+    ) -> Result<impl futures::Future<Output = Result<Transaction>> + MaybeSend + '_> {
+        if amount.get_eur_num() < 0.0 {
+            anyhow::bail!("Amount must be positive")
+        }
+        Ok(self.finance_manager.create_transaction(
             amount,
             title,
             description,
@@ -227,7 +230,7 @@ where
             date,
             metadata,
             categories,
-        )
+        ))
     }
 
     pub fn update_transaction(
@@ -242,8 +245,11 @@ where
         date: DateTime,
         metadata: HashMap<String, String>,
         categoris: Vec<(Id, Sign)>,
-    ) -> impl futures::Future<Output = Result<Transaction>> + MaybeSend + '_ {
-        self.finance_manager.update_transaction(
+    ) -> Result<impl futures::Future<Output = Result<Transaction>> + MaybeSend + '_> {
+        if amount.get_eur_num() < 0.0 {
+            anyhow::bail!("Amount must be positive")
+        }
+        Ok(self.finance_manager.update_transaction(
             id,
             amount,
             title,
@@ -254,7 +260,7 @@ where
             date,
             metadata,
             categoris,
-        )
+        ))
     }
 
     pub fn create_book_checking_account(

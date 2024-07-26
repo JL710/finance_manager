@@ -481,6 +481,7 @@ impl CreateTransactionView {
                         metadata,
                         categories,
                     )
+                    .unwrap()
                     .await
                     .unwrap(),
                 _ => finance_manager
@@ -497,6 +498,7 @@ impl CreateTransactionView {
                         metadata,
                         categories,
                     )
+                    .unwrap()
                     .await
                     .unwrap(),
             }
