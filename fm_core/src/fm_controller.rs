@@ -244,7 +244,7 @@ where
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categoris: Vec<(Id, Sign)>,
+        categories: Vec<(Id, Sign)>,
     ) -> Result<impl futures::Future<Output = Result<Transaction>> + MaybeSend + '_> {
         if amount.get_eur_num() < 0.0 {
             anyhow::bail!("Amount must be positive")
@@ -259,7 +259,7 @@ where
             budget,
             date,
             metadata,
-            categoris,
+            categories,
         ))
     }
 

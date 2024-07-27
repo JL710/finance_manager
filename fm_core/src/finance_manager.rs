@@ -153,7 +153,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categoris: Vec<(Id, Sign)>,
+        categories: Vec<(Id, Sign)>,
     ) -> impl futures::Future<Output = Result<Transaction>> + MaybeSend;
 
     fn create_budget(
