@@ -174,6 +174,13 @@ impl Account {
         }
     }
 
+    pub fn note(&self) -> Option<&str> {
+        match self {
+            Account::AssetAccount(acc) => acc.note(),
+            Account::BookCheckingAccount(acc) => acc.note(),
+        }
+    }
+
     pub fn id(&self) -> &Id {
         match self {
             Account::AssetAccount(acc) => &acc.id,
@@ -185,6 +192,13 @@ impl Account {
         match self {
             Account::AssetAccount(acc) => acc.iban(),
             Account::BookCheckingAccount(acc) => acc.iban(),
+        }
+    }
+
+    pub fn bic(&self) -> Option<&str> {
+        match self {
+            Account::AssetAccount(acc) => acc.bic(),
+            Account::BookCheckingAccount(acc) => acc.bic(),
         }
     }
 }
