@@ -127,7 +127,7 @@ impl SqliteFinanceManager {
 
         let version_result: Option<i32> = connection
             .query_row(
-                "SELECT tag FROM database_info WHERE tag='version'",
+                "SELECT value FROM database_info WHERE tag='version'",
                 (),
                 |x| x.get(0),
             )
