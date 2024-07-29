@@ -14,6 +14,8 @@ pub async fn run_in_terminal(
         let next_action = importer.lock().await.next().await.unwrap();
         if let Some(action) = next_action {
             do_action(importer.clone(), action, finance_manager.clone()).await;
+        } else {
+            break;
         }
     }
 }
