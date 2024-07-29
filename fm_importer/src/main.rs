@@ -19,20 +19,27 @@ struct Args {
     /// Verbose mode
     #[clap(short, long, default_value = "false")]
     verbose: bool,
+    /// Debug mode
+    #[clap(short, long, default_value = "false")]
+    debug: bool,
 }
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    if args.verbose {
+    if args.verbose || args.debug {
         let stdout_log = tracing_subscriber::fmt::layer().compact();
         tracing_subscriber::registry()
-            .with(
-                stdout_log.with_filter(
-                    tracing_subscriber::filter::Targets::default()
-                        .with_target("fm_importer", tracing::Level::INFO),
+            .with(stdout_log.with_filter(
+                tracing_subscriber::filter::Targets::default().with_target(
+                    "fm_importer",
+                    if args.debug {
+                        tracing::Level::DEBUG
+                    } else {
+                        tracing::Level::INFO
+                    },
                 ),
-            )
+            ))
             .init();
     }
 
