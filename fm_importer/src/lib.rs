@@ -169,6 +169,7 @@ pub struct Importer<FM: fm_core::FinanceManager + 'static, P: Parser> {
     parser: P,
     fm_controller: Arc<Mutex<fm_core::FMController<FM>>>,
     cached_accounts: Vec<fm_core::account::Account>,
+    cached_transactions: Vec<fm_core::Transaction>,
     saved_account_decisions: Vec<(AccountEntry, fm_core::account::Account)>,
 }
 
@@ -178,11 +179,17 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
         fm_controller: Arc<Mutex<fm_core::FMController<FM>>>,
     ) -> Result<Self> {
         let cached_accounts = fm_controller.lock().await.get_accounts().await?;
+        let cached_transactions = fm_controller
+            .lock()
+            .await
+            .get_transactions((None, None))
+            .await?;
 
         Ok(Self {
             parser: importer,
             fm_controller,
             cached_accounts,
+            cached_transactions,
             saved_account_decisions: Vec::new(),
         })
     }
@@ -191,13 +198,13 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
         tracing::debug!("Next transaction entry");
         if let Some(mut transaction_entry) = self.parser.next_entry().await? {
             // check if the transactions exists
-            if let Some(a) = transaction_exists(
-                &transaction_entry,
-                &self.cached_accounts,
-                self.fm_controller.clone(),
-                &self.parser.format_name(),
-            )
-            .await?
+            if let Some(a) = self
+                .transaction_exists(
+                    &transaction_entry,
+                    &self.cached_accounts,
+                    &self.parser.format_name(),
+                )
+                .await?
             {
                 return Ok(Some(a));
             }
@@ -216,7 +223,8 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
                 return Ok(Some(other_account_action));
             }
             // create transaction
-            let _transaction = create_transaction(&transaction_entry, self.fm_controller.clone())
+            let _transaction = self
+                .create_transaction(&transaction_entry)
                 .await
                 .context("Error while creating a transaction")?;
 
@@ -268,10 +276,10 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
                 }
 
                 // create transaction
-                let _transaction =
-                    create_transaction(&transaction_entry, self.fm_controller.clone())
-                        .await
-                        .context("Error while creating a transaction")?;
+                let _transaction = self
+                    .create_transaction(&transaction_entry)
+                    .await
+                    .context("Error while creating a transaction")?;
             }
             action::Action::DestinationAccountExists(object_exists) => {
                 // create account if it does not exist
@@ -295,10 +303,10 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
                 transaction_entry.destination_account = Some(selected_account);
 
                 // create transaction
-                let _transaction =
-                    create_transaction(&transaction_entry, self.fm_controller.clone())
-                        .await
-                        .context("Error while creating a transaction")?;
+                let _transaction = self
+                    .create_transaction(&transaction_entry)
+                    .await
+                    .context("Error while creating a transaction")?;
             }
         }
         Ok(action::Action::None)
@@ -432,64 +440,46 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
 
         Ok(account.into())
     }
-}
 
-enum AccountExistsResult {
-    NotFond,
-    Found(fm_core::account::Account),
-    PossibleAccounts(Vec<fm_core::account::Account>),
-}
+    /// Check if the transaction already exists in the finance manager.
+    /// If the transaction exists, return an action to be performed.
+    /// If the transaction does not exist, return None.
+    async fn transaction_exists(
+        &self,
+        transaction_entry: &TransactionEntry,
+        accounts: &Vec<fm_core::account::Account>,
+        format_name: &str,
+    ) -> Result<Option<action::Action>> {
+        let mut possible_transactions = Vec::new();
 
-/// Check if the transaction already exists in the finance manager.
-/// If the transaction exists, return an action to be performed.
-/// If the transaction does not exist, return None.
-async fn transaction_exists<FM: FinanceManager>(
-    transaction_entry: &TransactionEntry,
-    accounts: &Vec<fm_core::account::Account>,
-    fm_controller: Arc<Mutex<fm_core::FMController<FM>>>,
-    format_name: &str,
-) -> Result<Option<action::Action>> {
-    let transactions = fm_controller
-        .lock()
-        .await
-        .get_transactions((
-            transaction_entry
-                .date
-                .checked_sub_days(chrono::Days::new(2)),
-            transaction_entry
-                .date
-                .checked_add_days(chrono::Days::new(2)),
-        ))
-        .await?;
-
-    let mut possible_transactions = Vec::new();
-
-    for transaction in &transactions {
-        // check for importer specific fields
-        if let Some(parser_content) = transaction.metadata().get(METADATA_RAW_CONTENT) {
-            if let Some(import_format) = transaction.metadata().get(METADATA_IMPORT_FORMAT) {
-                if *parser_content == transaction_entry.raw_data && *import_format == format_name {
-                    return Ok(Some(action::Action::None));
+        for transaction in &self.cached_transactions {
+            // check for importer specific fields
+            if let Some(parser_content) = transaction.metadata().get(METADATA_RAW_CONTENT) {
+                if let Some(import_format) = transaction.metadata().get(METADATA_IMPORT_FORMAT) {
+                    if *parser_content == transaction_entry.raw_data
+                        && *import_format == format_name
+                    {
+                        return Ok(Some(action::Action::None));
+                    }
                 }
             }
-        }
 
-        let source_acc = match accounts
-            .iter()
-            .find(|a| a.id() == transaction.id())
-            .cloned()
-        {
-            Some(acc) => acc,
-            None => continue,
-        };
+            let source_acc = match accounts
+                .iter()
+                .find(|a| a.id() == transaction.id())
+                .cloned()
+            {
+                Some(acc) => acc,
+                None => continue,
+            };
 
-        let destination_acc = match accounts.iter().find(|a| a.id() == transaction.id()) {
-            Some(acc) => acc,
-            None => continue,
-        };
+            let destination_acc = match accounts.iter().find(|a| a.id() == transaction.id()) {
+                Some(acc) => acc,
+                None => continue,
+            };
 
-        // check for general fields
-        if transaction.amount() == transaction_entry.value
+            // check for general fields
+            if transaction.amount() == transaction_entry.value
             && transaction.date().date_naive() == transaction_entry.date.date_naive()
             // check if source iban is equal
             && if let Some(source_iban) = source_acc.iban() {
@@ -522,66 +512,75 @@ async fn transaction_exists<FM: FinanceManager>(
                 }
             } else {
                 true
+            } {
+                possible_transactions.push(transaction.clone());
             }
-        {
-            possible_transactions.push(transaction.clone());
         }
+
+        if !possible_transactions.is_empty() {
+            return Ok(Some(action::Action::TransactionExists(
+                action::ObjectExists::new(possible_transactions, transaction_entry.clone(), |t| {
+                    *t.id()
+                }),
+            )));
+        }
+
+        Ok(None)
     }
 
-    if !possible_transactions.is_empty() {
-        return Ok(Some(action::Action::TransactionExists(
-            action::ObjectExists::new(possible_transactions, transaction_entry.clone(), |t| {
-                *t.id()
-            }),
-        )));
-    }
+    async fn create_transaction(
+        &mut self,
+        transaction_entry: &TransactionEntry,
+    ) -> Result<fm_core::Transaction> {
+        // figure out who is the source and who is the destination
+        let source = transaction_entry
+            .source_account
+            .as_ref()
+            .map(|a| fm_core::Or::One(*a.id()))
+            .unwrap();
+        let destination = transaction_entry
+            .destination_account
+            .as_ref()
+            .map(|a| fm_core::Or::One(*a.id()))
+            .unwrap();
+        let transaction = self
+            .fm_controller
+            .lock()
+            .await
+            .create_transaction(
+                transaction_entry.value.clone(),
+                transaction_entry.title.clone(),
+                Some(transaction_entry.description.clone()),
+                source,
+                destination,
+                None,
+                transaction_entry.date,
+                HashMap::from([
+                    (
+                        METADATA_RAW_CONTENT.to_string(),
+                        transaction_entry.raw_data.clone(),
+                    ),
+                    (
+                        METADATA_IMPORT_FORMAT.to_string(),
+                        "CSV_CAMT_V2".to_string(),
+                    ),
+                    (METADATA_IMPORTER_VERSION.to_string(), VERSION.to_string()),
+                ]),
+                Vec::new(),
+            )?
+            .await?;
+        self.cached_transactions.push(transaction.clone());
 
-    Ok(None)
+        tracing::info!("Transaction created: {:?}", transaction);
+
+        Ok(transaction)
+    }
 }
 
-async fn create_transaction(
-    transaction_entry: &TransactionEntry,
-    fm_controller: Arc<Mutex<fm_core::FMController<impl FinanceManager>>>,
-) -> Result<fm_core::Transaction> {
-    // figure out who is the source and who is the destination
-    let source = transaction_entry
-        .source_account
-        .as_ref()
-        .map(|a| fm_core::Or::One(*a.id()))
-        .unwrap();
-    let destination = transaction_entry
-        .destination_account
-        .as_ref()
-        .map(|a| fm_core::Or::One(*a.id()))
-        .unwrap();
-    let transaction = fm_controller
-        .lock()
-        .await
-        .create_transaction(
-            transaction_entry.value.clone(),
-            transaction_entry.title.clone(),
-            Some(transaction_entry.description.clone()),
-            source,
-            destination,
-            None,
-            transaction_entry.date,
-            HashMap::from([
-                (
-                    METADATA_RAW_CONTENT.to_string(),
-                    transaction_entry.raw_data.clone(),
-                ),
-                (
-                    METADATA_IMPORT_FORMAT.to_string(),
-                    "CSV_CAMT_V2".to_string(),
-                ),
-                (METADATA_IMPORTER_VERSION.to_string(), VERSION.to_string()),
-            ]),
-            Vec::new(),
-        )?
-        .await?;
-    tracing::info!("Transaction created: {:?}", transaction);
-
-    Ok(transaction)
+enum AccountExistsResult {
+    NotFond,
+    Found(fm_core::account::Account),
+    PossibleAccounts(Vec<fm_core::account::Account>),
 }
 
 pub async fn csv_camt_v2_importer<'a, FM: FinanceManager>(
