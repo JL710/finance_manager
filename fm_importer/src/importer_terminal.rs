@@ -46,7 +46,7 @@ async fn do_action(
                     .unwrap()
                     .unwrap();
                 println!(
-                    "Title: {}\nDescription: {}\nValue: {}\nDate: {}\n\nSource: {}\n\nDestination: {}\n",
+                    "Title: {}\nDescription: {}\nValue: {}\nDate: {}\n\nSource: \n{}\n\nDestination: \n{}\n",
                     transaction.title(),
                     transaction.description().unwrap_or(""),
                     transaction.amount(),
@@ -105,7 +105,7 @@ async fn do_action(
                 .await;
                 actions.push(
                     importer
-                        .try_lock() // FIXME: deadlock here
+                        .try_lock()
                         .unwrap()
                         .perform(Action::DestinationAccountExists(destination_account_exists))
                         .await
@@ -141,7 +141,7 @@ async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static
 ) where
     F: std::future::Future<Output = Result<String>>,
 {
-    println!("{}", prompt);
+    println!("---------\n{}", prompt);
     println!(
         "You are making the decision for the following transaction:\n{}",
         format_transaction_entry(object_exists.transaction_entry())
@@ -149,7 +149,7 @@ async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static
     println!("You have do decide between the following options (enter the number or None):");
     for (i, item) in object_exists.possible_objects().iter().enumerate() {
         println!(
-            "{}: {}",
+            "{}: \n{}",
             i,
             (t_to_string)(item.clone(), finance_manager.clone())
                 .await
