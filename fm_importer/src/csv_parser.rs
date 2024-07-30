@@ -64,11 +64,16 @@ impl<'a> CSVParser<'a> {
         })
     }
 
-    // If outer Option is None, the entry should be ignored iteration is over.
-    // If inner Option is None, the entry should be ignored.
+    /// If Option is None, the iteration is over.
     async fn next(&mut self) -> Result<Option<IterOption>> {
         let mut raw = String::new();
         self.data.read_line(&mut raw)?;
+        // remove trailing newlines -> try to remove all kind of new lines -> see more https://en.wikipedia.org/wiki/Newline#Representation
+        raw = raw
+            .trim_end_matches('\n')
+            .trim_end_matches('\r')
+            .trim_end_matches('\n')
+            .to_string();
 
         let record = if let Some(r) = csv::ReaderBuilder::new()
             .has_headers(false)
