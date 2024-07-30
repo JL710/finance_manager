@@ -17,7 +17,7 @@ const METADATA_IMPORTER_VERSION: &str = "importer-version";
 const METADATA_RAW_CONTENT: &str = "importer-raw-content";
 const METADATA_IMPORT_FORMAT: &str = "importer-import-format";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AccountEntry {
     name: Option<String>,
     iban: String,
@@ -169,6 +169,7 @@ pub struct Importer<FM: fm_core::FinanceManager + 'static, P: Parser> {
     parser: P,
     fm_controller: Arc<Mutex<fm_core::FMController<FM>>>,
     cached_accounts: Vec<fm_core::account::Account>,
+    saved_account_decisions: Vec<(AccountEntry, fm_core::account::Account)>,
 }
 
 impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
@@ -182,10 +183,12 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
             parser: importer,
             fm_controller,
             cached_accounts,
+            saved_account_decisions: Vec::new(),
         })
     }
 
     pub async fn next(&mut self) -> Result<Option<action::Action>> {
+        tracing::debug!("Next transaction entry");
         if let Some(mut transaction_entry) = self.parser.next_entry().await? {
             // check if the transactions exists
             if let Some(a) = transaction_exists(
@@ -198,7 +201,6 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
             {
                 return Ok(Some(a));
             }
-
             // check source accounts
             if let Some(source_account_action) = self
                 .process_source_account(&mut transaction_entry, self.fm_controller.clone())
@@ -206,7 +208,6 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
             {
                 return Ok(Some(source_account_action));
             }
-
             // check other accounts
             if let Some(other_account_action) = self
                 .process_destination_account(&mut transaction_entry, self.fm_controller.clone())
@@ -214,7 +215,6 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
             {
                 return Ok(Some(other_account_action));
             }
-
             // create transaction
             let _transaction = create_transaction(&transaction_entry, self.fm_controller.clone())
                 .await
@@ -222,6 +222,7 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
 
             Ok(Some(action::Action::None))
         } else {
+            tracing::debug!("No transaction entries left");
             Ok(None)
         }
     }
@@ -240,20 +241,22 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
             }
             action::Action::SourceAccountExists(object_exists) => {
                 // create account if it does not exist
-                let selected_account = if object_exists.selected_object().is_none() {
-                    let account = create_book_checking_account(
-                        &object_exists.transaction_entry.source_entry,
-                        self.fm_controller.clone(),
-                    )
-                    .await?;
-                    Some(account.into())
+                let selected_account = if let Some(acc) = object_exists.selected_object() {
+                    self.saved_account_decisions.push((
+                        object_exists.transaction_entry.source_entry.clone(),
+                        acc.clone(),
+                    ));
+                    acc
                 } else {
-                    object_exists.selected_object()
+                    let account = self
+                        .create_book_checking_account(&object_exists.transaction_entry.source_entry)
+                        .await?;
+                    account.into()
                 };
 
                 // set account for transaction entry
                 let mut transaction_entry = object_exists.transaction_entry;
-                transaction_entry.source_account = selected_account;
+                transaction_entry.source_account = Some(selected_account);
 
                 // do the other phases
                 // check other accounts
@@ -272,20 +275,24 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
             }
             action::Action::DestinationAccountExists(object_exists) => {
                 // create account if it does not exist
-                let selected_account = if object_exists.selected_object().is_none() {
-                    let account = create_book_checking_account(
-                        &object_exists.transaction_entry.destination_entry,
-                        self.fm_controller.clone(),
-                    )
-                    .await?;
-                    Some(account.into())
+                let selected_account = if let Some(acc) = object_exists.selected_object() {
+                    self.saved_account_decisions.push((
+                        object_exists.transaction_entry.destination_entry.clone(),
+                        acc.clone(),
+                    ));
+                    acc
                 } else {
-                    object_exists.selected_object()
+                    let account = self
+                        .create_book_checking_account(
+                            &object_exists.transaction_entry.destination_entry,
+                        )
+                        .await?;
+                    account.into()
                 };
 
                 // set account for transaction entry
                 let mut transaction_entry = object_exists.transaction_entry;
-                transaction_entry.destination_account = selected_account;
+                transaction_entry.destination_account = Some(selected_account);
 
                 // create transaction
                 let _transaction =
@@ -338,17 +345,17 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
         exists_action: impl Fn(action::ObjectExists<fm_core::account::Account>) -> action::Action,
         fm_controller: Arc<Mutex<fm_core::FMController<FM>>>,
     ) -> Result<Option<action::Action>> {
-        match account_exists((account_entry)(&transaction_entry), &self.cached_accounts).await {
+        match self
+            .account_exists((account_entry)(&transaction_entry))
+            .await
+        {
             AccountExistsResult::NotFond => {
                 // create account
-                let account = create_book_checking_account(
-                    (account_entry)(&transaction_entry),
-                    fm_controller.clone(),
-                )
-                .await?;
+                let account = self
+                    .create_book_checking_account((account_entry)(&transaction_entry))
+                    .await?;
                 tracing::info!("Account created: {:?}", account);
                 (set_account)(transaction_entry, Some(account.clone().into()));
-                self.cached_accounts.push(account.into());
             }
             AccountExistsResult::Found(account) => {
                 (set_account)(transaction_entry, Some(account));
@@ -364,41 +371,73 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
         }
         Ok(None)
     }
+
+    async fn account_exists(&self, account_entry: &AccountEntry) -> AccountExistsResult {
+        // check if account is in saved account decisions
+        for (entry, account) in &self.saved_account_decisions {
+            if entry == account_entry {
+                tracing::debug!("used account from saved account decisions {:?}", account);
+                return AccountExistsResult::Found(account.clone());
+            }
+        }
+
+        // check for accounts in account cache
+        let mut possible_accounts = Vec::new();
+
+        for account in &self.cached_accounts {
+            if let Some(account_iban) = account.iban() {
+                if account_entry.iban() == account_iban
+                    && if let Some(entry_name) = account_entry.name() {
+                        entry_name == account.name()
+                    } else {
+                        true
+                    }
+                {
+                    return AccountExistsResult::Found(account.clone());
+                } else if account_entry.iban() == account_iban {
+                    possible_accounts.push(account.clone());
+                }
+            }
+        }
+
+        if possible_accounts.is_empty() {
+            AccountExistsResult::NotFond
+        } else {
+            AccountExistsResult::PossibleAccounts(possible_accounts)
+        }
+    }
+
+    async fn create_book_checking_account(
+        &mut self,
+        account_entry: &AccountEntry,
+    ) -> Result<fm_core::account::Account> {
+        let account = self
+            .fm_controller
+            .lock()
+            .await
+            .create_book_checking_account(
+                account_entry
+                    .name()
+                    .clone()
+                    .unwrap_or(account_entry.iban().to_owned()),
+                None,
+                Some(account_entry.iban().to_owned()),
+                account_entry.bic().map(|s| s.to_owned()),
+            )
+            .await?;
+
+        self.cached_accounts.push(account.clone().into());
+
+        tracing::info!("Account created: {:?}", account);
+
+        Ok(account.into())
+    }
 }
 
 enum AccountExistsResult {
     NotFond,
     Found(fm_core::account::Account),
     PossibleAccounts(Vec<fm_core::account::Account>),
-}
-
-async fn account_exists(
-    account_entry: &AccountEntry,
-    accounts: &Vec<fm_core::account::Account>,
-) -> AccountExistsResult {
-    let mut possible_accounts = Vec::new();
-
-    for account in accounts {
-        if let Some(account_iban) = account.iban() {
-            if account_entry.iban() == account_iban
-                && if let Some(entry_name) = account_entry.name() {
-                    entry_name == account.name()
-                } else {
-                    true
-                }
-            {
-                return AccountExistsResult::Found(account.clone());
-            } else if account_entry.iban() == account_iban {
-                possible_accounts.push(account.clone());
-            }
-        }
-    }
-
-    if possible_accounts.is_empty() {
-        AccountExistsResult::NotFond
-    } else {
-        AccountExistsResult::PossibleAccounts(possible_accounts)
-    }
 }
 
 /// Check if the transaction already exists in the finance manager.
@@ -543,29 +582,6 @@ async fn create_transaction(
     tracing::info!("Transaction created: {:?}", transaction);
 
     Ok(transaction)
-}
-
-async fn create_book_checking_account(
-    account_entry: &AccountEntry,
-    fm_controller: Arc<Mutex<fm_core::FMController<impl FinanceManager>>>,
-) -> Result<fm_core::account::Account> {
-    let account = fm_controller
-        .lock()
-        .await
-        .create_book_checking_account(
-            account_entry
-                .name()
-                .clone()
-                .unwrap_or(account_entry.iban().to_owned()),
-            None,
-            Some(account_entry.iban().to_owned()),
-            account_entry.bic().map(|s| s.to_owned()),
-        )
-        .await?;
-
-    tracing::info!("Account created: {:?}", account);
-
-    Ok(account.into())
 }
 
 pub async fn csv_camt_v2_importer<'a, FM: FinanceManager>(
