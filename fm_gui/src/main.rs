@@ -41,6 +41,7 @@ pub enum AppMessage {
     SwitchToSettingsView,
     SwitchToFilterTransactionView,
     SwitchToBillOverview,
+    SwitchToLicense,
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
@@ -65,6 +66,7 @@ pub enum AppMessage {
 #[allow(clippy::enum_variant_names)]
 enum View {
     Empty,
+    License,
     BudgetOverview(view::budget_overview::BudgetOverview),
     CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog),
     CreateBudgetView(view::create_budget::CreateBudgetView),
@@ -106,6 +108,9 @@ impl Default for App {
 impl App {
     fn update(&mut self, message: AppMessage) -> iced::Task<AppMessage> {
         match message {
+            AppMessage::SwitchToLicense => {
+                self.current_view = View::License;
+            }
             AppMessage::BudgetOverViewMessage(m) => {
                 match message_match_action!(self, m, View::BudgetOverview) {
                     view::budget_overview::Action::None => {}
@@ -446,6 +451,9 @@ impl App {
                     include_bytes!("assets/gear-fill.svg"),
                     AppMessage::SwitchToSettingsView
                 ),
+                widget::button("License")
+                    .on_press(AppMessage::SwitchToLicense)
+                    .width(iced::Length::Fill),
             ]
             .align_x(iced::Alignment::Start)
             .spacing(10)
@@ -453,6 +461,8 @@ impl App {
             iced::widget::vertical_rule(5),
             iced::widget::container(match self.current_view {
                 View::Empty => iced::widget::text("comming soon").into(),
+                View::License =>
+                    widget::scrollable(widget::text(include_str!("../../LICENSE"))).into(),
                 View::BudgetOverview(ref view) =>
                     view.view().map(AppMessage::BudgetOverViewMessage),
                 View::CreateAssetAccountDialog(ref view) =>
