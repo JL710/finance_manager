@@ -21,6 +21,7 @@ pub struct CSVParser<'a> {
     other_name: Box<dyn Fn(&csv::StringRecord) -> Option<String>>,
     other_bic: Box<dyn Fn(&csv::StringRecord) -> Option<String>>,
     date: Box<dyn Fn(&csv::StringRecord) -> fm_core::DateTime>,
+    delimiter: u8,
 }
 
 impl<'a> CSVParser<'a> {
@@ -28,6 +29,7 @@ impl<'a> CSVParser<'a> {
     pub fn new(
         data: BufReader<&'a [u8]>,
         format_name: String,
+        delimiter: u8,
         ignore_entry: impl Fn(&csv::StringRecord) -> bool + 'static,
         title: impl Fn(&csv::StringRecord) -> String + 'static,
         value: impl Fn(&csv::StringRecord) -> fm_core::Currency + 'static,
@@ -46,6 +48,7 @@ impl<'a> CSVParser<'a> {
 
         Ok(Self {
             data,
+            delimiter,
             ignore_entry: Box::new(ignore_entry),
             title: Box::new(title),
             value: Box::new(value),
@@ -69,7 +72,7 @@ impl<'a> CSVParser<'a> {
 
         let record = if let Some(r) = csv::ReaderBuilder::new()
             .has_headers(false)
-            .delimiter(b';')
+            .delimiter(self.delimiter)
             .from_reader(raw.as_bytes())
             .records()
             .next()
@@ -163,6 +166,7 @@ pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
     CSVParser::new(
         data,
         "CSV_CAMT_V2".to_string(),
+        b';',
         |record| record.get(16).unwrap() != "Umsatz gebucht",
         |record| record.get(3).unwrap().to_string(),
         |record| {
