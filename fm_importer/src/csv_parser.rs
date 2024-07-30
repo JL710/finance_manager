@@ -3,9 +3,10 @@ use std::io::{BufRead, BufReader};
 
 enum IterOption {
     Ignored,
-    Entry(crate::TransactionEntry),
+    Entry(Box<crate::TransactionEntry>),
 }
 
+#[allow(clippy::type_complexity)]
 pub struct CSVParser<'a> {
     data: BufReader<&'a [u8]>,
     format_name: String,
@@ -23,6 +24,7 @@ pub struct CSVParser<'a> {
 }
 
 impl<'a> CSVParser<'a> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         data: BufReader<&'a [u8]>,
         format_name: String,
@@ -115,19 +117,21 @@ impl<'a> CSVParser<'a> {
             )
         };
 
-        Ok(Some(IterOption::Entry(super::TransactionEntry::new(
-            raw,
-            (self.title)(&record),
-            (self.description)(&record),
-            if value.get_eur_num() < 0.0 {
-                value.negative()
-            } else {
-                value.clone()
-            },
-            super::AccountEntry::new(source_name, source_iban, source_bic),
-            super::AccountEntry::new(destination_name, destination_iban, destination_bic),
-            (self.date)(&record),
-        )?)))
+        Ok(Some(IterOption::Entry(Box::new(
+            super::TransactionEntry::new(
+                raw,
+                (self.title)(&record),
+                (self.description)(&record),
+                if value.get_eur_num() < 0.0 {
+                    value.negative()
+                } else {
+                    value.clone()
+                },
+                super::AccountEntry::new(source_name, source_iban, source_bic),
+                super::AccountEntry::new(destination_name, destination_iban, destination_bic),
+                (self.date)(&record),
+            )?,
+        ))))
     }
 }
 
@@ -135,7 +139,7 @@ impl<'a> super::Parser for CSVParser<'a> {
     async fn next_entry(&mut self) -> Result<Option<crate::TransactionEntry>> {
         loop {
             match self.next().await? {
-                Some(IterOption::Entry(entry)) => return Ok(Some(entry)),
+                Some(IterOption::Entry(entry)) => return Ok(Some(*entry)),
                 Some(IterOption::Ignored) => continue,
                 None => return Ok(None),
             }
@@ -147,7 +151,7 @@ impl<'a> super::Parser for CSVParser<'a> {
     }
 }
 
-pub fn csv_camt_v2_parser<'a>(data: BufReader<&'a [u8]>) -> Result<CSVParser> {
+pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
     pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
         use chrono::TimeZone;
         let date = chrono::NaiveDate::parse_from_str(date, "%d.%m.%y")?
@@ -156,7 +160,7 @@ pub fn csv_camt_v2_parser<'a>(data: BufReader<&'a [u8]>) -> Result<CSVParser> {
         Ok(chrono::Utc.from_utc_datetime(&date))
     }
 
-    Ok(CSVParser::new(
+    CSVParser::new(
         data,
         "CSV_CAMT_V2".to_string(),
         |record| record.get(16).unwrap() != "Umsatz gebucht",
@@ -182,5 +186,5 @@ pub fn csv_camt_v2_parser<'a>(data: BufReader<&'a [u8]>) -> Result<CSVParser> {
         |record| Some(record.get(11).unwrap().to_string()),
         |record| Some(record.get(13).unwrap().to_string()),
         |record| parse_to_datetime(record.get(1).unwrap()).unwrap(),
-    )?)
+    )
 }

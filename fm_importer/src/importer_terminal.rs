@@ -27,11 +27,7 @@ async fn do_action(
 ) {
     let mut actions = Vec::with_capacity(3);
     actions.push(action);
-    loop {
-        let action = match actions.pop() {
-            Some(a) => a,
-            None => break,
-        };
+    while let Some(action) = actions.pop() {
         match action {
             Action::None => {}
             Action::TransactionCreated(transaction) => {
@@ -54,7 +50,7 @@ async fn do_action(
                     transaction.title(),
                     transaction.description().unwrap_or(""),
                     transaction.amount(),
-                    transaction.date().format("%d.%m.%Y").to_string(),
+                    transaction.date().format("%d.%m.%Y"),
                     format_account(&source),
                     format_account(&destination)
                 );
@@ -81,7 +77,7 @@ async fn do_action(
                             transaction.title(),
                             transaction.description().unwrap_or(""),
                             transaction.amount(),
-                            transaction.date().format("%d.%m.%Y").to_string(),
+                            transaction.date().format("%d.%m.%Y"),
                             format_account(&source),
                             format_account(&destination)
                         ))
@@ -188,12 +184,12 @@ fn format_transaction_entry(entry: &super::TransactionEntry) -> String {
         entry.description,
         entry.value,
         entry.source_entry.iban(),
-        entry.source_entry.bic().clone().unwrap_or_default(),
+        entry.source_entry.bic().unwrap_or_default(),
         entry.source_entry.name().clone().unwrap_or_default(),
         entry.destination_entry.iban(),
-        entry.destination_entry.bic().clone().unwrap_or_default(),
+        entry.destination_entry.bic().unwrap_or_default(),
         entry.destination_entry.name().clone().unwrap_or_default(),
-        entry.date.format("%d.%m.%Y").to_string()
+        entry.date.format("%d.%m.%Y")
     )
 }
 
@@ -201,8 +197,8 @@ fn format_account(account: &fm_core::account::Account) -> String {
     format!(
         "Name: {}\nDescription: {}\nIBAN: {}\nBIC: {}\n",
         account.name(),
-        account.note().clone().unwrap_or_default(),
-        account.iban().clone().unwrap_or_default(),
-        account.bic().clone().unwrap_or_default()
+        account.note().unwrap_or_default(),
+        account.iban().unwrap_or_default(),
+        account.bic().unwrap_or_default()
     )
 }
