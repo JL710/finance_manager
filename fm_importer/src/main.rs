@@ -52,7 +52,7 @@ async fn main() {
             let as_utf8 = encoding_rs::ISO_8859_15.decode(&data).0.into_owned();
             let data = std::io::BufReader::new(as_utf8.as_bytes());
             let parser = fm_importer::csv_parser::csv_camt_v2_parser(data).unwrap();
-            fm_importer::importer_terminal::run_in_terminal(
+            fm_importer::terminal_importer::run_in_terminal(
                 fm_importer::Importer::new(parser, finance_manager.clone())
                     .await
                     .unwrap(),

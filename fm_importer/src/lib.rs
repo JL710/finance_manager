@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub mod csv_parser;
-pub mod importer_terminal;
+pub mod terminal_importer;
 
 const VERSION: u8 = 1;
 const METADATA_IMPORTER_VERSION: &str = "importer-version";
