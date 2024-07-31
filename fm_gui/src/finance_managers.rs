@@ -37,17 +37,24 @@ impl Default for FinanceManagers {
 }
 
 impl fm_core::FinanceManager for FinanceManagers {
+    #[cfg(feature = "native")]
     type Flags = (
         Option<fm_server::client::Client>,
         Option<fm_core::managers::RamFinanceManager>,
         Option<fm_core::managers::SqliteFinanceManager>,
     );
+    #[cfg(not(feature = "native"))]
+    type Flags = (
+        Option<fm_server::client::Client>,
+        Option<fm_core::managers::RamFinanceManager>,
+        Option<()>,
+    );
 
     fn new(flags: Self::Flags) -> Result<Self> {
         match flags {
             (Some(client), None, None) => Ok(FinanceManagers::Server(client)),
-            #[cfg(feature = "native")]
             (None, Some(ram), None) => Ok(FinanceManagers::Ram(ram)),
+            #[cfg(feature = "native")]
             (None, None, Some(sqlite)) => Ok(FinanceManagers::Sqlite(sqlite)),
             _ => Err(anyhow::anyhow!("Invalid flags")),
         }
