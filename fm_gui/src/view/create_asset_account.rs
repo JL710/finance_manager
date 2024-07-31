@@ -15,7 +15,7 @@ pub enum Action {
 #[derive(Debug, Clone)]
 pub enum Message {
     NameInput(String),
-    NoteInput(String),
+    NoteInput(widget::text_editor::Action),
     IbanInput(String),
     BicInput(String),
     OffsetInput(String),
@@ -24,11 +24,11 @@ pub enum Message {
     Initialize(fm_core::account::AssetAccount),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct CreateAssetAccountDialog {
     id: Option<fm_core::Id>,
     name_input: String,
-    note_input: String,
+    note_input: widget::text_editor::Content,
     iban_input: String,
     bic_input: String,
     offset_input: String,
@@ -69,24 +69,25 @@ impl CreateAssetAccountDialog {
             Message::Initialize(account) => {
                 self.id = Some(account.id());
                 self.name_input = account.name().to_string();
-                self.note_input = account.note().unwrap_or_default().to_string();
+                self.note_input =
+                    widget::text_editor::Content::with_text(account.note().unwrap_or_default());
                 self.iban_input = account.iban().unwrap_or_default().to_string();
                 self.bic_input = account.bic().unwrap_or_default().to_string();
                 self.offset_input = account.offset().to_string();
             }
             Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
             Message::NameInput(input) => self.name_input = input,
-            Message::NoteInput(input) => self.note_input = input,
+            Message::NoteInput(input) => self.note_input.perform(input),
             Message::IbanInput(input) => self.iban_input = input,
             Message::BicInput(input) => self.bic_input = input,
             Message::OffsetInput(input) => self.offset_input = input,
             Message::Submit => {
                 self.submitted = true;
                 let name = self.name_input.clone();
-                let note = if self.note_input.is_empty() {
+                let note = if self.note_input.text().is_empty() {
                     None
                 } else {
-                    Some(self.note_input.clone())
+                    Some(self.note_input.text())
                 };
                 let iban = if self.iban_input.is_empty() {
                     None
@@ -123,7 +124,7 @@ impl CreateAssetAccountDialog {
         Action::None
     }
 
-    pub fn view(&self) -> iced::Element<'static, Message> {
+    pub fn view(&self) -> iced::Element<Message> {
         if self.submitted {
             return "Loading...".into();
         }
@@ -137,7 +138,7 @@ impl CreateAssetAccountDialog {
             .spacing(10),
             widget::row![
                 "Notes",
-                widget::text_input("Notes", &self.note_input).on_input(Message::NoteInput)
+                widget::text_editor(&self.note_input).on_action(Message::NoteInput)
             ]
             .spacing(10),
             widget::row![
