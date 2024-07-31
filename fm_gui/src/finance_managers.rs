@@ -315,8 +315,8 @@ impl fm_core::FinanceManager for FinanceManagers {
         amount: fm_core::Currency,
         title: String,
         description: Option<String>,
-        source: fm_core::Or<fm_core::Id, String>, // id = Existing | String = New
-        destination: fm_core::Or<fm_core::Id, String>,
+        source: fm_core::Id,
+        destination: fm_core::Id,
         budget: Option<(fm_core::Id, fm_core::Sign)>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
@@ -615,8 +615,8 @@ impl fm_core::FinanceManager for FinanceManagers {
         amount: fm_core::Currency,
         title: String,
         description: Option<String>,
-        source: fm_core::Or<fm_core::Id, String>, // id = Existing | String = New
-        destination: fm_core::Or<fm_core::Id, String>,
+        source: fm_core::Id,
+        destination: fm_core::Id,
         budget: Option<(fm_core::Id, fm_core::Sign)>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,

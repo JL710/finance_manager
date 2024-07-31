@@ -1,5 +1,5 @@
 use crate::{
-    account, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Or, Recouring, Sign,
+    account, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring, Sign,
     Timespan, Transaction,
 };
 use anyhow::Result;
@@ -258,8 +258,8 @@ impl FinanceManager for RamFinanceManager {
         amount: Currency,
         title: String,
         description: Option<String>,
-        source: Or<Id, String>,
-        destination: Or<Id, String>,
+        source: Id,
+        destination: Id,
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
@@ -267,33 +267,13 @@ impl FinanceManager for RamFinanceManager {
     ) -> Result<Transaction> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
-        let source_id = match source {
-            Or::One(id) => id,
-            Or::Two(name) => {
-                let account = self
-                    .create_book_checking_account(name, None, None, None)
-                    .await?;
-                account.id()
-            }
-        };
-
-        let destination_id = match destination {
-            Or::One(id) => id,
-            Or::Two(name) => {
-                let account = self
-                    .create_book_checking_account(name, None, None, None)
-                    .await?;
-                account.id()
-            }
-        };
-
         let new_transaction = Transaction {
             id,
             amount,
             title,
             description,
-            source: source_id,
-            destination: destination_id,
+            source,
+            destination,
             budget,
             date,
             metadata,
@@ -318,40 +298,20 @@ impl FinanceManager for RamFinanceManager {
         amount: Currency,
         title: String,
         description: Option<String>,
-        source: Or<Id, String>,
-        destination: Or<Id, String>,
+        source: Id,
+        destination: Id,
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
-        let source_id = match source {
-            Or::One(id) => id,
-            Or::Two(name) => {
-                let account = self
-                    .create_book_checking_account(name, None, None, None)
-                    .await?;
-                account.id()
-            }
-        };
-
-        let destination_id = match destination {
-            Or::One(id) => id,
-            Or::Two(name) => {
-                let account = self
-                    .create_book_checking_account(name, None, None, None)
-                    .await?;
-                account.id()
-            }
-        };
-
         let new_transaction = Transaction::new(
             id,
             amount,
             title,
             description,
-            source_id,
-            destination_id,
+            source,
+            destination,
             budget,
             date,
             metadata,

@@ -409,12 +409,6 @@ impl Bill {
 
 pub type Timespan = (Option<DateTime>, Option<DateTime>);
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Or<T, F> {
-    One(T),
-    Two(F),
-}
-
 pub fn sum_up_transactions_by_day(
     mut transactions: Vec<Transaction>,
     sign_f: impl Fn(&Transaction) -> Sign,

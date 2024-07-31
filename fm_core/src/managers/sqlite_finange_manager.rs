@@ -565,28 +565,14 @@ impl FinanceManager for SqliteFinanceManager {
         amount: Currency,
         title: String,
         description: Option<String>,
-        source: Or<Id, String>, // id = Existing | String = New
-        destination: Or<Id, String>,
+        source: Id,
+        destination: Id,
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
         let connection = self.connect()?;
-
-        let source = match source {
-            Or::One(id) => id,
-            Or::Two(name) => {
-                create_book_checking_account(&connection, name, None, None, None)?.id()
-            }
-        };
-
-        let destination = match destination {
-            Or::One(id) => id,
-            Or::Two(name) => {
-                create_book_checking_account(&connection, name, None, None, None)?.id()
-            }
-        };
 
         connection.execute(
             "
@@ -723,8 +709,8 @@ impl FinanceManager for SqliteFinanceManager {
         amount: Currency,
         title: String,
         description: Option<String>,
-        source: Or<Id, String>,
-        destination: Or<Id, String>,
+        source: Id,
+        destination: Id,
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
@@ -732,29 +718,9 @@ impl FinanceManager for SqliteFinanceManager {
     ) -> Result<Transaction> {
         let connection = self.connect()?;
 
-        let source_id = match source {
-            Or::One(id) => id,
-            Or::Two(name) => {
-                let account = self
-                    .create_book_checking_account(name, None, None, None)
-                    .await?;
-                account.id()
-            }
-        };
-
-        let destination_id = match destination {
-            Or::One(id) => id,
-            Or::Two(name) => {
-                let account = self
-                    .create_book_checking_account(name, None, None, None)
-                    .await?;
-                account.id()
-            }
-        };
-
         connection.execute(
             "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, budget_sign=?8, timestamp=?9, metadata=?10 WHERE id=?11", 
-            (amount.get_eur_num(), amount.get_currency_id(), &title, &description, source_id, destination_id, budget.map(|x| x.0), budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}), date.timestamp(), serde_json::to_string(&metadata)?, id)
+            (amount.get_eur_num(), amount.get_currency_id(), &title, &description, source, destination, budget.map(|x| x.0), budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}), date.timestamp(), serde_json::to_string(&metadata)?, id)
         )?;
 
         set_categories_for_transaction(&connection, id, &categories)?; // set categories for transaction
@@ -764,8 +730,8 @@ impl FinanceManager for SqliteFinanceManager {
             amount,
             title,
             description,
-            source_id,
-            destination_id,
+            source,
+            destination,
             budget,
             date,
             metadata,

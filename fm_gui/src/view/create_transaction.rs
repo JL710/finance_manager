@@ -447,16 +447,8 @@ impl CreateTransactionView {
         } else {
             Some(self.description_input.text())
         };
-        let source = match &self.source_input {
-            Some(SelectedAccount::Account(acc)) => fm_core::Or::One(*acc.id()),
-            Some(SelectedAccount::New(name)) => fm_core::Or::Two(name.clone()),
-            None => panic!(),
-        };
-        let destination = match &self.destination_input {
-            Some(SelectedAccount::Account(acc)) => fm_core::Or::One(*acc.id()),
-            Some(SelectedAccount::New(name)) => fm_core::Or::Two(name.clone()),
-            None => panic!(),
-        };
+        let source = self.source_input.clone().unwrap();
+        let destination = self.destination_input.clone().unwrap();
         let budget = self
             .budget_input
             .as_ref()
@@ -465,6 +457,28 @@ impl CreateTransactionView {
         let metadata = self.metadata.clone();
         let categories = self.selected_categories.clone();
         iced::Task::future(async move {
+            let source_id = match source {
+                SelectedAccount::Account(acc) => *acc.id(),
+                SelectedAccount::New(name) => finance_manager
+                    .lock()
+                    .await
+                    .create_asset_account(name, None, None, None, fm_core::Currency::Eur(0.0))
+                    .await
+                    .unwrap()
+                    .id(),
+            };
+
+            let destination_id = match destination {
+                SelectedAccount::Account(acc) => *acc.id(),
+                SelectedAccount::New(name) => finance_manager
+                    .lock()
+                    .await
+                    .create_asset_account(name, None, None, None, fm_core::Currency::Eur(0.0))
+                    .await
+                    .unwrap()
+                    .id(),
+            };
+
             match option_id {
                 Some(id) => finance_manager
                     .lock()
@@ -474,8 +488,8 @@ impl CreateTransactionView {
                         amount,
                         title,
                         description,
-                        source,
-                        destination,
+                        source_id,
+                        destination_id,
                         budget,
                         date,
                         metadata,
@@ -491,8 +505,8 @@ impl CreateTransactionView {
                         amount,
                         title,
                         description,
-                        source,
-                        destination,
+                        source_id,
+                        destination_id,
                         budget,
                         date,
                         metadata,

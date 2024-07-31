@@ -134,8 +134,8 @@ pub trait FinanceManager: Send + Clone + Sized {
         amount: Currency,
         title: String,
         description: Option<String>,
-        source: Or<Id, String>, // id = Existing | String = New
-        destination: Or<Id, String>,
+        source: Id,
+        destination: Id,
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
@@ -148,8 +148,8 @@ pub trait FinanceManager: Send + Clone + Sized {
         amount: Currency,
         title: String,
         description: Option<String>,
-        source: Or<Id, String>, // id = Existing | String = New
-        destination: Or<Id, String>,
+        source: Id,
+        destination: Id,
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,

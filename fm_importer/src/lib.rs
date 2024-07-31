@@ -525,12 +525,12 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
         let source = transaction_entry
             .source_account
             .as_ref()
-            .map(|a| fm_core::Or::One(*a.id()))
+            .map(|a| *a.id())
             .unwrap();
         let destination = transaction_entry
             .destination_account
             .as_ref()
-            .map(|a| fm_core::Or::One(*a.id()))
+            .map(|a| *a.id())
             .unwrap();
         let transaction = self
             .fm_controller
