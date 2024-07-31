@@ -80,6 +80,14 @@ impl BookCheckingAccountOverview {
                 ]
             })
             .headers(["Account".to_string(), "Sum".to_string()])
+            .sort_by(|a, b, column| {
+                match column {
+                    0 => a.0.name().cmp(&b.0.name()),
+                    1 => a.1.cmp(&b.1),
+                    _ => std::cmp::Ordering::Equal,
+                }
+            })
+            .columns_sortable([true, true])
             .into_element()
         ]
         .spacing(10)
