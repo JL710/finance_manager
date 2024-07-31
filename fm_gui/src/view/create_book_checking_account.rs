@@ -101,7 +101,7 @@ impl CreateBookCheckingAccount {
             Message::Submit => {
                 self.submitted = true;
                 let name = self.name_input.clone();
-                let note = if self.note_input.text().is_empty() {
+                let note = if self.note_input.text().trim().is_empty() {
                     None
                 } else {
                     Some(self.note_input.text())

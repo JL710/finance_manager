@@ -108,7 +108,7 @@ impl CreateBillView {
                 self.submitted = true;
                 let id_option = self.id;
                 let name = self.name_input.clone();
-                let description = if self.description_input.text().is_empty() {
+                let description = if self.description_input.text().trim().is_empty() {
                     None
                 } else {
                     Some(self.description_input.text())

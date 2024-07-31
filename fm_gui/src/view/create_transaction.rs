@@ -442,7 +442,7 @@ impl CreateTransactionView {
         let option_id = self.id;
         let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());
         let title = self.title_input.clone();
-        let description = if self.description_input.text().is_empty() {
+        let description = if self.description_input.text().trim().is_empty() {
             None
         } else {
             Some(self.description_input.text())
