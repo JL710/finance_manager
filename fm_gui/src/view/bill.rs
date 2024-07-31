@@ -129,6 +129,29 @@ impl Bill {
                         widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
                     ])
                     .headers(["Negative", "Title", "Description", "Amount", "Date"])
+                    .sort_by(|a, b, column| {
+                        match column {
+                            0 => match (a.1, b.1) {
+                                (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
+                                    std::cmp::Ordering::Greater
+                                }
+                                (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
+                                    std::cmp::Ordering::Less
+                                }
+                                _ => std::cmp::Ordering::Equal,
+                            },
+                            1 => a.0.title().cmp(b.0.title()),
+                            2 => {
+                                a.0.description()
+                                    .unwrap_or("")
+                                    .cmp(b.0.description().unwrap_or(""))
+                            }
+                            3 => a.0.amount().cmp(&b.0.amount()),
+                            4 => a.0.date().cmp(b.0.date()),
+                            _ => std::cmp::Ordering::Equal,
+                        }
+                    })
+                    .columns_sortable([true, true, true, true, true])
                     .into_element()
                 )
             ]
