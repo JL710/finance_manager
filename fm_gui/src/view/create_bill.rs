@@ -257,6 +257,24 @@ impl CreateBillView {
                     ]
                 })
                 .headers(["", "", "Title", "Amount", "Date",])
+                .sort_by(|a, b, column| match column {
+                    0 => {
+                        match (a.1, b.1) {
+                            (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
+                                std::cmp::Ordering::Less
+                            }
+                            (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
+                                std::cmp::Ordering::Greater
+                            }
+                            _ => std::cmp::Ordering::Equal,
+                        }
+                    }
+                    2 => a.0.title().cmp(b.0.title()),
+                    3 => a.0.amount().cmp(&b.0.amount()),
+                    4 => a.0.date().cmp(b.0.date()),
+                    _ => panic!(),
+                })
+                .columns_sortable([true, false, true, true, true])
                 .alignment(|_, _, _| (
                     iced::alignment::Horizontal::Left,
                     iced::alignment::Vertical::Center
