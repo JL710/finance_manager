@@ -1,6 +1,8 @@
 use super::super::utils;
 use fm_core;
 
+use iced::widget;
+
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -13,7 +15,7 @@ pub enum Action {
 #[derive(Debug, Clone)]
 pub enum Message {
     NameInput(String),
-    NoteInput(String),
+    NoteInput(widget::text_editor::Action),
     IbanInput(String),
     BicInput(String),
     Submit,
@@ -21,11 +23,11 @@ pub enum Message {
     AccountCreated(fm_core::Id),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct CreateBookCheckingAccount {
     id: Option<fm_core::Id>,
     name_input: String,
-    note_input: String,
+    note_input: widget::text_editor::Content,
     iban_input: String,
     bic_input: String,
     submitted: bool,
@@ -38,7 +40,9 @@ impl CreateBookCheckingAccount {
             name_input: account.name().to_string(),
             note_input: account
                 .note()
-                .map_or(String::new(), |note| note.to_string()),
+                .map_or(widget::text_editor::Content::default(), |note| {
+                    widget::text_editor::Content::with_text(note)
+                }),
             iban_input: account
                 .iban()
                 .map_or(String::new(), |iban| iban.to_string()),
@@ -82,23 +86,25 @@ impl CreateBookCheckingAccount {
                 self.name_input = account.name().to_string();
                 self.note_input = account
                     .note()
-                    .map_or(String::new(), |note| note.to_string());
+                    .map_or(widget::text_editor::Content::default(), |note| {
+                        widget::text_editor::Content::with_text(note)
+                    });
                 self.iban_input = account
                     .iban()
                     .map_or(String::new(), |iban| iban.to_string());
                 self.bic_input = account.bic().map_or(String::new(), |bic| bic.to_string());
             }
             Message::NameInput(input) => self.name_input = input,
-            Message::NoteInput(input) => self.note_input = input,
+            Message::NoteInput(action) => self.note_input.perform(action),
             Message::IbanInput(input) => self.iban_input = input,
             Message::BicInput(input) => self.bic_input = input,
             Message::Submit => {
                 self.submitted = true;
                 let name = self.name_input.clone();
-                let note = if self.note_input.is_empty() {
+                let note = if self.note_input.text().is_empty() {
                     None
                 } else {
-                    Some(self.note_input.clone())
+                    Some(self.note_input.text())
                 };
                 let iban = if self.iban_input.is_empty() {
                     None
@@ -134,34 +140,34 @@ impl CreateBookCheckingAccount {
         Action::None
     }
 
-    pub fn view(&self) -> iced::Element<'static, Message> {
+    pub fn view(&self) -> iced::Element<Message> {
         if self.submitted {
             return "Loading...".into();
         }
 
-        iced::widget::column![
+        widget::column![
             utils::heading("Create Book Checking Account", utils::HeadingLevel::H1),
-            iced::widget::row![
-                iced::widget::text("Name"),
-                iced::widget::text_input("Name", &self.name_input).on_input(Message::NameInput)
+            widget::row![
+                widget::text("Name"),
+                widget::text_input("Name", &self.name_input).on_input(Message::NameInput)
             ]
             .spacing(10),
-            iced::widget::row![
-                iced::widget::text("Notes"),
-                iced::widget::text_input("Notes", &self.note_input).on_input(Message::NoteInput)
+            widget::row![
+                widget::text("Notes"),
+                widget::text_editor(&self.note_input).on_action(Message::NoteInput)
             ]
             .spacing(10),
-            iced::widget::row![
-                iced::widget::text("IBAN"),
-                iced::widget::text_input("IBAN", &self.iban_input).on_input(Message::IbanInput)
+            widget::row![
+                widget::text("IBAN"),
+                widget::text_input("IBAN", &self.iban_input).on_input(Message::IbanInput)
             ]
             .spacing(10),
-            iced::widget::row![
-                iced::widget::text("BIC"),
-                iced::widget::text_input("BIC", &self.bic_input).on_input(Message::BicInput)
+            widget::row![
+                widget::text("BIC"),
+                widget::text_input("BIC", &self.bic_input).on_input(Message::BicInput)
             ]
             .spacing(10),
-            iced::widget::button("Submit").on_press_maybe(if self.can_submit() {
+            widget::button("Submit").on_press_maybe(if self.can_submit() {
                 Some(Message::Submit)
             } else {
                 None
