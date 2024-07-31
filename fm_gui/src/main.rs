@@ -3,6 +3,7 @@ mod utils;
 mod view;
 
 use async_std::sync::Mutex;
+use clap::Parser;
 use iced::widget;
 use std::sync::Arc;
 
@@ -25,7 +26,10 @@ macro_rules! message_match_action {
     ($app:expr, $m:expr, $v:path) => {
         match $app.current_view {
             $v(ref mut view) => view.update($m, $app.finance_manager.clone()),
-            _ => panic!(),
+            _ => {
+                tracing::debug!("message not handled");
+                return iced::Task::none();
+            }
         }
     };
 }
@@ -603,7 +607,39 @@ impl App {
     }
 }
 
+#[derive(Parser)]
+#[command(version, about, long_about=None)]
+struct Args {
+    /// Verbose mode
+    #[clap(short, long, default_value = "false")]
+    verbose: bool,
+    /// Debug mode
+    #[clap(short, long, default_value = "false")]
+    debug: bool,
+}
+
 fn main() {
+    let args = Args::parse();
+
+    // tracing / logging
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
+    if args.verbose || args.debug {
+        let stdout_log = tracing_subscriber::fmt::layer().compact();
+        tracing_subscriber::registry()
+            .with(stdout_log.with_filter(
+                tracing_subscriber::filter::Targets::default().with_target(
+                    "fm_gui",
+                    if args.debug {
+                        tracing::Level::DEBUG
+                    } else {
+                        tracing::Level::INFO
+                    },
+                ),
+            ))
+            .init();
+    }
+
+    // run the gui
     iced::application("Finance Manager", App::update, App::view)
         .theme(|_| iced::Theme::Nord)
         .run()
