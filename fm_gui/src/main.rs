@@ -305,6 +305,12 @@ impl App {
                         return self.switch_view_account(id);
                     }
                     view::book_checking_account_overview::Action::None => {}
+                    view::book_checking_account_overview::Action::CreateNewAccount => {
+                        self.current_view = View::CreateBookCheckingAccount(
+                            view::create_book_checking_account::CreateBookCheckingAccount::default(
+                            ),
+                        );
+                    }
                 }
             }
             AppMessage::SwitchToBookCheckingAccountOverview => {

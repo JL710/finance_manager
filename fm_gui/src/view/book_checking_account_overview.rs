@@ -7,12 +7,14 @@ use std::sync::Arc;
 pub enum Action {
     None,
     ViewAccount(fm_core::Id),
+    CreateNewAccount,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewAccount(fm_core::Id),
     Initialize(Vec<(fm_core::account::BookCheckingAccount, fm_core::Currency)>),
+    New,
 }
 
 #[derive(Debug, Clone)]
@@ -65,12 +67,14 @@ impl BookCheckingAccountOverview {
                 self.accounts = accounts;
                 Action::None
             }
+            Message::New => Action::CreateNewAccount,
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         iced::widget::column![
             utils::heading("Book Checking Account Overview", utils::HeadingLevel::H1),
+            widget::button("Create new account").on_press(Message::New),
             utils::TableView::new(self.accounts.clone(), |(account, sum)| {
                 [
                     utils::link(widget::text(account.name().to_string()))
@@ -82,7 +86,7 @@ impl BookCheckingAccountOverview {
             .headers(["Account".to_string(), "Sum".to_string()])
             .sort_by(|a, b, column| {
                 match column {
-                    0 => a.0.name().cmp(&b.0.name()),
+                    0 => b.0.name().cmp(&a.0.name()),
                     1 => a.1.cmp(&b.1),
                     _ => std::cmp::Ordering::Equal,
                 }
