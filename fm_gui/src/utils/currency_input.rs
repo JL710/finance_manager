@@ -38,7 +38,7 @@ impl<Message: Clone> iced::widget::Component<Message> for CurrencyInput<Message>
             Event::InputChanged(input) => {
                 state.input = Some(input);
                 if let Some(x) = super::parse_number(state.input.as_ref().unwrap()) {
-                    return Some((self.produce_message)(Some(fm_core::Currency::Eur(x))));
+                    return Some((self.produce_message)(Some(fm_core::Currency::from(x))));
                 }
                 Some((self.produce_message)(None))
             }

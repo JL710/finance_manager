@@ -182,14 +182,13 @@ pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
             if record.get(15).unwrap() != "EUR" {
                 panic!("Currency is not EUR");
             }
-            fm_core::Currency::Eur(
-                record
-                    .get(14)
-                    .unwrap()
-                    .replace(',', ".")
-                    .parse::<f64>()
-                    .unwrap(),
-            )
+            record
+                .get(14)
+                .unwrap()
+                .replace(',', ".")
+                .parse::<f64>()
+                .unwrap()
+                .into()
         },
         |record| format!("{}\n{}", record.get(4).unwrap(), record.get(11).unwrap()),
         |record| record.get(0).unwrap().to_string(),

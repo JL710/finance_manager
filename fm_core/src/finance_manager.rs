@@ -43,11 +43,30 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     /// Only get the sum of the transactions for the account at the given date.
     /// Do not include any AssetAccount.offset or similar!
+    /// This should almost never be overwritten!
     fn get_account_sum(
         &self,
         account: &account::Account,
         date: DateTime,
-    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend;
+    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
+        let transactions_future =
+            self.get_transactions_of_account(*account.id(), (None, Some(date)));
+
+        async move {
+            let transactions = transactions_future.await?;
+
+            let mut sum = Currency::default();
+            for transaction in transactions {
+                if transaction.source == *account.id() {
+                    sum -= transaction.amount();
+                } else if transaction.destination == *account.id() {
+                    sum += transaction.amount();
+                } else {
+                }
+            }
+            Ok(sum)
+        }
+    }
 
     fn create_bill(
         &mut self,
@@ -80,7 +99,7 @@ pub trait FinanceManager: Send + Clone + Sized {
             .collect::<Vec<_>>();
 
         async move {
-            let mut sum = Currency::Eur(0.0);
+            let mut sum = Currency::default();
             for (transaction_future, sign) in transactions {
                 let transaction = transaction_future.await?.unwrap();
                 match sign {
@@ -219,7 +238,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         let transactions_future = self.get_budget_transactions(budget, offset);
         async {
             let transactions = transactions_future.await?;
-            let mut sum = Currency::Eur(0.0);
+            let mut sum = Currency::default();
             for transaction in transactions {
                 let sign = transaction.budget().unwrap().1;
                 match sign {

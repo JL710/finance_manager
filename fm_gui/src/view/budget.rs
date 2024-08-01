@@ -192,7 +192,7 @@ impl Budget {
             .get_budget_transactions(&budget, offset)
             .await
             .unwrap();
-        let mut current_value = fm_core::Currency::Eur(0.0);
+        let mut current_value = fm_core::Currency::default();
         for transaction in &transactions {
             current_value += transaction.amount();
         }

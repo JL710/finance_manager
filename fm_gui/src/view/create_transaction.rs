@@ -440,7 +440,7 @@ impl CreateTransactionView {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> iced::Task<fm_core::Transaction> {
         let option_id = self.id;
-        let amount = fm_core::Currency::Eur(self.amount_input.parse::<f64>().unwrap());
+        let amount = fm_core::Currency::from(self.amount_input.parse::<f64>().unwrap());
         let title = self.title_input.clone();
         let description = if self.description_input.text().trim().is_empty() {
             None
@@ -462,7 +462,7 @@ impl CreateTransactionView {
                 SelectedAccount::New(name) => finance_manager
                     .lock()
                     .await
-                    .create_asset_account(name, None, None, None, fm_core::Currency::Eur(0.0))
+                    .create_asset_account(name, None, None, None, fm_core::Currency::default())
                     .await
                     .unwrap()
                     .id(),
@@ -473,7 +473,7 @@ impl CreateTransactionView {
                 SelectedAccount::New(name) => finance_manager
                     .lock()
                     .await
-                    .create_asset_account(name, None, None, None, fm_core::Currency::Eur(0.0))
+                    .create_asset_account(name, None, None, None, fm_core::Currency::default())
                     .await
                     .unwrap()
                     .id(),

@@ -91,26 +91,6 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_account)
     }
 
-    async fn get_account_sum(
-        &self,
-        account: &account::Account,
-        date: DateTime,
-    ) -> Result<Currency> {
-        // sum up all transactions from start to end date
-        let transactions = self
-            .get_transactions_of_account(*account.id(), (None, Some(date)))
-            .await?;
-        let mut total = Currency::Eur(0.0);
-        for transaction in transactions {
-            if *transaction.source() == *account.id() {
-                total -= transaction.amount;
-            } else {
-                total += transaction.amount;
-            }
-        }
-        Ok(total)
-    }
-
     async fn create_bill(
         &mut self,
         name: String,

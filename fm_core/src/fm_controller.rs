@@ -41,7 +41,7 @@ where
             .collect::<Vec<_>>();
 
         async move {
-            let mut sum = Currency::Eur(0.0);
+            let mut sum = Currency::default();
             for (transaction_future, sign) in transactions {
                 let transaction = transaction_future.await?.unwrap();
                 match sign {
@@ -377,7 +377,7 @@ where
         let transactions_future = self.get_budget_transactions(budget, offset);
         async {
             let transactions = transactions_future.await?;
-            let mut sum = Currency::Eur(0.0);
+            let mut sum = Currency::default();
             for transaction in transactions {
                 let sign = transaction.budget().unwrap().1;
                 match sign {

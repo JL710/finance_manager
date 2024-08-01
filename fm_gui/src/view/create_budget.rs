@@ -170,7 +170,7 @@ impl CreateBudgetView {
                                 } else {
                                     Some(description_input)
                                 },
-                                fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                fm_core::Currency::from(value_input.parse::<f64>().unwrap()),
                                 recouring_inputs.into(),
                             )
                             .await
@@ -185,7 +185,7 @@ impl CreateBudgetView {
                                 } else {
                                     Some(description_input)
                                 },
-                                fm_core::Currency::Eur(value_input.parse::<f64>().unwrap()),
+                                fm_core::Currency::from(value_input.parse::<f64>().unwrap()),
                                 recouring_inputs.into(),
                             )
                             .await

@@ -12,6 +12,9 @@ mod account_id;
 pub use account_id::AccountId;
 pub use iban_validate;
 
+mod currency;
+pub use currency::Currency;
+
 pub mod account;
 
 pub mod managers;
@@ -31,118 +34,6 @@ impl<T> MaybeSend for T {}
 
 pub type DateTime = chrono::DateTime<chrono::Utc>;
 pub type Id = u64;
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
-pub enum Currency {
-    Eur(f64),
-}
-
-impl Currency {
-    pub fn to_num_string(&self) -> String {
-        match self {
-            Currency::Eur(num) => num.to_string(),
-        }
-    }
-
-    pub fn get_eur_num(&self) -> f64 {
-        match self {
-            Currency::Eur(x) => *x,
-        }
-    }
-
-    pub fn get_currency_id(&self) -> i32 {
-        match self {
-            Currency::Eur(_) => 1,
-        }
-    }
-
-    pub fn from_currency_id(id: i32, amount: f64) -> Result<Self> {
-        match id {
-            1 => Ok(Currency::Eur(amount)),
-            _ => anyhow::bail!("not a valid currency id"),
-        }
-    }
-
-    pub fn negative(&self) -> Self {
-        match self {
-            Currency::Eur(x) => Currency::Eur(-*x),
-        }
-    }
-}
-
-impl PartialOrd for Currency {
-    fn ge(&self, other: &Self) -> bool {
-        self.get_eur_num() >= other.get_eur_num()
-    }
-
-    fn gt(&self, other: &Self) -> bool {
-        self.get_eur_num() > other.get_eur_num()
-    }
-
-    fn le(&self, other: &Self) -> bool {
-        self.get_eur_num() <= other.get_eur_num()
-    }
-
-    fn lt(&self, other: &Self) -> bool {
-        self.get_eur_num() < other.get_eur_num()
-    }
-
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Eq for Currency {}
-
-impl Ord for Currency {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.get_eur_num().total_cmp(&other.get_eur_num())
-    }
-}
-
-impl std::fmt::Display for Currency {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Currency::Eur(value) => write!(f, "{}€", value),
-        }
-    }
-}
-
-impl std::ops::Add for Currency {
-    type Output = Currency;
-
-    fn add(self, other: Currency) -> Self::Output {
-        match self {
-            Currency::Eur(value) => match other {
-                Currency::Eur(other_value) => Currency::Eur(value + other_value),
-            },
-        }
-    }
-}
-
-impl std::ops::Sub for Currency {
-    type Output = Currency;
-
-    fn sub(self, other: Currency) -> Self::Output {
-        match self {
-            Currency::Eur(value) => match other {
-                Currency::Eur(other_value) => Currency::Eur(value - other_value),
-            },
-        }
-    }
-}
-
-impl std::ops::AddAssign for Currency {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = self.clone() + rhs;
-    }
-}
-
-impl std::ops::SubAssign for Currency {
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = self.clone() - rhs;
-    }
-}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Budget {
@@ -538,7 +429,7 @@ mod tests {
                 0,
                 "Test".to_string(),
                 None,
-                Currency::Eur(0.0),
+                Currency::default(),
                 Recouring::DayInMonth(1),
             ),
             0,
@@ -564,7 +455,7 @@ mod tests {
                 0,
                 "Test".to_string(),
                 None,
-                Currency::Eur(0.0),
+                Currency::default(),
                 Recouring::DayInMonth(1),
             ),
             2,
@@ -590,7 +481,7 @@ mod tests {
                 0,
                 "Test".to_string(),
                 None,
-                Currency::Eur(0.0),
+                Currency::default(),
                 Recouring::DayInMonth(1),
             ),
             -2,

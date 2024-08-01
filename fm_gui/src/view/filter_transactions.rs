@@ -135,7 +135,7 @@ impl FilterTransactionView {
                     "{}",
                     self.sums
                         .last()
-                        .map_or(fm_core::Currency::Eur(0.0), |x| x.1.clone())
+                        .map_or(fm_core::Currency::default(), |x| x.1.clone())
                 )
             ],
             iced::widget::button(iced::widget::text("Edit Filter"))

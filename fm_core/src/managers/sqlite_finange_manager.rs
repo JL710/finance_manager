@@ -2,6 +2,7 @@ use crate::account::AssetAccount;
 
 use crate::*;
 use anyhow::{Context, Result};
+use bigdecimal::{BigDecimal, FromPrimitive};
 use rusqlite::OptionalExtension;
 
 type TransactionSignature = (
@@ -26,7 +27,7 @@ impl TryInto<Transaction> for TransactionSignature {
     fn try_into(self) -> Result<Transaction> {
         Ok(Transaction::new(
             self.0,
-            Currency::from_currency_id(self.2, self.1)?,
+            Currency::from_currency_id(self.2, BigDecimal::from_f64(self.1).unwrap())?,
             self.3,
             self.4,
             self.5,
@@ -86,7 +87,7 @@ impl TryInto<Budget> for BudgetSignature {
             self.0,
             self.1,
             self.2,
-            Currency::from_currency_id(self.4, self.3)?,
+            Currency::from_currency_id(self.4, BigDecimal::from_f64(self.3).unwrap())?,
             Recouring::try_from((self.5, self.6, self.7))?,
         ))
     }
@@ -102,7 +103,7 @@ impl TryInto<Bill> for BillSignature {
             self.0,
             self.1,
             self.2,
-            Currency::from_currency_id(self.4, self.3)?,
+            Currency::from_currency_id(self.4, BigDecimal::from_f64(self.3).unwrap())?,
             Vec::new(),
             None,
         ))
@@ -252,41 +253,6 @@ impl FinanceManager for SqliteFinanceManager {
         ))
     }
 
-    async fn get_account_sum(
-        &self,
-        account: &account::Account,
-        date: DateTime,
-    ) -> Result<Currency> {
-        let connection = self.connect()?;
-
-        let mut sum = Currency::Eur(0.0);
-
-        // get negative number
-        let negative_result: Vec<std::result::Result<(f64, i32), rusqlite::Error>> = connection
-            .prepare(
-                "SELECT SUM(amount_value), currency FROM transactions WHERE source_id=?1 AND timestamp < ?2 GROUP BY currency",
-            )?
-            .query_map((account.id(), date.timestamp()), |row| (Ok((row.get(0)?, row.get(1)?))))?
-            .collect();
-        for result in negative_result {
-            let result = result?;
-            sum -= Currency::from_currency_id(result.1, result.0)?;
-        }
-        // get positive number
-        let positive_result: Vec<std::result::Result<(f64, i32), rusqlite::Error>> = connection
-            .prepare(
-                "SELECT SUM(amount_value), currency FROM transactions WHERE destination_id=?1 AND timestamp < ?2 GROUP BY currency",
-            )?
-            .query_map((account.id(), date.timestamp()), |row| (Ok((row.get(0)?, row.get(1)?))))?
-            .collect();
-        for result in positive_result {
-            let result = result?;
-            sum += Currency::from_currency_id(result.1, result.0)?;
-        }
-
-        Ok(sum)
-    }
-
     async fn create_bill(
         &mut self,
         name: String,
@@ -410,7 +376,10 @@ impl FinanceManager for SqliteFinanceManager {
             bill_result.0,
             bill_result.1,
             bill_result.2,
-            Currency::from_currency_id(bill_result.4, bill_result.3)?,
+            Currency::from_currency_id(
+                bill_result.4,
+                BigDecimal::from_f64(bill_result.3).unwrap(),
+            )?,
             transactions,
             None,
         )))
@@ -1118,7 +1087,10 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
                 None
             },
             asset_account_result.3,
-            Currency::from_currency_id(asset_account_result.5, asset_account_result.4)?,
+            Currency::from_currency_id(
+                asset_account_result.5,
+                BigDecimal::from_f64(asset_account_result.4).unwrap(),
+            )?,
         )
         .into())
     } else if let Some(id) = account_result.1 {
