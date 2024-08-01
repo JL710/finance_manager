@@ -80,7 +80,7 @@ impl BookCheckingAccountOverview {
                     utils::link(widget::text(account.name().to_string()))
                         .on_press(Message::ViewAccount(account.id()))
                         .into(),
-                    widget::text!("{}", sum).into(),
+                    utils::colored_currency_display(&sum).into(),
                 ]
             })
             .headers(["Account".to_string(), "Sum".to_string()])
