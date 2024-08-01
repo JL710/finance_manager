@@ -8,6 +8,10 @@ pub use finance_manager::FinanceManager;
 mod fm_controller;
 pub use fm_controller::FMController;
 
+mod account_id;
+pub use account_id::AccountId;
+pub use iban_validate;
+
 pub mod account;
 
 pub mod managers;

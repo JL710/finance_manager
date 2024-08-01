@@ -127,14 +127,14 @@ where
         &mut self,
         name: String,
         note: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend + '_ {
         self.finance_manager.create_asset_account(
             name,
             note,
-            make_iban_bic_unified(iban),
+            iban,
             make_iban_bic_unified(bic),
             offset,
         )
@@ -145,7 +145,7 @@ where
         id: Id,
         name: String,
         note: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend + '_ {
@@ -153,7 +153,7 @@ where
             id,
             name,
             note,
-            make_iban_bic_unified(iban),
+            iban,
             make_iban_bic_unified(bic),
             offset,
         )
@@ -267,13 +267,13 @@ where
         &mut self,
         name: String,
         notes: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
     ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend + '_ {
         self.finance_manager.create_book_checking_account(
             name,
             notes,
-            make_iban_bic_unified(iban),
+            iban,
             make_iban_bic_unified(bic),
         )
     }
@@ -283,14 +283,14 @@ where
         id: Id,
         name: String,
         note: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
     ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend + '_ {
         self.finance_manager.update_book_checking_account(
             id,
             name,
             note,
-            make_iban_bic_unified(iban),
+            iban,
             make_iban_bic_unified(bic),
         )
     }
@@ -474,5 +474,5 @@ where
 }
 
 fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
-    content.map(|content| content.to_uppercase().replace(' ', ""))
+    content.map(|content| content.to_uppercase().replace(' ', "").trim().to_string())
 }

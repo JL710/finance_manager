@@ -20,12 +20,12 @@ const METADATA_IMPORT_FORMAT: &str = "importer-import-format";
 #[derive(Debug, Clone, PartialEq)]
 pub struct AccountEntry {
     name: Option<String>,
-    iban: String,
+    iban: fm_core::AccountId,
     bic: Option<String>,
 }
 
 impl AccountEntry {
-    pub fn new(name: Option<String>, iban: String, bic: Option<String>) -> Self {
+    pub fn new(name: Option<String>, iban: fm_core::AccountId, bic: Option<String>) -> Self {
         Self { name, iban, bic }
     }
 
@@ -33,7 +33,7 @@ impl AccountEntry {
         &self.name
     }
 
-    pub fn iban(&self) -> &str {
+    pub fn iban(&self) -> &fm_core::AccountId {
         &self.iban
     }
 
@@ -416,7 +416,7 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
                 account_entry
                     .name()
                     .clone()
-                    .unwrap_or(account_entry.iban().to_owned()),
+                    .unwrap_or(account_entry.iban().to_string()),
                 None,
                 Some(account_entry.iban().to_owned()),
                 account_entry.bic().map(|s| s.to_owned()),

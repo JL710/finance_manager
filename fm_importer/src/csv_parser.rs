@@ -135,8 +135,12 @@ impl<'a> CSVParser<'a> {
                 } else {
                     value.clone()
                 },
-                super::AccountEntry::new(source_name, source_iban, source_bic),
-                super::AccountEntry::new(destination_name, destination_iban, destination_bic),
+                super::AccountEntry::new(source_name, source_iban.parse()?, source_bic),
+                super::AccountEntry::new(
+                    destination_name,
+                    destination_iban.parse()?,
+                    destination_bic,
+                ),
                 (self.date)(&record),
             )?,
         ))))

@@ -198,7 +198,10 @@ fn format_account(account: &fm_core::account::Account) -> String {
         "Name: {}\nDescription: {}\nIBAN: {}\nBIC: {}\n",
         account.name(),
         account.note().unwrap_or_default(),
-        account.iban().unwrap_or_default(),
+        account
+            .iban()
+            .clone()
+            .map_or(String::new(), |x| x.to_string()),
         account.bic().unwrap_or_default()
     )
 }

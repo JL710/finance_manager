@@ -1,6 +1,6 @@
 use crate::{
-    account, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring, Sign,
-    Timespan, Transaction,
+    account, AccountId, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring,
+    Sign, Timespan, Transaction,
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -26,7 +26,7 @@ impl FinanceManager for RamFinanceManager {
         id: Id,
         name: String,
         note: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
@@ -40,7 +40,7 @@ impl FinanceManager for RamFinanceManager {
         &mut self,
         name: String,
         note: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
@@ -61,7 +61,7 @@ impl FinanceManager for RamFinanceManager {
         &mut self,
         name: String,
         notes: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
     ) -> Result<account::BookCheckingAccount> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
@@ -82,7 +82,7 @@ impl FinanceManager for RamFinanceManager {
         id: Id,
         name: String,
         notes: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
     ) -> Result<account::BookCheckingAccount> {
         let account = self.accounts.get_mut(&id).unwrap();

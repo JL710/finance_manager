@@ -71,7 +71,10 @@ impl CreateAssetAccountDialog {
                 self.name_input = account.name().to_string();
                 self.note_input =
                     widget::text_editor::Content::with_text(account.note().unwrap_or_default());
-                self.iban_input = account.iban().unwrap_or_default().to_string();
+                self.iban_input = account
+                    .iban()
+                    .clone()
+                    .map_or(String::new(), |iban| iban.to_string());
                 self.bic_input = account.bic().unwrap_or_default().to_string();
                 self.offset_input = account.offset().to_string();
             }
@@ -92,7 +95,7 @@ impl CreateAssetAccountDialog {
                 let iban = if self.iban_input.is_empty() {
                     None
                 } else {
-                    Some(self.iban_input.clone())
+                    Some(self.iban_input.parse().unwrap())
                 };
                 let bic = if self.bic_input.is_empty() {
                     None

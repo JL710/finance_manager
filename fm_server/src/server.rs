@@ -133,7 +133,7 @@ async fn create_asset_account(
     axum::extract::Json(account_data): axum::extract::Json<(
         String,
         Option<String>,
-        Option<String>,
+        Option<fm_core::AccountId>,
         Option<String>,
         fm_core::Currency,
     )>,
@@ -252,7 +252,7 @@ async fn create_book_checking_account(
     axum::extract::Json(data): axum::extract::Json<(
         String,
         Option<String>,
-        Option<String>,
+        Option<fm_core::AccountId>,
         Option<String>,
     )>,
 ) -> Json<Value> {
@@ -287,7 +287,7 @@ async fn update_asset_account(
         fm_core::Id,
         String,
         Option<String>,
-        Option<String>,
+        Option<fm_core::AccountId>,
         Option<String>,
         fm_core::Currency,
     )>,
@@ -481,7 +481,7 @@ async fn update_book_checking_account(
         fm_core::Id,
         String,
         Option<String>,
-        Option<String>,
+        Option<fm_core::AccountId>,
         Option<String>,
     )>,
 ) -> Json<Value> {

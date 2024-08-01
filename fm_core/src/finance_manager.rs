@@ -9,7 +9,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         &mut self,
         name: String,
         note: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend;
@@ -19,7 +19,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         id: Id,
         name: String,
         note: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
     ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend;
@@ -28,7 +28,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         &mut self,
         name: String,
         notes: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
     ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
@@ -37,7 +37,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         id: Id,
         name: String,
         note: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
     ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 

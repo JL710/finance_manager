@@ -45,6 +45,7 @@ impl CreateBookCheckingAccount {
                 }),
             iban_input: account
                 .iban()
+                .clone()
                 .map_or(String::new(), |iban| iban.to_string()),
             bic_input: account.bic().map_or(String::new(), |bic| bic.to_string()),
             submitted: false,
@@ -91,6 +92,7 @@ impl CreateBookCheckingAccount {
                     });
                 self.iban_input = account
                     .iban()
+                    .clone()
                     .map_or(String::new(), |iban| iban.to_string());
                 self.bic_input = account.bic().map_or(String::new(), |bic| bic.to_string());
             }
@@ -109,7 +111,7 @@ impl CreateBookCheckingAccount {
                 let iban = if self.iban_input.is_empty() {
                     None
                 } else {
-                    Some(self.iban_input.clone())
+                    Some(self.iban_input.parse().unwrap())
                 };
                 let bic = if self.bic_input.is_empty() {
                     None

@@ -19,6 +19,9 @@ futures = "0.3.30"
 rusqlite = { version = "0.31.0", features = ["bundled"], optional = true }
 anyhow = { version = "1.0.82" }
 serde_json = { version = "1.0.116", optional = true }
+iban_validate = { package = "iban_validate", version = "4.0.1", features = [
+    "serde",
+] }
 
 [dev-dependencies]
 async-std = { version = "1.12.0", features = ["attributes"] }

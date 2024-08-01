@@ -1,6 +1,6 @@
 use crate::Currency;
 
-use super::Id;
+use super::{AccountId, Id};
 use anyhow::Result;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -8,7 +8,7 @@ pub struct AssetAccount {
     id: Id,
     name: String,
     notes: Option<String>,
-    iban: Option<String>,
+    iban: Option<AccountId>,
     bic: Option<String>,
     offset: super::Currency,
 }
@@ -26,13 +26,10 @@ impl AssetAccount {
         id: Id,
         name: String,
         notes: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
     ) -> Self {
-        if let Some(iban) = &iban {
-            valid_iban_bic(iban).unwrap();
-        }
         if let Some(bic) = &bic {
             valid_iban_bic(bic).unwrap();
         }
@@ -61,11 +58,8 @@ impl AssetAccount {
         }
     }
 
-    pub fn iban(&self) -> Option<&str> {
-        match &self.iban {
-            Some(content) => Some(content),
-            None => None,
-        }
+    pub fn iban(&self) -> &Option<AccountId> {
+        &self.iban
     }
 
     pub fn bic(&self) -> Option<&str> {
@@ -91,7 +85,7 @@ pub struct BookCheckingAccount {
     id: Id,
     name: String,
     notes: Option<String>,
-    iban: Option<String>,
+    iban: Option<AccountId>,
     bic: Option<String>,
 }
 
@@ -112,12 +106,9 @@ impl BookCheckingAccount {
         id: Id,
         name: String,
         notes: Option<String>,
-        iban: Option<String>,
+        iban: Option<AccountId>,
         bic: Option<String>,
     ) -> Self {
-        if let Some(value) = &iban {
-            valid_iban_bic(value).unwrap();
-        }
         if let Some(value) = &bic {
             valid_iban_bic(value).unwrap();
         }
@@ -145,11 +136,8 @@ impl BookCheckingAccount {
         }
     }
 
-    pub fn iban(&self) -> Option<&str> {
-        match &self.iban {
-            Some(content) => Some(content),
-            None => None,
-        }
+    pub fn iban(&self) -> &Option<AccountId> {
+        &self.iban
     }
 
     pub fn bic(&self) -> Option<&str> {
@@ -188,7 +176,7 @@ impl Account {
         }
     }
 
-    pub fn iban(&self) -> Option<&str> {
+    pub fn iban(&self) -> &Option<AccountId> {
         match self {
             Account::AssetAccount(acc) => acc.iban(),
             Account::BookCheckingAccount(acc) => acc.iban(),

@@ -198,7 +198,13 @@ fn asset_account_view<'a>(
             widget::column![
                 widget::text!("Account: {}", account.name()),
                 widget::text!("Notes: {}", account.note().unwrap_or("")),
-                widget::text!("IBAN: {}", account.iban().unwrap_or("")),
+                widget::text!(
+                    "IBAN: {}",
+                    account
+                        .iban()
+                        .clone()
+                        .map_or(String::new(), |iban| iban.to_string())
+                ),
                 widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
                 widget::text!("Offset: {}", account.offset()),
                 widget::row![
@@ -236,7 +242,13 @@ fn book_checking_account_view<'a>(
             widget::column![
                 widget::text!("Account: {}", account.name()),
                 widget::text!("Notes: {}", account.note().unwrap_or("")),
-                widget::text!("IBAN: {}", account.iban().unwrap_or("")),
+                widget::text!(
+                    "IBAN: {}",
+                    account
+                        .iban()
+                        .clone()
+                        .map_or(String::new(), |iban| iban.to_string())
+                ),
                 widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
                 widget::row![
                     widget::text("Current Amount: "),
