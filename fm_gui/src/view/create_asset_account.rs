@@ -76,7 +76,7 @@ impl CreateAssetAccountDialog {
                     .clone()
                     .map_or(String::new(), |iban| iban.to_string());
                 self.bic_input = account.bic().unwrap_or_default().to_string();
-                self.offset_input = account.offset().to_string();
+                self.offset_input = account.offset().to_num_string();
             }
             Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
             Message::NameInput(input) => self.name_input = input,
