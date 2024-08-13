@@ -20,7 +20,6 @@ pub enum Message {
     ChangedTimespan(fm_core::Timespan),
     Set(
         fm_core::Category,
-        fm_core::Timespan,
         Vec<(fm_core::DateTime, fm_core::Currency)>,
         Vec<(
             fm_core::Transaction,
@@ -42,7 +41,6 @@ pub enum Category {
             fm_core::account::Account,
             fm_core::account::Account,
         )>,
-        timespan: fm_core::Timespan,
         values: Vec<(fm_core::DateTime, fm_core::Currency)>,
     },
 }
@@ -77,7 +75,7 @@ impl Category {
                     .unwrap()
                     .unwrap();
 
-                Message::Set(category, (None, None), values, transaction_tuples)
+                Message::Set(category, values, transaction_tuples)
             }),
         )
     }
@@ -140,16 +138,15 @@ impl Category {
                             .get_relative_category_values(id, new_timespan)
                             .await
                             .unwrap();
-                        Message::Set(cloned_category, new_timespan, values, transaction_tuples)
+                        Message::Set(cloned_category, values, transaction_tuples)
                     }))
                 } else {
                     Action::None
                 }
             }
-            Message::Set(category, timespan, values, transactions) => {
+            Message::Set(category, values, transactions) => {
                 *self = Self::Loaded {
                     category,
-                    timespan,
                     transactions,
                     values,
                 };
@@ -201,7 +198,8 @@ impl Category {
                 )
             ]
             .spacing(10)
-            .width(iced::Length::Fill)
+            .height(iced::Fill)
+            .width(iced::Fill)
             .into()
         } else {
             widget::text("Loading...").into()

@@ -224,6 +224,7 @@ fn asset_account_view<'a>(
             Message::ViewAccount,
         )
     ]
+    .height(iced::Fill)
     .into()
 }
 
@@ -267,5 +268,6 @@ fn book_checking_account_view<'a>(
             Message::ViewAccount,
         )
     ]
+    .height(iced::Fill)
     .into()
 }
