@@ -187,7 +187,7 @@ impl CreateBillView {
                         }
                         add_transaction::Action::AddTransaction(transaction) => {
                             self.transactions
-                                .push((transaction, fm_core::Sign::Positive));
+                                .push((transaction, fm_core::Sign::Negative));
                         }
                         add_transaction::Action::Task(task) => {
                             return Action::Task(task.map(Message::AddTransactionMessage));
@@ -434,7 +434,8 @@ mod add_transaction {
                 }
             ]
             .spacing(10)
-            .width(iced::Length::Fill)
+            .height(iced::Fill)
+            .width(iced::Fill)
             .into()
         }
     }
