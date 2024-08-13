@@ -1,7 +1,7 @@
 use crate::FinanceManager;
 use crate::*;
-
 use anyhow::Result;
+use std::future::Future;
 
 #[derive(Clone, Debug)]
 pub struct FMController<FM>
@@ -32,7 +32,7 @@ where
     pub fn get_bill_sum<'a>(
         &'a self,
         bill: &'a Bill,
-    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend + 'a {
+    ) -> impl Future<Output = Result<Currency>> + MaybeSend + 'a {
         let transactions = bill
             .transactions()
             .clone()
@@ -53,14 +53,14 @@ where
         }
     }
 
-    pub fn get_bills(&self) -> impl futures::Future<Output = Result<Vec<Bill>>> + MaybeSend + '_ {
+    pub fn get_bills(&self) -> impl Future<Output = Result<Vec<Bill>>> + MaybeSend + '_ {
         self.finance_manager.get_bills()
     }
 
     pub fn get_bill<'a>(
         &'a self,
         id: &'a Id,
-    ) -> impl futures::Future<Output = Result<Option<Bill>>> + MaybeSend + 'a {
+    ) -> impl Future<Output = Result<Option<Bill>>> + MaybeSend + 'a {
         self.finance_manager.get_bill(id)
     }
 
@@ -71,7 +71,7 @@ where
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
-    ) -> Result<impl futures::Future<Output = Result<Bill>> + MaybeSend + '_> {
+    ) -> Result<impl Future<Output = Result<Bill>> + MaybeSend + '_> {
         let mut ids = Vec::with_capacity(transactions.len());
         for transaction in &transactions {
             if ids.contains(&transaction.0) {
@@ -84,10 +84,7 @@ where
             .create_bill(name, description, value, transactions, due_date))
     }
 
-    pub fn delete_bill(
-        &mut self,
-        id: Id,
-    ) -> impl futures::Future<Output = Result<()>> + MaybeSend + '_ {
+    pub fn delete_bill(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
         self.finance_manager.delete_bill(id)
     }
 
@@ -99,7 +96,7 @@ where
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
-    ) -> Result<impl futures::Future<Output = Result<()>> + MaybeSend + '_> {
+    ) -> Result<impl Future<Output = Result<()>> + MaybeSend + '_> {
         let mut ids = Vec::with_capacity(transactions.len());
         for transaction in &transactions {
             if ids.contains(&transaction.0) {
@@ -115,7 +112,7 @@ where
     pub fn get_filtered_transactions(
         &self,
         filter: transaction_filter::TransactionFilter,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
         let transactions_future = self.get_transactions(filter.total_timespan());
         async move {
             let transactions = transactions_future.await?;
@@ -130,7 +127,7 @@ where
         iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend + '_ {
         self.finance_manager.create_asset_account(
             name,
             note,
@@ -148,7 +145,7 @@ where
         iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend + '_ {
         self.finance_manager.update_asset_account(
             id,
             name,
@@ -161,14 +158,14 @@ where
 
     pub fn get_accounts(
         &self,
-    ) -> impl futures::Future<Output = Result<Vec<account::Account>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Vec<account::Account>>> + MaybeSend + '_ {
         self.finance_manager.get_accounts()
     }
 
     pub fn get_account(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<account::Account>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Option<account::Account>>> + MaybeSend + '_ {
         self.finance_manager.get_account(id)
     }
 
@@ -176,7 +173,7 @@ where
         &'a self,
         account: &'a account::Account,
         date: DateTime,
-    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend + 'a {
+    ) -> impl Future<Output = Result<Currency>> + MaybeSend + 'a {
         let future = self.finance_manager.get_account_sum(account, date);
 
         async move {
@@ -192,7 +189,7 @@ where
     pub fn get_transaction(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<Transaction>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Option<Transaction>>> + MaybeSend + '_ {
         self.finance_manager.get_transaction(id)
     }
 
@@ -200,7 +197,7 @@ where
         &self,
         account: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
         self.finance_manager
             .get_transactions_of_account(account, timespan)
     }
@@ -216,7 +213,7 @@ where
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
-    ) -> Result<impl futures::Future<Output = Result<Transaction>> + MaybeSend + '_> {
+    ) -> Result<impl Future<Output = Result<Transaction>> + MaybeSend + '_> {
         if amount.get_eur_num() < 0.0 {
             anyhow::bail!("Amount must be positive")
         }
@@ -245,7 +242,7 @@ where
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
-    ) -> Result<impl futures::Future<Output = Result<Transaction>> + MaybeSend + '_> {
+    ) -> Result<impl Future<Output = Result<Transaction>> + MaybeSend + '_> {
         if amount.get_eur_num() < 0.0 {
             anyhow::bail!("Amount must be positive")
         }
@@ -269,7 +266,7 @@ where
         notes: Option<String>,
         iban: Option<AccountId>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend + '_ {
         self.finance_manager.create_book_checking_account(
             name,
             notes,
@@ -285,7 +282,7 @@ where
         note: Option<String>,
         iban: Option<AccountId>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend + '_ {
         self.finance_manager.update_book_checking_account(
             id,
             name,
@@ -301,7 +298,7 @@ where
         description: Option<String>,
         total_value: Currency,
         timespan: Recouring,
-    ) -> impl futures::Future<Output = Result<Budget>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Budget>> + MaybeSend + '_ {
         self.finance_manager
             .create_budget(name, description, total_value, timespan)
     }
@@ -313,35 +310,33 @@ where
         description: Option<String>,
         total_value: Currency,
         timespan: Recouring,
-    ) -> impl futures::Future<Output = Result<Budget>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Budget>> + MaybeSend + '_ {
         self.finance_manager
             .update_budget(id, name, description, total_value, timespan)
     }
 
-    pub fn get_budgets(
-        &self,
-    ) -> impl futures::Future<Output = Result<Vec<Budget>>> + MaybeSend + '_ {
+    pub fn get_budgets(&self) -> impl Future<Output = Result<Vec<Budget>>> + MaybeSend + '_ {
         self.finance_manager.get_budgets()
     }
 
     pub fn get_budget(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<Budget>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Option<Budget>>> + MaybeSend + '_ {
         self.finance_manager.get_budget(id)
     }
 
     pub fn delete_transaction(
         &mut self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<()>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
         self.finance_manager.delete_transaction(id)
     }
 
     pub fn get_transactions(
         &self,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
         self.finance_manager.get_transactions(timespan)
     }
 
@@ -349,7 +344,7 @@ where
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
         self.finance_manager
             .get_transactions_of_budget(id, timespan)
     }
@@ -361,7 +356,7 @@ where
         &'a self,
         budget: &'a Budget,
         offset: i32,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend + 'a {
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + 'a {
         let timespan = calculate_budget_timespan(budget, offset, chrono::Utc::now());
         self.get_transactions_of_budget(*budget.id(), timespan)
     }
@@ -373,7 +368,7 @@ where
         &'a self,
         budget: &'a Budget,
         offset: i32,
-    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend + 'a {
+    ) -> impl Future<Output = Result<Currency>> + MaybeSend + 'a {
         let transactions_future = self.get_budget_transactions(budget, offset);
         async {
             let transactions = transactions_future.await?;
@@ -391,7 +386,7 @@ where
 
     pub fn get_accounts_hash_map(
         &self,
-    ) -> impl futures::Future<Output = Result<HashMap<Id, account::Account>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<HashMap<Id, account::Account>>> + MaybeSend + '_ {
         let accounts_future = self.get_accounts();
         async {
             let accounts = accounts_future.await?;
@@ -403,23 +398,21 @@ where
         }
     }
 
-    pub fn get_categories(
-        &self,
-    ) -> impl futures::Future<Output = Result<Vec<Category>>> + MaybeSend + '_ {
+    pub fn get_categories(&self) -> impl Future<Output = Result<Vec<Category>>> + MaybeSend + '_ {
         self.finance_manager.get_categories()
     }
 
     pub fn get_category(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<Category>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Option<Category>>> + MaybeSend + '_ {
         self.finance_manager.get_category(id)
     }
 
     pub fn create_category(
         &mut self,
         name: String,
-    ) -> impl futures::Future<Output = Result<Category>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Category>> + MaybeSend + '_ {
         self.finance_manager.create_category(name)
     }
 
@@ -427,14 +420,11 @@ where
         &mut self,
         id: Id,
         name: String,
-    ) -> impl futures::Future<Output = Result<Category>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Category>> + MaybeSend + '_ {
         self.finance_manager.update_category(id, name)
     }
 
-    pub fn delete_category(
-        &mut self,
-        id: Id,
-    ) -> impl futures::Future<Output = Result<()>> + MaybeSend + '_ {
+    pub fn delete_category(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
         self.finance_manager.delete_category(id)
     }
 
@@ -442,7 +432,7 @@ where
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
         self.finance_manager
             .get_transactions_of_category(id, timespan)
     }
@@ -454,7 +444,7 @@ where
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<(DateTime, Currency)>>> + MaybeSend + '_ {
+    ) -> impl Future<Output = Result<Vec<(DateTime, Currency)>>> + MaybeSend + '_ {
         let transactions_future = self.get_transactions_of_category(id, timespan);
         async move {
             Ok(sum_up_transactions_by_day(

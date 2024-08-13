@@ -1,4 +1,5 @@
 use super::*;
+use std::future::Future;
 
 pub trait FinanceManager: Send + Clone + Sized {
     type Flags;
@@ -12,7 +13,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend;
+    ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
     fn update_asset_account(
         &mut self,
@@ -22,7 +23,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl futures::Future<Output = Result<account::AssetAccount>> + MaybeSend;
+    ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
     fn create_book_checking_account(
         &mut self,
@@ -30,7 +31,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         notes: Option<String>,
         iban: Option<AccountId>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
+    ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
     fn update_book_checking_account(
         &mut self,
@@ -39,7 +40,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         note: Option<String>,
         iban: Option<AccountId>,
         bic: Option<String>,
-    ) -> impl futures::Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
+    ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
     /// Only get the sum of the transactions for the account at the given date.
     /// Do not include any AssetAccount.offset or similar!
@@ -48,7 +49,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         &self,
         account: &account::Account,
         date: DateTime,
-    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
+    ) -> impl Future<Output = Result<Currency>> + MaybeSend {
         let transactions_future =
             self.get_transactions_of_account(*account.id(), (None, Some(date)));
 
@@ -75,7 +76,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
-    ) -> impl futures::Future<Output = Result<Bill>> + MaybeSend;
+    ) -> impl Future<Output = Result<Bill>> + MaybeSend;
 
     fn update_bill(
         &mut self,
@@ -85,12 +86,9 @@ pub trait FinanceManager: Send + Clone + Sized {
         value: Currency,
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
-    ) -> impl futures::Future<Output = Result<()>> + MaybeSend;
+    ) -> impl Future<Output = Result<()>> + MaybeSend;
 
-    fn get_bill_sum(
-        &self,
-        bill: &Bill,
-    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
+    fn get_bill_sum(&self, bill: &Bill) -> impl Future<Output = Result<Currency>> + MaybeSend {
         let transactions = bill
             .transactions()
             .clone()
@@ -111,16 +109,16 @@ pub trait FinanceManager: Send + Clone + Sized {
         }
     }
 
-    fn get_bills(&self) -> impl futures::Future<Output = Result<Vec<Bill>>> + MaybeSend;
+    fn get_bills(&self) -> impl Future<Output = Result<Vec<Bill>>> + MaybeSend;
 
-    fn get_bill(&self, id: &Id) -> impl futures::Future<Output = Result<Option<Bill>>> + MaybeSend;
+    fn get_bill(&self, id: &Id) -> impl Future<Output = Result<Option<Bill>>> + MaybeSend;
 
-    fn delete_bill(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + MaybeSend;
+    fn delete_bill(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
 
     fn get_filtered_transactions(
         &self,
         filter: transaction_filter::TransactionFilter,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend {
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend {
         let transactions_future = self.get_transactions(filter.total_timespan());
         async move {
             let transactions = transactions_future.await?;
@@ -128,25 +126,23 @@ pub trait FinanceManager: Send + Clone + Sized {
         }
     }
 
-    fn get_accounts(
-        &self,
-    ) -> impl futures::Future<Output = Result<Vec<account::Account>>> + MaybeSend;
+    fn get_accounts(&self) -> impl Future<Output = Result<Vec<account::Account>>> + MaybeSend;
 
     fn get_account(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<account::Account>>> + MaybeSend;
+    ) -> impl Future<Output = Result<Option<account::Account>>> + MaybeSend;
 
     fn get_transaction(
         &self,
         id: Id,
-    ) -> impl futures::Future<Output = Result<Option<Transaction>>> + MaybeSend;
+    ) -> impl Future<Output = Result<Option<Transaction>>> + MaybeSend;
 
     fn get_transactions_of_account(
         &self,
         account: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
     fn create_transaction(
         &mut self,
@@ -159,7 +155,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
-    ) -> impl futures::Future<Output = Result<Transaction>> + MaybeSend;
+    ) -> impl Future<Output = Result<Transaction>> + MaybeSend;
 
     fn update_transaction(
         &mut self,
@@ -173,7 +169,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
-    ) -> impl futures::Future<Output = Result<Transaction>> + MaybeSend;
+    ) -> impl Future<Output = Result<Transaction>> + MaybeSend;
 
     fn create_budget(
         &mut self,
@@ -181,7 +177,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         description: Option<String>,
         total_value: Currency,
         timespan: Recouring,
-    ) -> impl futures::Future<Output = Result<Budget>> + MaybeSend;
+    ) -> impl Future<Output = Result<Budget>> + MaybeSend;
 
     fn update_budget(
         &mut self,
@@ -190,30 +186,24 @@ pub trait FinanceManager: Send + Clone + Sized {
         description: Option<String>,
         total_value: Currency,
         timespan: Recouring,
-    ) -> impl futures::Future<Output = Result<Budget>> + MaybeSend;
+    ) -> impl Future<Output = Result<Budget>> + MaybeSend;
 
-    fn get_budgets(&self) -> impl futures::Future<Output = Result<Vec<Budget>>> + MaybeSend;
+    fn get_budgets(&self) -> impl Future<Output = Result<Vec<Budget>>> + MaybeSend;
 
-    fn get_budget(
-        &self,
-        id: Id,
-    ) -> impl futures::Future<Output = Result<Option<Budget>>> + MaybeSend;
+    fn get_budget(&self, id: Id) -> impl Future<Output = Result<Option<Budget>>> + MaybeSend;
 
-    fn delete_transaction(
-        &mut self,
-        id: Id,
-    ) -> impl futures::Future<Output = Result<()>> + MaybeSend;
+    fn delete_transaction(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
 
     fn get_transactions(
         &self,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
     fn get_transactions_of_budget(
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
     /// Gets the transactions of the budget at the current timespan if the offset is 0.
     ///
@@ -222,7 +212,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         &self,
         budget: &Budget,
         offset: i32,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend {
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend {
         let timespan = calculate_budget_timespan(budget, offset, chrono::Utc::now());
         self.get_transactions_of_budget(*budget.id(), timespan)
     }
@@ -234,7 +224,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         &self,
         budget: &Budget,
         offset: i32,
-    ) -> impl futures::Future<Output = Result<Currency>> + MaybeSend {
+    ) -> impl Future<Output = Result<Currency>> + MaybeSend {
         let transactions_future = self.get_budget_transactions(budget, offset);
         async {
             let transactions = transactions_future.await?;
@@ -252,7 +242,7 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     fn get_accounts_hash_map(
         &self,
-    ) -> impl futures::Future<Output = Result<HashMap<Id, account::Account>>> + MaybeSend {
+    ) -> impl Future<Output = Result<HashMap<Id, account::Account>>> + MaybeSend {
         let accounts_future = self.get_accounts();
         async {
             let accounts = accounts_future.await?;
@@ -264,31 +254,28 @@ pub trait FinanceManager: Send + Clone + Sized {
         }
     }
 
-    fn get_categories(&self) -> impl futures::Future<Output = Result<Vec<Category>>> + MaybeSend;
+    fn get_categories(&self) -> impl Future<Output = Result<Vec<Category>>> + MaybeSend;
 
-    fn get_category(
-        &self,
-        id: Id,
-    ) -> impl futures::Future<Output = Result<Option<Category>>> + MaybeSend;
+    fn get_category(&self, id: Id) -> impl Future<Output = Result<Option<Category>>> + MaybeSend;
 
     fn create_category(
         &mut self,
         name: String,
-    ) -> impl futures::Future<Output = Result<Category>> + MaybeSend;
+    ) -> impl Future<Output = Result<Category>> + MaybeSend;
 
     fn update_category(
         &mut self,
         id: Id,
         name: String,
-    ) -> impl futures::Future<Output = Result<Category>> + MaybeSend;
+    ) -> impl Future<Output = Result<Category>> + MaybeSend;
 
-    fn delete_category(&mut self, id: Id) -> impl futures::Future<Output = Result<()>> + MaybeSend;
+    fn delete_category(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
 
     fn get_transactions_of_category(
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<Transaction>>> + MaybeSend;
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
     /// Gets the values of the category over time.
     /// The first value is the value at the start of the timespan.
@@ -297,7 +284,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         &self,
         id: Id,
         timespan: Timespan,
-    ) -> impl futures::Future<Output = Result<Vec<(DateTime, Currency)>>> + MaybeSend {
+    ) -> impl Future<Output = Result<Vec<(DateTime, Currency)>>> + MaybeSend {
         let transactions_future = self.get_transactions_of_category(id, timespan);
         async move {
             Ok(sum_up_transactions_by_day(
