@@ -62,7 +62,6 @@ pub trait FinanceManager: Send + Clone + Sized {
                     sum -= transaction.amount();
                 } else if transaction.destination == *account.id() {
                     sum += transaction.amount();
-                } else {
                 }
             }
             Ok(sum)

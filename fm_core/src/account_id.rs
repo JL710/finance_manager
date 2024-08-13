@@ -31,15 +31,15 @@ impl FromStr for AccountId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Ok(iban) = s.trim().to_uppercase().replace(" ", "").parse() {
-            return Ok(AccountId::Iban(iban));
+            Ok(AccountId::Iban(iban))
         } else {
-            return Ok(AccountId::Other(s.to_string()));
+            Ok(AccountId::Other(s.to_string()))
         }
     }
 }
 
-impl Into<AccountId> for String {
-    fn into(self) -> AccountId {
-        self.parse().unwrap()
+impl From<String> for AccountId {
+    fn from(s: String) -> AccountId {
+        s.parse().unwrap()
     }
 }
