@@ -5,6 +5,9 @@ use anyhow::{Context, Result};
 use bigdecimal::{BigDecimal, FromPrimitive};
 use rusqlite::OptionalExtension;
 
+use async_std::sync::{Mutex, MutexGuard};
+use std::sync::Arc;
+
 type TransactionSignature = (
     Id,
     f64,
@@ -110,48 +113,47 @@ impl TryInto<Bill> for BillSignature {
     }
 }
 
+async fn migrate_db(connection: MutexGuard<'_, rusqlite::Connection>) -> Result<()> {
+    let version_result: Option<i32> = connection
+        .query_row(
+            "SELECT value FROM database_info WHERE tag='version'",
+            (),
+            |x| x.get(0),
+        )
+        .optional()
+        .unwrap()
+        .map(|x: String| x.parse().unwrap());
+
+    if let Some(version) = version_result {
+        match version {
+            0 => {}
+            _ => panic!("unknown database version"),
+        }
+    } else {
+        connection.execute(
+            "INSERT INTO database_info (tag, value) VALUES ('version', '0')",
+            (),
+        )?;
+    }
+    Ok(())
+}
+
 #[derive(Clone)]
 pub struct SqliteFinanceManager {
     path: String,
+    connection: Arc<Mutex<rusqlite::Connection>>,
 }
 
 impl SqliteFinanceManager {
-    fn create_db(&self) -> Result<()> {
-        let connection = self.connect()?;
+    async fn create_db(&self) -> Result<()> {
+        let connection = self.connect().await;
         connection.execute_batch(include_str!("schema.sql"))?;
-        self.migrate_db()?;
+        migrate_db(connection).await?;
         Ok(())
     }
 
-    fn migrate_db(&self) -> Result<()> {
-        let connection = self.connect()?;
-
-        let version_result: Option<i32> = connection
-            .query_row(
-                "SELECT value FROM database_info WHERE tag='version'",
-                (),
-                |x| x.get(0),
-            )
-            .optional()
-            .unwrap()
-            .map(|x: String| x.parse().unwrap());
-
-        if let Some(version) = version_result {
-            match version {
-                0 => {}
-                _ => panic!("unknown database version"),
-            }
-        } else {
-            connection.execute(
-                "INSERT INTO database_info (tag, value) VALUES ('version', '0')",
-                (),
-            )?;
-        }
-        Ok(())
-    }
-
-    fn connect(&self) -> Result<rusqlite::Connection> {
-        rusqlite::Connection::open(&self.path).context("failed to open database")
+    async fn connect(&self) -> async_std::sync::MutexGuard<rusqlite::Connection> {
+        self.connection.lock().await
     }
 
     pub fn path(&self) -> &str {
@@ -163,8 +165,11 @@ impl FinanceManager for SqliteFinanceManager {
     type Flags = String;
 
     fn new(path: Self::Flags) -> Result<Self> {
-        let new = Self { path };
-        new.create_db()?;
+        let new = Self {
+            connection: Arc::new(Mutex::new(rusqlite::Connection::open(&path)?)),
+            path,
+        };
+        async_std::task::block_on(async { new.create_db().await })?;
         Ok(new)
     }
 
@@ -176,7 +181,7 @@ impl FinanceManager for SqliteFinanceManager {
         bic: Option<String>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         connection.execute(
             "INSERT INTO asset_account (name, notes, iban, bic, offset_value, offset_currency) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
             (&name, &note, iban.clone().map(|x| x.electronic_str().to_owned()), &bic, offset.get_eur_num(), offset.get_currency_id()),
@@ -204,7 +209,7 @@ impl FinanceManager for SqliteFinanceManager {
         bic: Option<String>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         let asset_account_id = get_asset_account_id(&connection, id)?;
 
@@ -224,7 +229,7 @@ impl FinanceManager for SqliteFinanceManager {
         iban: Option<AccountId>,
         bic: Option<String>,
     ) -> Result<account::BookCheckingAccount> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         create_book_checking_account(&connection, name, notes, iban, bic)
     }
 
@@ -236,7 +241,7 @@ impl FinanceManager for SqliteFinanceManager {
         iban: Option<AccountId>,
         bic: Option<String>,
     ) -> Result<account::BookCheckingAccount> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         let account_id = get_book_checking_account_id(&connection, id)?;
         connection.execute(
             "UPDATE book_checking_account SET name=?1, notes=?2, iban=?3, bic=?4 WHERE id=?5",
@@ -261,7 +266,7 @@ impl FinanceManager for SqliteFinanceManager {
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
     ) -> Result<Bill> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         connection.execute(
             "INSERT INTO bill (name, description, value, value_currency, due_date) VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -305,7 +310,7 @@ impl FinanceManager for SqliteFinanceManager {
         transactions: Vec<(Id, Sign)>,
         due_date: Option<DateTime>,
     ) -> Result<()> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         connection.execute(
             "UPDATE bill SET name=?1, description=?2, value=?3, value_currency=?4, due_date=?5 WHERE id=?6",
@@ -332,7 +337,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn get_bills(&self) -> Result<Vec<Bill>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         let mut bills = Vec::new();
 
@@ -362,7 +367,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn get_bill(&self, id: &Id) -> Result<Option<Bill>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         let bill_result: BillSignature = connection.query_row(
             "SELECT id, name, description, value, value_currency FROM bill WHERE id=? ",
@@ -386,7 +391,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn delete_bill(&mut self, id: Id) -> Result<()> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         connection.execute("DELETE FROM bill WHERE id=?1", (id,))?;
         connection.execute("DELETE FROM bill_transaction WHERE bill_id=?1", (id,))?;
@@ -394,7 +399,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn get_accounts(&self) -> Result<Vec<account::Account>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         let mut accounts = Vec::new();
 
@@ -413,12 +418,12 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         Ok(Some(get_account(&connection, id)?))
     }
 
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         let result: TransactionSignature = connection.query_row(
             format!(
                 "SELECT {} FROM transactions WHERE id=?1",
@@ -466,7 +471,7 @@ impl FinanceManager for SqliteFinanceManager {
         account: Id,
         timespan: Timespan,
     ) -> Result<Vec<Transaction>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         macro_rules! transaction_query {
             ($sql:expr, $params:expr) => {
@@ -547,7 +552,7 @@ impl FinanceManager for SqliteFinanceManager {
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         connection.execute(
             "
@@ -607,7 +612,7 @@ impl FinanceManager for SqliteFinanceManager {
         total_value: Currency,
         timespan: Recouring,
     ) -> Result<Budget> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(timespan.clone());
 
@@ -649,7 +654,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn get_budgets(&self) -> Result<Vec<Budget>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         let results: Vec<std::result::Result<BudgetSignature, rusqlite::Error>> = connection.prepare(
             "SELECT id, name, description, value, currency, timespan_type, timespan_field1, timespan_field2 FROM budget"
@@ -667,7 +672,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn get_budget(&self, id: Id) -> Result<Option<Budget>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         let result: BudgetSignature = connection.query_row(
             "SELECT id, name, description, value, currency, timespan_type, timespan_field1, timespan_field2 FROM budget WHERE id=?1", 
@@ -691,7 +696,7 @@ impl FinanceManager for SqliteFinanceManager {
         metadata: HashMap<String, String>,
         categories: Vec<(Id, Sign)>,
     ) -> Result<Transaction> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         connection.execute(
             "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, budget_sign=?8, timestamp=?9, metadata=?10 WHERE id=?11", 
@@ -715,7 +720,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn delete_transaction(&mut self, id: Id) -> Result<()> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         connection.execute("DELETE FROM transactions WHERE id=?1", (id,))?;
         connection.execute(
             "DELETE FROM transaction_category WHERE transaction_id=?1",
@@ -733,7 +738,7 @@ impl FinanceManager for SqliteFinanceManager {
         id: Id,
         timespan: Timespan,
     ) -> Result<Vec<Transaction>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         macro_rules! transaction_query {
             ($sql:expr, $params:expr) => {
@@ -810,7 +815,7 @@ impl FinanceManager for SqliteFinanceManager {
         total_value: Currency,
         timespan: Recouring,
     ) -> Result<Budget> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(timespan.clone());
 
         connection.execute(
@@ -830,7 +835,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn get_transactions(&self, timespan: Timespan) -> Result<Vec<Transaction>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         macro_rules! transaction_query {
             ($sql:expr, $params:expr) => {
@@ -913,7 +918,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn get_categories(&self) -> Result<Vec<Category>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         let mut categories = Vec::new();
         let mut statement = connection.prepare("SELECT id, name FROM categories")?;
         let rows: Vec<std::result::Result<(Id, String), rusqlite::Error>> = statement
@@ -927,24 +932,24 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn create_category(&mut self, name: String) -> Result<Category> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         connection.execute("INSERT INTO categories (name) VALUES (?1)", (&name,))?;
         Ok(Category::new(connection.last_insert_rowid() as Id, name))
     }
 
     async fn update_category(&mut self, id: Id, name: String) -> Result<Category> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         connection.execute("UPDATE categories SET name=?1 WHERE id=?2", (&name, id))?;
         Ok(Category::new(id, name))
     }
 
     async fn get_category(&self, id: Id) -> Result<Option<Category>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         get_category(&connection, id)
     }
 
     async fn delete_category(&mut self, id: Id) -> Result<()> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
         connection.execute("DELETE FROM categories WHERE id=?1", (id,))?;
         connection.execute(
             "DELETE FROM transaction_category WHERE category_id=?1",
@@ -958,7 +963,7 @@ impl FinanceManager for SqliteFinanceManager {
         id: Id,
         timespan: Timespan,
     ) -> Result<Vec<Transaction>> {
-        let connection = self.connect()?;
+        let connection = self.connect().await;
 
         macro_rules! transaction_query {
             ($sql:expr, $params:expr) => {
