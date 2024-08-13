@@ -158,7 +158,8 @@ impl FilterTransactionView {
             }
         ]
         .spacing(10)
-        .width(iced::Length::Fill)
+        .height(iced::Fill)
+        .width(iced::Fill)
         .into()
     }
 }

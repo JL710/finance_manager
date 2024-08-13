@@ -92,10 +92,10 @@ impl BookCheckingAccountOverview {
                 }
             })
             .columns_sortable([true, true])
-            .into_element()
         ]
         .spacing(10)
-        .width(iced::Length::Fill)
+        .height(iced::Fill)
+        .width(iced::Fill)
         .into()
     }
 }

@@ -65,10 +65,10 @@ impl CategoryOverview {
             .headers(["Name".to_string()])
             .sort_by(|a, b, _| a.name().cmp(b.name()))
             .columns_sortable([true])
-            .into_element()
         ]
         .spacing(10)
-        .width(iced::Length::Fill)
+        .height(iced::Fill)
+        .width(iced::Fill)
         .into()
     }
 }

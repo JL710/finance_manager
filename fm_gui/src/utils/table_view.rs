@@ -17,6 +17,8 @@ where
     >,
     spacing: u16,
     padding: u16,
+    page_size: usize,
+    page_count: usize,
 }
 
 impl<'a, T: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
@@ -25,7 +27,10 @@ where
     TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
 {
     pub fn new(items: Vec<T>, to_row: TR) -> Self {
+        const PAGE_SIZE: usize = 10;
+        let page_count = items.len() / PAGE_SIZE;
         Self {
+            page_count: if page_count > 0 { page_count } else { 1 },
             items,
             headers: None,
             sortable: [false; COLUMNS],
@@ -34,6 +39,7 @@ where
             alignment: None,
             spacing: 10,
             padding: 10,
+            page_size: PAGE_SIZE,
         }
     }
 
@@ -101,8 +107,11 @@ where
         self
     }
 
-    pub fn into_element(self) -> iced::Element<'a, Message> {
-        widget::component(self)
+    pub fn page_size(mut self, page_size: usize) -> Self {
+        let page_count = self.items.len() / page_size;
+        self.page_count = if page_count > 0 { page_count } else { 1 };
+        self.page_size = page_size;
+        self
     }
 }
 
@@ -110,12 +119,14 @@ where
 pub struct TableViewState {
     sort_column: usize,
     reverse: bool,
+    page: usize,
 }
 
 #[derive(Debug, Clone)]
 pub enum TableViewMessage<Message> {
     Message(Message),
     SortByColumn(usize),
+    ChangePageBy(isize),
 }
 
 impl<'a, T: 'a, Message, const COLUMNS: usize, TR> widget::Component<Message>
@@ -138,6 +149,13 @@ where
                     state.reverse = false;
                 }
                 self.sort(state.sort_column, state.reverse);
+                state.page = 0;
+            }
+            Self::Event::ChangePageBy(page) => {
+                let new_page = (state.page as i32 + page as i32).max(0) as usize;
+                if new_page < self.page_count {
+                    state.page = new_page;
+                }
             }
         }
         None
@@ -145,7 +163,13 @@ where
 
     fn view(&self, state: &Self::State) -> iced::Element<'a, Self::Event> {
         let mut data_column = widget::column![].spacing(self.spacing);
-        for (row_index, item) in self.items.iter().enumerate() {
+        for (row_index, item) in self
+            .items
+            .iter()
+            .enumerate()
+            .skip(state.page * self.page_size)
+            .take(self.page_size)
+        {
             let row_elements: [iced::Element<TableViewMessage<Message>>; COLUMNS] =
                 (self.to_row)(item).map(|x| x.map(|m| TableViewMessage::Message(m)));
             let mut row = widget::row![].spacing(self.spacing);
@@ -208,8 +232,26 @@ where
             );
         }
 
-        column = column.push(widget::scrollable(data_column));
+        column = column.push(widget::scrollable(data_column).height(iced::Fill));
+        column = column.push(
+            widget::row![
+                widget::button("Previous").on_press(TableViewMessage::ChangePageBy(-1)),
+                widget::text!("Page {}/{}", state.page + 1, self.page_count),
+                widget::button("Next").on_press(TableViewMessage::ChangePageBy(1))
+            ]
+            .spacing(10),
+        );
 
         column.into()
+    }
+}
+
+impl<'a, T: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
+    From<TableView<'a, T, Message, COLUMNS, TR>> for iced::Element<'a, Message>
+where
+    TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
+{
+    fn from(value: TableView<'a, T, Message, COLUMNS, TR>) -> Self {
+        widget::component(value)
     }
 }

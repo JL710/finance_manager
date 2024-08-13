@@ -92,10 +92,10 @@ impl BillOverview {
                 }
             })
             .columns_sortable([true, true, true, true, true])
-            .into_element()
         ]
         .spacing(10)
-        .width(iced::Length::Fill)
+        .height(iced::Fill)
+        .width(iced::Fill)
         .into()
     }
 }

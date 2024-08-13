@@ -116,7 +116,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
         _ => std::cmp::Ordering::Equal,
     });
 
-    table.into_element()
+    table.into()
 }
 
 pub fn link<'a, Message>(

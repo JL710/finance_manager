@@ -279,7 +279,6 @@ impl CreateBillView {
                     iced::alignment::Horizontal::Left,
                     iced::alignment::Vertical::Center
                 ))
-                .into_element()
             )
             .max_height(400),
             widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
@@ -393,19 +392,20 @@ mod add_transaction {
                 utils::heading("Add", utils::HeadingLevel::H1),
                 widget::button("Back").on_press(Message::Back),
                 if let Some(filter) = &self.filter {
-                    widget::column![
-                        "Create Filter for Transactions:",
-                        utils::FilterComponent::new(
-                            filter.clone(),
-                            Message::FilterSubmit,
-                            &self.accounts,
-                            &self.categories,
-                        )
-                        .into_element()
-                    ]
-                    .spacing(10)
-                    .width(iced::Length::Fill)
-                    .into()
+                    iced::Element::new(
+                        widget::column![
+                            "Create Filter for Transactions:",
+                            utils::FilterComponent::new(
+                                filter.clone(),
+                                Message::FilterSubmit,
+                                &self.accounts,
+                                &self.categories,
+                            )
+                            .into_element()
+                        ]
+                        .spacing(10)
+                        .width(iced::Length::Fill),
+                    )
                 } else {
                     utils::TableView::new(self.transactions.clone(), |x| {
                         [
@@ -430,7 +430,7 @@ mod add_transaction {
                         _ => panic!(),
                     })
                     .columns_sortable([false, true, true, true])
-                    .into_element()
+                    .into()
                 }
             ]
             .spacing(10)

@@ -94,8 +94,9 @@ impl BudgetOverview {
             utils::heading("Budget Overview", utils::HeadingLevel::H1),
             widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
             widget::horizontal_rule(10),
-            budget_table.into_element(),
+            budget_table,
         ]
+        .height(iced::Fill)
         .spacing(10)
         .into()
     }

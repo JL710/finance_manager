@@ -101,9 +101,10 @@ impl AssetAccountOverview {
             utils::heading("Asset Account Overview", utils::HeadingLevel::H1),
             widget::row![widget::button("New Asset Account").on_press(Message::CreateAssetAccount)],
             widget::horizontal_rule(10),
-            account_table.into_element(),
+            account_table,
         ]
         .spacing(10)
+        .height(iced::Fill)
         .into()
     }
 }
