@@ -174,6 +174,7 @@ impl Budget {
                     Message::ViewAccount,
                 )
             ]
+            .height(iced::Fill)
             .spacing(10)
             .into()
         } else {
