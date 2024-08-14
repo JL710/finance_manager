@@ -48,12 +48,10 @@ impl<Message: Clone> iced::widget::Component<Message> for CurrencyInput<Message>
     fn view(&self, state: &Self::State) -> iced::Element<'_, Self::Event> {
         let value = if let Some(v) = &state.input {
             v.clone()
+        } else if let Some(v) = &self.value {
+            v.to_num_string()
         } else {
-            if let Some(v) = &self.value {
-                v.to_num_string()
-            } else {
-                String::new()
-            }
+            String::new()
         };
         let correct = !&value.is_empty() && super::parse_number(&value).is_none();
 
