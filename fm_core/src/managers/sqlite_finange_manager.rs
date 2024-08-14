@@ -145,7 +145,7 @@ pub struct SqliteFinanceManager {
 }
 
 impl SqliteFinanceManager {
-    async fn create_db(&self) -> Result<()> {
+    async fn init_db(&self) -> Result<()> {
         let connection = self.connect().await;
         connection.execute_batch(include_str!("schema.sql"))?;
         migrate_db(connection).await?;
@@ -159,6 +159,15 @@ impl SqliteFinanceManager {
     pub fn path(&self) -> &str {
         &self.path
     }
+
+    pub fn new_in_memory() -> Result<Self> {
+        let new = Self {
+            connection: Arc::new(Mutex::new(rusqlite::Connection::open_in_memory()?)),
+            path: String::new(),
+        };
+        async_std::task::block_on(async { new.init_db().await })?;
+        Ok(new)
+    }
 }
 
 impl FinanceManager for SqliteFinanceManager {
@@ -169,7 +178,7 @@ impl FinanceManager for SqliteFinanceManager {
             connection: Arc::new(Mutex::new(rusqlite::Connection::open(&path)?)),
             path,
         };
-        async_std::task::block_on(async { new.create_db().await })?;
+        async_std::task::block_on(async { new.init_db().await })?;
         Ok(new)
     }
 
@@ -1228,3 +1237,5 @@ fn get_transactions_of_bill(
     }
     Ok(transactions)
 }
+
+crate::finance_manager::unit_tests!(|| { super::SqliteFinanceManager::new_in_memory().unwrap() });

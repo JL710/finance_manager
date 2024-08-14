@@ -469,3 +469,5 @@ impl FinanceManager for RamFinanceManager {
         Ok(transactions)
     }
 }
+
+crate::finance_manager::unit_tests!(|| { super::RamFinanceManager::default() });

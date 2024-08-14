@@ -1,7 +1,7 @@
 use iban_validate::IbanLike;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum AccountId {
     Iban(iban_validate::Iban),
     /// For cases where no valid iban but something else is available

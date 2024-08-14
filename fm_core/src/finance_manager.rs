@@ -301,3 +301,74 @@ pub trait FinanceManager: Send + Clone + Sized {
         }
     }
 }
+
+#[allow(unused_macros)]
+macro_rules! unit_tests {
+    ($gen_fm:expr) => {
+        #[cfg(test)]
+        mod test {
+            use super::*;
+
+            #[async_std::test]
+            async fn create_asset_account() {
+                let mut fm = ($gen_fm)();
+                let account = fm
+                    .create_asset_account("Test".to_string(), None, None, None, Currency::default())
+                    .await
+                    .unwrap();
+                assert_eq!(account.name(), "Test");
+                assert_eq!(account.note(), None);
+                assert_eq!(*account.iban(), None);
+                assert_eq!(account.bic(), None);
+                assert_eq!(*account.offset(), Currency::default());
+
+                if let account::Account::AssetAccount(fetched_account) =
+                    fm.get_account(account.id()).await.unwrap().unwrap()
+                {
+                    assert_eq!(fetched_account, account);
+                } else {
+                    assert!(false);
+                }
+            }
+
+            #[async_std::test]
+            async fn get_accounts() {
+                let mut fm = ($gen_fm)();
+                let accounts = fm.get_accounts().await.unwrap();
+                assert_eq!(accounts.len(), 0);
+
+                let acc = fm
+                    .create_asset_account("Test".to_string(), None, None, None, Currency::default())
+                    .await
+                    .unwrap();
+                let accounts = fm.get_accounts().await.unwrap();
+                assert_eq!(accounts.len(), 1);
+                assert_eq!(accounts[0], account::Account::AssetAccount(acc));
+            }
+
+            #[async_std::test]
+            async fn create_book_checking_account() {
+                let mut fm = ($gen_fm)();
+                let account = fm
+                    .create_book_checking_account("Test".to_string(), None, None, None)
+                    .await
+                    .unwrap();
+                assert_eq!(account.name(), "Test");
+                assert_eq!(account.note(), None);
+                assert_eq!(*account.iban(), None);
+                assert_eq!(account.bic(), None);
+
+                if let account::Account::BookCheckingAccount(fetched_account) =
+                    fm.get_account(account.id()).await.unwrap().unwrap()
+                {
+                    assert_eq!(fetched_account, account);
+                } else {
+                    assert!(false);
+                }
+            }
+        }
+    };
+}
+
+#[allow(unused_imports)]
+pub(crate) use unit_tests;

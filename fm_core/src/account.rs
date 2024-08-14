@@ -3,7 +3,7 @@ use crate::Currency;
 use super::{AccountId, Id};
 use anyhow::Result;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct AssetAccount {
     id: Id,
     name: String,
@@ -80,7 +80,7 @@ impl From<AssetAccount> for Account {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct BookCheckingAccount {
     id: Id,
     name: String,
