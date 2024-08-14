@@ -234,6 +234,11 @@ impl App {
                     view::transaction::Action::ViewBudget(id) => {
                         return self.switch_view_budget(id);
                     }
+                    view::transaction::Action::NewBillWithTransaction(transaction) => {
+                        self.current_view = View::CreateBill(
+                            view::create_bill::CreateBillView::new_with_transaction(transaction),
+                        );
+                    }
                 }
             }
             AppMessage::ViewBudgetMessage(m) => {

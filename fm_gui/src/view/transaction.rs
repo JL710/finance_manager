@@ -11,6 +11,7 @@ pub enum Action {
     Delete(iced::Task<()>),
     ViewAccount(fm_core::Id),
     ViewBudget(fm_core::Id),
+    NewBillWithTransaction(fm_core::Transaction),
 }
 
 #[derive(Debug, Clone)]
@@ -26,6 +27,7 @@ pub enum Message {
         budget: Option<fm_core::Budget>,
         categories: Vec<fm_core::Category>,
     },
+    NewBill,
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +115,13 @@ impl Transaction {
                     categories,
                 };
                 Action::None
+            }
+            Message::NewBill => {
+                if let Self::Loaded { transaction, .. } = self {
+                    Action::NewBillWithTransaction(transaction.clone())
+                } else {
+                    Action::None
+                }
             }
             Message::Edit => {
                 if let Self::Loaded { transaction, .. } = self {
@@ -214,7 +223,8 @@ impl Transaction {
                     widget::Space::with_width(iced::Length::Fill),
                     widget::column![
                         widget::button("Edit").on_press(Message::Edit),
-                        widget::button("Delete").on_press(Message::Delete)
+                        widget::button("Delete").on_press(Message::Delete),
+                        widget::button("New Bill").on_press(Message::NewBill)
                     ]
                     .spacing(10)
                 ],

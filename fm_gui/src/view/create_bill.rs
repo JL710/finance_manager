@@ -41,6 +41,13 @@ pub struct CreateBillView {
 }
 
 impl CreateBillView {
+    pub fn new_with_transaction(transaction: fm_core::Transaction) -> Self {
+        Self {
+            transactions: vec![(transaction, fm_core::Sign::Negative)],
+            ..Self::default()
+        }
+    }
+
     pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
