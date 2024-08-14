@@ -151,10 +151,7 @@ impl Transaction {
         } = self
         {
             let mut column = widget::column![
-                widget::row![
-                    widget::text("Value: "),
-                    utils::colored_currency_display(&transaction.amount())
-                ],
+                widget::row![widget::text!("Value: {}", transaction.amount())],
                 widget::text!("Name: {}", transaction.title()),
                 utils::link(widget::text!("Source: {}", source))
                     .on_press(Message::ViewAccount(*source.id())),
