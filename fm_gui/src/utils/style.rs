@@ -26,3 +26,30 @@ pub fn button_link_style(
         ..Default::default()
     }
 }
+
+pub fn text_input_danger(
+    theme: &iced::Theme,
+    status: widget::text_input::Status,
+) -> widget::text_input::Style {
+    let mut style = widget::text_input::default(theme, status);
+    style.border.color = theme.palette().danger;
+    style
+}
+
+pub fn text_input_primary(
+    theme: &iced::Theme,
+    status: widget::text_input::Status,
+) -> widget::text_input::Style {
+    let mut style = widget::text_input::default(theme, status);
+    style.border.color = theme.palette().primary;
+    style
+}
+
+pub fn text_input_success(
+    theme: &iced::Theme,
+    status: widget::text_input::Status,
+) -> widget::text_input::Style {
+    let mut style = widget::text_input::default(theme, status);
+    style.border.color = theme.palette().success;
+    style
+}

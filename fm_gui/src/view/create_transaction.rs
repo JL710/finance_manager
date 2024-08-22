@@ -332,6 +332,23 @@ impl CreateTransactionView {
             );
         }
 
+        let source_acc_style = if let Some(acc) = &self.source_input {
+            match acc {
+                SelectedAccount::Account(_) => utils::style::text_input_success,
+                SelectedAccount::New(_) => utils::style::text_input_primary,
+            }
+        } else {
+            utils::style::text_input_danger
+        };
+        let destination_acc_style = if let Some(acc) = &self.destination_input {
+            match acc {
+                SelectedAccount::Account(_) => utils::style::text_input_success,
+                SelectedAccount::New(_) => utils::style::text_input_primary,
+            }
+        } else {
+            utils::style::text_input_danger
+        };
+
         widget::column![
             utils::heading("Create Transaction", utils::HeadingLevel::H1),
             utils::labeled_entry("Amount", &self.amount_input, Message::AmountInput),
@@ -351,6 +368,7 @@ impl CreateTransactionView {
                     Message::SourceSelected
                 )
                 .on_input(Message::SourceInput)
+                .input_style(source_acc_style)
             ]
             .spacing(10),
             widget::row![
@@ -362,6 +380,7 @@ impl CreateTransactionView {
                     Message::DestinationSelected
                 )
                 .on_input(Message::DestinationInput)
+                .input_style(destination_acc_style)
             ]
             .spacing(10),
             widget::row![
