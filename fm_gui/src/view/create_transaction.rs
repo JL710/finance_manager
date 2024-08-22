@@ -430,6 +430,16 @@ impl CreateTransactionView {
                 if source_input == destination_input {
                     return false;
                 }
+                if let SelectedAccount::Account(fm_core::account::Account::BookCheckingAccount(_)) =
+                    source_input
+                {
+                    if let SelectedAccount::Account(
+                        fm_core::account::Account::BookCheckingAccount(_),
+                    ) = destination_input
+                    {
+                        return false; // can not be both a book checking account
+                    }
+                }
             }
         }
         true
@@ -462,7 +472,7 @@ impl CreateTransactionView {
                 SelectedAccount::New(name) => finance_manager
                     .lock()
                     .await
-                    .create_asset_account(name, None, None, None, fm_core::Currency::default())
+                    .create_book_checking_account(name, None, None, None)
                     .await
                     .unwrap()
                     .id(),
@@ -473,7 +483,7 @@ impl CreateTransactionView {
                 SelectedAccount::New(name) => finance_manager
                     .lock()
                     .await
-                    .create_asset_account(name, None, None, None, fm_core::Currency::default())
+                    .create_book_checking_account(name, None, None, None)
                     .await
                     .unwrap()
                     .id(),
