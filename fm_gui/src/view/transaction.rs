@@ -232,7 +232,9 @@ impl Transaction {
                     widget::Space::with_width(iced::Length::Fill),
                     widget::column![
                         widget::button("Edit").on_press(Message::Edit),
-                        widget::button("Delete").on_press(Message::Delete),
+                        widget::button("Delete")
+                            .on_press(Message::Delete)
+                            .style(widget::button::danger),
                         widget::button("New Bill").on_press(Message::NewBill)
                     ]
                     .spacing(10)
