@@ -131,6 +131,15 @@ impl Transaction {
                 }
             }
             Message::Delete => {
+                match rfd::MessageDialog::new()
+                    .set_title("Delete Transaction")
+                    .set_description("Are you sure you want to delete this transaction?")
+                    .set_buttons(rfd::MessageButtons::YesNo)
+                    .show()
+                {
+                    rfd::MessageDialogResult::Yes => (),
+                    _ => return Action::None,
+                }
                 if let Self::Loaded { transaction, .. } = self {
                     let id = *transaction.id();
                     Action::Delete(iced::Task::future(async move {
