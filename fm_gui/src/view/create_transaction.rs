@@ -430,16 +430,6 @@ impl CreateTransactionView {
                 if source_input == destination_input {
                     return false;
                 }
-                if let SelectedAccount::Account(fm_core::account::Account::BookCheckingAccount(_)) =
-                    source_input
-                {
-                    if let SelectedAccount::Account(
-                        fm_core::account::Account::BookCheckingAccount(_),
-                    ) = destination_input
-                    {
-                        return false; // can not be both a book checking account
-                    }
-                }
             }
         }
         true
