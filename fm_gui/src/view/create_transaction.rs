@@ -42,7 +42,7 @@ pub enum Message {
     AmountInput(String),
     TitleInput(String),
     DescriptionInput(widget::text_editor::Action),
-    DateInput(String),
+    DateInput(Option<fm_core::DateTime>),
     SourceInput(String),
     SourceSelected(SelectedAccount),
     DestinationInput(String),
@@ -82,7 +82,7 @@ pub struct CreateTransactionView {
     destination_state: widget::combo_box::State<SelectedAccount>,
     budget_state: widget::combo_box::State<fm_core::Budget>,
     budget_input: Option<(fm_core::Budget, fm_core::Sign)>,
-    date_input: String,
+    date_input: Option<fm_core::DateTime>,
     metadata: std::collections::HashMap<String, String>,
     available_categories: Vec<fm_core::Category>,
     selected_categories: Vec<(fm_core::Id, fm_core::Sign)>,
@@ -105,7 +105,7 @@ impl CreateTransactionView {
                 destination_state: widget::combo_box::State::new(Vec::new()),
                 budget_state: widget::combo_box::State::new(Vec::new()),
                 budget_input: None,
-                date_input: String::new(),
+                date_input: None,
                 metadata: std::collections::HashMap::new(),
                 selected_categories: Vec::new(),
                 available_categories: Vec::new(),
@@ -285,7 +285,7 @@ impl CreateTransactionView {
                 );
                 self.budget_input = budget.map(|x| (x, transaction.budget().unwrap().1));
                 self.budget_state = widget::combo_box::State::new(budgets);
-                self.date_input = transaction.date().format("%d.%m.%Y").to_string();
+                self.date_input = Some(transaction.date().clone());
                 self.metadata.clone_from(transaction.metadata());
                 self.available_categories = available_categories;
                 self.selected_categories = transaction.categories().to_vec();
@@ -358,7 +358,13 @@ impl CreateTransactionView {
                 widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
             ]
             .spacing(10),
-            utils::labeled_entry("Date", &self.date_input, Message::DateInput),
+            widget::row![
+                "Date: ",
+                utils::DateInput::new(Message::DateInput)
+                    .default_value(self.date_input)
+                    .required(true)
+            ]
+            .width(iced::Fill),
             widget::row![
                 widget::text("Source"),
                 widget::ComboBox::new(
@@ -432,7 +438,7 @@ impl CreateTransactionView {
             return false;
         }
         // check if date is empty
-        if self.date_input.is_empty() || utils::parse_to_datetime(&self.date_input).is_err() {
+        if self.date_input.is_none() {
             return false;
         }
         // check if source and destination are empty
@@ -472,7 +478,7 @@ impl CreateTransactionView {
             .budget_input
             .as_ref()
             .map(|budget| (*budget.0.id(), budget.1));
-        let date = utils::parse_to_datetime(&self.date_input).unwrap();
+        let date = self.date_input.clone().unwrap();
         let metadata = self.metadata.clone();
         let categories = self.selected_categories.clone();
         iced::Task::future(async move {

@@ -234,7 +234,7 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Due Date: ",
-                utils::DateInput::new(Message::DueDateChanged).into_element(),
+                utils::DateInput::new(Message::DueDateChanged).default_value(self.due_date.clone()),
             ]
             .width(iced::Length::Fill)
             .spacing(10),
