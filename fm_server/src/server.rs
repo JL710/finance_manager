@@ -4,6 +4,7 @@ use serde_json::{json, Value};
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -516,7 +517,7 @@ async fn create_bill(
         String,
         Option<String>,
         fm_core::Currency,
-        Vec<(fm_core::Id, fm_core::Sign)>,
+        HashMap<fm_core::Id, fm_core::Sign>,
         Option<fm_core::DateTime>,
     )>,
 ) -> Json<Value> {
@@ -553,7 +554,7 @@ async fn update_bill(
         String,
         Option<String>,
         fm_core::Currency,
-        Vec<(fm_core::Id, fm_core::Sign)>,
+        HashMap<fm_core::Id, fm_core::Sign>,
         Option<fm_core::DateTime>,
     )>,
 ) -> Json<Value> {

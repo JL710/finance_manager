@@ -96,7 +96,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> Result<Bill> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
@@ -113,7 +113,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> Result<()> {
         for bill in &mut self.bills {

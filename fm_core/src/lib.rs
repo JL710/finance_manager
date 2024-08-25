@@ -254,7 +254,7 @@ pub struct Bill {
     name: String,
     description: Option<String>,
     value: Currency,
-    transactions: Vec<(Id, Sign)>,
+    transactions: HashMap<Id, Sign>,
     due_date: Option<DateTime>,
 }
 
@@ -264,7 +264,7 @@ impl Bill {
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> Self {
         Self {
@@ -293,7 +293,7 @@ impl Bill {
         &self.value
     }
 
-    pub fn transactions(&self) -> &Vec<(Id, Sign)> {
+    pub fn transactions(&self) -> &HashMap<Id, Sign> {
         &self.transactions
     }
 

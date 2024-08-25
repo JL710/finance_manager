@@ -73,7 +73,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> impl Future<Output = Result<Bill>> + MaybeSend;
 
@@ -83,7 +83,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> impl Future<Output = Result<()>> + MaybeSend;
 

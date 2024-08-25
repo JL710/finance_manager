@@ -285,7 +285,7 @@ impl CreateTransactionView {
                 );
                 self.budget_input = budget.map(|x| (x, transaction.budget().unwrap().1));
                 self.budget_state = widget::combo_box::State::new(budgets);
-                self.date_input = Some(transaction.date().clone());
+                self.date_input = Some(*transaction.date());
                 self.metadata.clone_from(transaction.metadata());
                 self.available_categories = available_categories;
                 self.selected_categories = transaction.categories().to_vec();
@@ -478,7 +478,7 @@ impl CreateTransactionView {
             .budget_input
             .as_ref()
             .map(|budget| (*budget.0.id(), budget.1));
-        let date = self.date_input.clone().unwrap();
+        let date = self.date_input.unwrap();
         let metadata = self.metadata.clone();
         let categories = self.selected_categories.clone();
         iced::Task::future(async move {

@@ -69,7 +69,7 @@ where
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> Result<impl Future<Output = Result<Bill>> + MaybeSend + '_> {
         let mut ids = Vec::with_capacity(transactions.len());
@@ -94,7 +94,7 @@ where
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> Result<impl Future<Output = Result<()>> + MaybeSend + '_> {
         let mut ids = Vec::with_capacity(transactions.len());

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct Client {
@@ -121,7 +122,7 @@ impl fm_core::FinanceManager for Client {
         name: String,
         description: Option<String>,
         value: fm_core::Currency,
-        transactions: Vec<(fm_core::Id, fm_core::Sign)>,
+        transactions: HashMap<fm_core::Id, fm_core::Sign>,
         due_date: Option<fm_core::DateTime>,
     ) -> Result<fm_core::Bill> {
         client_post_macro!(
@@ -137,7 +138,7 @@ impl fm_core::FinanceManager for Client {
         name: String,
         description: Option<String>,
         value: fm_core::Currency,
-        transactions: Vec<(fm_core::Id, fm_core::Sign)>,
+        transactions: HashMap<fm_core::Id, fm_core::Sign>,
         due_date: Option<fm_core::DateTime>,
     ) -> Result<()> {
         client_post_macro!(

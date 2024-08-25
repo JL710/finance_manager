@@ -122,12 +122,11 @@ impl CreateBillView {
                 };
                 let due_date = self.due_date;
                 let value = self.value.clone().unwrap();
-                let transactions = self
-                    .transactions
-                    .clone()
-                    .into_iter()
-                    .map(|(transaction, sign)| (*transaction.id(), sign))
-                    .collect::<Vec<_>>();
+                let mut transactions =
+                    std::collections::HashMap::with_capacity(self.transactions.len());
+                for transaction in &self.transactions {
+                    transactions.insert(*transaction.0.id(), transaction.1);
+                }
                 if let Some(id) = id_option {
                     return Action::Task(iced::Task::future(async move {
                         finance_manager
@@ -234,7 +233,7 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Due Date: ",
-                utils::DateInput::new(Message::DueDateChanged).default_value(self.due_date.clone()),
+                utils::DateInput::new(Message::DueDateChanged).default_value(self.due_date),
             ]
             .width(iced::Length::Fill)
             .spacing(10),

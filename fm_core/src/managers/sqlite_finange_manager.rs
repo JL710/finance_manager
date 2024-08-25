@@ -107,7 +107,7 @@ impl TryInto<Bill> for BillSignature {
             self.1,
             self.2,
             Currency::from_currency_id(self.4, BigDecimal::from_f64(self.3).unwrap())?,
-            Vec::new(),
+            HashMap::new(),
             None,
         ))
     }
@@ -272,7 +272,7 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> Result<Bill> {
         let connection = self.connect().await;
@@ -295,7 +295,7 @@ impl FinanceManager for SqliteFinanceManager {
                 (
                     bill_id,
                     transaction_pair.0,
-                    transaction_pair.1 == Sign::Positive,
+                    *transaction_pair.1 == Sign::Positive,
                 ),
             )?;
         }
@@ -316,7 +316,7 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         description: Option<String>,
         value: Currency,
-        transactions: Vec<(Id, Sign)>,
+        transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
     ) -> Result<()> {
         let connection = self.connect().await;
@@ -338,7 +338,11 @@ impl FinanceManager for SqliteFinanceManager {
         for transaction_pair in &transactions {
             connection.execute(
                 "INSERT INTO bill_transaction (bill_id, transaction_id, sign) VALUES (?1, ?2, ?3)",
-                (id, transaction_pair.0, transaction_pair.1 == Sign::Positive),
+                (
+                    id,
+                    transaction_pair.0,
+                    *transaction_pair.1 == Sign::Positive,
+                ),
             )?;
         }
 
@@ -1217,23 +1221,23 @@ fn get_categories_of_transaction(
 fn get_transactions_of_bill(
     connection: &rusqlite::Connection,
     bill_id: Id,
-) -> Result<Vec<(Id, Sign)>> {
-    let mut transactions = Vec::new();
+) -> Result<HashMap<Id, Sign>> {
     let mut statement =
         connection.prepare("SELECT transaction_id, sign FROM bill_transaction WHERE bill_id=?1")?;
     let rows: Vec<std::result::Result<(Id, bool), rusqlite::Error>> = statement
         .query_map((bill_id,), |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect();
+    let mut transactions = HashMap::with_capacity(rows.len());
     for row in rows {
         let row = row?;
-        transactions.push((
+        transactions.insert(
             row.0,
             if row.1 {
                 Sign::Positive
             } else {
                 Sign::Negative
             },
-        ));
+        );
     }
     Ok(transactions)
 }
