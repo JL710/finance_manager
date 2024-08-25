@@ -326,11 +326,21 @@ where
         self.finance_manager.get_budget(id)
     }
 
-    pub fn delete_transaction(
-        &mut self,
-        id: Id,
-    ) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
-        self.finance_manager.delete_transaction(id)
+    pub async fn delete_transaction(&mut self, id: Id) -> Result<()> {
+        for bill in self.get_bills().await? {
+            if bill.transactions().iter().any(|(x, _)| *x == id) {
+                self.update_bill(
+                    *bill.id(),
+                    bill.name().clone(),
+                    bill.description().to_owned(),
+                    bill.value().to_owned(),
+                    bill.transactions().to_owned(),
+                    bill.due_date().to_owned(),
+                )?
+                .await?;
+            }
+        }
+        self.finance_manager.delete_transaction(id).await
     }
 
     pub fn get_transactions(
