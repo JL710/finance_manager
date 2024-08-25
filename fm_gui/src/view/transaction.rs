@@ -214,12 +214,12 @@ impl Transaction {
                         widget::checkbox(
                             categories
                                 .iter()
-                                .find(|x| *x.id() == category.0)
+                                .find(|x| x.id() == category.0)
                                 .unwrap()
                                 .name(),
                             true,
                         ),
-                        widget::checkbox("Negative", category.1 == fm_core::Sign::Negative)
+                        widget::checkbox("Negative", *category.1 == fm_core::Sign::Negative)
                     ]
                     .spacing(10),
                 );

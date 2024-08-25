@@ -288,7 +288,11 @@ impl CreateTransactionView {
                 self.date_input = Some(*transaction.date());
                 self.metadata.clone_from(transaction.metadata());
                 self.available_categories = available_categories;
-                self.selected_categories = transaction.categories().to_vec();
+                self.selected_categories = transaction
+                    .categories()
+                    .iter()
+                    .map(|(k, v)| (*k, *v))
+                    .collect::<Vec<_>>();
             }
         }
         Action::None
@@ -480,7 +484,11 @@ impl CreateTransactionView {
             .map(|budget| (*budget.0.id(), budget.1));
         let date = self.date_input.unwrap();
         let metadata = self.metadata.clone();
-        let categories = self.selected_categories.clone();
+        let mut categories =
+            std::collections::HashMap::with_capacity(self.selected_categories.len());
+        for (id, sign) in &self.selected_categories {
+            categories.insert(*id, *sign);
+        }
         iced::Task::future(async move {
             let source_id = match source {
                 SelectedAccount::Account(acc) => *acc.id(),

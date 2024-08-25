@@ -231,7 +231,7 @@ async fn create_transaction(
         Option<(fm_core::Id, fm_core::Sign)>,
         fm_core::DateTime,
         std::collections::HashMap<String, String>,
-        Vec<(fm_core::Id, fm_core::Sign)>,
+        HashMap<fm_core::Id, fm_core::Sign>,
     )>,
 ) -> Json<Value> {
     let transaction = state
@@ -330,7 +330,7 @@ async fn update_transaction(
         Option<(fm_core::Id, fm_core::Sign)>,
         fm_core::DateTime,
         std::collections::HashMap<String, String>,
-        Vec<(fm_core::Id, fm_core::Sign)>,
+        HashMap<fm_core::Id, fm_core::Sign>,
     )>,
 ) -> Json<Value> {
     let transaction = state

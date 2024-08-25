@@ -321,7 +321,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         budget: Option<(fm_core::Id, fm_core::Sign)>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
-        categories: Vec<(fm_core::Id, fm_core::Sign)>,
+        categories: HashMap<fm_core::Id, fm_core::Sign>,
     ) -> Result<fm_core::Transaction> {
         match self {
             FinanceManagers::Server(client) => {
@@ -621,7 +621,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         budget: Option<(fm_core::Id, fm_core::Sign)>,
         date: fm_core::DateTime,
         metadata: std::collections::HashMap<String, String>,
-        categories: Vec<(fm_core::Id, fm_core::Sign)>,
+        categories: HashMap<fm_core::Id, fm_core::Sign>,
     ) -> Result<fm_core::Transaction> {
         match self {
             FinanceManagers::Server(client) => {

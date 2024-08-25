@@ -243,7 +243,7 @@ impl FinanceManager for RamFinanceManager {
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> Result<Transaction> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
@@ -283,7 +283,7 @@ impl FinanceManager for RamFinanceManager {
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> Result<Transaction> {
         let new_transaction = Transaction::new(
             id,
@@ -438,7 +438,7 @@ impl FinanceManager for RamFinanceManager {
 
         // remove from transactions
         for transaction in &mut self.transactions {
-            transaction.categories.retain(|x| x.0 != id);
+            transaction.categories.retain(|x, _| *x != id);
         }
 
         Ok(())
@@ -453,7 +453,7 @@ impl FinanceManager for RamFinanceManager {
         transactions.retain(|x| {
             x.categories
                 .iter()
-                .map(|x| x.0)
+                .map(|x| *x.0)
                 .collect::<Vec<Id>>()
                 .contains(&id)
         });

@@ -153,7 +153,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> impl Future<Output = Result<Transaction>> + MaybeSend;
 
     fn update_transaction(
@@ -167,7 +167,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> impl Future<Output = Result<Transaction>> + MaybeSend;
 
     fn create_budget(
@@ -289,11 +289,11 @@ pub trait FinanceManager: Send + Clone + Sized {
             Ok(sum_up_transactions_by_day(
                 transactions_future.await?,
                 |transaction| {
-                    transaction
+                    *transaction
                         .categories()
                         .clone()
                         .iter()
-                        .find(|(x, _)| *x == id)
+                        .find(|(x, _)| **x == id)
                         .unwrap()
                         .1
                 },

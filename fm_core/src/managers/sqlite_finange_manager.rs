@@ -47,7 +47,7 @@ impl TryInto<Transaction> for TransactionSignature {
             }),
             DateTime::from_timestamp(self.9, 0).unwrap(),
             serde_json::from_str(&self.10)?,
-            Vec::new(),
+            HashMap::new(),
         ))
     }
 }
@@ -563,7 +563,7 @@ impl FinanceManager for SqliteFinanceManager {
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> Result<Transaction> {
         let connection = self.connect().await;
 
@@ -707,7 +707,7 @@ impl FinanceManager for SqliteFinanceManager {
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> Result<Transaction> {
         let connection = self.connect().await;
 
@@ -1167,7 +1167,7 @@ fn create_book_checking_account(
 fn set_categories_for_transaction(
     connection: &rusqlite::Connection,
     transaction_id: Id,
-    categories: &Vec<(Id, Sign)>,
+    categories: &HashMap<Id, Sign>,
 ) -> Result<()> {
     connection.execute(
         "DELETE FROM transaction_category WHERE transaction_id=?1",
@@ -1176,7 +1176,7 @@ fn set_categories_for_transaction(
     for category in categories {
         connection.execute(
             "INSERT INTO transaction_category (transaction_id, category_id, sign) VALUES (?1, ?2, ?3)",
-            (transaction_id, category.0, category.1 == Sign::Positive),
+            (transaction_id, category.0, *category.1 == Sign::Positive),
         )?;
     }
     Ok(())

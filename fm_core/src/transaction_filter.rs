@@ -116,7 +116,7 @@ impl TransactionFilter {
                     (transaction
                         .categories
                         .iter()
-                        .filter(|x| x.0 == category.1)
+                        .filter(|x| *x.0 == category.1)
                         .count()
                         >= 1)
                         != category.0

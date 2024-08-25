@@ -212,7 +212,7 @@ where
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> Result<impl Future<Output = Result<Transaction>> + MaybeSend + '_> {
         if amount.get_eur_num() < 0.0 {
             anyhow::bail!("Amount must be positive")
@@ -241,7 +241,7 @@ where
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> Result<impl Future<Output = Result<Transaction>> + MaybeSend + '_> {
         if amount.get_eur_num() < 0.0 {
             anyhow::bail!("Amount must be positive")
@@ -460,11 +460,11 @@ where
             Ok(sum_up_transactions_by_day(
                 transactions_future.await?,
                 |transaction| {
-                    transaction
+                    *transaction
                         .categories()
                         .clone()
                         .iter()
-                        .find(|(x, _)| *x == id)
+                        .find(|(x, _)| **x == id)
                         .unwrap()
                         .1
                 },

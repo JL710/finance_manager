@@ -138,7 +138,7 @@ pub struct Transaction {
     budget: Option<(Id, Sign)>,
     date: DateTime,
     metadata: HashMap<String, String>,
-    categories: Vec<(Id, Sign)>,
+    categories: HashMap<Id, Sign>,
 }
 
 impl PartialEq for Transaction {
@@ -158,7 +158,7 @@ impl Transaction {
         budget: Option<(Id, Sign)>,
         date: DateTime,
         metadata: HashMap<String, String>,
-        categories: Vec<(Id, Sign)>,
+        categories: HashMap<Id, Sign>,
     ) -> Self {
         Self {
             id,
@@ -223,7 +223,7 @@ impl Transaction {
         &self.metadata
     }
 
-    pub fn categories(&self) -> &Vec<(Id, Sign)> {
+    pub fn categories(&self) -> &HashMap<Id, Sign> {
         &self.categories
     }
 }
