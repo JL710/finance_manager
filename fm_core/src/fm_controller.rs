@@ -297,7 +297,7 @@ where
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> impl Future<Output = Result<Budget>> + MaybeSend + '_ {
         self.finance_manager
             .create_budget(name, description, total_value, timespan)
@@ -309,7 +309,7 @@ where
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> impl Future<Output = Result<Budget>> + MaybeSend + '_ {
         self.finance_manager
             .update_budget(id, name, description, total_value, timespan)

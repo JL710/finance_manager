@@ -52,29 +52,29 @@ impl TryInto<Transaction> for TransactionSignature {
     }
 }
 
-type RecouringSignature = (i32, i64, Option<i64>);
+type RecurringSignature = (i32, i64, Option<i64>);
 
-impl From<Recouring> for RecouringSignature {
-    fn from(val: Recouring) -> Self {
+impl From<Recurring> for RecurringSignature {
+    fn from(val: Recurring) -> Self {
         match val {
-            Recouring::DayInMonth(num) => (1, num as i64, None),
-            Recouring::Days(datetime, days) => (2, datetime.timestamp(), Some(days as i64)),
-            Recouring::Yearly(num1, num2) => (3, num1 as i64, Some(num2 as i64)),
+            Recurring::DayInMonth(num) => (1, num as i64, None),
+            Recurring::Days(datetime, days) => (2, datetime.timestamp(), Some(days as i64)),
+            Recurring::Yearly(num1, num2) => (3, num1 as i64, Some(num2 as i64)),
         }
     }
 }
 
-impl TryFrom<RecouringSignature> for Recouring {
+impl TryFrom<RecurringSignature> for Recurring {
     type Error = anyhow::Error;
 
-    fn try_from(value: RecouringSignature) -> Result<Self> {
+    fn try_from(value: RecurringSignature) -> Result<Self> {
         match value.0 {
-            1 => Ok(Recouring::DayInMonth(value.1 as u16)),
-            2 => Ok(Recouring::Days(
+            1 => Ok(Recurring::DayInMonth(value.1 as u16)),
+            2 => Ok(Recurring::Days(
                 DateTime::from_timestamp(value.1, 0).unwrap(),
                 value.2.unwrap() as usize,
             )),
-            3 => Ok(Recouring::Yearly(value.1 as u8, value.2.unwrap() as u16)),
+            3 => Ok(Recurring::Yearly(value.1 as u8, value.2.unwrap() as u16)),
             _ => anyhow::bail!("invalid id"),
         }
     }
@@ -91,7 +91,7 @@ impl TryInto<Budget> for BudgetSignature {
             self.1,
             self.2,
             Currency::from_currency_id(self.4, BigDecimal::from_f64(self.3).unwrap())?,
-            Recouring::try_from((self.5, self.6, self.7))?,
+            Recurring::try_from((self.5, self.6, self.7))?,
         ))
     }
 }
@@ -619,7 +619,7 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> Result<Budget> {
         let connection = self.connect().await;
 
@@ -822,7 +822,7 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> Result<Budget> {
         let connection = self.connect().await;
         let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(timespan.clone());

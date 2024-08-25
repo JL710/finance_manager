@@ -175,7 +175,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> impl Future<Output = Result<Budget>> + MaybeSend;
 
     fn update_budget(
@@ -184,7 +184,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> impl Future<Output = Result<Budget>> + MaybeSend;
 
     fn get_budgets(&self) -> impl Future<Output = Result<Vec<Budget>>> + MaybeSend;

@@ -41,7 +41,7 @@ pub struct Budget {
     name: String,
     description: Option<String>,
     total_value: Currency,
-    timespan: Recouring,
+    timespan: Recurring,
 }
 
 impl Budget {
@@ -50,7 +50,7 @@ impl Budget {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> Self {
         Self {
             id,
@@ -76,7 +76,7 @@ impl Budget {
         self.total_value.clone()
     }
 
-    pub fn timespan(&self) -> &Recouring {
+    pub fn timespan(&self) -> &Recurring {
         &self.timespan
     }
 
@@ -229,7 +229,7 @@ impl Transaction {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Recouring {
+pub enum Recurring {
     /// start time and days
     Days(DateTime, usize),
     /// i.e. 3. of each month
@@ -238,7 +238,7 @@ pub enum Recouring {
     Yearly(u8, u16),
 }
 
-impl std::fmt::Display for Recouring {
+impl std::fmt::Display for Recurring {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Yearly(month, day) => write!(f, "Yearly on {}.{}", day, month),
@@ -357,14 +357,14 @@ pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) ->
         .unwrap();
 
     let (start, end) = match budget.timespan() {
-        Recouring::Days(start, days) => {
+        Recurring::Days(start, days) => {
             let since_start = now - start;
             let a: i64 = since_start.num_days() / *days as i64;
             let timespan_start = *start + chrono::Duration::days(a * *days as i64);
             let timespan_end = timespan_start + chrono::Duration::days(*days as i64);
             (timespan_start, timespan_end)
         }
-        Recouring::DayInMonth(day) => {
+        Recurring::DayInMonth(day) => {
             let day_in_current_month = now.with_day(*day as u32).unwrap();
             if day_in_current_month > now {
                 (
@@ -384,7 +384,7 @@ pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) ->
                 )
             }
         }
-        Recouring::Yearly(month, day) => {
+        Recurring::Yearly(month, day) => {
             let current_year = now.year();
             let in_current_year = chrono::Utc
                 .with_ymd_and_hms(current_year, *month as u32, *day as u32, 0, 0, 0)
@@ -430,7 +430,7 @@ mod tests {
                 "Test".to_string(),
                 None,
                 Currency::default(),
-                Recouring::DayInMonth(1),
+                Recurring::DayInMonth(1),
             ),
             0,
             chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),
@@ -456,7 +456,7 @@ mod tests {
                 "Test".to_string(),
                 None,
                 Currency::default(),
-                Recouring::DayInMonth(1),
+                Recurring::DayInMonth(1),
             ),
             2,
             chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),
@@ -482,7 +482,7 @@ mod tests {
                 "Test".to_string(),
                 None,
                 Currency::default(),
-                Recouring::DayInMonth(1),
+                Recurring::DayInMonth(1),
             ),
             -2,
             chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),

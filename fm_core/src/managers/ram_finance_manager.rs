@@ -1,5 +1,5 @@
 use crate::{
-    account, AccountId, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recouring,
+    account, AccountId, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recurring,
     Sign, Timespan, Transaction,
 };
 use anyhow::Result;
@@ -204,7 +204,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> Result<Budget> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
@@ -359,7 +359,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recouring,
+        timespan: Recurring,
     ) -> Result<Budget> {
         let new_budget = Budget {
             id,

@@ -148,7 +148,7 @@ impl Budget {
                 widget::text!("Name: {}", budget.name()),
                 widget::text!("Total Value: {}", budget.total_value()),
                 widget::text!("Current Value: {}", current_value),
-                widget::text!("Recouring: {}", budget.timespan())
+                widget::text!("Recurring: {}", budget.timespan())
             ]
             .spacing(10);
 

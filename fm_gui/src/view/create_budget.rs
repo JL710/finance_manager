@@ -16,9 +16,9 @@ pub enum Message {
     NameInput(String),
     DescriptionInput(widget::text_editor::Action),
     ValueInput(String),
-    RecouringPickList(String),
-    RecouringFirstInput(String),
-    RecouringSecondInput(String),
+    RecurringPickList(String),
+    RecurringFirstInput(String),
+    RecurringSecondInput(String),
     Submit,
     BudgetCreated(fm_core::Id),
     Initialize(Option<fm_core::Budget>),
@@ -31,16 +31,16 @@ enum Recourung {
     Yearly(String, String), // month and day
 }
 
-impl From<Recourung> for fm_core::Recouring {
+impl From<Recourung> for fm_core::Recurring {
     fn from(value: Recourung) -> Self {
         match value {
-            Recourung::Days(start, days) => fm_core::Recouring::Days(
+            Recourung::Days(start, days) => fm_core::Recurring::Days(
                 utils::parse_to_datetime(&start).unwrap(),
                 days.parse().unwrap(),
             ),
-            Recourung::DayInMonth(day) => fm_core::Recouring::DayInMonth(day.parse().unwrap()),
+            Recourung::DayInMonth(day) => fm_core::Recurring::DayInMonth(day.parse().unwrap()),
             Recourung::Yearly(month, day) => {
-                fm_core::Recouring::Yearly(month.parse().unwrap(), day.parse().unwrap())
+                fm_core::Recurring::Yearly(month.parse().unwrap(), day.parse().unwrap())
             }
         }
     }
@@ -64,8 +64,8 @@ pub struct CreateBudgetView {
     name_input: String,
     description_input: widget::text_editor::Content,
     value_input: String,
-    recouring_inputs: Recourung,
-    recouring_state: Option<String>,
+    recurring_inputs: Recourung,
+    recurring_state: Option<String>,
     submitted: bool,
 }
 
@@ -76,8 +76,8 @@ impl Default for CreateBudgetView {
             name_input: String::new(),
             description_input: widget::text_editor::Content::default(),
             value_input: String::new(),
-            recouring_inputs: Recourung::Days(String::new(), String::new()),
-            recouring_state: None,
+            recurring_inputs: Recourung::Days(String::new(), String::new()),
+            recurring_state: None,
             submitted: false,
         }
     }
@@ -92,19 +92,19 @@ impl CreateBudgetView {
                 budget.description().unwrap_or_default(),
             ),
             value_input: budget.total_value().to_num_string(),
-            recouring_inputs: match budget.timespan() {
-                fm_core::Recouring::Days(start, days) => {
+            recurring_inputs: match budget.timespan() {
+                fm_core::Recurring::Days(start, days) => {
                     Recourung::Days(start.format("%d.%m.%Y").to_string(), days.to_string())
                 }
-                fm_core::Recouring::DayInMonth(day) => Recourung::DayInMonth(day.to_string()),
-                fm_core::Recouring::Yearly(month, day) => {
+                fm_core::Recurring::DayInMonth(day) => Recourung::DayInMonth(day.to_string()),
+                fm_core::Recurring::Yearly(month, day) => {
                     Recourung::Yearly(month.to_string(), day.to_string())
                 }
             },
-            recouring_state: match budget.timespan() {
-                fm_core::Recouring::Days(_, _) => Some("Days".to_string()),
-                fm_core::Recouring::DayInMonth(_) => Some("Day in month".to_string()),
-                fm_core::Recouring::Yearly(_, _) => Some("Yearly".to_string()),
+            recurring_state: match budget.timespan() {
+                fm_core::Recurring::Days(_, _) => Some("Days".to_string()),
+                fm_core::Recurring::DayInMonth(_) => Some("Day in month".to_string()),
+                fm_core::Recurring::Yearly(_, _) => Some("Yearly".to_string()),
             },
             submitted: false,
         }
@@ -156,7 +156,7 @@ impl CreateBudgetView {
                 let name_input = self.name_input.clone();
                 let description_input = self.description_input.text();
                 let value_input = self.value_input.clone();
-                let recouring_inputs = self.recouring_inputs.clone();
+                let recurring_inputs = self.recurring_inputs.clone();
                 return Action::Task(iced::Task::future(async move {
                     let budget = match option_id {
                         Some(id) => finance_manager
@@ -171,7 +171,7 @@ impl CreateBudgetView {
                                     Some(description_input)
                                 },
                                 fm_core::Currency::from(value_input.parse::<f64>().unwrap()),
-                                recouring_inputs.into(),
+                                recurring_inputs.into(),
                             )
                             .await
                             .unwrap(),
@@ -186,7 +186,7 @@ impl CreateBudgetView {
                                     Some(description_input)
                                 },
                                 fm_core::Currency::from(value_input.parse::<f64>().unwrap()),
-                                recouring_inputs.into(),
+                                recurring_inputs.into(),
                             )
                             .await
                             .unwrap(),
@@ -194,22 +194,22 @@ impl CreateBudgetView {
                     Message::BudgetCreated(*budget.id())
                 }));
             }
-            Message::RecouringPickList(recouring) => {
-                self.recouring_state = Some(recouring.clone());
-                match recouring.as_str() {
+            Message::RecurringPickList(recurring) => {
+                self.recurring_state = Some(recurring.clone());
+                match recurring.as_str() {
                     "Days" => {
-                        self.recouring_inputs = Recourung::Days(String::new(), String::new());
+                        self.recurring_inputs = Recourung::Days(String::new(), String::new());
                     }
                     "Day in month" => {
-                        self.recouring_inputs = Recourung::DayInMonth(String::new());
+                        self.recurring_inputs = Recourung::DayInMonth(String::new());
                     }
                     "Yearly" => {
-                        self.recouring_inputs = Recourung::Yearly(String::new(), String::new());
+                        self.recurring_inputs = Recourung::Yearly(String::new(), String::new());
                     }
                     _ => {}
                 }
             }
-            Message::RecouringFirstInput(content) => match &mut self.recouring_inputs {
+            Message::RecurringFirstInput(content) => match &mut self.recurring_inputs {
                 Recourung::Days(start, _) => {
                     *start = content;
                 }
@@ -220,7 +220,7 @@ impl CreateBudgetView {
                     *month = content;
                 }
             },
-            Message::RecouringSecondInput(content) => match &mut self.recouring_inputs {
+            Message::RecurringSecondInput(content) => match &mut self.recurring_inputs {
                 Recourung::Days(_, days) => {
                     *days = content;
                 }
@@ -247,7 +247,7 @@ impl CreateBudgetView {
             ]
             .spacing(10),
             utils::labeled_entry("Value", &self.value_input, Message::ValueInput),
-            self.generate_recouring_view(),
+            self.generate_recurring_view(),
             widget::button::Button::new("Submit").on_press_maybe(if self.submittable() {
                 Some(Message::Submit)
             } else {
@@ -258,36 +258,36 @@ impl CreateBudgetView {
         .into()
     }
 
-    fn generate_recouring_view(&self) -> iced::Element<'_, Message> {
+    fn generate_recurring_view(&self) -> iced::Element<'_, Message> {
         let mut row = widget::row![widget::PickList::new(
             vec!["Days", "Day in month", "Yearly"],
-            self.recouring_state.as_deref(),
-            |x| Message::RecouringPickList(x.to_string()),
+            self.recurring_state.as_deref(),
+            |x| Message::RecurringPickList(x.to_string()),
         ),];
-        match &self.recouring_inputs {
+        match &self.recurring_inputs {
             Recourung::Days(start, days) => {
                 row = row.push(
                     widget::text_input("Start Date day.month.year", start)
-                        .on_input(Message::RecouringFirstInput),
+                        .on_input(Message::RecurringFirstInput),
                 );
                 row = row
-                    .push(widget::text_input("Days", days).on_input(Message::RecouringSecondInput));
+                    .push(widget::text_input("Days", days).on_input(Message::RecurringSecondInput));
             }
             Recourung::DayInMonth(day) => {
                 row = row.push(
-                    widget::text_input("Day in Month", day).on_input(Message::RecouringFirstInput),
+                    widget::text_input("Day in Month", day).on_input(Message::RecurringFirstInput),
                 );
             }
             Recourung::Yearly(month, day) => {
                 row = row.push(
-                    widget::text_input("Month", month).on_input(Message::RecouringFirstInput),
+                    widget::text_input("Month", month).on_input(Message::RecurringFirstInput),
                 );
                 row = row
-                    .push(widget::text_input("Day", day).on_input(Message::RecouringSecondInput));
+                    .push(widget::text_input("Day", day).on_input(Message::RecurringSecondInput));
             }
         }
 
-        widget::column![widget::Text::new("Recouring"), row,].into()
+        widget::column![widget::Text::new("Recurring"), row,].into()
     }
 
     fn submittable(&self) -> bool {
@@ -297,8 +297,8 @@ impl CreateBudgetView {
         if self.value_input.parse::<f64>().is_err() {
             return false;
         }
-        // check if the recouring inputs are valid
-        match &self.recouring_inputs {
+        // check if the recurring inputs are valid
+        match &self.recurring_inputs {
             Recourung::Days(start, days) => {
                 if chrono::NaiveDate::parse_from_str(start, "%d.%m.%Y").is_err() {
                     return false;

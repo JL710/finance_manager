@@ -205,7 +205,7 @@ async fn create_budget(
         String,
         Option<String>,
         fm_core::Currency,
-        fm_core::Recouring,
+        fm_core::Recurring,
     )>,
 ) -> Json<Value> {
     let budget = state
@@ -366,7 +366,7 @@ async fn update_budget(
         String,
         Option<String>,
         fm_core::Currency,
-        fm_core::Recouring,
+        fm_core::Recurring,
     )>,
 ) -> Json<Value> {
     let budget = state
