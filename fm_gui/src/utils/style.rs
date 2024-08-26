@@ -12,21 +12,6 @@ pub fn container_style_background_strong(theme: &iced::Theme) -> widget::contain
     ))
 }
 
-pub fn button_link_style(
-    theme: &iced::Theme,
-    status: widget::button::Status,
-) -> widget::button::Style {
-    widget::button::Style {
-        background: None,
-        text_color: if status == widget::button::Status::Hovered {
-            theme.palette().text.scale_alpha(0.5)
-        } else {
-            theme.palette().text
-        },
-        ..Default::default()
-    }
-}
-
 pub fn text_input_danger(
     theme: &iced::Theme,
     status: widget::text_input::Status,

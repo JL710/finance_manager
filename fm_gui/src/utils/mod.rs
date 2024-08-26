@@ -129,7 +129,7 @@ pub fn link<'a, Message>(
 ) -> widget::Button<'a, Message> {
     widget::button(content)
         .padding(0)
-        .style(style::button_link_style)
+        .style(widget::button::text)
 }
 
 pub enum HeadingLevel {
