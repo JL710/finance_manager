@@ -73,7 +73,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
         fm_core::account::Account,
         fm_core::account::Account,
     )>,
-    amount_color: impl Fn(fm_core::Transaction) -> Option<bool> + 'a,
+    amount_positive: impl Fn(fm_core::Transaction) -> Option<bool> + 'a + Copy,
     view_transaction: impl Fn(fm_core::Id) -> Message + 'static,
     view_account: impl Fn(fm_core::Id) -> Message + 'static,
 ) -> iced::Element<'a, Message> {
@@ -91,7 +91,7 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
                     .on_press(view_transaction(*transaction.id()))
                     .into(),
                 widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
-                match amount_color(transaction.clone()) {
+                match amount_positive(transaction.clone()) {
                     Some(true) => colored_currency_display(&transaction.amount()),
                     Some(false) => colored_currency_display(&transaction.amount().negative()),
                     None => widget::text(transaction.amount().to_string()).into(),
@@ -114,10 +114,30 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
         "Destination".to_owned(),
         "Categories".to_owned(),
     ])
-    .columns_sortable([false, true, true, false, false, false])
-    .sort_by(|a, b, column_index| match column_index {
+    .columns_sortable([true, true, true, true, true, true])
+    .sort_by(move |a, b, column_index| match column_index {
+        0 => a.0.title().cmp(b.0.title()),
         1 => a.0.date().cmp(b.0.date()),
-        2 => a.0.amount().cmp(&b.0.amount()),
+        2 => {
+            let a = amount_positive(a.0.clone()).map_or(a.0.amount(), |positive| {
+                if positive {
+                    a.0.amount()
+                } else {
+                    a.0.amount().negative()
+                }
+            });
+            let b = amount_positive(b.0.clone()).map_or(b.0.amount(), |positive| {
+                if positive {
+                    b.0.amount()
+                } else {
+                    b.0.amount().negative()
+                }
+            });
+            a.cmp(&b)
+        }
+        3 => a.1.name().cmp(b.1.name()),
+        4 => a.2.name().cmp(b.2.name()),
+        5 => a.0.categories().len().cmp(&b.0.categories().len()),
         _ => std::cmp::Ordering::Equal,
     });
 
