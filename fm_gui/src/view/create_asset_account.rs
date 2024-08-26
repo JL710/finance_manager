@@ -18,7 +18,7 @@ pub enum Message {
     NoteInput(widget::text_editor::Action),
     IbanInput(String),
     BicInput(String),
-    OffsetInput(String),
+    OffsetInput(Option<fm_core::Currency>),
     Submit,
     AssetAccountCreated(fm_core::Id),
     Initialize(fm_core::account::AssetAccount),
@@ -31,7 +31,7 @@ pub struct CreateAssetAccountDialog {
     note_input: widget::text_editor::Content,
     iban_input: String,
     bic_input: String,
-    offset_input: String,
+    offset_input: Option<fm_core::Currency>,
     submitted: bool,
 }
 
@@ -76,7 +76,7 @@ impl CreateAssetAccountDialog {
                     .clone()
                     .map_or(String::new(), |iban| iban.to_string());
                 self.bic_input = account.bic().unwrap_or_default().to_string();
-                self.offset_input = account.offset().to_num_string();
+                self.offset_input = Some(account.offset().to_owned());
             }
             Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
             Message::NameInput(input) => self.name_input = input,
@@ -102,7 +102,7 @@ impl CreateAssetAccountDialog {
                 } else {
                     Some(self.bic_input.clone())
                 };
-                let offset = fm_core::Currency::Eur(self.offset_input.parse().unwrap());
+                let offset = self.offset_input.clone().unwrap();
                 let id = self.id;
                 return Action::Task(iced::Task::future(async move {
                     let account = if let Some(some_id) = id {
@@ -134,30 +134,20 @@ impl CreateAssetAccountDialog {
 
         widget::column![
             utils::heading("Create Asset Account", utils::HeadingLevel::H1),
-            widget::row![
-                "Name",
-                widget::text_input("Name", &self.name_input).on_input(Message::NameInput)
-            ]
-            .spacing(10),
+            utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
             widget::row![
                 "Notes",
                 widget::text_editor(&self.note_input).on_action(Message::NoteInput)
             ]
             .spacing(10),
-            widget::row![
-                "IBAN",
-                widget::text_input("IBAN", &self.iban_input).on_input(Message::IbanInput)
-            ]
-            .spacing(10),
-            widget::row![
-                "BIC",
-                widget::text_input("BIC", &self.bic_input).on_input(Message::BicInput)
-            ]
-            .spacing(10),
+            utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+            utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
             widget::row![
                 "Offset",
-                widget::text_input("Offset", &self.offset_input).on_input(Message::OffsetInput)
+                utils::CurrencyInput::new(self.offset_input.clone(), Message::OffsetInput)
+                    .required(true)
             ]
+            .width(iced::Fill)
             .spacing(10),
             widget::button("Submit").on_press_maybe(if self.can_submit() {
                 Some(Message::Submit)
@@ -173,7 +163,7 @@ impl CreateAssetAccountDialog {
         if self.name_input.is_empty() {
             return false;
         }
-        if self.offset_input.parse::<f64>().is_err() {
+        if self.offset_input.is_none() {
             return false;
         }
         true

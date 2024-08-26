@@ -39,7 +39,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    AmountInput(String),
+    AmountInput(Option<fm_core::Currency>),
     TitleInput(String),
     DescriptionInput(widget::text_editor::Action),
     DateInput(Option<fm_core::DateTime>),
@@ -73,7 +73,7 @@ pub enum Message {
 #[derive(Debug)]
 pub struct CreateTransactionView {
     id: Option<fm_core::Id>,
-    amount_input: String,
+    amount_input: Option<fm_core::Currency>,
     title_input: String,
     description_input: widget::text_editor::Content,
     source_input: Option<SelectedAccount>,
@@ -96,7 +96,7 @@ impl CreateTransactionView {
         (
             Self {
                 id: None,
-                amount_input: String::new(),
+                amount_input: None,
                 title_input: String::new(),
                 description_input: widget::text_editor::Content::new(),
                 source_input: None,
@@ -264,7 +264,7 @@ impl CreateTransactionView {
                 available_categories,
             ) => {
                 self.id = Some(*transaction.id());
-                self.amount_input = transaction.amount().get_eur_num().to_string();
+                self.amount_input = Some(transaction.amount());
                 self.title_input.clone_from(transaction.title());
                 self.description_input = widget::text_editor::Content::with_text(
                     transaction.description().unwrap_or_default(),
@@ -355,8 +355,14 @@ impl CreateTransactionView {
 
         widget::column![
             utils::heading("Create Transaction", utils::HeadingLevel::H1),
-            utils::labeled_entry("Amount", &self.amount_input, Message::AmountInput),
-            utils::labeled_entry("Title", &self.title_input, Message::TitleInput),
+            widget::row![
+                "Amount: ",
+                utils::CurrencyInput::new(self.amount_input.clone(), Message::AmountInput)
+                    .required(true)
+            ]
+            .width(iced::Fill)
+            .spacing(10),
+            utils::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
             widget::row![
                 "Description",
                 widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
@@ -437,8 +443,8 @@ impl CreateTransactionView {
         if self.title_input.is_empty() {
             return false;
         }
-        // check if amount is a valid number
-        if self.amount_input.parse::<f64>().is_err() {
+        // check if amount is a valid currency
+        if self.amount_input.is_none() {
             return false;
         }
         // check if date is empty
@@ -469,7 +475,7 @@ impl CreateTransactionView {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> iced::Task<fm_core::Transaction> {
         let option_id = self.id;
-        let amount = fm_core::Currency::from(self.amount_input.parse::<f64>().unwrap());
+        let amount = self.amount_input.clone().unwrap();
         let title = self.title_input.clone();
         let description = if self.description_input.text().trim().is_empty() {
             None

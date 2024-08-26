@@ -149,26 +149,14 @@ impl CreateBookCheckingAccount {
 
         widget::column![
             utils::heading("Create Book Checking Account", utils::HeadingLevel::H1),
-            widget::row![
-                widget::text("Name"),
-                widget::text_input("Name", &self.name_input).on_input(Message::NameInput)
-            ]
-            .spacing(10),
+            utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
             widget::row![
                 widget::text("Notes"),
                 widget::text_editor(&self.note_input).on_action(Message::NoteInput)
             ]
             .spacing(10),
-            widget::row![
-                widget::text("IBAN"),
-                widget::text_input("IBAN", &self.iban_input).on_input(Message::IbanInput)
-            ]
-            .spacing(10),
-            widget::row![
-                widget::text("BIC"),
-                widget::text_input("BIC", &self.bic_input).on_input(Message::BicInput)
-            ]
-            .spacing(10),
+            utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+            utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
             widget::button("Submit").on_press_maybe(if self.can_submit() {
                 Some(Message::Submit)
             } else {

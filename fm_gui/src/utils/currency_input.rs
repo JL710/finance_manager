@@ -1,6 +1,7 @@
 pub struct CurrencyInput<Message: Clone> {
     value: Option<fm_core::Currency>,
     produce_message: Box<dyn Fn(Option<fm_core::Currency>) -> Message>,
+    required: bool,
 }
 
 impl<'a, Message: Clone + 'a> CurrencyInput<Message> {
@@ -11,11 +12,19 @@ impl<'a, Message: Clone + 'a> CurrencyInput<Message> {
         Self {
             produce_message: Box::new(produce_message),
             value,
+            required: false,
         }
     }
 
-    pub fn into_element(self) -> iced::Element<'a, Message> {
-        iced::widget::component(self)
+    pub fn required(mut self, required: bool) -> Self {
+        self.required = required;
+        self
+    }
+}
+
+impl<'a, Message: Clone + 'a> From<CurrencyInput<Message>> for iced::Element<'a, Message> {
+    fn from(input: CurrencyInput<Message>) -> iced::Element<'a, Message> {
+        iced::widget::component(input)
     }
 }
 
@@ -53,15 +62,18 @@ impl<Message: Clone> iced::widget::Component<Message> for CurrencyInput<Message>
         } else {
             String::new()
         };
-        let correct = !&value.is_empty() && super::parse_number(&value).is_none();
+        let wrong = (!&value.is_empty() && super::parse_number(&value).is_none())
+            || (self.required && value.is_empty());
 
         iced::widget::row![
             iced::widget::text_input("Value", &value)
                 .on_input(Event::InputChanged)
                 .style(move |theme: &iced::Theme, status| {
                     let mut original = iced::widget::text_input::default(theme, status);
-                    if correct {
+                    if wrong {
                         original.border.color = theme.palette().danger;
+                    } else if self.required {
+                        original.border.color = theme.palette().success;
                     }
                     original
                 }),

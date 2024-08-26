@@ -18,13 +18,18 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,
     content: &str,
     message: impl Fn(String) -> Message + 'a,
+    required: bool,
 ) -> iced::Element<'a, Message> {
-    widget::row![
-        widget::text(name),
-        widget::text_input(name, content).on_input(message)
-    ]
-    .spacing(10)
-    .into()
+    let mut input = widget::text_input(name, content).on_input(message);
+    if required {
+        if content.is_empty() {
+            input = input.style(style::text_input_danger);
+        } else {
+            input = input.style(style::text_input_success);
+        }
+    }
+
+    widget::row![widget::text(name), input].spacing(10).into()
 }
 
 pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {

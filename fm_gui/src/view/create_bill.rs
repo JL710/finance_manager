@@ -213,11 +213,7 @@ impl CreateBillView {
 
         widget::column![
             utils::heading("Create Bill", utils::HeadingLevel::H1),
-            widget::row![
-                "Name: ",
-                widget::text_input("Name", &self.name_input).on_input(Message::NameInputChanged),
-            ]
-            .spacing(10),
+            utils::labeled_entry("Name", &self.name_input, Message::NameInputChanged, true),
             widget::row![
                 "Description: ",
                 widget::text_editor(&self.description_input)
@@ -226,8 +222,7 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Value: ",
-                utils::CurrencyInput::new(self.value.clone(), Message::ValueChanged).into_element(),
-                iced::widget::horizontal_space().width(iced::Length::Fixed(5.0))
+                utils::CurrencyInput::new(self.value.clone(), Message::ValueChanged).required(true)
             ]
             .width(iced::Length::Fill)
             .spacing(10),
