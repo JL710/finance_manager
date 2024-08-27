@@ -191,6 +191,7 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     fn get_budget(&self, id: Id) -> impl Future<Output = Result<Option<Budget>>> + MaybeSend;
 
+    /// This function should only delete the transaction it self.
     fn delete_transaction(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
 
     fn get_transactions(
