@@ -212,6 +212,14 @@ impl App {
                     view::account::Action::ViewAccount(id) => {
                         return self.switch_view_account(id);
                     }
+                    view::account::Action::AccountDeleted(acc_type) => match acc_type {
+                        view::account::AccountType::AssetAccount => {
+                            return self.switch_view_asset_account_overview();
+                        }
+                        view::account::AccountType::BookCheckingAccount => {
+                            return self.switch_view_book_checking_account_overview();
+                        }
+                    },
                 }
             }
             AppMessage::TransactionViewMessage(m) => {

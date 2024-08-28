@@ -4,6 +4,11 @@ use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
 
+pub enum AccountType {
+    AssetAccount,
+    BookCheckingAccount,
+}
+
 pub enum Action {
     None,
     ViewTransaction(fm_core::Id),
@@ -11,6 +16,7 @@ pub enum Action {
     EditAssetAccount(fm_core::account::AssetAccount),
     EditBookCheckingAccount(fm_core::account::BookCheckingAccount),
     Task(iced::Task<Message>),
+    AccountDeleted(AccountType),
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +41,8 @@ pub enum Message {
             fm_core::account::Account,
         )>,
     ),
+    Delete,
+    Deleted(Arc<std::result::Result<(), fm_core::DeleteAccountError>>),
 }
 
 #[derive(Debug, Clone)]
@@ -159,6 +167,60 @@ impl Account {
                     Message::SetTransactions(transaction_tuples)
                 }))
             }
+            Message::Delete => {
+                if let Self::Loaded { account, .. } = self {
+                    if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
+                        .set_title("Delete Account?")
+                        .set_description(format!(
+                            "Do you really want to delete the account {}?",
+                            account.name()
+                        ))
+                        .set_level(rfd::MessageLevel::Warning)
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .show()
+                    {
+                        return Action::None;
+                    }
+
+                    let acc_id = *account.id();
+                    Action::Task(iced::Task::future(async move {
+                        let mut locked_manager = finance_manager.lock().await;
+                        let result = locked_manager.delete_account(acc_id, false).await;
+                        Message::Deleted(Arc::new(result))
+                    }))
+                } else {
+                    Action::None
+                }
+            }
+            Message::Deleted(result) => match &*result {
+                Ok(_) => {
+                    if let Self::Loaded { account, .. } = self {
+                        match account {
+                            fm_core::account::Account::AssetAccount(_) => {
+                                return Action::AccountDeleted(AccountType::AssetAccount)
+                            }
+                            fm_core::account::Account::BookCheckingAccount(_) => {
+                                return Action::AccountDeleted(AccountType::BookCheckingAccount)
+                            }
+                        }
+                    }
+                    Action::None
+                }
+                Err(e) => match e {
+                    fm_core::DeleteAccountError::RelatedTransactionsExist => {
+                        rfd::MessageDialog::new()
+                            .set_title("Error")
+                            .set_description("Related transactions exist")
+                            .set_level(rfd::MessageLevel::Error)
+                            .set_buttons(rfd::MessageButtons::Ok)
+                            .show();
+                        Action::None
+                    }
+                    fm_core::DeleteAccountError::Other(e) => {
+                        todo!("Handle error: {:?}", e);
+                    }
+                },
+            },
         }
     }
 
@@ -213,7 +275,13 @@ fn asset_account_view<'a>(
                 ],
             ],
             widget::Space::with_width(iced::Length::Fill),
-            widget::button("Edit").on_press(Message::Edit),
+            widget::column![
+                widget::button("Edit").on_press(Message::Edit),
+                widget::button("Delete")
+                    .on_press(Message::Delete)
+                    .style(widget::button::danger)
+            ]
+            .spacing(10)
         ],
         widget::horizontal_rule(10),
         utils::TimespanInput::new(Message::ChangeTransactionTimespan, None).into_element(),
@@ -257,7 +325,13 @@ fn book_checking_account_view<'a>(
                 ],
             ],
             widget::Space::with_width(iced::Length::Fill),
-            widget::button("Edit").on_press(Message::Edit),
+            widget::column![
+                widget::button("Edit").on_press(Message::Edit),
+                widget::button("Delete")
+                    .on_press(Message::Delete)
+                    .style(widget::button::danger)
+            ]
+            .spacing(10)
         ],
         widget::horizontal_rule(10),
         utils::TimespanInput::new(Message::ChangeTransactionTimespan, None).into_element(),

@@ -1,6 +1,6 @@
 use crate::FinanceManager;
 use crate::*;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::future::Future;
 
 #[derive(Clone, Debug)]
@@ -154,6 +154,41 @@ where
             make_iban_bic_unified(bic),
             offset,
         )
+    }
+
+    /// Deletes an account.
+    /// If `purge_transactions` is true all transactions related to this account are deleted.
+    /// If `purge_transactions` is false and transactions related to this account exist an error is thrown.
+    pub async fn delete_account(
+        &mut self,
+        id: Id,
+        purge_transactions: bool,
+    ) -> std::result::Result<(), DeleteAccountError> {
+        // get related transactions
+        let transactions = self
+            .get_transactions_of_account(id, (None, None))
+            .await
+            .context("fetching transactions of account failed")?;
+
+        // check if account is used in transactions and raise error if necessary
+        if !purge_transactions && !transactions.is_empty() {
+            return Err(DeleteAccountError::RelatedTransactionsExist);
+        }
+
+        // delete transactions
+        for transaction in transactions {
+            self.delete_transaction(*transaction.id())
+                .await
+                .context("could not delete transaction")?;
+        }
+
+        // delete account
+        self.finance_manager
+            .delete_account(id)
+            .await
+            .context("underlying delete account finance manager call failed")?;
+
+        Ok(())
     }
 
     pub fn get_accounts(
@@ -340,7 +375,10 @@ where
                 .await?;
             }
         }
-        self.finance_manager.delete_transaction(id).await
+        self.finance_manager
+            .delete_transaction(id)
+            .await
+            .context("underlying finance manager error")
     }
 
     pub fn get_transactions(
@@ -475,4 +513,12 @@ where
 
 fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
     content.map(|content| content.to_uppercase().replace(' ', "").trim().to_string())
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum DeleteAccountError {
+    #[error("Account is still used in transactions")]
+    RelatedTransactionsExist,
+    #[error("An error occurred: {0}")]
+    Other(#[from] anyhow::Error),
 }

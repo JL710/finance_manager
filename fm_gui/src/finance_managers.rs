@@ -88,6 +88,15 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
+    async fn delete_account(&mut self, id: fm_core::Id) -> Result<()> {
+        match self {
+            FinanceManagers::Server(client) => client.delete_account(id).await,
+            #[cfg(feature = "native")]
+            FinanceManagers::Sqlite(sqlite) => sqlite.delete_account(id).await,
+            FinanceManagers::Ram(ram) => ram.delete_account(id).await,
+        }
+    }
+
     async fn create_book_checking_account(
         &mut self,
         name: String,

@@ -57,6 +57,11 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_account)
     }
 
+    async fn delete_account(&mut self, id: Id) -> Result<()> {
+        self.accounts.remove(&id);
+        Ok(())
+    }
+
     async fn create_book_checking_account(
         &mut self,
         name: String,

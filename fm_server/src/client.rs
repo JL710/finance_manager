@@ -80,6 +80,10 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
+    async fn delete_account(&mut self, id: fm_core::Id) -> Result<()> {
+        client_post_macro!(self.url, "delete_account", id)
+    }
+
     async fn create_book_checking_account(
         &mut self,
         name: String,

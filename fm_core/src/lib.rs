@@ -6,6 +6,7 @@ mod finance_manager;
 pub use finance_manager::FinanceManager;
 
 mod fm_controller;
+pub use fm_controller::DeleteAccountError;
 pub use fm_controller::FMController;
 
 mod account_id;

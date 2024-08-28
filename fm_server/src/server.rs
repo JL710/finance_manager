@@ -83,6 +83,7 @@ pub async fn run(url: String, db: String) {
         .route("/update_bill", post(update_bill))
         .route("/get_bills", get(get_bills))
         .route("/get_bill", post(get_bill))
+        .route("/delete_account", post(delete_account))
         .layer(tower_http::cors::CorsLayer::permissive())
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
         .with_state(state);
@@ -592,4 +593,18 @@ async fn get_bill(
         .await
         .unwrap();
     json!(bill).into()
+}
+
+async fn delete_account(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
+) -> Json<Value> {
+    state
+        .finance_manager
+        .lock()
+        .await
+        .delete_account(data, false)
+        .await
+        .unwrap();
+    json!(()).into()
 }

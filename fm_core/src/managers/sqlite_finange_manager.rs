@@ -1,7 +1,7 @@
 use crate::account::AssetAccount;
 
 use crate::*;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bigdecimal::{BigDecimal, FromPrimitive};
 use rusqlite::OptionalExtension;
 
@@ -229,6 +229,36 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(account::AssetAccount::new(
             id, name, note, iban, bic, offset,
         ))
+    }
+
+    async fn delete_account(&mut self, id: Id) -> Result<()> {
+        let connection = self.connect().await;
+
+        let account_result: (Option<Id>, Option<Id>) = connection
+            .query_row(
+                "SELECT asset_account, book_checking_account FROM account WHERE id=?1",
+                (id,),
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .context("could not query entry from account table")?;
+        connection.execute("DELETE FROM account WHERE id=?1", (id,))?;
+        match account_result {
+            (Some(asset_account_id), None) => {
+                connection
+                    .execute("DELETE FROM asset_account WHERE id=?1", (asset_account_id,))
+                    .context("could not delete from asset_account table")?;
+            }
+            (None, Some(book_checking_account_id)) => {
+                connection
+                    .execute(
+                        "DELETE FROM book_checking_account WHERE id=?1",
+                        (book_checking_account_id,),
+                    )
+                    .context("could not delete from book_checking_account table")?;
+            }
+            _ => anyhow::bail!("can not find account with id {}", id),
+        }
+        Ok(())
     }
 
     async fn create_book_checking_account(
@@ -734,7 +764,6 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn delete_transaction(&mut self, id: Id) -> Result<()> {
         let connection = self.connect().await;
-        connection.execute("DELETE FROM transactions WHERE id=?1", (id,))?;
         connection.execute(
             "DELETE FROM transaction_category WHERE transaction_id=?1",
             (id,),
@@ -743,6 +772,7 @@ impl FinanceManager for SqliteFinanceManager {
             "DELETE FROM bill_transaction WHERE transaction_id=?1",
             (id,),
         )?;
+        connection.execute("DELETE FROM transactions WHERE id=?1", (id,))?;
         Ok(())
     }
 

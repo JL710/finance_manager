@@ -25,6 +25,9 @@ pub trait FinanceManager: Send + Clone + Sized {
         offset: Currency,
     ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
+    /// This should only delete the account and nothing else (like asserted transactions).
+    fn delete_account(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
+
     fn create_book_checking_account(
         &mut self,
         name: String,

@@ -235,7 +235,9 @@ impl Transaction {
                         widget::button("Delete")
                             .on_press(Message::Delete)
                             .style(widget::button::danger),
-                        widget::button("New Bill").on_press(Message::NewBill)
+                        widget::button("New Bill")
+                            .on_press(Message::NewBill)
+                            .style(widget::button::secondary)
                     ]
                     .spacing(10)
                 ],
