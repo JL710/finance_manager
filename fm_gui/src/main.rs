@@ -670,6 +670,13 @@ fn main() {
     // run the gui
     iced::application("Finance Manager", App::update, App::view)
         .theme(|_| iced::Theme::Nord)
+        .window(iced::window::Settings {
+            icon: Some(
+                iced::window::icon::from_file_data(include_bytes!("assets/FM_Logo.png"), None)
+                    .unwrap(),
+            ),
+            ..Default::default()
+        })
         .run()
         .unwrap();
 }
