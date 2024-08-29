@@ -88,6 +88,18 @@ impl Category {
         match message {
             Message::Delete => {
                 if let Self::Loaded { category, .. } = self {
+                    if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
+                        .set_title("Delete category")
+                        .set_description(&format!(
+                            "Do you really want to delete {}?",
+                            category.name()
+                        ))
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .show()
+                    {
+                        return Action::None;
+                    }
+
                     let category_id = *category.id();
                     Action::DeleteCategory(iced::Task::future(async move {
                         finance_manager
@@ -184,7 +196,9 @@ impl Category {
                     widget::Space::with_width(iced::Length::Fill),
                     widget::column![
                         widget::button("Edit").on_press(Message::Edit),
-                        widget::button("Delete").on_press(Message::Delete),
+                        widget::button("Delete")
+                            .on_press(Message::Delete)
+                            .style(widget::button::danger),
                     ]
                     .spacing(10)
                 ]
