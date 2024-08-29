@@ -1,3 +1,5 @@
+use crate::finance_managers;
+
 use super::super::utils;
 
 use async_std::sync::Mutex;
@@ -9,6 +11,8 @@ pub enum Action {
     None,
     ViewTransaction(fm_core::Id),
     Edit(fm_core::Id),
+    Task(iced::Task<Message>),
+    Deleted,
 }
 
 #[derive(Debug, Clone)]
@@ -20,6 +24,8 @@ pub enum Message {
         fm_core::Currency,
         Vec<(fm_core::Transaction, fm_core::Sign)>,
     ),
+    Delete,
+    Deleted,
 }
 
 #[derive(Debug, Clone)]
@@ -62,7 +68,7 @@ impl Bill {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::ViewTransaction(transaction_id) => Action::ViewTransaction(transaction_id),
@@ -81,6 +87,32 @@ impl Bill {
                 };
                 Action::None
             }
+            Message::Delete => {
+                if let Self::Loaded { bill, .. } = self {
+                    if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
+                        .set_title("Delete Bill")
+                        .set_description("Are you sure you want to delete this bill?")
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .show()
+                    {
+                        return Action::None;
+                    }
+
+                    let bill_id = *bill.id();
+                    Action::Task(iced::Task::future(async move {
+                        finance_manager
+                            .lock()
+                            .await
+                            .delete_bill(bill_id)
+                            .await
+                            .unwrap();
+                        Message::Deleted
+                    }))
+                } else {
+                    Action::None
+                }
+            }
+            Message::Deleted => Action::Deleted,
         }
     }
 
@@ -110,7 +142,13 @@ impl Bill {
                             .spacing(10)
                     ],
                     widget::horizontal_space(),
-                    widget::button("Edit").on_press(Message::Edit),
+                    widget::column![
+                        widget::button("Edit").on_press(Message::Edit),
+                        widget::button("Delete")
+                            .on_press(Message::Delete)
+                            .style(widget::button::danger),
+                    ]
+                    .spacing(10)
                 ],
                 widget::horizontal_rule(10),
                 utils::TableView::new(transactions.clone(), |(transaction, sign)| [

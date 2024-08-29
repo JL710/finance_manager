@@ -404,6 +404,15 @@ impl App {
                         return self.switch_view_bill_edit(id);
                     }
                     view::bill::Action::None => {}
+                    view::bill::Action::Task(t) => {
+                        return t.map(AppMessage::ViewBillMessage);
+                    }
+                    view::bill::Action::Deleted => {
+                        let (view, task) =
+                            view::bill_overview::BillOverview::fetch(self.finance_manager.clone());
+                        self.current_view = View::BillOverview(view);
+                        return task.map(AppMessage::BillOverviewMessage);
+                    }
                 }
             }
         }
