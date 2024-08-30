@@ -21,4 +21,6 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 clap = { version = "4.5.11", features = ["derive"] }
 rfd = "0.14.1"
+serde_json = "1.0.127"
+dirs = "5.0.1"
 

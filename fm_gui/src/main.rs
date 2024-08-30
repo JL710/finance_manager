@@ -1,4 +1,5 @@
 mod finance_managers;
+mod settings;
 mod utils;
 mod view;
 
@@ -110,6 +111,15 @@ impl Default for App {
 }
 
 impl App {
+    fn new(
+        finance_manager: Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>,
+    ) -> Self {
+        App {
+            current_view: View::Empty,
+            finance_manager,
+        }
+    }
+
     fn update(&mut self, message: AppMessage) -> iced::Task<AppMessage> {
         match message {
             AppMessage::SwitchToLicense => {
@@ -341,9 +351,9 @@ impl App {
                 }
             }
             AppMessage::SwitchToSettingsView => {
-                self.current_view = View::Settings(view::settings::SettingsView::new(
-                    self.finance_manager.clone(),
-                ));
+                let (view, task) = view::settings::SettingsView::new(self.finance_manager.clone());
+                self.current_view = View::Settings(view);
+                return task.map(AppMessage::SettingsMessage);
             }
             AppMessage::SettingsMessage(m) => {
                 message_match!(self, m, View::Settings);
@@ -667,6 +677,29 @@ fn main() {
             .init();
     }
 
+    let app = App::new(match settings::read_settings().unwrap().finance_manager() {
+        settings::FinanceManager::RAM => Arc::new(Mutex::new(
+            fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Ram(
+                fm_core::managers::RamFinanceManager::new(()).unwrap(),
+            )),
+        )),
+        settings::FinanceManager::SQLite(path) => {
+            #[cfg(not(feature = "native"))]
+            panic!("SQLite is not supported in the wasm version");
+            #[cfg(feature = "native")]
+            Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                finance_managers::FinanceManagers::Sqlite(
+                    fm_core::managers::SqliteFinanceManager::new(path.to_owned()).unwrap(),
+                ),
+            )))
+        }
+        settings::FinanceManager::API(url) => Arc::new(Mutex::new(
+            fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Server(
+                fm_server::client::Client::new(url.to_owned()).unwrap(),
+            )),
+        )),
+    });
+
     // run the gui
     iced::application("Finance Manager", App::update, App::view)
         .theme(|_| iced::Theme::Nord)
@@ -677,6 +710,6 @@ fn main() {
             ),
             ..Default::default()
         })
-        .run()
+        .run_with(|| (app, iced::Task::none()))
         .unwrap();
 }
