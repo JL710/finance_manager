@@ -10,19 +10,6 @@ use std::sync::Arc;
 
 use fm_core::FinanceManager;
 
-macro_rules! message_match {
-    ($app:expr, $m:expr, $v:path) => {
-        let (new_view, cmd) = match $app.current_view {
-            $v(ref mut view) => view.update($m, $app.finance_manager.clone()),
-            _ => panic!(),
-        };
-        if let Some(new_view) = new_view {
-            $app.current_view = new_view;
-        }
-        return cmd;
-    };
-}
-
 macro_rules! message_match_action {
     ($app:expr, $m:expr, $v:path) => {
         match $app.current_view {
@@ -60,7 +47,6 @@ pub enum AppMessage {
     BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
     CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
     SettingsMessage(view::settings::Message),
-    ChangeFM(Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>),
     FilterTransactionMessage(view::filter_transactions::Message),
     CreateBillMessage(view::create_bill::Message),
     BillOverviewMessage(view::bill_overview::Message),
@@ -356,10 +342,15 @@ impl App {
                 return task.map(AppMessage::SettingsMessage);
             }
             AppMessage::SettingsMessage(m) => {
-                message_match!(self, m, View::Settings);
-            }
-            AppMessage::ChangeFM(fm) => {
-                self.finance_manager = fm;
+                match message_match_action!(self, m, View::Settings) {
+                    view::settings::Action::None => {}
+                    view::settings::Action::Task(t) => {
+                        return t.map(AppMessage::SettingsMessage);
+                    }
+                    view::settings::Action::NewFinanceManager(fm) => {
+                        self.finance_manager = fm;
+                    }
+                }
             }
             AppMessage::FilterTransactionMessage(m) => {
                 match message_match_action!(self, m, View::FilterTransaction) {

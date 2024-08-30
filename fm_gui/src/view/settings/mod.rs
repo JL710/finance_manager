@@ -9,6 +9,12 @@ use iced::widget;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
+pub enum Action {
+    None,
+    Task(iced::Task<Message>),
+    NewFinanceManager(Arc<Mutex<fm_core::FMController<FinanceManagers>>>),
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangeAPIUrl(String),
@@ -17,6 +23,7 @@ pub enum Message {
     SwitchToSqlite,
     SwitchToRAM,
     Initialize(crate::settings::Settings),
+    NewFinanceManager(Arc<Mutex<fm_core::FMController<FinanceManagers>>>),
 }
 
 #[derive(Debug, Clone)]
@@ -61,7 +68,7 @@ impl SettingsView {
         &mut self,
         message: Message,
         _finance_manager: Arc<Mutex<fm_core::FMController<FinanceManagers>>>,
-    ) -> (Option<View>, iced::Task<AppMessage>) {
+    ) -> Action {
         match message {
             Message::ChangeAPIUrl(url) => {
                 self.api_url = url;
@@ -71,90 +78,68 @@ impl SettingsView {
             }
             Message::SwitchToAPI => {
                 let api_url = self.api_url.clone();
-                return (
-                    Some(View::Empty),
-                    iced::Task::perform(
-                        async move {
-                            let written_api_url = api_url.clone();
-                            async_std::task::spawn_blocking(|| {
-                                crate::settings::write_settings(&crate::settings::Settings::new(
-                                    crate::settings::FinanceManager::API(written_api_url),
-                                ))
-                                .unwrap()
-                            })
-                            .await;
-                            api_url
-                        },
-                        |x| {
-                            AppMessage::ChangeFM(Arc::new(Mutex::new(
-                                fm_core::FMController::with_finance_manager(
-                                    super::super::finance_managers::FinanceManagers::Server(
-                                        Client::new(x).unwrap(),
-                                    ),
-                                ),
-                            )))
-                        },
-                    ),
-                );
+                return Action::Task(iced::Task::future(async move {
+                    let written_api_url = api_url.clone();
+                    async_std::task::spawn_blocking(|| {
+                        crate::settings::write_settings(&crate::settings::Settings::new(
+                            crate::settings::FinanceManager::API(written_api_url),
+                        ))
+                        .unwrap()
+                    })
+                    .await;
+
+                    Message::NewFinanceManager(Arc::new(Mutex::new(
+                        fm_core::FMController::with_finance_manager(
+                            super::super::finance_managers::FinanceManagers::Server(
+                                Client::new(api_url).unwrap(),
+                            ),
+                        ),
+                    )))
+                }));
             }
             #[cfg(feature = "native")]
             Message::SwitchToSqlite => {
                 let sqlite_path = self.sqlite_path.clone();
-                return (
-                    Some(View::Empty),
-                    iced::Task::perform(
-                        async move {
-                            let written_sqlite_path = sqlite_path.clone();
-                            async_std::task::spawn_blocking(|| {
-                                crate::settings::write_settings(&crate::settings::Settings::new(
-                                    crate::settings::FinanceManager::SQLite(written_sqlite_path),
-                                ))
-                                .unwrap()
-                            })
-                            .await;
-                            sqlite_path
-                        },
-                        |x| {
-                            AppMessage::ChangeFM(Arc::new(Mutex::new(
+                return Action::Task(iced::Task::future(async move {
+                    let written_sqlite_path = sqlite_path.clone();
+                    async_std::task::spawn_blocking(|| {
+                        crate::settings::write_settings(&crate::settings::Settings::new(
+                            crate::settings::FinanceManager::SQLite(written_sqlite_path),
+                        ))
+                        .unwrap()
+                    })
+                    .await;
+
+                    Message::NewFinanceManager(Arc::new(Mutex::new(
                             fm_core::FMController::with_finance_manager(
                                 super::super::finance_managers::FinanceManagers::Sqlite(
-                                    fm_core::managers::sqlite_finange_manager::SqliteFinanceManager::new(x)
+                                    fm_core::managers::sqlite_finange_manager::SqliteFinanceManager::new(sqlite_path)
                                         .unwrap(),
-                                ),
-                            )
-                        )))
-                        },
-                    ),
-                );
+                                )))))
+                }));
             }
             #[cfg(not(feature = "native"))]
             Message::SwitchToSqlite => {
-                return (None, iced::Task::none());
+                return Action::None;
             }
             Message::SwitchToRAM => {
-                return (
-                    Some(View::Empty),
-                    iced::Task::perform(
-                        async {
-                            async_std::task::spawn_blocking(|| {
-                                crate::settings::write_settings(&crate::settings::Settings::new(
-                                    crate::settings::FinanceManager::RAM,
-                                ))
-                                .unwrap()
-                            })
-                            .await;
-                        },
-                        |_| {
-                            AppMessage::ChangeFM(Arc::new(Mutex::new(
-                            fm_core::FMController::with_finance_manager(
+                return Action::Task(iced::Task::future(async {
+                    async_std::task::spawn_blocking(|| {
+                        crate::settings::write_settings(&crate::settings::Settings::new(
+                            crate::settings::FinanceManager::RAM,
+                        ))
+                        .unwrap()
+                    })
+                    .await;
+                    Message::NewFinanceManager(Arc::new(Mutex::new(
+                        fm_core::FMController::with_finance_manager(
                             super::super::finance_managers::FinanceManagers::Ram(
                                 fm_core::managers::ram_finance_manager::RamFinanceManager::default(
                                 ),
-                            ),)
-                        )))
-                        },
-                    ),
-                )
+                            ),
+                        ),
+                    )))
+                }))
             }
             Message::Initialize(settings) => match settings.finance_manager() {
                 crate::settings::FinanceManager::RAM => {
@@ -169,8 +154,11 @@ impl SettingsView {
                     self.api_url = url.clone();
                 }
             },
+            Message::NewFinanceManager(finance_manager) => {
+                return Action::NewFinanceManager(finance_manager);
+            }
         }
-        (None, iced::Task::none())
+        Action::None
     }
 
     pub fn view(&self) -> iced::Element<Message> {
