@@ -493,7 +493,16 @@ impl App {
             .width(iced::Length::FillPortion(2)),
             iced::widget::vertical_rule(5),
             iced::widget::container(match self.current_view {
-                View::Empty => iced::widget::text("comming soon").into(),
+                View::Empty => widget::container(
+                    widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
+                        "../../FM_Logo.svg"
+                    )))
+                    .width(iced::Fill)
+                    .height(iced::Fill)
+                )
+                .padding(50)
+                .center(iced::Fill)
+                .into(),
                 View::License =>
                     widget::scrollable(widget::text(include_str!("../../LICENSE"))).into(),
                 View::BudgetOverview(ref view) =>
