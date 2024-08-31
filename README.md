@@ -1,7 +1,8 @@
-# Finance Manager
 <div align="center">
     <img src="FM_Logo.svg" width="300px" />
 </div>
+
+# Finance Manager
 
 Finance Manager is a program, made with the Rust programming language, for managing your private finances.
 
