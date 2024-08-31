@@ -164,7 +164,7 @@ async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static
             object_exists.select_object(None);
             return;
         }
-        let input = input.trim().parse::<isize>().unwrap();
+        let input = input.trim().parse::<isize>().expect("Expected a number");
         if input < object_exists.possible_objects().len() as isize && input >= 0 {
             object_exists.select_object(Some(
                 object_exists.possible_objects()[input as usize].clone(),
