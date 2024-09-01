@@ -57,6 +57,7 @@ pub enum AppMessage {
 #[allow(clippy::enum_variant_names)]
 enum View {
     Empty,
+    Tutorial,
     License,
     BudgetOverview(view::budget_overview::BudgetOverview),
     CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog),
@@ -101,7 +102,7 @@ impl App {
         finance_manager: Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>,
     ) -> Self {
         App {
-            current_view: View::Empty,
+            current_view: View::Tutorial,
             finance_manager,
         }
     }
@@ -503,6 +504,7 @@ impl App {
                 .padding(50)
                 .center(iced::Fill)
                 .into(),
+                View::Tutorial => tutorial(),
                 View::License =>
                     widget::scrollable(widget::text(include_str!("../../LICENSE"))).into(),
                 View::BudgetOverview(ref view) =>
@@ -712,4 +714,15 @@ fn main() {
         })
         .run_with(|| (app, iced::Task::none()))
         .unwrap();
+}
+
+fn tutorial() -> iced::Element<'static, AppMessage> {
+    widget::container(widget::column![utils::heading(
+        "Finance Manager",
+        utils::HeadingLevel::H1
+    ),
+    "Welcome to the Finance Manager.\n\nFinance Manager is a program, made with the Rust programming language, for managing your private finances.\n\nCheck out the settings first to select how your data is saved."
+    ])
+    .center_x(iced::Fill)
+    .into()
 }
