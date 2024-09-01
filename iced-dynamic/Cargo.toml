@@ -13,7 +13,8 @@ iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", fe
     "svg",
     "webgl",
     "image",
+    "markdown",
 ] }
 
 [lib]
-crate-type = ["dylib", "lib"]
+crate-type = ["dylib"]

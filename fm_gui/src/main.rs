@@ -24,6 +24,7 @@ macro_rules! message_match_action {
 
 #[derive(Debug, Clone)]
 pub enum AppMessage {
+    Ignore,
     BudgetOverViewMessage(view::budget_overview::Message),
     SwitchToBudgetOverview,
     SwitchToCreateTransActionView,
@@ -57,7 +58,7 @@ pub enum AppMessage {
 #[allow(clippy::enum_variant_names)]
 enum View {
     Empty,
-    Tutorial,
+    Tutorial(Vec<widget::markdown::Item>),
     License,
     BudgetOverview(view::budget_overview::BudgetOverview),
     CreateAssetAccountDialog(view::create_asset_account::CreateAssetAccountDialog),
@@ -102,13 +103,16 @@ impl App {
         finance_manager: Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>,
     ) -> Self {
         App {
-            current_view: View::Tutorial,
+            current_view: View::Tutorial(
+                widget::markdown::parse(include_str!("view/tutorial.md")).collect(),
+            ),
             finance_manager,
         }
     }
 
     fn update(&mut self, message: AppMessage) -> iced::Task<AppMessage> {
         match message {
+            AppMessage::Ignore => {}
             AppMessage::SwitchToLicense => {
                 self.current_view = View::License;
             }
@@ -504,7 +508,7 @@ impl App {
                 .padding(50)
                 .center(iced::Fill)
                 .into(),
-                View::Tutorial => tutorial(),
+                View::Tutorial(ref items) => tutorial(items),
                 View::License =>
                     widget::scrollable(widget::text(include_str!("../../LICENSE"))).into(),
                 View::BudgetOverview(ref view) =>
@@ -716,13 +720,16 @@ fn main() {
         .unwrap();
 }
 
-fn tutorial() -> iced::Element<'static, AppMessage> {
-    widget::container(widget::column![utils::heading(
-        "Finance Manager",
-        utils::HeadingLevel::H1
-    ),
-    "Welcome to the Finance Manager.\n\nFinance Manager is a program, made with the Rust programming language, for managing your private finances.\n\nCheck out the settings first to select how your data is saved."
-    ])
+fn tutorial(items: &Vec<widget::markdown::Item>) -> iced::Element<AppMessage> {
+    widget::container(widget::scrollable(widget::column![
+        utils::heading("Finance Manager", utils::HeadingLevel::H1),
+        widget::markdown(
+            items,
+            utils::markdown_settings(),
+            widget::markdown::Style::from_palette(iced::Theme::Nord.palette())
+        )
+        .map(|_| AppMessage::Ignore)
+    ]))
     .center_x(iced::Fill)
     .into()
 }

@@ -158,22 +158,41 @@ pub enum HeadingLevel {
     H3,
     H4,
     H5,
+    H6,
+}
+
+impl HeadingLevel {
+    pub fn text_size(&self) -> f32 {
+        let default_size = iced::Settings::default().default_text_size;
+        match self {
+            HeadingLevel::H1 => default_size.0 + 20.,
+            HeadingLevel::H2 => default_size.0 + 15.,
+            HeadingLevel::H3 => default_size.0 + 10.,
+            HeadingLevel::H4 => default_size.0 + 5.,
+            HeadingLevel::H5 => default_size.0 + 3.,
+            HeadingLevel::H6 => default_size.0 + 1.,
+        }
+    }
+}
+
+pub fn markdown_settings() -> widget::markdown::Settings {
+    let mut settings = widget::markdown::Settings::default();
+    settings.h1_size = HeadingLevel::H1.text_size().into();
+    settings.h2_size = HeadingLevel::H2.text_size().into();
+    settings.h3_size = HeadingLevel::H3.text_size().into();
+    settings.h4_size = HeadingLevel::H4.text_size().into();
+    settings.h5_size = HeadingLevel::H5.text_size().into();
+    settings.h6_size = HeadingLevel::H6.text_size().into();
+    settings
 }
 
 pub fn heading<'a, Message: 'a>(
     text: impl Into<String>,
     level: HeadingLevel,
 ) -> iced::Element<'a, Message> {
-    let default_size = iced::Settings::default().default_text_size;
     widget::container(widget::column![
         widget::text(text.into())
-            .size(match level {
-                HeadingLevel::H1 => default_size.0 + 20.,
-                HeadingLevel::H2 => default_size.0 + 15.,
-                HeadingLevel::H3 => default_size.0 + 10.,
-                HeadingLevel::H4 => default_size.0 + 5.,
-                HeadingLevel::H5 => default_size.0 + 3.,
-            })
+            .size(level.text_size())
             .font(iced::Font {
                 weight: iced::font::Weight::Bold,
                 ..Default::default()
