@@ -1,6 +1,6 @@
 use crate::finance_managers::FinanceManagers;
 
-use super::super::{utils, AppMessage, View};
+use super::super::utils;
 use fm_core::FinanceManager;
 use fm_server::client::Client;
 
