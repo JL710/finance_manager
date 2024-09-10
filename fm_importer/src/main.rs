@@ -7,6 +7,7 @@ use tokio::sync::Mutex;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
 struct Args {
+    api_token: String,
     /// Import Source File
     #[clap(short, long)]
     source: String,
@@ -44,7 +45,8 @@ async fn main() {
     }
 
     let finance_manager = Arc::new(Mutex::new(
-        fm_core::FMController::<fm_server::client::Client>::new(args.url).unwrap(),
+        fm_core::FMController::<fm_server::client::Client>::new((args.url, args.api_token))
+            .unwrap(),
     ));
     match args.format.as_str() {
         "CSV_CAMT_V2" => {

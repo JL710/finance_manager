@@ -88,8 +88,8 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         let finance_manager =
-            fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Server(
-                fm_server::client::Client::new(String::from("http://localhost:3000")).unwrap(),
+            fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Ram(
+                fm_core::managers::RamFinanceManager::new(()).unwrap(),
             ));
         App {
             current_view: View::Empty,
@@ -699,9 +699,9 @@ fn main() {
                 ),
             )))
         }
-        settings::FinanceManager::API(url) => Arc::new(Mutex::new(
+        settings::FinanceManager::API(url, api_token) => Arc::new(Mutex::new(
             fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Server(
-                fm_server::client::Client::new(url.to_owned()).unwrap(),
+                fm_server::client::Client::new((url.to_owned(), api_token.to_owned())).unwrap(),
             )),
         )),
     });

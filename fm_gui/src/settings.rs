@@ -4,10 +4,10 @@ use std::io::{Read, Write};
 #[derive(Debug, Clone)]
 pub enum FinanceManager {
     RAM,
-    /// SQLite database and the path to the database file
+    /// SQLite database: the path to the database file
     SQLite(String),
-    /// REST API and the URL to the API
-    API(String),
+    /// REST API: the URL to the API and the API token
+    API(String, String),
 }
 
 #[derive(Debug, Clone)]
@@ -81,7 +81,7 @@ pub fn read_settings() -> Result<Settings> {
                     .context("Missing 'url' key")?
                     .as_str()
                     .context("'url' is not a string")?;
-                FinanceManager::API(url.to_string())
+                FinanceManager::API(url.to_string(), "ENTER YOUR TOKEN HERE".to_string())
             }
             _ => anyhow::bail!("Unknown finance manager type: {}", fm_type),
         },
@@ -103,7 +103,7 @@ pub fn write_settings(settings: &Settings) -> Result<()> {
         match &settings.finance_manager {
             FinanceManager::RAM => "RAM",
             FinanceManager::SQLite(_) => "SQLite",
-            FinanceManager::API(_) => "API",
+            FinanceManager::API(_, _) => "API",
         }
         .into(),
     );
@@ -113,7 +113,7 @@ pub fn write_settings(settings: &Settings) -> Result<()> {
         FinanceManager::SQLite(path) => {
             fm_info.insert("path".to_string(), path.to_string().into());
         }
-        FinanceManager::API(url) => {
+        FinanceManager::API(url, _) => {
             fm_info.insert("url".to_string(), url.to_string().into());
         }
         _ => {}

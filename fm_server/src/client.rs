@@ -4,6 +4,7 @@ use std::collections::HashMap;
 #[derive(Clone)]
 pub struct Client {
     url: String,
+    token: String,
 }
 
 impl Client {
@@ -14,11 +15,17 @@ impl Client {
 
 #[macro_export]
 macro_rules! client_post_macro {
-    ( $url:expr, $path:expr, $x:expr ) => {{
+    ( $url:expr, $token:expr, $path:expr, $x:expr ) => {{
         let client = reqwest::Client::new();
         let response = client
             .post(&format!("{}/{}", $url, $path))
-            .body(serde_json::json!($x).to_string())
+            .body(
+                serde_json::json!($crate::Tokenized {
+                    token: $token,
+                    content: $x
+                })
+                .to_string(),
+            )
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .header(reqwest::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
             .send()
@@ -28,25 +35,14 @@ macro_rules! client_post_macro {
     }};
 }
 
-#[macro_export]
-macro_rules! client_get_macro {
-    ( $url:expr, $path:expr ) => {{
-        let client = reqwest::Client::new();
-        let response = client
-            .get(&format!("{}/{}", $url, $path))
-            .header("Access-Control-Allow-Origin", "*")
-            .send()
-            .await
-            .unwrap();
-        Ok(serde_json::from_str(&response.text().await.unwrap())?)
-    }};
-}
-
 impl fm_core::FinanceManager for Client {
-    type Flags = String;
+    type Flags = (String, String);
 
-    fn new(url: Self::Flags) -> Result<Self> {
-        Ok(Self { url })
+    fn new(flags: Self::Flags) -> Result<Self> {
+        Ok(Self {
+            url: flags.0,
+            token: flags.1,
+        })
     }
 
     async fn create_asset_account(
@@ -59,6 +55,7 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::account::AssetAccount> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "create_asset_account",
             (name, note, iban, bic, offset)
         )
@@ -75,13 +72,14 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::account::AssetAccount> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "update_asset_account",
             (id, name, note, iban, bic, offset)
         )
     }
 
     async fn delete_account(&mut self, id: fm_core::Id) -> Result<()> {
-        client_post_macro!(self.url, "delete_account", id)
+        client_post_macro!(self.url, self.token.clone(), "delete_account", id)
     }
 
     async fn create_book_checking_account(
@@ -93,6 +91,7 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::account::BookCheckingAccount> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "create_book_checking_account",
             (name, notes, iban, bic)
         )
@@ -108,6 +107,7 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::account::BookCheckingAccount> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "update_book_checking_account",
             (id, name, notes, iban, bic)
         )
@@ -118,7 +118,12 @@ impl fm_core::FinanceManager for Client {
         account: &fm_core::account::Account,
         date: fm_core::DateTime,
     ) -> Result<fm_core::Currency> {
-        client_post_macro!(self.url, "get_account_sum", (account, date))
+        client_post_macro!(
+            self.url,
+            self.token.clone(),
+            "get_account_sum",
+            (account, date)
+        )
     }
 
     async fn create_bill(
@@ -131,6 +136,7 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::Bill> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "create_bill",
             (name, description, value, transactions, due_date)
         )
@@ -147,40 +153,46 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<()> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "update_bill",
             (id, name, description, value, transactions, due_date)
         )
     }
 
     async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {
-        client_get_macro!(self.url, "get_bills")
+        client_post_macro!(self.url, self.token.clone(), "get_bills", ())
     }
 
     async fn get_bill(&self, id: &fm_core::Id) -> Result<Option<fm_core::Bill>> {
-        client_post_macro!(self.url, "get_bill", id)
+        client_post_macro!(self.url, self.token.clone(), "get_bill", id)
     }
 
     async fn delete_bill(&mut self, id: fm_core::Id) -> Result<()> {
-        client_post_macro!(self.url, "delete_bill", id)
+        client_post_macro!(self.url, self.token.clone(), "delete_bill", id)
     }
 
     async fn get_filtered_transactions(
         &self,
         filter: fm_core::transaction_filter::TransactionFilter,
     ) -> Result<Vec<fm_core::Transaction>> {
-        client_post_macro!(self.url, "get_filtered_transactions", filter)
+        client_post_macro!(
+            self.url,
+            self.token.clone(),
+            "get_filtered_transactions",
+            filter
+        )
     }
 
     async fn get_accounts(&self) -> Result<Vec<fm_core::account::Account>> {
-        client_get_macro!(self.url, "get_accounts")
+        client_post_macro!(self.url, self.token.clone(), "get_accounts", ())
     }
 
     async fn get_account(&self, id: fm_core::Id) -> Result<Option<fm_core::account::Account>> {
-        client_post_macro!(self.url, "get_account", id)
+        client_post_macro!(self.url, self.token.clone(), "get_account", id)
     }
 
     async fn get_transaction(&self, id: fm_core::Id) -> Result<Option<fm_core::Transaction>> {
-        client_post_macro!(self.url, "get_transaction", id)
+        client_post_macro!(self.url, self.token.clone(), "get_transaction", id)
     }
 
     async fn get_transactions_of_account(
@@ -188,7 +200,12 @@ impl fm_core::FinanceManager for Client {
         account: fm_core::Id,
         timespan: fm_core::Timespan,
     ) -> Result<Vec<fm_core::Transaction>> {
-        client_post_macro!(self.url, "get_transactions_of_account", (account, timespan))
+        client_post_macro!(
+            self.url,
+            self.token.clone(),
+            "get_transactions_of_account",
+            (account, timespan)
+        )
     }
 
     async fn create_transaction(
@@ -205,6 +222,7 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "create_transaction",
             (
                 amount,
@@ -229,13 +247,14 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::Budget> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "create_budget",
             (name, description, total_value, timespan)
         )
     }
 
     async fn get_budgets(&self) -> Result<Vec<fm_core::Budget>> {
-        client_get_macro!(self.url, "get_budgets")
+        client_post_macro!(self.url, self.token.clone(), "get_budgets", ())
     }
 
     async fn get_transactions_of_budget(
@@ -243,11 +262,16 @@ impl fm_core::FinanceManager for Client {
         budget: fm_core::Id,
         timespan: fm_core::Timespan,
     ) -> Result<Vec<fm_core::Transaction>> {
-        client_post_macro!(self.url, "get_transactions_of_budget", (budget, timespan))
+        client_post_macro!(
+            self.url,
+            self.token.clone(),
+            "get_transactions_of_budget",
+            (budget, timespan)
+        )
     }
 
     async fn get_budget(&self, id: fm_core::Id) -> Result<Option<fm_core::Budget>> {
-        client_post_macro!(self.url, "get_budget", id)
+        client_post_macro!(self.url, self.token.clone(), "get_budget", id)
     }
 
     async fn update_transaction(
@@ -265,6 +289,7 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "update_transaction",
             (
                 id,
@@ -282,7 +307,7 @@ impl fm_core::FinanceManager for Client {
     }
 
     async fn delete_transaction(&mut self, id: fm_core::Id) -> Result<()> {
-        client_post_macro!(self.url, "delete_transaction", id)
+        client_post_macro!(self.url, self.token.clone(), "delete_transaction", id)
     }
 
     async fn update_budget(
@@ -295,6 +320,7 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<fm_core::Budget> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "update_budget",
             (id, name, description, total_value, timespan)
         )
@@ -304,15 +330,15 @@ impl fm_core::FinanceManager for Client {
         &self,
         timespan: fm_core::Timespan,
     ) -> Result<Vec<fm_core::Transaction>> {
-        client_post_macro!(self.url, "get_transactions", timespan)
+        client_post_macro!(self.url, self.token.clone(), "get_transactions", timespan)
     }
 
     async fn get_categories(&self) -> Result<Vec<fm_core::Category>> {
-        client_get_macro!(self.url, "get_categories")
+        client_post_macro!(self.url, self.token.clone(), "get_categories", ())
     }
 
     async fn create_category(&mut self, name: String) -> Result<fm_core::Category> {
-        client_post_macro!(self.url, "create_category", name)
+        client_post_macro!(self.url, self.token.clone(), "create_category", name)
     }
 
     async fn update_category(
@@ -320,15 +346,15 @@ impl fm_core::FinanceManager for Client {
         id: fm_core::Id,
         name: String,
     ) -> Result<fm_core::Category> {
-        client_post_macro!(self.url, "update_category", (id, name))
+        client_post_macro!(self.url, self.token.clone(), "update_category", (id, name))
     }
 
     async fn get_category(&self, id: fm_core::Id) -> Result<Option<fm_core::Category>> {
-        client_post_macro!(self.url, "get_category", id)
+        client_post_macro!(self.url, self.token.clone(), "get_category", id)
     }
 
     async fn delete_category(&mut self, id: fm_core::Id) -> Result<()> {
-        client_post_macro!(self.url, "delete_category", id)
+        client_post_macro!(self.url, self.token.clone(), "delete_category", id)
     }
 
     async fn get_transactions_of_category(
@@ -338,6 +364,7 @@ impl fm_core::FinanceManager for Client {
     ) -> Result<Vec<fm_core::Transaction>> {
         client_post_macro!(
             self.url,
+            self.token.clone(),
             "get_transactions_of_category",
             (category, timespan)
         )

@@ -18,11 +18,11 @@ pub enum Action {
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangeAPIUrl(String),
+    ChangeAPIToken(String),
     ChangeSqlitePath(String),
     SwitchToAPI,
     SwitchToSqlite,
     SwitchToRAM,
-    Initialize(crate::settings::Settings),
     NewFinanceManager(Arc<Mutex<fm_core::FMController<FinanceManagers>>>),
 }
 
@@ -30,6 +30,7 @@ pub enum Message {
 pub struct SettingsView {
     current_status: String,
     api_url: String,
+    api_token: String,
     sqlite_path: String,
 }
 
@@ -46,6 +47,7 @@ impl SettingsView {
                 } else {
                     String::from("http://localhost:3000")
                 },
+                api_token: String::new(),
                 #[cfg(feature = "native")]
                 sqlite_path: if let FinanceManagers::Sqlite(fm) = (*locked_fm).raw_fm() {
                     fm.path().to_string()
@@ -55,12 +57,7 @@ impl SettingsView {
                 #[cfg(not(feature = "native"))]
                 sqlite_path: String::new(),
             },
-            iced::Task::future(async {
-                Message::Initialize(
-                    async_std::task::spawn_blocking(|| crate::settings::read_settings().unwrap())
-                        .await,
-                )
-            }),
+            iced::Task::none(),
         )
     }
 
@@ -73,16 +70,24 @@ impl SettingsView {
             Message::ChangeAPIUrl(url) => {
                 self.api_url = url;
             }
+            Message::ChangeAPIToken(token) => {
+                self.api_token = token;
+            }
             Message::ChangeSqlitePath(path) => {
                 self.sqlite_path = path;
             }
             Message::SwitchToAPI => {
                 let api_url = self.api_url.clone();
+                let api_token = self.api_token.clone();
                 return Action::Task(iced::Task::future(async move {
                     let written_api_url = api_url.clone();
+                    let written_api_token = api_token.clone();
                     async_std::task::spawn_blocking(|| {
                         crate::settings::write_settings(&crate::settings::Settings::new(
-                            crate::settings::FinanceManager::API(written_api_url),
+                            crate::settings::FinanceManager::API(
+                                written_api_url,
+                                written_api_token,
+                            ),
                         ))
                         .unwrap()
                     })
@@ -91,7 +96,7 @@ impl SettingsView {
                     Message::NewFinanceManager(Arc::new(Mutex::new(
                         fm_core::FMController::with_finance_manager(
                             super::super::finance_managers::FinanceManagers::Server(
-                                Client::new(api_url).unwrap(),
+                                Client::new((api_url, api_token)).unwrap(),
                             ),
                         ),
                     )))
@@ -141,19 +146,6 @@ impl SettingsView {
                     )))
                 }))
             }
-            Message::Initialize(settings) => match settings.finance_manager() {
-                crate::settings::FinanceManager::RAM => {
-                    self.current_status = "RAM".to_string();
-                }
-                crate::settings::FinanceManager::SQLite(path) => {
-                    self.current_status = "SQLite".to_string();
-                    self.sqlite_path = path.clone();
-                }
-                crate::settings::FinanceManager::API(url) => {
-                    self.current_status = "API".to_string();
-                    self.api_url = url.clone();
-                }
-            },
             Message::NewFinanceManager(finance_manager) => {
                 return Action::NewFinanceManager(finance_manager);
             }
@@ -167,9 +159,21 @@ impl SettingsView {
             widget::text!("Current Status: {}", self.current_status),
             widget::Rule::horizontal(10),
             widget::row![
-                widget::text("API URL:"),
-                widget::text_input::TextInput::new("API Url", &self.api_url)
-                    .on_input(Message::ChangeAPIUrl),
+                widget::column![
+                    widget::row![
+                        widget::text("API URL:"),
+                        widget::text_input::TextInput::new("API Url", &self.api_url)
+                            .on_input(Message::ChangeAPIUrl),
+                    ]
+                    .spacing(10),
+                    widget::row![
+                        widget::text("API Token:"),
+                        widget::text_input::TextInput::new("API Token", &self.api_token)
+                            .on_input(Message::ChangeAPIToken)
+                    ]
+                    .spacing(10)
+                ]
+                .spacing(10),
                 widget::button("Switch").on_press(Message::SwitchToAPI)
             ]
             .spacing(10),

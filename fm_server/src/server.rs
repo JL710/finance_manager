@@ -1,4 +1,4 @@
-use axum::{response::Json, routing::get, routing::post, Router};
+use axum::{response::Json, routing::post, Router};
 use serde_json::{json, Value};
 
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use crate::Tokenized;
+
 #[derive(Clone)]
 struct State {
     finance_manager: Arc<
@@ -15,12 +17,105 @@ struct State {
             fm_core::FMController<fm_core::managers::sqlite_finange_manager::SqliteFinanceManager>,
         >,
     >,
+    token: String,
+    timeout: Arc<Mutex<HashMap<std::net::IpAddr, Vec<u64>>>>,
+}
+
+fn timeout(map: &mut HashMap<std::net::IpAddr, Vec<u64>>, addr: &std::net::IpAddr) {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    if let Some(entry) = map.get_mut(addr) {
+        entry.push(now);
+        if entry.len() > 5 {
+            entry.remove(0);
+        }
+    } else {
+        let mut failed_list = Vec::with_capacity(5);
+        failed_list.push(now);
+        map.insert(*addr, failed_list);
+    }
+    println!("{:?}", map);
+}
+
+fn is_timeouted(map: &HashMap<std::net::IpAddr, Vec<u64>>, addr: &std::net::IpAddr) -> bool {
+    const TIMEOUT: u64 = 60;
+
+    if let Some(entry) = map.get(addr) {
+        if let Some(last) = entry.last() {
+            if std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+                - last
+                > TIMEOUT
+            {
+                return false;
+            }
+        }
+        if entry.len() == 5 {
+            let mut diff = 0;
+            for i in 1..entry.len() {
+                diff += entry[i] - entry[i - 1];
+            }
+            if diff < TIMEOUT {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+async fn auth(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::ConnectInfo(addr): axum::extract::ConnectInfo<std::net::SocketAddr>,
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Result<axum::response::Response, axum::http::StatusCode> {
+    if request.method() != axum::http::Method::POST {
+        return Err(axum::http::StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    // get request body
+    let (parts, body) = request.into_parts();
+    let body_data = match axum::body::to_bytes(body, usize::MAX).await {
+        Ok(data) => data,
+        Err(_) => return Err(axum::http::StatusCode::BAD_REQUEST),
+    };
+
+    // extract token from body
+    let tokenized: Tokenized<serde_json::Value> = match serde_json::from_slice(&body_data) {
+        Ok(tokenized) => tokenized,
+        Err(_) => return Err(axum::http::StatusCode::BAD_REQUEST),
+    };
+
+    let request = axum::http::Request::from_parts(
+        parts,
+        axum::body::Body::from(tokenized.content.to_string().into_bytes()),
+    );
+
+    if is_timeouted(&*state.timeout.lock().await, &addr.ip()) {
+        tracing::info!("request timeouted");
+        return Err(axum::http::StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    if tokenized.token == state.token {
+        let response = next.run(request).await;
+        Ok(response)
+    } else {
+        timeout(&mut *state.timeout.lock().await, &addr.ip());
+        tracing::info!("request unauthorized");
+        Err(axum::http::StatusCode::UNAUTHORIZED)
+    }
 }
 
 #[tokio::main]
-pub async fn run(url: String, db: String) {
+pub async fn run(url: String, db: String, token: String) {
     let state = State {
         finance_manager: Arc::new(Mutex::new(fm_core::FMController::new(db).unwrap())),
+        token,
+        timeout: Arc::new(Mutex::new(HashMap::new())),
     };
 
     tracing_subscriber::registry()
@@ -34,13 +129,12 @@ pub async fn run(url: String, db: String) {
 
     // build our application with a single route
     let app = Router::new()
-        .route("/", get(|| async { "Hello, World!" }))
-        .route("/get_budgets", get(get_budgets))
+        .route("/get_budgets", post(get_budgets))
         .route(
             "/get_transactions_of_budget",
             post(get_transactions_of_budget),
         )
-        .route("/get_accounts", get(get_accounts))
+        .route("/get_accounts", post(get_accounts))
         .route("/create_asset_account", post(create_asset_account))
         .route("/get_account_sum", post(get_account_sum))
         .route("/get_account", post(get_account))
@@ -61,7 +155,7 @@ pub async fn run(url: String, db: String) {
         .route("/delete_transaction", post(delete_transaction))
         .route("/update_budget", post(update_budget))
         .route("/get_transactions", post(get_transactions))
-        .route("/get_categories", get(get_categories))
+        .route("/get_categories", post(get_categories))
         .route("/get_category", post(get_category))
         .route("/create_category", post(create_category))
         .route("/update_category", post(update_category))
@@ -81,16 +175,22 @@ pub async fn run(url: String, db: String) {
         .route("/create_bill", post(create_bill))
         .route("/delete_bill", post(delete_bill))
         .route("/update_bill", post(update_bill))
-        .route("/get_bills", get(get_bills))
+        .route("/get_bills", post(get_bills))
         .route("/get_bill", post(get_bill))
         .route("/delete_account", post(delete_account))
         .layer(tower_http::cors::CorsLayer::permissive())
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
+        .layer(axum::middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind(url).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
 
 async fn get_budgets(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {

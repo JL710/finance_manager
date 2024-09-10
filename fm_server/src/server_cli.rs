@@ -3,6 +3,8 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
 struct Args {
+    /// The API token to use/accept
+    token: String,
     /// The database file to use
     #[clap(short, long, default_value = "fm.db")]
     db: String,
@@ -13,5 +15,5 @@ struct Args {
 
 pub fn run() {
     let args = Args::parse();
-    super::server::run(args.url, args.db);
+    super::server::run(args.url, args.db, args.token);
 }

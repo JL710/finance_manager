@@ -16,13 +16,17 @@ It contains the `FinanceManager` trait, which is used to store the data. This cr
 The `FMController` provides a secure interface for implementors of `FinanceManager` that handles checks and additional functionalities.
 
 ### Server
-A Server and Client are available via the `fm_server` crate. 
+A Server and Client that communicate via a REST API are available via the `fm_server` crate. 
 It provides a backend based on Axum and a client that implements the `FinanceManager` trait from `fm_core`.
 
 #### Run the backend
+For the safety and security of your data, make sure to use HTTPS/TLS!
+
+The API will try to prevent brute force attacks on the token, with timeouts after too many wrong tokens.
+
 ```
 cd fm_server
-cargo run
+cargo run <api-token>
 ```
 > `cargo run -- --help` for help
 
