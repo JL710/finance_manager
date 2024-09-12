@@ -51,7 +51,7 @@ async fn do_action(
                     transaction.title(),
                     transaction.description().unwrap_or(""),
                     transaction.amount(),
-                    transaction.date().format(&time::format_description::parse("[day].[month].[year]")?)?,
+                    transaction.date().to_offset(fm_core::get_local_timezone().unwrap()).format(&time::format_description::parse("[day].[month].[year]")?)?,
                     format_account(&source),
                     format_account(&destination)
                 );
@@ -78,7 +78,7 @@ async fn do_action(
                             transaction.title(),
                             transaction.description().unwrap_or(""),
                             transaction.amount(),
-                            transaction.date().format(&time::format_description::parse("[day].[month].[year]")?)?,
+                            transaction.date().to_offset(fm_core::get_local_timezone().unwrap()).format(&time::format_description::parse("[day].[month].[year]")?)?,
                             format_account(&source),
                             format_account(&destination)
                         ))
@@ -192,7 +192,7 @@ fn format_transaction_entry(entry: &super::TransactionEntry) -> Result<String> {
         entry.destination_entry.iban(),
         entry.destination_entry.bic().unwrap_or_default(),
         entry.destination_entry.name().clone().unwrap_or_default(),
-        entry.date.format(&time::format_description::parse("[day].[month].[year]")?)?
+        entry.date.to_offset(fm_core::get_local_timezone().unwrap()).format(&time::format_description::parse("[day].[month].[year]")?)?
     ))
 }
 

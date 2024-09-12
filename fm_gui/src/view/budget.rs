@@ -142,6 +142,7 @@ impl Budget {
                         time_span
                             .0
                             .unwrap()
+                            .to_offset(fm_core::get_local_timezone().unwrap())
                             .format(
                                 &time::format_description::parse("[day].[month].[year]").unwrap()
                             )
@@ -149,6 +150,7 @@ impl Budget {
                         time_span
                             .1
                             .unwrap()
+                            .to_offset(fm_core::get_local_timezone().unwrap())
                             .format(
                                 &time::format_description::parse("[day].[month].[year]").unwrap()
                             )

@@ -113,6 +113,7 @@ impl CreateBudgetView {
             recurring_inputs: match budget.timespan() {
                 fm_core::Recurring::Days(start, days) => Recurring::Days(
                     start
+                        .to_offset(fm_core::get_local_timezone().unwrap())
                         .format(&time::format_description::parse("[day].[month].[year]").unwrap())
                         .unwrap(),
                     days.to_string(),

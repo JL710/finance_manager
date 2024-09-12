@@ -134,6 +134,7 @@ impl Bill {
                         widget::text!(
                             "Due Date: {}",
                             bill.due_date().map_or(String::new(), |d| d
+                                .to_offset(fm_core::get_local_timezone().unwrap())
                                 .format(
                                     &time::format_description::parse("[day].[month].[year]")
                                         .unwrap()
@@ -168,6 +169,7 @@ impl Bill {
                     widget::text(
                         transaction
                             .date()
+                            .to_offset(fm_core::get_local_timezone().unwrap())
                             .format(
                                 &time::format_description::parse("[day].[month].[year]").unwrap()
                             )

@@ -50,7 +50,8 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
         if state.start.is_none() {
             if let Some(default_timespan) = self.default_timespan.as_ref() {
                 state.start = Some(default_timespan.0.map_or(String::new(), |x| {
-                    x.format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                    x.to_offset(fm_core::get_local_timezone().unwrap())
+                        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
                         .unwrap()
                 }));
             } else {
@@ -60,7 +61,8 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
         if state.end.is_none() {
             if let Some(default_timespan) = self.default_timespan.as_ref() {
                 state.end = Some(default_timespan.1.map_or(String::new(), |x| {
-                    x.format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                    x.to_offset(fm_core::get_local_timezone().unwrap())
+                        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
                         .unwrap()
                 }));
             } else {
@@ -112,10 +114,12 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
                     .clone()
                     .unwrap_or(self.default_timespan.map_or(String::new(), |x| {
                         x.0.map_or(String::new(), |y| {
-                            y.format(
-                                &time::format_description::parse("[day].[month].[year]").unwrap(),
-                            )
-                            .unwrap()
+                            y.to_offset(fm_core::get_local_timezone().unwrap())
+                                .format(
+                                    &time::format_description::parse("[day].[month].[year]")
+                                        .unwrap(),
+                                )
+                                .unwrap()
                         })
                     }))
             )
@@ -133,10 +137,12 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
                     .clone()
                     .unwrap_or(self.default_timespan.map_or(String::new(), |x| {
                         x.1.map_or(String::new(), |y| {
-                            y.format(
-                                &time::format_description::parse("[day].[month].[year]").unwrap(),
-                            )
-                            .unwrap()
+                            y.to_offset(fm_core::get_local_timezone().unwrap())
+                                .format(
+                                    &time::format_description::parse("[day].[month].[year]")
+                                        .unwrap(),
+                                )
+                                .unwrap()
                         })
                     }))
             )

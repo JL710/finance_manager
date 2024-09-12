@@ -257,6 +257,7 @@ impl CreateBillView {
                         widget::text(
                             transaction
                                 .date()
+                                .to_offset(fm_core::get_local_timezone().unwrap())
                                 .format(
                                     &time::format_description::parse("[day].[month].[year]")
                                         .unwrap(),
@@ -426,6 +427,7 @@ mod add_transaction {
                             widget::text(x.amount().to_num_string()).into(),
                             widget::text(
                                 x.date()
+                                    .to_offset(fm_core::get_local_timezone().unwrap())
                                     .format(
                                         &time::format_description::parse("[day].[month].[year]")
                                             .unwrap(),

@@ -179,6 +179,7 @@ impl Transaction {
                     "Date: {}",
                     transaction
                         .date()
+                        .to_offset(fm_core::get_local_timezone().unwrap())
                         .format(&time::format_description::parse("[day].[month].[year]").unwrap())
                         .unwrap()
                 ),
