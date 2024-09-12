@@ -11,7 +11,11 @@ native = ["fm_core/sqlite", "dep:serde_json"]
 
 [dependencies]
 anyhow = "1.0.82"
-chrono = "0.4.38"
+time = { version = "0.3.36", features = [
+    "formatting",
+    "local-offset",
+    "parsing",
+] }
 iced = { version = "0.1.0", path = "../iced-dynamic", package = "iced-dynamic" } #iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", features = ["advanced"]}
 uuid = { version = "1.8.0", features = ["v4"] }
 fm_core = { path = "../fm_core", default-features = false, features = [

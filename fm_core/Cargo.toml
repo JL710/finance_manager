@@ -12,7 +12,6 @@ ram = ["dep:uuid"]
 wasm = ["uuid/js"]
 
 [dependencies]
-chrono = { version = "0.4.38", features = ["serde"] }
 uuid = { version = "1.8.0", features = ["v4"], optional = true }
 serde = { version = "1.0.198", features = ["derive"] }
 rusqlite = { version = "0.31.0", features = ["bundled"], optional = true }
@@ -24,6 +23,9 @@ iban_validate = { package = "iban_validate", version = "4.0.1", features = [
 bigdecimal = { version = "0.4.5", features = ["serde"] }
 async-std = { version = "1.12.0" }
 thiserror = "1.0.63"
+time = { version = "0.3.36", features = ["serde", "local-offset"] }
+tz-rs = "0.6.14"
 
 [dev-dependencies]
 async-std = { version = "1.12.0", features = ["attributes"] }
+time = { version = "0.3.36", features = ["macros"] }

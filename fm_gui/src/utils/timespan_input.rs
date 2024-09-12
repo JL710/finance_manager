@@ -49,22 +49,20 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
         // overwrite empty start and end with default values if not already set
         if state.start.is_none() {
             if let Some(default_timespan) = self.default_timespan.as_ref() {
-                state.start = Some(
-                    default_timespan
-                        .0
-                        .map_or(String::new(), |x| x.format("%d.%m.%Y").to_string()),
-                );
+                state.start = Some(default_timespan.0.map_or(String::new(), |x| {
+                    x.format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                        .unwrap()
+                }));
             } else {
                 state.start = Some(String::new());
             }
         }
         if state.end.is_none() {
             if let Some(default_timespan) = self.default_timespan.as_ref() {
-                state.end = Some(
-                    default_timespan
-                        .1
-                        .map_or(String::new(), |x| x.format("%d.%m.%Y").to_string()),
-                );
+                state.end = Some(default_timespan.1.map_or(String::new(), |x| {
+                    x.format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                        .unwrap()
+                }));
             } else {
                 state.end = Some(String::new());
             }
@@ -113,7 +111,12 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
                     .start
                     .clone()
                     .unwrap_or(self.default_timespan.map_or(String::new(), |x| {
-                        x.0.map_or(String::new(), |y| y.format("%d.%m.%Y").to_string())
+                        x.0.map_or(String::new(), |y| {
+                            y.format(
+                                &time::format_description::parse("[day].[month].[year]").unwrap(),
+                            )
+                            .unwrap()
+                        })
                     }))
             )
             .style(if start_correct {
@@ -129,7 +132,12 @@ impl<Message, PM: Fn(fm_core::Timespan) -> Message> widget::Component<Message>
                     .end
                     .clone()
                     .unwrap_or(self.default_timespan.map_or(String::new(), |x| {
-                        x.1.map_or(String::new(), |y| y.format("%d.%m.%Y").to_string())
+                        x.1.map_or(String::new(), |y| {
+                            y.format(
+                                &time::format_description::parse("[day].[month].[year]").unwrap(),
+                            )
+                            .unwrap()
+                        })
                     }))
             )
             .style(if end_correct {

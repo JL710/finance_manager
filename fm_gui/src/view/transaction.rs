@@ -175,7 +175,13 @@ impl Transaction {
                     .on_press(Message::ViewAccount(*source.id())),
                 utils::link(widget::text!("Destination: {}", destination))
                     .on_press(Message::ViewAccount(*destination.id())),
-                widget::text!("Date: {}", transaction.date().format("%d.%m.%Y")),
+                widget::text!(
+                    "Date: {}",
+                    transaction
+                        .date()
+                        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                        .unwrap()
+                ),
             ]
             .spacing(10);
 

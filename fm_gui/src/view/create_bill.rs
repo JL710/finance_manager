@@ -254,7 +254,16 @@ impl CreateBillView {
                             .into(),
                         widget::text(transaction.title().clone()).into(),
                         widget::text(transaction.amount().to_num_string()).into(),
-                        widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
+                        widget::text(
+                            transaction
+                                .date()
+                                .format(
+                                    &time::format_description::parse("[day].[month].[year]")
+                                        .unwrap(),
+                                )
+                                .unwrap(),
+                        )
+                        .into(),
                     ]
                 })
                 .headers(["", "", "Title", "Amount", "Date",])
@@ -415,7 +424,15 @@ mod add_transaction {
                                 .into(),
                             widget::text(x.title().clone()).into(),
                             widget::text(x.amount().to_num_string()).into(),
-                            widget::text(x.date().format("%d.%m.%Y").to_string()).into(),
+                            widget::text(
+                                x.date()
+                                    .format(
+                                        &time::format_description::parse("[day].[month].[year]")
+                                            .unwrap(),
+                                    )
+                                    .unwrap(),
+                            )
+                            .into(),
                         ]
                     })
                     .headers([

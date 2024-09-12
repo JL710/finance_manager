@@ -55,7 +55,7 @@ impl AssetAccountOverview {
                     let amount = finance_manager
                         .lock()
                         .await
-                        .get_account_sum(&account.clone().into(), chrono::Utc::now())
+                        .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
                         .await
                         .unwrap();
                     tuples.push((account, amount));

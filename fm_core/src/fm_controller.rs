@@ -404,9 +404,9 @@ where
         &'a self,
         budget: &'a Budget,
         offset: i32,
-    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + 'a {
-        let timespan = calculate_budget_timespan(budget, offset, chrono::Utc::now());
-        self.get_transactions_of_budget(*budget.id(), timespan)
+    ) -> Result<impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + 'a> {
+        let timespan = calculate_budget_timespan(budget, offset, time::OffsetDateTime::now_utc())?;
+        Ok(self.get_transactions_of_budget(*budget.id(), timespan))
     }
 
     /// Gets the value of the budget at the current timespan if the offset is 0.
@@ -416,9 +416,9 @@ where
         &'a self,
         budget: &'a Budget,
         offset: i32,
-    ) -> impl Future<Output = Result<Currency>> + MaybeSend + 'a {
-        let transactions_future = self.get_budget_transactions(budget, offset);
-        async {
+    ) -> Result<impl Future<Output = Result<Currency>> + MaybeSend + 'a> {
+        let transactions_future = self.get_budget_transactions(budget, offset)?;
+        Ok(async {
             let transactions = transactions_future.await?;
             let mut sum = Currency::default();
             for transaction in transactions {
@@ -429,7 +429,7 @@ where
                 }
             }
             Ok(sum)
-        }
+        })
     }
 
     pub fn get_accounts_hash_map(

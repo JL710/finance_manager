@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::{Datelike, TimeZone, Timelike};
 use std::collections::HashMap;
 
 mod finance_manager;
@@ -33,7 +32,23 @@ impl<T: Send> MaybeSend for T {}
 #[cfg(target_arch = "wasm32")]
 impl<T> MaybeSend for T {}
 
-pub type DateTime = chrono::DateTime<chrono::Utc>;
+pub type DateTime = time::OffsetDateTime;
+
+pub fn get_local_timezone() -> Result<time::UtcOffset> {
+    let utc_offset = tz::TimeZone::local()?
+        .find_current_local_time_type()?
+        .ut_offset();
+
+    if utc_offset == 0 {
+        #[cfg(unix)]
+        return Ok(time::UtcOffset::UTC);
+        #[cfg(not(unix))]
+        return Ok(time::UtcOffset::current_local_offset()?);
+    }
+
+    Ok(time::UtcOffset::from_whole_seconds(utc_offset)?)
+}
+
 pub type Id = u64;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -234,9 +249,9 @@ pub enum Recurring {
     /// start time and days
     Days(DateTime, usize),
     /// i.e. 3. of each month
-    DayInMonth(u16),
+    DayInMonth(u8),
     /// month and day
-    Yearly(u8, u16),
+    Yearly(u8, u8),
 }
 
 impl std::fmt::Display for Recurring {
@@ -314,107 +329,99 @@ pub fn sum_up_transactions_by_day(
     let mut values: Vec<(DateTime, Currency)> = Vec::new();
 
     for transaction in transactions {
-        let time = chrono::Utc
-            .with_ymd_and_hms(
-                transaction.date().year(),
-                transaction.date().month(),
-                transaction.date().day(),
-                0,
-                0,
-                0,
-            )
-            .unwrap();
         let sign = (sign_f)(&transaction);
         let mut amount = match sign {
             Sign::Positive => transaction.amount(),
             Sign::Negative => transaction.amount().negative(),
         };
+        let date_with_offset = (*transaction.date()).replace_time(time::Time::MIDNIGHT);
         if !values.is_empty() {
             amount += values.last().unwrap().1.clone();
             let entry = values.last().unwrap().clone();
-            if entry.0 == time {
+            if entry.0.to_offset(time::UtcOffset::UTC).date()
+                == transaction.date().to_offset(time::UtcOffset::UTC).date()
+            {
                 let i = values.len() - 1;
-                values[i] = (time, amount);
+                values[i] = (date_with_offset, amount);
             } else {
-                values.push((time, amount));
+                values.push((date_with_offset, amount)); // FIXME: is this line really needed?
             }
         } else {
-            values.push((time, amount));
+            values.push((date_with_offset, amount));
         }
     }
 
     values
 }
 
-pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) -> Timespan {
-    let now: chrono::prelude::DateTime<chrono::prelude::Utc> = now
-        .with_hour(0)
-        .unwrap()
-        .with_minute(0)
-        .unwrap()
-        .with_second(0)
-        .unwrap()
-        .with_nanosecond(0)
-        .unwrap();
-
+pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) -> Result<Timespan> {
+    let now = now.replace_time(time::Time::MIDNIGHT);
     let (start, end) = match budget.timespan() {
         Recurring::Days(start, days) => {
-            let since_start = now - start;
-            let a: i64 = since_start.num_days() / *days as i64;
-            let timespan_start = *start + chrono::Duration::days(a * *days as i64);
-            let timespan_end = timespan_start + chrono::Duration::days(*days as i64);
+            let since_start = now - *start;
+            let a: i64 = since_start.whole_days() / *days as i64; // FIXME: what is this "a" for again?
+            let timespan_start = *start + time::Duration::days(a * *days as i64);
+            let timespan_end = timespan_start + time::Duration::days(*days as i64);
             (timespan_start, timespan_end)
         }
         Recurring::DayInMonth(day) => {
-            let day_in_current_month = now.with_day(*day as u32).unwrap();
+            let day_in_current_month = now.replace_day(*day)?;
             if day_in_current_month > now {
                 (
-                    now.with_day(*day as u32)
-                        .unwrap()
-                        .with_month(now.month() - 1)
-                        .unwrap(),
-                    now.with_day(*day as u32).unwrap(),
+                    now.replace_day(*day)?
+                        .replace_month(now.month().previous())?, // FIXME: what if it is January?
+                    now.replace_day(*day)?,
                 )
             } else {
                 (
-                    now.with_day(*day as u32).unwrap(),
-                    now.with_day(*day as u32)
-                        .unwrap()
-                        .with_month(now.month() + 1)
-                        .unwrap(),
+                    now.replace_day(*day)?,
+                    now.replace_day(*day)?.replace_month(now.month().next())?, // FIXME: what if it is December?
                 )
             }
         }
         Recurring::Yearly(month, day) => {
             let current_year = now.year();
-            let in_current_year = chrono::Utc
-                .with_ymd_and_hms(current_year, *month as u32, *day as u32, 0, 0, 0)
-                .unwrap();
+            let in_current_year = time::OffsetDateTime::new_utc(
+                now.date()
+                    .replace_day(*day)?
+                    .replace_month((*month).try_into()?)?,
+                time::Time::MIDNIGHT,
+            );
 
             if in_current_year > now {
                 (
-                    chrono::Utc
-                        .with_ymd_and_hms(current_year - 1, *month as u32, *day as u32, 0, 0, 0)
-                        .unwrap(),
+                    time::OffsetDateTime::new_utc(
+                        time::Date::from_calendar_date(
+                            current_year - 1,
+                            (*month).try_into()?,
+                            *day,
+                        )?,
+                        time::Time::MIDNIGHT,
+                    ),
                     in_current_year,
                 )
             } else {
                 (
                     in_current_year,
-                    chrono::Utc
-                        .with_ymd_and_hms(current_year + 1, *month as u32, *day as u32, 0, 0, 0)
-                        .unwrap(),
+                    time::OffsetDateTime::new_utc(
+                        time::Date::from_calendar_date(
+                            current_year + 1,
+                            (*month).try_into()?,
+                            *day,
+                        )?,
+                        time::Time::MIDNIGHT,
+                    ),
                 )
             }
         }
     };
     match offset.cmp(&0) {
-        std::cmp::Ordering::Equal => (Some(start), Some(end - chrono::TimeDelta::seconds(1))),
+        std::cmp::Ordering::Equal => Ok((Some(start), Some(end - time::Duration::seconds(1)))),
         std::cmp::Ordering::Greater => {
-            calculate_budget_timespan(budget, offset - 1, end + chrono::Duration::days(1))
+            calculate_budget_timespan(budget, offset - 1, end + time::Duration::days(1))
         }
         std::cmp::Ordering::Less => {
-            calculate_budget_timespan(budget, offset + 1, start - chrono::Duration::days(1))
+            calculate_budget_timespan(budget, offset + 1, start - time::Duration::days(1))
         }
     }
 }
@@ -422,6 +429,7 @@ pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use time::macros::*;
 
     #[test]
     fn test_calculate_budget_timespan() {
@@ -434,17 +442,14 @@ mod tests {
                 Recurring::DayInMonth(1),
             ),
             0,
-            chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),
-        );
+            datetime!(2020-5-3 12:10:03 UTC),
+        )
+        .unwrap();
         assert_eq!(
             timespan,
             (
-                Some(chrono::Utc.with_ymd_and_hms(2020, 5, 1, 0, 0, 0).unwrap()),
-                Some(
-                    chrono::Utc
-                        .with_ymd_and_hms(2020, 5, 31, 23, 59, 59)
-                        .unwrap()
-                )
+                Some(datetime!(2020-5-1 0:0:0 UTC)),
+                Some(datetime!(2020-5-31 23:59:59 UTC))
             )
         );
     }
@@ -460,17 +465,14 @@ mod tests {
                 Recurring::DayInMonth(1),
             ),
             2,
-            chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),
-        );
+            datetime!(2020-5-3 12:10:03 UTC),
+        )
+        .unwrap();
         assert_eq!(
             timespan,
             (
-                Some(chrono::Utc.with_ymd_and_hms(2020, 7, 1, 0, 0, 0).unwrap()),
-                Some(
-                    chrono::Utc
-                        .with_ymd_and_hms(2020, 7, 31, 23, 59, 59)
-                        .unwrap()
-                )
+                Some(datetime!(2020-7-1 0:0:0 UTC)),
+                Some(datetime!(2020-7-31 23:59:59 UTC))
             )
         );
     }
@@ -486,17 +488,14 @@ mod tests {
                 Recurring::DayInMonth(1),
             ),
             -2,
-            chrono::Utc.with_ymd_and_hms(2020, 5, 3, 12, 10, 3).unwrap(),
-        );
+            datetime!(2020-5-3 12:10:3 UTC),
+        )
+        .unwrap();
         assert_eq!(
             timespan,
             (
-                Some(chrono::Utc.with_ymd_and_hms(2020, 3, 1, 0, 0, 0).unwrap()),
-                Some(
-                    chrono::Utc
-                        .with_ymd_and_hms(2020, 3, 31, 23, 59, 59)
-                        .unwrap()
-                )
+                Some(datetime!(2020-03-01 0:0:0 UTC)),
+                Some(datetime!(2020-03-31 23:59:59 UTC))
             )
         );
     }

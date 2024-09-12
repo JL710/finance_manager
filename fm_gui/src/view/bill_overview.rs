@@ -70,11 +70,10 @@ impl BillOverview {
                     .into(),
                 widget::text!("{}€", bill.0.value().to_num_string()).into(),
                 utils::colored_currency_display(&bill.1),
-                widget::text(
-                    bill.0
-                        .due_date()
-                        .map_or(String::new(), |x| x.format("%d.%m.%Y").to_string())
-                )
+                widget::text(bill.0.due_date().map_or(String::new(), |x| {
+                    x.format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                        .unwrap()
+                }))
                 .into(),
                 widget::text(bill.0.transactions().len()).into()
             ])

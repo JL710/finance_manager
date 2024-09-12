@@ -90,7 +90,7 @@ impl Account {
                     .unwrap()
                     .unwrap();
                 let account_sum = locked_manager
-                    .get_account_sum(&account, chrono::Utc::now())
+                    .get_account_sum(&account, time::OffsetDateTime::now_utc())
                     .await
                     .unwrap();
                 let transactions = locked_manager

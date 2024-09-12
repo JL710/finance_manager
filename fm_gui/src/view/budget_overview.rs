@@ -43,6 +43,7 @@ impl BudgetOverview {
                         .lock()
                         .await
                         .get_budget_value(&budget, 0)
+                        .unwrap()
                         .await
                         .unwrap();
                     tuples.push((budget, current_value));

@@ -133,7 +133,7 @@ impl TransactionFilter {
                     start <= *transaction.date()
                 } else {
                     true
-                } | if let Some(end) = timespan.1 {
+                } || if let Some(end) = timespan.1 {
                     end >= *transaction.date()
                 } else {
                     true

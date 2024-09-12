@@ -111,9 +111,12 @@ impl CreateBudgetView {
             ),
             value_input: budget.total_value().to_num_string(),
             recurring_inputs: match budget.timespan() {
-                fm_core::Recurring::Days(start, days) => {
-                    Recurring::Days(start.format("%d.%m.%Y").to_string(), days.to_string())
-                }
+                fm_core::Recurring::Days(start, days) => Recurring::Days(
+                    start
+                        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                        .unwrap(),
+                    days.to_string(),
+                ),
                 fm_core::Recurring::DayInMonth(day) => Recurring::DayInMonth(day.to_string()),
                 fm_core::Recurring::Yearly(month, day) => {
                     Recurring::Yearly(month.to_string(), day.to_string())

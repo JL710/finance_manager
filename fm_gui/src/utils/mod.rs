@@ -1,4 +1,3 @@
-use chrono::TimeZone;
 use iced::widget;
 
 mod currency_input;
@@ -32,11 +31,15 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
     widget::row![widget::text(name), input].spacing(10).into()
 }
 
-pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
-    let date = chrono::NaiveDate::parse_from_str(date, "%d.%m.%Y")?
-        .and_hms_opt(0, 0, 0)
-        .unwrap();
-    Ok(chrono::Utc.from_utc_datetime(&date))
+pub fn parse_to_datetime(date: &str) -> anyhow::Result<time::OffsetDateTime> {
+    Ok(time::OffsetDateTime::new_in_offset(
+        time::Date::parse(
+            date,
+            &time::format_description::parse("[day].[month].[year]")?,
+        )?,
+        time::Time::MIDNIGHT,
+        fm_core::get_local_timezone()?,
+    ))
 }
 
 pub fn colored_currency_display<Message>(
@@ -90,7 +93,13 @@ pub fn transaction_table<'a, Message: 'a + Clone>(
                 link(widget::text(transaction.title().clone()))
                     .on_press(view_transaction(*transaction.id()))
                     .into(),
-                widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
+                widget::text(
+                    transaction
+                        .date()
+                        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                        .unwrap(),
+                )
+                .into(),
                 match amount_positive(transaction.clone()) {
                     Some(true) => colored_currency_display(&transaction.amount()),
                     Some(false) => colored_currency_display(&transaction.amount().negative()),

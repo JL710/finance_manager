@@ -208,41 +208,6 @@ pub trait FinanceManager: Send + Clone + Sized {
         timespan: Timespan,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
-    /// Gets the transactions of the budget at the current timespan if the offset is 0.
-    ///
-    /// If the offset is positive the timespan is in the future. If the offset is negative the timespan is in the past.
-    fn get_budget_transactions(
-        &self,
-        budget: &Budget,
-        offset: i32,
-    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend {
-        let timespan = calculate_budget_timespan(budget, offset, chrono::Utc::now());
-        self.get_transactions_of_budget(*budget.id(), timespan)
-    }
-
-    /// Gets the value of the budget at the current timespan if the offset is 0.
-    ///
-    /// If the offset is positive the timespan is in the future. If the offset is negative the timespan is in the past.
-    fn get_budget_value(
-        &self,
-        budget: &Budget,
-        offset: i32,
-    ) -> impl Future<Output = Result<Currency>> + MaybeSend {
-        let transactions_future = self.get_budget_transactions(budget, offset);
-        async {
-            let transactions = transactions_future.await?;
-            let mut sum = Currency::default();
-            for transaction in transactions {
-                let sign = transaction.budget().unwrap().1;
-                match sign {
-                    Sign::Positive => sum += transaction.amount(),
-                    Sign::Negative => sum -= transaction.amount(),
-                }
-            }
-            Ok(sum)
-        }
-    }
-
     fn get_accounts_hash_map(
         &self,
     ) -> impl Future<Output = Result<HashMap<Id, account::Account>>> + MaybeSend {

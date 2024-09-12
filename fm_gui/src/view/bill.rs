@@ -1,5 +1,3 @@
-use crate::finance_managers;
-
 use super::super::utils;
 
 use async_std::sync::Mutex;
@@ -135,8 +133,12 @@ impl Bill {
                         widget::text!("Amount: {}€", bill.value().to_num_string()),
                         widget::text!(
                             "Due Date: {}",
-                            bill.due_date()
-                                .map_or(String::new(), |d| d.format("%d.%m.%Y").to_string())
+                            bill.due_date().map_or(String::new(), |d| d
+                                .format(
+                                    &time::format_description::parse("[day].[month].[year]")
+                                        .unwrap()
+                                )
+                                .unwrap())
                         ),
                         widget::row!["Sum: ", utils::colored_currency_display(bill_sum),]
                             .spacing(10)
@@ -163,7 +165,15 @@ impl Bill {
                     )
                     .into(),
                     widget::text!("{}€", transaction.amount().to_num_string()).into(),
-                    widget::text(transaction.date().format("%d.%m.%Y").to_string()).into(),
+                    widget::text(
+                        transaction
+                            .date()
+                            .format(
+                                &time::format_description::parse("[day].[month].[year]").unwrap()
+                            )
+                            .unwrap()
+                    )
+                    .into(),
                 ])
                 .headers(["Negative", "Title", "Description", "Amount", "Date"])
                 .sort_by(|a, b, column| {

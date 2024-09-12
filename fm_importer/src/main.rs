@@ -60,7 +60,8 @@ async fn main() {
                     .unwrap(),
                 finance_manager,
             )
-            .await;
+            .await
+            .unwrap();
         }
         _ => eprintln!("Unknown format: {}", args.format),
     }

@@ -57,15 +57,16 @@ impl Budget {
             fm_core::account::Account,
         )>,
         offset: i32,
-    ) -> Self {
-        let timespan = fm_core::calculate_budget_timespan(&budget, offset, chrono::Utc::now());
-        Self::Loaded {
+    ) -> Result<Self> {
+        let timespan =
+            fm_core::calculate_budget_timespan(&budget, offset, time::OffsetDateTime::now_utc())?;
+        Ok(Self::Loaded {
             budget,
             current_value,
             transactions,
             offset,
             time_span: timespan,
-        }
+        })
     }
 
     pub fn fetch(
@@ -88,7 +89,7 @@ impl Budget {
     ) -> Action {
         match message {
             Message::Initialize(budget, value, transactions, offset) => {
-                *self = Self::new(budget, value, transactions, offset);
+                *self = Self::new(budget, value, transactions, offset).unwrap();
                 Action::None
             }
             Message::ViewAccount(id) => Action::ViewAccount(id),
@@ -138,8 +139,20 @@ impl Budget {
                     widget::text!("Offset: {}", offset),
                     widget::text!(
                         "Time Span: {} - {}",
-                        time_span.0.unwrap().format("%d.%m.%Y").to_string(),
-                        time_span.1.unwrap().format("%d.%m.%Y").to_string()
+                        time_span
+                            .0
+                            .unwrap()
+                            .format(
+                                &time::format_description::parse("[day].[month].[year]").unwrap()
+                            )
+                            .unwrap(),
+                        time_span
+                            .1
+                            .unwrap()
+                            .format(
+                                &time::format_description::parse("[day].[month].[year]").unwrap()
+                            )
+                            .unwrap()
                     ),
                     widget::button(">").on_press(Message::IncreaseOffset),
                 ]
@@ -190,7 +203,7 @@ impl Budget {
         let locked_manager = finance_manager.lock().await;
         let budget = locked_manager.get_budget(id).await?.unwrap();
         let transactions = locked_manager
-            .get_budget_transactions(&budget, offset)
+            .get_budget_transactions(&budget, offset)?
             .await
             .unwrap();
         let mut current_value = fm_core::Currency::default();

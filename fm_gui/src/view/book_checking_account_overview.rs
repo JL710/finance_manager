@@ -45,7 +45,7 @@ impl BookCheckingAccountOverview {
                 let mut accounts_with_sums = Vec::new();
                 for account in accounts {
                     let sum = locked_manager
-                        .get_account_sum(&account.clone().into(), chrono::Utc::now())
+                        .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
                         .await
                         .unwrap();
                     accounts_with_sums.push((account, sum));

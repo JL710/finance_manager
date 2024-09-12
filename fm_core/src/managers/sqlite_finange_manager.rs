@@ -45,7 +45,7 @@ impl TryInto<Transaction> for TransactionSignature {
                     },
                 )
             }),
-            DateTime::from_timestamp(self.9, 0).unwrap(),
+            DateTime::from_unix_timestamp(self.9).unwrap(),
             serde_json::from_str(&self.10)?,
             HashMap::new(),
         ))
@@ -58,7 +58,7 @@ impl From<Recurring> for RecurringSignature {
     fn from(val: Recurring) -> Self {
         match val {
             Recurring::DayInMonth(num) => (1, num as i64, None),
-            Recurring::Days(datetime, days) => (2, datetime.timestamp(), Some(days as i64)),
+            Recurring::Days(datetime, days) => (2, datetime.unix_timestamp(), Some(days as i64)),
             Recurring::Yearly(num1, num2) => (3, num1 as i64, Some(num2 as i64)),
         }
     }
@@ -69,12 +69,12 @@ impl TryFrom<RecurringSignature> for Recurring {
 
     fn try_from(value: RecurringSignature) -> Result<Self> {
         match value.0 {
-            1 => Ok(Recurring::DayInMonth(value.1 as u16)),
+            1 => Ok(Recurring::DayInMonth(value.1 as u8)),
             2 => Ok(Recurring::Days(
-                DateTime::from_timestamp(value.1, 0).unwrap(),
+                DateTime::from_unix_timestamp(value.1).unwrap(),
                 value.2.unwrap() as usize,
             )),
-            3 => Ok(Recurring::Yearly(value.1 as u8, value.2.unwrap() as u16)),
+            3 => Ok(Recurring::Yearly(value.1 as u8, value.2.unwrap() as u8)),
             _ => anyhow::bail!("invalid id"),
         }
     }
@@ -314,7 +314,7 @@ impl FinanceManager for SqliteFinanceManager {
                 &description,
                 value.get_eur_num(),
                 value.get_currency_id(),
-                due_date.map(|x| x.timestamp()),
+                due_date.map(|x| x.unix_timestamp()),
             ),
         )?;
         let bill_id = connection.last_insert_rowid();
@@ -358,7 +358,7 @@ impl FinanceManager for SqliteFinanceManager {
                 description,
                 value.get_eur_num(),
                 value.get_currency_id(),
-                due_date.map(|x| x.timestamp()),
+                due_date.map(|x| x.unix_timestamp()),
                 id,
             ),
         )?;
@@ -546,15 +546,15 @@ impl FinanceManager for SqliteFinanceManager {
             ),
             (Some(start), None) => transaction_query!(
                 format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3", TRANSACTION_FIELDS).as_str(),
-                (account, account, start.timestamp())
+                (account, account, start.unix_timestamp())
             ),
             (None, Some(end)) => transaction_query!(
                 format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp <= ?3", TRANSACTION_FIELDS).as_str(),
-                (account, account, end.timestamp())
+                (account, account, end.unix_timestamp())
             ),
             (Some(start), Some(end)) => transaction_query!(
                 format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3 AND timestamp <= ?4", TRANSACTION_FIELDS).as_str(),
-                (account, account, start.timestamp(), end.timestamp())
+                (account, account, start.unix_timestamp(), end.unix_timestamp())
             )
         };
 
@@ -626,7 +626,7 @@ impl FinanceManager for SqliteFinanceManager {
                     Sign::Positive => true,
                     Sign::Negative => false,
                 }),
-                &date.timestamp(),
+                &date.unix_timestamp(),
                 serde_json::to_string(&metadata)?,
             ),
         )?;
@@ -743,7 +743,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         connection.execute(
             "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, budget_sign=?8, timestamp=?9, metadata=?10 WHERE id=?11", 
-            (amount.get_eur_num(), amount.get_currency_id(), &title, &description, source, destination, budget.map(|x| x.0), budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}), date.timestamp(), serde_json::to_string(&metadata)?, id)
+            (amount.get_eur_num(), amount.get_currency_id(), &title, &description, source, destination, budget.map(|x| x.0), budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}), date.unix_timestamp(), serde_json::to_string(&metadata)?, id)
         )?;
 
         set_categories_for_transaction(&connection, id, &categories)?; // set categories for transaction
@@ -813,15 +813,15 @@ impl FinanceManager for SqliteFinanceManager {
             ),
             (Some(start), None) => transaction_query!(
                 format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp >= ?2", TRANSACTION_FIELDS).as_str(),
-                (id, start.timestamp())
+                (id, start.unix_timestamp())
             ),
             (None, Some(end)) => transaction_query!(
                 format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp <= ?2", TRANSACTION_FIELDS).as_str(),
-                (id, end.timestamp())
+                (id, end.unix_timestamp())
             ),
             (Some(start), Some(end)) => transaction_query!(
                 format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp >= ?2 AND timestamp <= ?3", TRANSACTION_FIELDS).as_str(),
-                (id, start.timestamp(), end.timestamp())
+                (id, start.unix_timestamp(), end.unix_timestamp())
             )
         };
 
@@ -915,7 +915,7 @@ impl FinanceManager for SqliteFinanceManager {
                     TRANSACTION_FIELDS
                 )
                 .as_str(),
-                (start.timestamp(),)
+                (start.unix_timestamp(),)
             ),
             (None, Some(end)) => transaction_query!(
                 format!(
@@ -923,7 +923,7 @@ impl FinanceManager for SqliteFinanceManager {
                     TRANSACTION_FIELDS
                 )
                 .as_str(),
-                (end.timestamp(),)
+                (end.unix_timestamp(),)
             ),
             (Some(start), Some(end)) => transaction_query!(
                 format!(
@@ -931,7 +931,7 @@ impl FinanceManager for SqliteFinanceManager {
                     TRANSACTION_FIELDS
                 )
                 .as_str(),
-                (start.timestamp(), end.timestamp())
+                (start.unix_timestamp(), end.unix_timestamp())
             ),
         };
 
@@ -1044,21 +1044,21 @@ impl FinanceManager for SqliteFinanceManager {
                     "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND category_id=?2",
                     TRANSACTION_FIELDS
                 ).as_str(),
-                (start.timestamp(), &id)
+                (start.unix_timestamp(), &id)
             ),
             (None, Some(end)) => transaction_query!(
                 format!(
                     "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp <= ?1  AND category_id=?2",
                     TRANSACTION_FIELDS
                 ).as_str(),
-                (end.timestamp(), &id)
+                (end.unix_timestamp(), &id)
             ),
             (Some(start), Some(end)) => transaction_query!(
                 format!(
                     "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND timestamp <= ?2  AND category_id=?3",
                     TRANSACTION_FIELDS
                 ).as_str(),
-                (start.timestamp(), end.timestamp(), &id)
+                (start.unix_timestamp(), end.unix_timestamp(), &id)
             )
         };
 

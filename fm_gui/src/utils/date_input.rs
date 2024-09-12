@@ -28,7 +28,9 @@ impl<'a, Message: Clone + 'a> DateInput<Message> {
         match state.input {
             Some(ref x) => x.clone(),
             None => match self.default_value {
-                Some(x) => x.format("%d.%m.%Y").to_string(),
+                Some(x) => x
+                    .format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                    .unwrap(),
                 None => String::new(),
             },
         }

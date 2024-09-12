@@ -8,23 +8,24 @@ use tokio::sync::Mutex;
 pub async fn run_in_terminal(
     importer: super::Importer<impl fm_core::FinanceManager, impl super::Parser>,
     finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
-) {
+) -> Result<()> {
     let importer = Arc::new(Mutex::new(importer));
     loop {
         let next_action = importer.lock().await.next().await.unwrap();
         if let Some(action) = next_action {
-            do_action(importer.clone(), action, finance_manager.clone()).await;
+            do_action(importer.clone(), action, finance_manager.clone()).await?;
         } else {
             break;
         }
     }
+    Ok(())
 }
 
 async fn do_action(
     importer: Arc<Mutex<super::Importer<impl fm_core::FinanceManager, impl super::Parser>>>,
     action: Action,
     finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
-) {
+) -> Result<()> {
     let mut actions = Vec::with_capacity(3);
     actions.push(action);
     while let Some(action) = actions.pop() {
@@ -50,7 +51,7 @@ async fn do_action(
                     transaction.title(),
                     transaction.description().unwrap_or(""),
                     transaction.amount(),
-                    transaction.date().format("%d.%m.%Y"),
+                    transaction.date().format(&time::format_description::parse("[day].[month].[year]")?)?,
                     format_account(&source),
                     format_account(&destination)
                 );
@@ -77,7 +78,7 @@ async fn do_action(
                             transaction.title(),
                             transaction.description().unwrap_or(""),
                             transaction.amount(),
-                            transaction.date().format("%d.%m.%Y"),
+                            transaction.date().format(&time::format_description::parse("[day].[month].[year]")?)?,
                             format_account(&source),
                             format_account(&destination)
                         ))
@@ -85,7 +86,7 @@ async fn do_action(
                     "The following transaction could already exists. What do you want to do?",
                     finance_manager.clone(),
                 )
-                .await;
+                .await?;
                 actions.push(
                     importer
                         .lock()
@@ -102,7 +103,7 @@ async fn do_action(
                     "The following Account could already exist. What do you want to do?",
                     finance_manager.clone(),
                 )
-                .await;
+                .await?;
                 actions.push(
                     importer
                         .try_lock()
@@ -119,7 +120,7 @@ async fn do_action(
                     "The following Account could already exist. What do you want to do?",
                     finance_manager.clone(),
                 )
-                .await;
+                .await?;
                 actions.push(
                     importer
                         .lock()
@@ -131,6 +132,7 @@ async fn do_action(
             }
         }
     }
+    Ok(())
 }
 
 async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static>(
@@ -138,13 +140,14 @@ async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static
     t_to_string: impl Fn(T, Arc<Mutex<fm_core::FMController<FM>>>) -> F,
     prompt: &str,
     finance_manager: Arc<Mutex<fm_core::FMController<FM>>>,
-) where
+) -> Result<()>
+where
     F: std::future::Future<Output = Result<String>>,
 {
     println!("---------\n{}", prompt);
     println!(
         "You are making the decision for the following transaction:\n{}",
-        format_transaction_entry(object_exists.transaction_entry())
+        format_transaction_entry(object_exists.transaction_entry())?
     );
     println!("You have do decide between the following options (enter the number or None):");
     for (i, item) in object_exists.possible_objects().iter().enumerate() {
@@ -162,7 +165,7 @@ async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static
         input = input.trim().to_string();
         if input == "None" {
             object_exists.select_object(None);
-            return;
+            return Ok(());
         }
         let input = input.trim().parse::<isize>().expect("Expected a number");
         if input < object_exists.possible_objects().len() as isize && input >= 0 {
@@ -170,15 +173,15 @@ async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static
                 object_exists.possible_objects()[input as usize].clone(),
             ));
             println!("Selected option {}.", input);
-            return;
+            return Ok(());
         } else {
             println!("Invalid input. Please try again.");
         }
     }
 }
 
-fn format_transaction_entry(entry: &super::TransactionEntry) -> String {
-    format!(
+fn format_transaction_entry(entry: &super::TransactionEntry) -> Result<String> {
+    Ok(format!(
         "Title: {}\nDescription: {}\nValue: {}\nSource IBAN: {}\nSource BIC: {}\nSource Name: {}\nDestination IBAN: {}\nDestination Name: {}\nDestination BIC: {}\nDate: {}\n",
         entry.title,
         entry.description,
@@ -189,8 +192,8 @@ fn format_transaction_entry(entry: &super::TransactionEntry) -> String {
         entry.destination_entry.iban(),
         entry.destination_entry.bic().unwrap_or_default(),
         entry.destination_entry.name().clone().unwrap_or_default(),
-        entry.date.format("%d.%m.%Y")
-    )
+        entry.date.format(&time::format_description::parse("[day].[month].[year]")?)?
+    ))
 }
 
 fn format_account(account: &fm_core::account::Account) -> String {

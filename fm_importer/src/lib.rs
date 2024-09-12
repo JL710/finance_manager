@@ -469,7 +469,7 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
 
             // check for general fields
             if transaction.amount() == transaction_entry.value
-            && transaction.date().date_naive() == transaction_entry.date.date_naive()
+            && transaction.date().replace_offset(time::UtcOffset::UTC).date() == transaction_entry.date.replace_offset(time::UtcOffset::UTC).date()
             // check if source iban is equal
             && if let Some(source_iban) = source_acc.iban() {
                 source_iban == transaction_entry.source_entry.iban()

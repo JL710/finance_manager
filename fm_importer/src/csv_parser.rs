@@ -164,12 +164,15 @@ impl<'a> super::Parser for CSVParser<'a> {
 }
 
 pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
-    pub fn parse_to_datetime(date: &str) -> anyhow::Result<chrono::DateTime<chrono::Utc>> {
-        use chrono::TimeZone;
-        let date = chrono::NaiveDate::parse_from_str(date, "%d.%m.%y")?
-            .and_hms_opt(0, 0, 0)
-            .unwrap();
-        Ok(chrono::Utc.from_utc_datetime(&date))
+    pub fn parse_to_datetime(date: &str) -> anyhow::Result<fm_core::DateTime> {
+        Ok(time::OffsetDateTime::new_in_offset(
+            time::Date::parse(
+                date,
+                &time::format_description::parse("[day].[month].[year]")?,
+            )?,
+            time::Time::MIDNIGHT,
+            fm_core::get_local_timezone()?,
+        ))
     }
 
     CSVParser::new(
