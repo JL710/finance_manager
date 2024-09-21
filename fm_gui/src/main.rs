@@ -80,9 +80,42 @@ enum View {
     ViewBill(view::bill::Bill),
 }
 
+struct SvgCache {
+    bank2: widget::svg::Handle,
+    cash: widget::svg::Handle,
+    piggy_bank_fill: widget::svg::Handle,
+    bookmark_fill: widget::svg::Handle,
+    send_fill: widget::svg::Handle,
+    folder_fill: widget::svg::Handle,
+    plus_circle_fill: widget::svg::Handle,
+    gear_fill: widget::svg::Handle,
+}
+
+impl Default for SvgCache {
+    fn default() -> Self {
+        SvgCache {
+            bank2: widget::svg::Handle::from_memory(include_bytes!("assets/bank2.svg")),
+            cash: widget::svg::Handle::from_memory(include_bytes!("assets/cash.svg")),
+            piggy_bank_fill: widget::svg::Handle::from_memory(include_bytes!(
+                "assets/piggy-bank-fill.svg"
+            )),
+            bookmark_fill: widget::svg::Handle::from_memory(include_bytes!(
+                "assets/bookmark-fill.svg"
+            )),
+            send_fill: widget::svg::Handle::from_memory(include_bytes!("assets/send-fill.svg")),
+            folder_fill: widget::svg::Handle::from_memory(include_bytes!("assets/folder-fill.svg")),
+            plus_circle_fill: widget::svg::Handle::from_memory(include_bytes!(
+                "assets/plus-circle-fill.svg"
+            )),
+            gear_fill: widget::svg::Handle::from_memory(include_bytes!("assets/gear-fill.svg")),
+        }
+    }
+}
+
 pub struct App {
     finance_manager: Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>,
     current_view: View,
+    svg_cache: SvgCache,
 }
 
 impl Default for App {
@@ -94,6 +127,7 @@ impl Default for App {
         App {
             current_view: View::Empty,
             finance_manager: Arc::new(Mutex::new(finance_manager)),
+            svg_cache: SvgCache::default(),
         }
     }
 }
@@ -107,6 +141,7 @@ impl App {
                 widget::markdown::parse(include_str!("view/tutorial.md")).collect(),
             ),
             finance_manager,
+            svg_cache: SvgCache::default(),
         }
     }
 
@@ -428,14 +463,14 @@ impl App {
     fn view(&self) -> iced::Element<AppMessage> {
         fn icon_menu_item<'a>(
             text: &'a str,
-            icon: &'static [u8],
+            icon: &widget::svg::Handle,
             message: AppMessage,
         ) -> iced::Element<'a, AppMessage> {
             widget::button(
                 widget::row![
                     text,
                     widget::horizontal_space(),
-                    widget::Svg::new(widget::svg::Handle::from_memory(icon)).width(iced::Shrink)
+                    widget::Svg::new(icon.clone()).width(iced::Shrink)
                 ]
                 .align_y(iced::Center)
                 .spacing(10),
@@ -449,44 +484,44 @@ impl App {
             widget::column![
                 icon_menu_item(
                     "AssetAccounts",
-                    include_bytes!("assets/bank2.svg"),
+                    &self.svg_cache.bank2,
                     AppMessage::SwitchToAssetAccountsView
                 ),
                 icon_menu_item(
                     "BookCheckingAccounts",
-                    include_bytes!("assets/cash.svg"),
+                    &self.svg_cache.cash,
                     AppMessage::SwitchToBookCheckingAccountOverview
                 ),
                 icon_menu_item(
                     "Budgets",
-                    include_bytes!("assets/piggy-bank-fill.svg"),
+                    &self.svg_cache.piggy_bank_fill,
                     AppMessage::SwitchToBudgetOverview
                 ),
                 icon_menu_item(
                     "Categories",
-                    include_bytes!("assets/bookmark-fill.svg"),
+                    &self.svg_cache.bookmark_fill,
                     AppMessage::SwitchToCategoryOverview
                 ),
                 icon_menu_item(
                     "Transactions",
-                    include_bytes!("assets/send-fill.svg"),
+                    &self.svg_cache.send_fill,
                     AppMessage::SwitchToFilterTransactionView
                 ),
                 icon_menu_item(
                     "Bills",
-                    include_bytes!("assets/folder-fill.svg"),
+                    &self.svg_cache.folder_fill,
                     AppMessage::SwitchToBillOverview
                 ),
                 widget::horizontal_rule(5),
                 icon_menu_item(
                     "Create Transaction",
-                    include_bytes!("assets/plus-circle-fill.svg"),
+                    &self.svg_cache.plus_circle_fill,
                     AppMessage::SwitchToCreateTransActionView
                 ),
                 widget::vertical_space(),
                 icon_menu_item(
                     "Settings",
-                    include_bytes!("assets/gear-fill.svg"),
+                    &self.svg_cache.gear_fill,
                     AppMessage::SwitchToSettingsView
                 ),
                 widget::button("License")
