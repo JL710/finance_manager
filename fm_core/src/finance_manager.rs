@@ -61,9 +61,9 @@ pub trait FinanceManager: Send + Clone + Sized {
 
             let mut sum = Currency::default();
             for transaction in transactions {
-                if transaction.source == *account.id() {
+                if transaction.source() == account.id() {
                     sum -= transaction.amount();
-                } else if transaction.destination == *account.id() {
+                } else if transaction.destination() == account.id() {
                     sum += transaction.amount();
                 }
             }
@@ -334,6 +334,13 @@ macro_rules! unit_tests {
                 } else {
                     assert!(false);
                 }
+            }
+
+            #[async_std::test]
+            async fn delete_category() {
+                todo!("check if category is deleted");
+                todo!("check if category is removed from transactions");
+                todo!("Not implemented");
             }
         }
     };

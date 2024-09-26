@@ -169,7 +169,7 @@ impl FinanceManager for RamFinanceManager {
 
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
         for transaction in &self.transactions {
-            if transaction.id == id {
+            if *transaction.id() == id {
                 return Ok(Some(transaction.clone()));
             }
         }
@@ -189,12 +189,12 @@ impl FinanceManager for RamFinanceManager {
                     return false;
                 }
                 if let Some(begin) = timespan.0 {
-                    if transaction.date < begin {
+                    if transaction.date() < &begin {
                         return false;
                     }
                 }
                 if let Some(end) = timespan.1 {
-                    if transaction.date > end {
+                    if transaction.date() > &end {
                         return false;
                     }
                 }
@@ -252,7 +252,7 @@ impl FinanceManager for RamFinanceManager {
     ) -> Result<Transaction> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
-        let new_transaction = Transaction {
+        let new_transaction = Transaction::new(
             id,
             amount,
             title,
@@ -263,7 +263,7 @@ impl FinanceManager for RamFinanceManager {
             date,
             metadata,
             categories,
-        };
+        );
 
         self.transactions.push(new_transaction.clone());
 
@@ -335,7 +335,7 @@ impl FinanceManager for RamFinanceManager {
             .transactions
             .iter()
             .filter(|transaction| {
-                if let Some(budget_id) = transaction.budget {
+                if let Some(budget_id) = transaction.budget() {
                     if budget_id.0 != id {
                         return false;
                     }
@@ -343,12 +343,12 @@ impl FinanceManager for RamFinanceManager {
                     return false;
                 }
                 if let Some(begin) = timespan.0 {
-                    if transaction.date < begin {
+                    if transaction.date() < &begin {
                         return false;
                     }
                 }
                 if let Some(end) = timespan.1 {
-                    if transaction.date > end {
+                    if transaction.date() > &end {
                         return false;
                     }
                 }
@@ -382,11 +382,11 @@ impl FinanceManager for RamFinanceManager {
         let mut transactions = self.transactions.clone();
 
         if let Some(begin) = timespan.0 {
-            transactions.retain(|transaction| transaction.date >= begin);
+            transactions.retain(|transaction| transaction.date() >= &begin);
         }
 
         if let Some(end) = timespan.1 {
-            transactions.retain(|transaction| transaction.date <= end);
+            transactions.retain(|transaction| transaction.date() <= &end);
         }
 
         Ok(transactions)
@@ -443,7 +443,20 @@ impl FinanceManager for RamFinanceManager {
 
         // remove from transactions
         for transaction in &mut self.transactions {
-            transaction.categories.retain(|x, _| *x != id);
+            let mut categories = transaction.categories().clone();
+            categories.retain(|x, _| *x != id);
+            *transaction = Transaction::new(
+                *transaction.id(),
+                transaction.amount().clone(),
+                transaction.title().clone(),
+                transaction.description().map(|x| x.to_owned()),
+                transaction.source().clone(),
+                transaction.destination().clone(),
+                transaction.budget().map(|x| x.clone()),
+                transaction.date().clone(),
+                transaction.metadata().clone(),
+                categories,
+            );
         }
 
         Ok(())
@@ -456,7 +469,7 @@ impl FinanceManager for RamFinanceManager {
     ) -> Result<Vec<Transaction>> {
         let mut transactions = self.transactions.clone();
         transactions.retain(|x| {
-            x.categories
+            x.categories()
                 .iter()
                 .map(|x| *x.0)
                 .collect::<Vec<Id>>()
@@ -464,11 +477,11 @@ impl FinanceManager for RamFinanceManager {
         });
 
         if let Some(begin) = timespan.0 {
-            transactions.retain(|transaction| transaction.date >= begin);
+            transactions.retain(|transaction| transaction.date() >= &begin);
         }
 
         if let Some(end) = timespan.1 {
-            transactions.retain(|transaction| transaction.date <= end);
+            transactions.retain(|transaction| transaction.date() <= &end);
         }
 
         Ok(transactions)
