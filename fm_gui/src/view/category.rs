@@ -206,7 +206,15 @@ impl Category {
                 utils::TimespanInput::new(Message::ChangedTimespan, None).into_element(),
                 utils::transaction_table(
                     transactions.clone(),
-                    |_| None,
+                    |transaction| Some(
+                        if transaction.categories().get(category.id()).unwrap()
+                            == &fm_core::Sign::Positive
+                        {
+                            true
+                        } else {
+                            false
+                        }
+                    ),
                     Message::ViewTransaction,
                     Message::ViewAccount,
                 )
