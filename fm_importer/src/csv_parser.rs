@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::io::{BufRead, BufReader};
 
 enum IterOption {
@@ -165,11 +165,20 @@ impl<'a> super::Parser for CSVParser<'a> {
 
 pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
     pub fn parse_to_datetime(date: &str) -> anyhow::Result<fm_core::DateTime> {
+        let mut parsed = time::parsing::Parsed::new();
+        parsed.parse_items(
+            date.as_bytes(),
+            &time::format_description::parse("[day].[month].[year repr:last_two]")
+                .context("Could not create format description")?,
+        )?;
+
         Ok(time::OffsetDateTime::new_in_offset(
-            time::Date::parse(
-                date,
-                &time::format_description::parse("[day].[month].[year]")?,
-            )?,
+            time::Date::from_calendar_date(
+                parsed.year_last_two().unwrap() as i32 + 2000, // add 2000 for the year because the year is only the last two digits
+                parsed.month().unwrap(),
+                parsed.day().unwrap().into(),
+            )
+            .context("Could not parse date")?,
             time::Time::MIDNIGHT,
             fm_core::get_local_timezone()?,
         ))
