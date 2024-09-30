@@ -208,10 +208,7 @@ impl Budget {
             .get_budget_transactions(&budget, offset)?
             .await
             .unwrap();
-        let mut current_value = fm_core::Currency::default();
-        for transaction in &transactions {
-            current_value += transaction.amount();
-        }
+        let current_value = locked_manager.get_budget_value(&budget, offset)?.await?;
 
         let mut transaction_tuples = Vec::new();
         for transaction in transactions {
