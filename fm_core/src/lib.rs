@@ -237,23 +237,53 @@ pub fn sum_up_transactions_by_day(
             Sign::Negative => transaction.amount().negative(),
         };
         let date_with_offset = (*transaction.date()).replace_time(time::Time::MIDNIGHT);
+        // if it is not the first value only add it
         if !values.is_empty() {
             amount += values.last().unwrap().1.clone();
             let entry = values.last().unwrap().clone();
+            // if it is the same day as the last entry, update the last entry
             if entry.0.to_offset(time::UtcOffset::UTC).date()
                 == transaction.date().to_offset(time::UtcOffset::UTC).date()
             {
                 let i = values.len() - 1;
                 values[i] = (date_with_offset, amount);
+                continue;
             } else {
-                values.push((date_with_offset, amount)); // FIXME: is this line really needed?
             }
-        } else {
-            values.push((date_with_offset, amount));
         }
+        // if it is the first value or a new day, add a new entry
+        values.push((date_with_offset, amount));
     }
 
     values
+}
+
+fn next_month(datetime: DateTime) -> DateTime {
+    let month = datetime.month().next();
+    let year = if month == time::Month::January {
+        datetime.year() + 1
+    } else {
+        datetime.year()
+    };
+    datetime
+        .replace_month(month)
+        .unwrap()
+        .replace_year(year)
+        .unwrap()
+}
+
+fn previus_month(datetime: DateTime) -> DateTime {
+    let month = datetime.month().previous();
+    let year = if month == time::Month::December {
+        datetime.year() - 1
+    } else {
+        datetime.year()
+    };
+    datetime
+        .replace_month(month)
+        .unwrap()
+        .replace_year(year)
+        .unwrap()
 }
 
 pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) -> Result<Timespan> {
@@ -270,15 +300,11 @@ pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) ->
             let day_in_current_month = now.replace_day(*day)?;
             if day_in_current_month > now {
                 (
-                    now.replace_day(*day)?
-                        .replace_month(now.month().previous())?, // FIXME: what if it is January?
+                    previus_month(now.replace_day(*day)?),
                     now.replace_day(*day)?,
                 )
             } else {
-                (
-                    now.replace_day(*day)?,
-                    now.replace_day(*day)?.replace_month(now.month().next())?, // FIXME: what if it is December?
-                )
+                (now.replace_day(*day)?, next_month(now.replace_day(*day)?))
             }
         }
         Recurring::Yearly(month, day) => {
