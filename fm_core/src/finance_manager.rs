@@ -237,6 +237,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
     ) -> impl Future<Output = Result<Category>> + MaybeSend;
 
+    // delete category and remove it from every transaction
     fn delete_category(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
 
     fn get_transactions_of_category(
@@ -277,6 +278,11 @@ macro_rules! unit_tests {
         #[cfg(test)]
         mod test {
             use super::*;
+            use crate::FinanceManager;
+
+            fn fm_type(fm: impl FinanceManager) -> impl FinanceManager {
+                fm
+            }
 
             #[async_std::test]
             async fn create_asset_account() {
@@ -338,9 +344,63 @@ macro_rules! unit_tests {
 
             #[async_std::test]
             async fn delete_category() {
-                todo!("check if category is deleted");
-                todo!("check if category is removed from transactions");
-                todo!("Not implemented");
+                let mut fm = ($gen_fm)();
+
+                let acc1 = fm
+                    .create_asset_account(
+                        "Test1".to_string(),
+                        None,
+                        None,
+                        None,
+                        Currency::default(),
+                    )
+                    .await
+                    .unwrap();
+
+                let acc2 = fm
+                    .create_asset_account(
+                        "Test2".to_string(),
+                        None,
+                        None,
+                        None,
+                        Currency::default(),
+                    )
+                    .await
+                    .unwrap();
+
+                let category = fm.create_category("Test".to_string()).await.unwrap();
+
+                let transaction = fm
+                    .create_transaction(
+                        Currency::default(),
+                        "Test".to_string(),
+                        None,
+                        acc1.id(),
+                        acc2.id(),
+                        None,
+                        DateTime::now_utc(),
+                        HashMap::new(),
+                        [(category.id().clone(), Sign::Positive)]
+                            .iter()
+                            .cloned()
+                            .collect(),
+                    )
+                    .await
+                    .unwrap();
+
+                fm.delete_category(*category.id()).await.unwrap();
+
+                // check if category is deleted
+                assert!(fm.get_category(*category.id()).await.unwrap().is_none());
+
+                // check if category is removed from transactions
+                assert!(fm
+                    .get_transaction(*transaction.id())
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .categories()
+                    .is_empty());
             }
         }
     };
