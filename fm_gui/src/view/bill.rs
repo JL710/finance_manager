@@ -128,7 +128,10 @@ impl Bill {
                         widget::text!("Name: {}", bill.name()),
                         widget::row![
                             "Description: ",
-                            widget::text(bill.description().clone().unwrap_or_default())
+                            widget::container(widget::text(
+                                bill.description().clone().unwrap_or_default()
+                            ))
+                            .style(utils::style::container_style_background_weak)
                         ],
                         widget::text!("Amount: {}€", bill.value().to_num_string()),
                         widget::text!(
@@ -155,7 +158,7 @@ impl Bill {
                 ],
                 widget::horizontal_rule(10),
                 utils::TableView::new(transactions.clone(), (), |(transaction, sign), _| [
-                    widget::checkbox("Negative", *sign == fm_core::Sign::Negative).into(),
+                    widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
                     utils::link(widget::text(transaction.title().clone()))
                         .on_press(Message::ViewTransaction(*transaction.id()))
                         .into(),
