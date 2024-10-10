@@ -234,7 +234,7 @@ impl CreateBillView {
             .spacing(10),
             "Transactions:",
             widget::container(
-                utils::TableView::new(self.transactions.clone(), |(transaction, sign)| {
+                utils::TableView::new(self.transactions.clone(), (), |(transaction, sign), _| {
                     let transaction_id = *transaction.id();
                     [
                         widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
@@ -418,7 +418,7 @@ mod add_transaction {
                         .width(iced::Length::Fill),
                     )
                 } else {
-                    utils::TableView::new(self.transactions.clone(), |x| {
+                    utils::TableView::new(self.transactions.clone(), (), |x, _| {
                         [
                             widget::button("Add")
                                 .on_press(Message::AddTransaction(x.clone()))

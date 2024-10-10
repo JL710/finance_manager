@@ -81,7 +81,7 @@ impl AssetAccountOverview {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        let account_table = utils::TableView::new(self.accounts.clone(), |account| {
+        let account_table = utils::TableView::new(self.accounts.clone(), (), |account, _| {
             [
                 utils::link(widget::text(account.0.name().to_string()))
                     .on_press(Message::AccountView(account.0.clone()))

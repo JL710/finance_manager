@@ -70,7 +70,7 @@ impl BudgetOverview {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        let budget_table = utils::TableView::new(self.budgets.clone(), |budget| {
+        let budget_table = utils::TableView::new(self.budgets.clone(), (), |budget, _| {
             [
                 utils::link(widget::text(budget.0.name().to_string()))
                     .on_press(Message::ViewBudget(*budget.0.id()))

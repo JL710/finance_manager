@@ -154,7 +154,7 @@ impl Bill {
                     .spacing(10)
                 ],
                 widget::horizontal_rule(10),
-                utils::TableView::new(transactions.clone(), |(transaction, sign)| [
+                utils::TableView::new(transactions.clone(), (), |(transaction, sign), _| [
                     widget::checkbox("Negative", *sign == fm_core::Sign::Negative).into(),
                     utils::link(widget::text(transaction.title().clone()))
                         .on_press(Message::ViewTransaction(*transaction.id()))

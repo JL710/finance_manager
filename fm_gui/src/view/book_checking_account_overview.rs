@@ -76,7 +76,7 @@ impl BookCheckingAccountOverview {
             utils::heading("Book Checking Account Overview", utils::HeadingLevel::H1),
             widget::button("Create new account").on_press(Message::New),
             widget::horizontal_rule(10),
-            utils::TableView::new(self.accounts.clone(), |(account, sum)| {
+            utils::TableView::new(self.accounts.clone(), (), |(account, sum), _| {
                 [
                     utils::link(widget::text(account.name().to_string()))
                         .on_press(Message::ViewAccount(account.id()))

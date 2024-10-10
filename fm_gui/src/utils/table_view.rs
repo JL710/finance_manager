@@ -1,10 +1,11 @@
 use iced::widget;
 
-pub struct TableView<'a, T, Message, const COLUMNS: usize, TR>
+pub struct TableView<'a, T, C, Message, const COLUMNS: usize, TR>
 where
-    TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
+    TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
 {
     items: Vec<T>,
+    context: C,
     headers: Option<[String; COLUMNS]>,
     sortable: [bool; COLUMNS],
     to_row: TR,
@@ -19,19 +20,21 @@ where
     padding: u16,
     page_size: usize,
     page_count: usize,
+    on_page_change: Option<Box<dyn Fn(usize) -> Message + 'a>>,
 }
 
-impl<'a, T: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
-    TableView<'a, T, Message, COLUMNS, TR>
+impl<'a, T: 'a, C: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
+    TableView<'a, T, C, Message, COLUMNS, TR>
 where
-    TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
+    TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
 {
-    pub fn new(items: Vec<T>, to_row: TR) -> Self {
+    pub fn new(items: Vec<T>, context: C, to_row: TR) -> Self {
         const PAGE_SIZE: usize = 10;
         let page_count = items.len() / PAGE_SIZE;
         Self {
             page_count: if page_count > 0 { page_count } else { 1 },
             items,
+            context,
             headers: None,
             sortable: [false; COLUMNS],
             to_row,
@@ -40,7 +43,13 @@ where
             spacing: 10,
             padding: 10,
             page_size: PAGE_SIZE,
+            on_page_change: None,
         }
+    }
+
+    pub fn on_page_change(mut self, callback: impl Fn(usize) -> Message + 'a) -> Self {
+        self.on_page_change = Some(Box::new(callback));
+        self
     }
 
     pub fn columns_sortable(mut self, sortable: [bool; COLUMNS]) -> Self {
@@ -129,10 +138,10 @@ pub enum TableViewMessage<Message> {
     ChangePageBy(isize),
 }
 
-impl<'a, T: 'a, Message, const COLUMNS: usize, TR> widget::Component<Message>
-    for TableView<'a, T, Message, COLUMNS, TR>
+impl<'a, T: 'a, C: 'a, Message, const COLUMNS: usize, TR> widget::Component<Message>
+    for TableView<'a, T, C, Message, COLUMNS, TR>
 where
-    TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
+    TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
     Message: 'a + Clone,
 {
     type State = TableViewState;
@@ -150,11 +159,17 @@ where
                 }
                 self.sort(state.sort_column, state.reverse);
                 state.page = 0;
+                if let Some(on_page_change) = &self.on_page_change {
+                    return Some(on_page_change(0));
+                }
             }
             Self::Event::ChangePageBy(page) => {
                 let new_page = (state.page as i32 + page as i32).max(0) as usize;
                 if new_page < self.page_count {
                     state.page = new_page;
+                }
+                if let Some(on_page_change) = &self.on_page_change {
+                    return Some(on_page_change(state.page));
                 }
             }
         }
@@ -171,7 +186,7 @@ where
             .take(self.page_size)
         {
             let row_elements: [iced::Element<TableViewMessage<Message>>; COLUMNS] =
-                (self.to_row)(item).map(|x| x.map(|m| TableViewMessage::Message(m)));
+                (self.to_row)(item, &self.context).map(|x| x.map(|m| TableViewMessage::Message(m)));
             let mut row = widget::row![].spacing(self.spacing);
             for (column_index, element) in row_elements.into_iter().enumerate() {
                 let mut cell = widget::container(element).width(iced::Length::FillPortion(1));
@@ -246,12 +261,12 @@ where
     }
 }
 
-impl<'a, T: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
-    From<TableView<'a, T, Message, COLUMNS, TR>> for iced::Element<'a, Message>
+impl<'a, T: 'a, C: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
+    From<TableView<'a, T, C, Message, COLUMNS, TR>> for iced::Element<'a, Message>
 where
-    TR: Fn(&T) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
+    TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
 {
-    fn from(value: TableView<'a, T, Message, COLUMNS, TR>) -> Self {
+    fn from(value: TableView<'a, T, C, Message, COLUMNS, TR>) -> Self {
         widget::component(value)
     }
 }

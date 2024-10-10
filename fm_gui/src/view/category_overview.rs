@@ -57,7 +57,7 @@ impl CategoryOverview {
             utils::heading("Category Overview", utils::HeadingLevel::H1),
             iced::widget::button("New Category").on_press(Message::NewCategory),
             iced::widget::horizontal_rule(10),
-            utils::TableView::new(self.categories.clone(), |category| {
+            utils::TableView::new(self.categories.clone(), (), |category, _| {
                 [utils::link(iced::widget::text(category.name().to_string()))
                     .on_press(Message::ViewCategory(*category.id()))
                     .into()]

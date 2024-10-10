@@ -64,7 +64,7 @@ impl BillOverview {
         widget::column![
             utils::heading("Bill Overview", utils::HeadingLevel::H1),
             widget::button("New").on_press(Message::NewBill),
-            utils::TableView::new(self.bills.clone(), |bill| [
+            utils::TableView::new(self.bills.clone(), (), |bill, _| [
                 utils::link(widget::text(bill.0.name().clone()))
                     .on_press(Message::ViewBill(*bill.0.id()))
                     .into(),
