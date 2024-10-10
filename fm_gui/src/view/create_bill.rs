@@ -291,7 +291,7 @@ impl CreateBillView {
                     iced::alignment::Vertical::Center
                 ))
             )
-            .max_height(400),
+            .height(iced::Fill),
             widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
             widget::button("Submit").on_press_maybe(if self.submittable() {
                 Some(Message::Submit)
@@ -299,6 +299,7 @@ impl CreateBillView {
                 None
             }),
         ]
+        .height(iced::Fill)
         .spacing(10)
         .into()
     }
