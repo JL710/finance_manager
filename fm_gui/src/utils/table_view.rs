@@ -29,7 +29,7 @@ where
     TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
 {
     pub fn new(items: Vec<T>, context: C, to_row: TR) -> Self {
-        const PAGE_SIZE: usize = 10;
+        const PAGE_SIZE: usize = 50;
         let page_count = items.len() / PAGE_SIZE;
         Self {
             page_count: if page_count > 0 { page_count } else { 1 },
