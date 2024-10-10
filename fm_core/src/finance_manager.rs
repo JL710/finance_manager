@@ -280,10 +280,6 @@ macro_rules! unit_tests {
             use super::*;
             use crate::FinanceManager;
 
-            fn fm_type(fm: impl FinanceManager) -> impl FinanceManager {
-                fm
-            }
-
             #[async_std::test]
             async fn create_asset_account() {
                 let mut fm = ($gen_fm)();
