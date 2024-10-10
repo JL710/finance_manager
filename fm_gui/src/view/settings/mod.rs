@@ -147,6 +147,7 @@ impl SettingsView {
                 }))
             }
             Message::NewFinanceManager(finance_manager) => {
+                self.current_status = finance_manager.try_lock().unwrap().raw_fm().to_string();
                 return Action::NewFinanceManager(finance_manager);
             }
         }

@@ -993,11 +993,11 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn delete_category(&mut self, id: Id) -> Result<()> {
         let connection = self.connect().await;
-        connection.execute("DELETE FROM categories WHERE id=?1", (id,))?;
         connection.execute(
             "DELETE FROM transaction_category WHERE category_id=?1",
             (id,),
         )?; // delete all references to the category
+        connection.execute("DELETE FROM categories WHERE id=?1", (id,))?;
         Ok(())
     }
 
@@ -1213,11 +1213,17 @@ fn set_categories_for_transaction(
 }
 
 fn get_category(connection: &rusqlite::Connection, category_id: Id) -> Result<Option<Category>> {
-    let result: Option<String> = connection.query_row(
+    let result: Option<String> = match connection.query_row(
         "SELECT name FROM categories WHERE id=?1",
         (&category_id,),
         |row| row.get(0),
-    )?;
+    ) {
+        Err(error) => match error {
+            rusqlite::Error::QueryReturnedNoRows => None,
+            _ => return Err(error.into()),
+        },
+        Ok(name) => Some(name),
+    };
     match result {
         Some(name) => Ok(Some(Category::new(category_id, name))),
         None => Ok(None),
