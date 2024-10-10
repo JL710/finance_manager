@@ -6,12 +6,14 @@ mod filter_component;
 pub mod style;
 mod table_view;
 mod timespan_input;
+pub mod transaction_table;
 
 pub use currency_input::CurrencyInput;
 pub use date_input::DateInput;
 pub use filter_component::FilterComponent;
 pub use table_view::TableView;
 pub use timespan_input::TimespanInput;
+pub use transaction_table::TransactionTable;
 
 pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,
@@ -58,100 +60,6 @@ pub fn colored_currency_display<Message>(
             })
             .into()
     }
-}
-
-/// Create a table of transactions
-///
-/// # Arguments
-/// - `transactions`: A slice of tuples of transactions and their source and destination accounts
-/// - `amount_color`: A function that takes a transaction and returns a boolean that indicates how the amount should be colored
-///     - `true`: The amount should be colored in a positive color
-///     - `false`: The amount should be colored in a negative color
-///     - `None`: The amount should not be colored
-/// - `view_transaction`: A function that takes a transaction id and returns a message that will be produced when the transaction is clicked
-/// - `view_account`: A function that takes an account id and returns a message that will be produced when the account is clicked
-pub fn transaction_table<'a, Message: 'a + Clone>(
-    transactions: Vec<(
-        fm_core::Transaction,
-        fm_core::account::Account,
-        fm_core::account::Account,
-    )>,
-    amount_positive: impl Fn(fm_core::Transaction) -> Option<bool> + 'a + Copy,
-    view_transaction: impl Fn(fm_core::Id) -> Message + 'static,
-    view_account: impl Fn(fm_core::Id) -> Message + 'static,
-) -> iced::Element<'a, Message> {
-    let mut transactions = transactions;
-    transactions.sort_by(|(a, _, _), (b, _, _)| b.date().cmp(a.date()));
-    let table = TableView::new(
-        transactions.clone(),
-        move |(transaction, source, destination): &(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )| {
-            [
-                link(widget::text(transaction.title().clone()))
-                    .on_press(view_transaction(*transaction.id()))
-                    .into(),
-                widget::text(
-                    transaction
-                        .date()
-                        .to_offset(fm_core::get_local_timezone().unwrap())
-                        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
-                        .unwrap(),
-                )
-                .into(),
-                match amount_positive(transaction.clone()) {
-                    Some(true) => colored_currency_display(&transaction.amount()),
-                    Some(false) => colored_currency_display(&transaction.amount().negative()),
-                    None => widget::text(transaction.amount().to_string()).into(),
-                },
-                link(widget::text(source.to_string().clone()))
-                    .on_press(view_account(*source.id()))
-                    .into(),
-                link(widget::text(destination.to_string().clone()))
-                    .on_press(view_account(*destination.id()))
-                    .into(),
-                widget::text(transaction.categories().len().to_string()).into(),
-            ]
-        },
-    )
-    .headers([
-        "Title".to_owned(),
-        "Date".to_owned(),
-        "Amount".to_owned(),
-        "Source".to_owned(),
-        "Destination".to_owned(),
-        "Categories".to_owned(),
-    ])
-    .columns_sortable([true, true, true, true, true, true])
-    .sort_by(move |a, b, column_index| match column_index {
-        0 => a.0.title().cmp(b.0.title()),
-        1 => a.0.date().cmp(b.0.date()),
-        2 => {
-            let a = amount_positive(a.0.clone()).map_or(a.0.amount(), |positive| {
-                if positive {
-                    a.0.amount()
-                } else {
-                    a.0.amount().negative()
-                }
-            });
-            let b = amount_positive(b.0.clone()).map_or(b.0.amount(), |positive| {
-                if positive {
-                    b.0.amount()
-                } else {
-                    b.0.amount().negative()
-                }
-            });
-            a.cmp(&b)
-        }
-        3 => a.1.name().cmp(b.1.name()),
-        4 => a.2.name().cmp(b.2.name()),
-        5 => a.0.categories().len().cmp(&b.0.categories().len()),
-        _ => std::cmp::Ordering::Equal,
-    });
-
-    table.into()
 }
 
 pub fn link<'a, Message>(

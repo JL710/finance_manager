@@ -27,18 +27,15 @@ pub enum Message {
         accounts: Vec<fm_core::account::Account>,
         categories: Vec<fm_core::Category>,
     },
+    TransactionTableMessage(utils::transaction_table::Message),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct FilterTransactionView {
     accounts: Vec<fm_core::account::Account>,
     categories: Vec<fm_core::Category>,
     change_filter: bool,
-    transactions: Vec<(
-        fm_core::Transaction,
-        fm_core::account::Account,
-        fm_core::account::Account,
-    )>,
+    transaction_table: utils::TransactionTable,
     sums: Vec<(fm_core::DateTime, fm_core::Currency)>,
     filter: TransactionFilter,
 }
@@ -52,7 +49,7 @@ impl FilterTransactionView {
                 accounts: Vec::new(),
                 categories: Vec::new(),
                 change_filter: false,
-                transactions: Vec::new(),
+                transaction_table: utils::TransactionTable::new(Vec::new(), Vec::new(), |_| None),
                 sums: Vec::new(),
                 filter: TransactionFilter::default(),
             },
@@ -80,6 +77,8 @@ impl FilterTransactionView {
             } => {
                 self.accounts = accounts;
                 self.categories = categories;
+                self.transaction_table =
+                    utils::TransactionTable::new(Vec::new(), self.categories.clone(), |_| None);
             }
             Message::ToggleEditFilter => {
                 self.change_filter = !self.change_filter;
@@ -115,11 +114,25 @@ impl FilterTransactionView {
             Message::ViewAccount(id) => return Action::ViewAccount(id),
             Message::ViewTransaction(id) => return Action::ViewTransaction(id),
             Message::UpdateTransactions(transactions) => {
-                self.transactions = transactions;
                 self.sums = fm_core::sum_up_transactions_by_day(
-                    self.transactions.clone().into_iter().map(|x| x.0).collect(),
+                    transactions.clone().into_iter().map(|x| x.0).collect(),
                     |_| fm_core::Sign::Positive,
                 );
+                self.transaction_table.change_transactions(transactions);
+            }
+            Message::TransactionTableMessage(msg) => {
+                match self.transaction_table.update(msg, finance_manager) {
+                    utils::transaction_table::Action::None => return Action::None,
+                    utils::transaction_table::Action::ViewTransaction(id) => {
+                        return Action::ViewTransaction(id)
+                    }
+                    utils::transaction_table::Action::ViewAccount(id) => {
+                        return Action::ViewAccount(id)
+                    }
+                    utils::transaction_table::Action::Task(task) => {
+                        return Action::Task(task.map(Message::TransactionTableMessage))
+                    }
+                }
             }
         }
         Action::None
@@ -149,12 +162,9 @@ impl FilterTransactionView {
                 )
                 .into_element()
             } else {
-                utils::transaction_table(
-                    self.transactions.clone(),
-                    |_| None,
-                    Message::ViewTransaction,
-                    Message::ViewAccount,
-                )
+                self.transaction_table
+                    .view()
+                    .map(Message::TransactionTableMessage)
             }
         ]
         .spacing(10)

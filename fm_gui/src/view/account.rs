@@ -1,4 +1,4 @@
-use super::super::utils;
+use super::{super::utils, category};
 
 use async_std::sync::Mutex;
 use iced::widget;
@@ -40,22 +40,20 @@ pub enum Message {
             fm_core::account::Account,
             fm_core::account::Account,
         )>,
+        Vec<fm_core::Category>,
     ),
     Delete,
     Deleted(Arc<std::result::Result<(), fm_core::DeleteAccountError>>),
+    TransactionTableMessage(utils::transaction_table::Message),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Account {
     NotLoaded,
     Loaded {
         account: fm_core::account::Account,
-        transactions: Vec<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )>,
         current_value: fm_core::Currency,
+        transaction_table: utils::TransactionTable,
     },
 }
 
@@ -68,11 +66,17 @@ impl Account {
             fm_core::account::Account,
             fm_core::account::Account,
         )>,
+        categories: Vec<fm_core::Category>,
     ) -> Self {
+        let account_id = *account.id();
         Self::Loaded {
             current_value: account_sum,
             account,
-            transactions,
+            transaction_table: utils::TransactionTable::new(
+                transactions,
+                categories,
+                move |transaction| Some(*transaction.destination() == account_id),
+            ),
         }
     }
 
@@ -104,7 +108,8 @@ impl Account {
                     let destination = accounts.get(transaction.destination()).unwrap().clone();
                     transaction_tuples.push((transaction, source, destination));
                 }
-                Message::Initialize(account, account_sum, transaction_tuples)
+                let categories = locked_manager.get_categories().await.unwrap();
+                Message::Initialize(account, account_sum, transaction_tuples, categories)
             }),
         )
     }
@@ -115,11 +120,16 @@ impl Account {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
-            Message::Initialize(account, current_value, transactions) => {
+            Message::Initialize(account, current_value, transactions, categories) => {
+                let account_id = *account.id();
                 *self = Self::Loaded {
                     account,
                     current_value,
-                    transactions,
+                    transaction_table: utils::TransactionTable::new(
+                        transactions,
+                        categories,
+                        move |transaction| Some(*transaction.destination() == account_id),
+                    ),
                 };
                 Action::None
             }
@@ -140,8 +150,11 @@ impl Account {
             Message::ViewTransaction(id) => Action::ViewTransaction(id),
             Message::ViewAccount(id) => Action::ViewAccount(id),
             Message::SetTransactions(new_transactions) => {
-                if let Self::Loaded { transactions, .. } = self {
-                    *transactions = new_transactions;
+                if let Self::Loaded {
+                    transaction_table, ..
+                } = self
+                {
+                    transaction_table.change_transactions(new_transactions);
                 }
                 Action::None
             }
@@ -221,22 +234,42 @@ impl Account {
                     }
                 },
             },
+            Message::TransactionTableMessage(msg) => {
+                if let Self::Loaded {
+                    transaction_table, ..
+                } = self
+                {
+                    return match transaction_table.update(msg, finance_manager) {
+                        utils::transaction_table::Action::None => Action::None,
+                        utils::transaction_table::Action::ViewTransaction(id) => {
+                            Action::ViewTransaction(id)
+                        }
+                        utils::transaction_table::Action::ViewAccount(id) => {
+                            Action::ViewAccount(id)
+                        }
+                        utils::transaction_table::Action::Task(task) => {
+                            Action::Task(task.map(Message::TransactionTableMessage))
+                        }
+                    };
+                }
+                Action::None
+            }
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         if let Self::Loaded {
             account,
-            transactions,
+            transaction_table,
             current_value,
         } = self
         {
             match account {
                 fm_core::account::Account::AssetAccount(acc) => {
-                    asset_account_view(acc, transactions, current_value)
+                    asset_account_view(acc, transaction_table, current_value)
                 }
                 fm_core::account::Account::BookCheckingAccount(acc) => {
-                    book_checking_account_view(acc, transactions, current_value)
+                    book_checking_account_view(acc, transaction_table, current_value)
                 }
             }
         } else {
@@ -247,11 +280,7 @@ impl Account {
 
 fn asset_account_view<'a>(
     account: &'a fm_core::account::AssetAccount,
-    transactions: &'a [(
-        fm_core::Transaction,
-        fm_core::account::Account,
-        fm_core::account::Account,
-    )],
+    transaction_table: &'a utils::TransactionTable,
     current_value: &fm_core::Currency,
 ) -> iced::Element<'a, Message> {
     widget::column![
@@ -285,12 +314,9 @@ fn asset_account_view<'a>(
         ],
         widget::horizontal_rule(10),
         utils::TimespanInput::new(Message::ChangeTransactionTimespan, None).into_element(),
-        utils::transaction_table(
-            transactions.to_vec(),
-            |transaction| Some(*transaction.destination() == account.id()),
-            Message::ViewTransaction,
-            Message::ViewAccount,
-        )
+        transaction_table
+            .view()
+            .map(Message::TransactionTableMessage),
     ]
     .height(iced::Fill)
     .into()
@@ -298,11 +324,7 @@ fn asset_account_view<'a>(
 
 fn book_checking_account_view<'a>(
     account: &'a fm_core::account::BookCheckingAccount,
-    transactions: &'a [(
-        fm_core::Transaction,
-        fm_core::account::Account,
-        fm_core::account::Account,
-    )],
+    transaction_table: &'a utils::TransactionTable,
     current_value: &fm_core::Currency,
 ) -> iced::Element<'a, Message> {
     widget::column![
@@ -335,12 +357,9 @@ fn book_checking_account_view<'a>(
         ],
         widget::horizontal_rule(10),
         utils::TimespanInput::new(Message::ChangeTransactionTimespan, None).into_element(),
-        utils::transaction_table(
-            transactions.to_vec(),
-            |transaction| Some(*transaction.destination() == account.id()),
-            Message::ViewTransaction,
-            Message::ViewAccount,
-        )
+        transaction_table
+            .view()
+            .map(Message::TransactionTableMessage),
     ]
     .height(iced::Fill)
     .into()

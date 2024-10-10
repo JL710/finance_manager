@@ -26,21 +26,19 @@ pub enum Message {
             fm_core::account::Account,
             fm_core::account::Account,
         )>,
+        Vec<fm_core::Category>,
     ),
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
+    TransactionTableMessage(utils::transaction_table::Message),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Category {
     NotLoaded,
     Loaded {
         category: fm_core::Category,
-        transactions: Vec<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )>,
+        transaction_table: utils::TransactionTable,
         values: Vec<(fm_core::DateTime, fm_core::Currency)>,
     },
 }
@@ -75,7 +73,9 @@ impl Category {
                     .unwrap()
                     .unwrap();
 
-                Message::Set(category, values, transaction_tuples)
+                let categories = locked_manager.get_categories().await.unwrap();
+
+                Message::Set(category, values, transaction_tuples, categories)
             }),
         )
     }
@@ -85,6 +85,7 @@ impl Category {
         message: Message,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
+        println!("{:?}", message);
         match message {
             Message::Delete => {
                 if let Self::Loaded { category, .. } = self {
@@ -150,29 +151,63 @@ impl Category {
                             .get_relative_category_values(id, new_timespan)
                             .await
                             .unwrap();
-                        Message::Set(cloned_category, values, transaction_tuples)
+                        let categories =
+                            finance_manager.lock().await.get_categories().await.unwrap();
+                        Message::Set(cloned_category, values, transaction_tuples, categories)
                     }))
                 } else {
                     Action::None
                 }
             }
-            Message::Set(category, values, transactions) => {
+            Message::Set(category, values, transactions, categories) => {
+                let category_id = *category.id();
                 *self = Self::Loaded {
                     category,
-                    transactions,
+                    transaction_table: utils::TransactionTable::new(
+                        transactions,
+                        categories,
+                        move |transaction| {
+                            if let Some(sign) = transaction.categories().get(&category_id) {
+                                Some(*sign == fm_core::Sign::Positive)
+                            } else {
+                                None
+                            }
+                        },
+                    ),
                     values,
                 };
                 Action::None
             }
             Message::ViewTransaction(transaction_id) => Action::ViewTransaction(transaction_id),
             Message::ViewAccount(account_id) => Action::ViewAccount(account_id),
+            Message::TransactionTableMessage(msg) => {
+                if let Self::Loaded {
+                    transaction_table, ..
+                } = self
+                {
+                    match transaction_table.update(msg, finance_manager) {
+                        utils::transaction_table::Action::None => Action::None,
+                        utils::transaction_table::Action::ViewTransaction(id) => {
+                            Action::ViewTransaction(id)
+                        }
+                        utils::transaction_table::Action::ViewAccount(id) => {
+                            Action::ViewAccount(id)
+                        }
+                        utils::transaction_table::Action::Task(task) => {
+                            Action::Task(task.map(Message::TransactionTableMessage))
+                        }
+                    }
+                } else {
+                    Action::None
+                }
+            }
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         if let Self::Loaded {
             category,
-            transactions,
+            transaction_table,
             values,
             ..
         } = self
@@ -204,20 +239,9 @@ impl Category {
                 ]
                 .spacing(10),
                 utils::TimespanInput::new(Message::ChangedTimespan, None).into_element(),
-                utils::transaction_table(
-                    transactions.clone(),
-                    |transaction| Some(
-                        if transaction.categories().get(category.id()).unwrap()
-                            == &fm_core::Sign::Positive
-                        {
-                            true
-                        } else {
-                            false
-                        }
-                    ),
-                    Message::ViewTransaction,
-                    Message::ViewAccount,
-                )
+                transaction_table
+                    .view()
+                    .map(Message::TransactionTableMessage),
             ]
             .spacing(10)
             .height(iced::Fill)

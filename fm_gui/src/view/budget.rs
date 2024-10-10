@@ -28,20 +28,18 @@ pub enum Message {
             fm_core::account::Account,
         )>,
         i32,
+        Vec<fm_core::Category>,
     ),
+    TransactionTableMessage(utils::transaction_table::Message),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Budget {
     NotLoaded,
     Loaded {
         budget: fm_core::Budget,
         current_value: fm_core::Currency,
-        transactions: Vec<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )>,
+        transaction_table: utils::TransactionTable,
         offset: i32,
         time_span: fm_core::Timespan,
     },
@@ -56,6 +54,7 @@ impl Budget {
             fm_core::account::Account,
             fm_core::account::Account,
         )>,
+        categories: Vec<fm_core::Category>,
         offset: i32,
     ) -> Result<Self> {
         let timespan =
@@ -63,7 +62,11 @@ impl Budget {
         Ok(Self::Loaded {
             budget,
             current_value,
-            transactions,
+            transaction_table: utils::TransactionTable::new(
+                transactions,
+                categories,
+                |transaction| Some(transaction.budget().unwrap().1 == fm_core::Sign::Positive),
+            ),
             offset,
             time_span: timespan,
         })
@@ -88,8 +91,8 @@ impl Budget {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
-            Message::Initialize(budget, value, transactions, offset) => {
-                *self = Self::new(budget, value, transactions, offset).unwrap();
+            Message::Initialize(budget, value, transactions, offset, categories) => {
+                *self = Self::new(budget, value, transactions, categories, offset).unwrap();
                 Action::None
             }
             Message::ViewAccount(id) => Action::ViewAccount(id),
@@ -121,6 +124,27 @@ impl Budget {
                     Action::None
                 }
             }
+            Message::TransactionTableMessage(msg) => {
+                if let Self::Loaded {
+                    transaction_table, ..
+                } = self
+                {
+                    match transaction_table.update(msg, finance_manager) {
+                        utils::transaction_table::Action::None => Action::None,
+                        utils::transaction_table::Action::ViewTransaction(id) => {
+                            Action::ViewTransaction(id)
+                        }
+                        utils::transaction_table::Action::ViewAccount(id) => {
+                            Action::ViewAccount(id)
+                        }
+                        utils::transaction_table::Action::Task(task) => {
+                            Action::Task(task.map(Message::TransactionTableMessage))
+                        }
+                    }
+                } else {
+                    Action::None
+                }
+            }
         }
     }
 
@@ -128,7 +152,7 @@ impl Budget {
         if let Self::Loaded {
             budget,
             current_value,
-            transactions,
+            transaction_table,
             offset,
             time_span,
         } = self
@@ -182,12 +206,9 @@ impl Budget {
                     0.0..=budget.total_value().get_eur_num() as f32,
                     current_value.get_eur_num() as f32
                 ),
-                utils::transaction_table(
-                    transactions.to_vec(),
-                    |transaction| Some(transaction.budget().unwrap().1 == fm_core::Sign::Positive),
-                    Message::ViewTransaction,
-                    Message::ViewAccount,
-                )
+                transaction_table
+                    .view()
+                    .map(Message::TransactionTableMessage)
             ]
             .height(iced::Fill)
             .spacing(10)
@@ -223,11 +244,14 @@ impl Budget {
             transaction_tuples.push((transaction, source, destination));
         }
 
+        let categories = locked_manager.get_categories().await?;
+
         Ok(Message::Initialize(
             budget,
             current_value,
             transaction_tuples,
             offset,
+            categories,
         ))
     }
 }
