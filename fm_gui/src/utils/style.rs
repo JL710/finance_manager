@@ -12,6 +12,20 @@ pub fn container_style_background_strong(theme: &iced::Theme) -> widget::contain
     ))
 }
 
+pub fn container_popup_styling<'a, Message>(
+    container: widget::Container<'a, Message>,
+) -> widget::Container<'a, Message> {
+    container
+        .style(|theme| {
+            let mut style = container_style_background_strong(theme);
+            style.border.radius = 10.0.into();
+            style.border.color = theme.palette().primary;
+            style.border.width = 3.0;
+            style
+        })
+        .padding(10)
+}
+
 pub fn text_input_danger(
     theme: &iced::Theme,
     status: widget::text_input::Status,
