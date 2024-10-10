@@ -183,8 +183,7 @@ impl Transaction {
                         .format(&time::format_description::parse("[day].[month].[year]").unwrap())
                         .unwrap()
                 ),
-            ]
-            .spacing(10);
+            ];
 
             if let Some(budget) = &budget {
                 column = column.push(
