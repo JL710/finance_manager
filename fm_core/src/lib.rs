@@ -146,6 +146,15 @@ impl From<bool> for Sign {
     }
 }
 
+impl Sign {
+    pub fn invert(&self) -> Self {
+        match self {
+            Sign::Positive => Sign::Negative,
+            Sign::Negative => Sign::Positive,
+        }
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Recurring {
     /// start time and days
