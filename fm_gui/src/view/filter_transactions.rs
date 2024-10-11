@@ -26,6 +26,7 @@ pub enum Message {
     Initialize {
         accounts: Vec<fm_core::account::Account>,
         categories: Vec<fm_core::Category>,
+        bills: Vec<fm_core::Bill>,
     },
     TransactionTableMessage(utils::transaction_table::Message),
 }
@@ -34,6 +35,7 @@ pub enum Message {
 pub struct FilterTransactionView {
     accounts: Vec<fm_core::account::Account>,
     categories: Vec<fm_core::Category>,
+    bills: Vec<fm_core::Bill>,
     change_filter: bool,
     transaction_table: utils::TransactionTable,
     sums: Vec<(fm_core::DateTime, fm_core::Currency)>,
@@ -48,6 +50,7 @@ impl FilterTransactionView {
             Self {
                 accounts: Vec::new(),
                 categories: Vec::new(),
+                bills: Vec::new(),
                 change_filter: false,
                 transaction_table: utils::TransactionTable::new(Vec::new(), Vec::new(), |_| None),
                 sums: Vec::new(),
@@ -57,9 +60,11 @@ impl FilterTransactionView {
                 let locked_manager = finance_manager.lock().await;
                 let accounts = locked_manager.get_accounts().await.unwrap();
                 let categories = locked_manager.get_categories().await.unwrap();
+                let bills = locked_manager.get_bills().await.unwrap();
                 Message::Initialize {
                     accounts,
                     categories,
+                    bills,
                 }
             }),
         )
@@ -74,9 +79,11 @@ impl FilterTransactionView {
             Message::Initialize {
                 accounts,
                 categories,
+                bills,
             } => {
                 self.accounts = accounts;
                 self.categories = categories;
+                self.bills = bills;
                 self.transaction_table =
                     utils::TransactionTable::new(Vec::new(), self.categories.clone(), |_| None);
             }
@@ -159,6 +166,7 @@ impl FilterTransactionView {
                     Message::ChangeFilter,
                     &self.accounts,
                     &self.categories,
+                    &self.bills,
                 )
                 .into_element()
             } else {

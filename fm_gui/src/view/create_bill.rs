@@ -338,6 +338,7 @@ mod add_transaction {
     pub struct AddTransaction {
         accounts: Vec<fm_core::account::Account>,
         categories: Vec<fm_core::Category>,
+        bills: Vec<fm_core::Bill>,
         filter: Option<fm_core::transaction_filter::TransactionFilter>,
         transactions: Vec<fm_core::Transaction>,
         ignored_transactions: Vec<fm_core::Id>,
@@ -351,9 +352,11 @@ mod add_transaction {
             let locked_manager = finance_manager.lock().await;
             let accounts = locked_manager.get_accounts().await?;
             let categories = locked_manager.get_categories().await?;
+            let bills = locked_manager.get_bills().await?;
             Ok(Self {
                 accounts,
                 categories,
+                bills,
                 filter: Some(fm_core::transaction_filter::TransactionFilter::default()),
                 transactions: Vec::new(),
                 ignored_transactions,
@@ -412,6 +415,7 @@ mod add_transaction {
                                 Message::FilterSubmit,
                                 &self.accounts,
                                 &self.categories,
+                                &self.bills,
                             )
                             .into_element()
                         ]

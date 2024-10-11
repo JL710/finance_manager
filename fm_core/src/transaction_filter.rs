@@ -1,6 +1,15 @@
-use super::{Id, Timespan, Transaction};
+use super::{Bill, Id, Timespan, Transaction};
 pub type AccountFilter = (bool, Id, bool, Option<Timespan>); // true if negated, id, include (true) or exclude (false), optional timespan
 pub type CategoryFilter = (bool, Id, bool, Option<Timespan>); // true if negated, id, include (true) or exclude (false), optional timespan
+pub type BillFilter = (bool, super::Bill, bool, Option<Timespan>); // true if negated, id, include (true) or exclude (false), optional timespan
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Filter<I: Clone + std::fmt::Debug> {
+    pub negated: bool,
+    pub id: I,
+    pub include: bool,
+    pub timespan: Option<Timespan>,
+}
 
 /// exclude > include
 ///
@@ -12,6 +21,7 @@ pub struct TransactionFilter {
     default_timespan: Timespan,
     accounts: Vec<AccountFilter>,
     categories: Vec<CategoryFilter>,
+    bills: Vec<Filter<Bill>>,
 }
 
 impl TransactionFilter {
@@ -65,6 +75,27 @@ impl TransactionFilter {
         }
     }
 
+    pub fn get_bill_filters(&self) -> &Vec<Filter<Bill>> {
+        &self.bills
+    }
+
+    pub fn add_bill(&mut self, filter: Filter<Bill>) {
+        self.bills.push(filter);
+    }
+
+    pub fn delete_bill(&mut self, filter: Filter<Bill>) {
+        self.bills.retain(|x| *x != filter);
+    }
+
+    pub fn edit_bill(&mut self, old: Filter<Bill>, new: Filter<Bill>) {
+        for f in self.bills.iter_mut() {
+            if *f == old {
+                *f = new;
+                return;
+            }
+        }
+    }
+
     pub fn total_timespan(&self) -> Timespan {
         let mut timespan = self.default_timespan;
         for account_timespan in self
@@ -102,14 +133,13 @@ impl TransactionFilter {
 
     pub fn filter_transactions(&self, mut transactions: Vec<Transaction>) -> Vec<Transaction> {
         transactions.retain(|transaction| {
-            let mut stay = false;
-
-            let account_iterator = self
+            // create iterators from filters with include/exclude and timespan
+            let account_filter_iterator = self
                 .accounts
                 .iter()
                 .filter(|account| transaction.connection_with_account(account.1) != account.0)
                 .map(|x| (x.2, x.3));
-            let category_iterator = self
+            let category_filter_iterator = self
                 .categories
                 .iter()
                 .filter(|category| {
@@ -122,13 +152,25 @@ impl TransactionFilter {
                         != category.0
                 })
                 .map(|x| (x.2, x.3));
+            let bill_filter_iterator = self
+                .bills
+                .iter()
+                .filter(|bill_filter| {
+                    bill_filter.id.transactions().contains_key(transaction.id())
+                        != bill_filter.negated
+                })
+                .map(|x| (x.include, x.timespan));
 
-            // check the accounts and categories
-            for (include, timespan) in account_iterator
-                .chain(category_iterator)
+            // if the transaction should stay or get removed
+            let mut stay = false;
+
+            // iterate over all filters
+            for (include, timespan) in account_filter_iterator
+                .chain(category_filter_iterator)
+                .chain(bill_filter_iterator)
                 .map(|(x, y)| (x, y.unwrap_or(self.default_timespan)))
             {
-                // check if it is in the timespan#
+                // check if it is in the timespan
                 let in_timespan = if let Some(start) = timespan.0 {
                     start <= *transaction.date()
                 } else {
@@ -138,11 +180,14 @@ impl TransactionFilter {
                 } else {
                     true
                 };
+
                 // kick based on that
                 if in_timespan {
                     if !include {
+                        // if it is in the timespan and should be excluded directly end the filter check for this transaction
                         return false;
                     }
+                    // if it is in the timespan and should be included set stay to true
                     stay = true;
                 }
             }
@@ -151,5 +196,95 @@ impl TransactionFilter {
         });
 
         transactions
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{Bill, Currency, Sign};
+    use std::collections::HashMap;
+
+    fn generate_simple_transaction(id: Id, source: Id, destination: Id) -> Transaction {
+        Transaction::new(
+            id,
+            Currency::default(),
+            format!("Transaction {}", id),
+            None,
+            source,
+            destination,
+            None,
+            time::OffsetDateTime::now_utc(),
+            HashMap::new(),
+            HashMap::new(),
+        )
+    }
+
+    fn generate_test_transactions_1() -> Vec<Transaction> {
+        vec![
+            generate_simple_transaction(1, 1, 2),
+            generate_simple_transaction(2, 1, 2),
+            generate_simple_transaction(3, 1, 2),
+            generate_simple_transaction(4, 1, 2),
+        ]
+    }
+
+    fn generate_test_bill_1() -> Bill {
+        Bill::new(
+            1,
+            "Bill".to_string(),
+            None,
+            Currency::default(),
+            HashMap::from([(2, Sign::Positive), (3, Sign::Positive)]),
+            None,
+        )
+    }
+
+    fn generate_test_bill_2() -> Bill {
+        Bill::new(
+            1,
+            "Bill".to_string(),
+            None,
+            Currency::default(),
+            HashMap::from([(3, Sign::Positive), (4, Sign::Positive)]),
+            None,
+        )
+    }
+
+    #[test]
+    fn filter_bill_include() {
+        let transactions = generate_test_transactions_1();
+        let bill = generate_test_bill_1();
+        let mut filter = TransactionFilter::default();
+        filter.add_bill(Filter {
+            negated: false,
+            id: bill,
+            include: true,
+            timespan: None,
+        });
+        let result = filter.filter_transactions(transactions);
+        assert_eq!(result.len(), 2);
+        result.iter().find(|x| *x.id() == 2).unwrap();
+        result.iter().find(|x| *x.id() == 3).unwrap();
+    }
+
+    #[test]
+    fn filter_bill_include_and_exclude() {
+        let mut filter = TransactionFilter::default();
+        filter.add_bill(Filter {
+            negated: false,
+            id: generate_test_bill_1(),
+            include: true,
+            timespan: None,
+        });
+        filter.add_bill(Filter {
+            negated: false,
+            id: generate_test_bill_2(),
+            include: false,
+            timespan: None,
+        });
+        let result = filter.filter_transactions(generate_test_transactions_1());
+        assert_eq!(result.len(), 1);
+        assert_eq!(*result[0].id(), 2);
     }
 }

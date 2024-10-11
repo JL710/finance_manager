@@ -7,6 +7,7 @@ pub struct FilterComponent<'a, Message> {
     on_submit: Box<dyn Fn(TransactionFilter) -> Message + 'a>,
     accounts: &'a Vec<fm_core::account::Account>,
     categories: &'a Vec<fm_core::Category>,
+    bills: &'a Vec<fm_core::Bill>,
 }
 
 impl<'a, Message: 'a> FilterComponent<'a, Message> {
@@ -15,12 +16,14 @@ impl<'a, Message: 'a> FilterComponent<'a, Message> {
         on_submit: impl Fn(TransactionFilter) -> Message + 'a,
         accounts: &'a Vec<fm_core::account::Account>,
         categories: &'a Vec<fm_core::Category>,
+        bills: &'a Vec<fm_core::Bill>,
     ) -> Self {
         Self {
             filter,
             on_submit: Box::new(on_submit),
             accounts,
             categories,
+            bills,
         }
     }
 
@@ -48,6 +51,12 @@ pub enum ComponentMessage {
     ),
     NewCategory,
     DeleteCategory(transaction_filter::CategoryFilter),
+    NewBill,
+    ChangeBill(
+        transaction_filter::Filter<fm_core::Bill>,
+        transaction_filter::Filter<fm_core::Bill>,
+    ),
+    DeleteBill(transaction_filter::Filter<fm_core::Bill>),
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +90,23 @@ impl std::fmt::Display for DisplayedCategory {
 impl PartialEq for DisplayedCategory {
     fn eq(&self, other: &Self) -> bool {
         self.category.id() == other.category.id()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DisplayedBill {
+    bill: fm_core::Bill,
+}
+
+impl std::fmt::Display for DisplayedBill {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.bill.name())
+    }
+}
+
+impl PartialEq for DisplayedBill {
+    fn eq(&self, other: &Self) -> bool {
+        self.bill.id() == other.bill.id()
     }
 }
 
@@ -125,6 +151,22 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             }
             ComponentMessage::DeleteCategory(category) => {
                 self.filter.delete_category(category);
+            }
+            ComponentMessage::NewBill => {
+                if let Some(bill) = self.bills.first() {
+                    self.filter.add_bill(fm_core::transaction_filter::Filter {
+                        negated: false,
+                        id: bill.clone(),
+                        include: true,
+                        timespan: None,
+                    });
+                }
+            }
+            ComponentMessage::DeleteBill(bill) => {
+                self.filter.delete_bill(bill);
+            }
+            ComponentMessage::ChangeBill(old, new) => {
+                self.filter.edit_bill(old, new);
             }
         }
         None
@@ -266,8 +308,98 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             );
         }
 
+        let mut bill_column = widget::Column::new();
+        for bill_filter in self.filter.get_bill_filters() {
+            bill_column = bill_column.push(
+                widget::row![
+                    widget::checkbox("Negate", bill_filter.negated).on_toggle(|x| {
+                        ComponentMessage::ChangeBill(
+                            bill_filter.clone(),
+                            fm_core::transaction_filter::Filter {
+                                negated: x,
+                                id: bill_filter.id.clone(),
+                                include: bill_filter.include,
+                                timespan: bill_filter.timespan,
+                            },
+                        )
+                    }),
+                    widget::pick_list(
+                        self.bills
+                            .iter()
+                            .map(|x| DisplayedBill { bill: x.clone() })
+                            .collect::<Vec<_>>(),
+                        Some(DisplayedBill {
+                            bill: bill_filter.id.clone()
+                        }),
+                        |x| ComponentMessage::ChangeBill(
+                            bill_filter.clone(),
+                            fm_core::transaction_filter::Filter {
+                                negated: bill_filter.negated,
+                                id: x.bill,
+                                include: bill_filter.include,
+                                timespan: bill_filter.timespan
+                            }
+                        )
+                    ),
+                    widget::checkbox("Exclude", !bill_filter.include).on_toggle(|x| {
+                        ComponentMessage::ChangeBill(
+                            bill_filter.clone(),
+                            fm_core::transaction_filter::Filter {
+                                negated: bill_filter.negated,
+                                id: bill_filter.id.clone(),
+                                include: !x,
+                                timespan: bill_filter.timespan,
+                            },
+                        )
+                    }),
+                    widget::checkbox("Custom Timespan", bill_filter.timespan.is_some()).on_toggle(
+                        |x| {
+                            ComponentMessage::ChangeBill(
+                                bill_filter.clone(),
+                                fm_core::transaction_filter::Filter {
+                                    negated: bill_filter.negated,
+                                    id: bill_filter.id.clone(),
+                                    include: bill_filter.include,
+                                    timespan: if x { Some((None, None)) } else { None },
+                                },
+                            )
+                        }
+                    )
+                ]
+                .push_maybe(if bill_filter.timespan.is_some() {
+                    Some(
+                        timespan_input::TimespanInput::new(
+                            |x| {
+                                ComponentMessage::ChangeBill(
+                                    bill_filter.clone(),
+                                    fm_core::transaction_filter::Filter {
+                                        negated: bill_filter.negated,
+                                        id: bill_filter.id.clone(),
+                                        include: bill_filter.include,
+                                        timespan: Some(x),
+                                    },
+                                )
+                            },
+                            None,
+                        )
+                        .into_element(),
+                    )
+                } else {
+                    None
+                })
+                .push(widget::row![
+                    widget::horizontal_space(),
+                    widget::button("Delete")
+                        .on_press(ComponentMessage::DeleteBill(bill_filter.clone()))
+                ])
+                .align_y(iced::Alignment::Center)
+                .spacing(30),
+            );
+        }
+
         widget::container(
             widget::column![
+                // default timespan
                 widget::row![
                     widget::text("Default Timespan: "),
                     timespan_input::TimespanInput::new(
@@ -276,6 +408,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                     )
                     .into_element(),
                 ],
+                // account filters
                 widget::row![
                     widget::text("Accounts"),
                     widget::button("New").on_press(ComponentMessage::NewAccount),
@@ -285,6 +418,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                 .align_y(iced::Alignment::Center),
                 widget::container(widget::scrollable(account_column.width(iced::Length::Fill)))
                     .max_height(150),
+                // category filters
                 widget::row![
                     widget::text("Categories"),
                     widget::button("New").on_press(ComponentMessage::NewCategory),
@@ -296,6 +430,17 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                     category_column.width(iced::Length::Fill)
                 ))
                 .max_height(150),
+                // bill filters
+                widget::row![
+                    widget::text("Bills"),
+                    widget::button("New").on_press(ComponentMessage::NewBill),
+                    widget::horizontal_rule(3)
+                ]
+                .spacing(10)
+                .align_y(iced::Alignment::Center),
+                widget::container(widget::scrollable(bill_column.width(iced::Length::Fill)))
+                    .max_height(150),
+                // submit footer
                 widget::horizontal_rule(3),
                 widget::button("Submit").on_press(ComponentMessage::Submit)
             ]
