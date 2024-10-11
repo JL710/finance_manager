@@ -27,6 +27,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Bill {
     NotLoaded,
     Loaded {

@@ -719,7 +719,7 @@ fn main() {
     }
 
     let app = App::new(match settings::read_settings().unwrap().finance_manager() {
-        settings::FinanceManager::RAM => Arc::new(Mutex::new(
+        settings::FinanceManager::Ram => Arc::new(Mutex::new(
             fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Ram(
                 fm_core::managers::RamFinanceManager::new(()).unwrap(),
             )),
@@ -734,7 +734,7 @@ fn main() {
                 ),
             )))
         }
-        settings::FinanceManager::API(url, api_token) => Arc::new(Mutex::new(
+        settings::FinanceManager::Api(url, api_token) => Arc::new(Mutex::new(
             fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Server(
                 fm_server::client::Client::new((url.to_owned(), api_token.to_owned())).unwrap(),
             )),

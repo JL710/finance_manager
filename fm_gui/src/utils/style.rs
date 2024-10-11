@@ -12,9 +12,9 @@ pub fn container_style_background_strong(theme: &iced::Theme) -> widget::contain
     ))
 }
 
-pub fn container_popup_styling<'a, Message>(
-    container: widget::Container<'a, Message>,
-) -> widget::Container<'a, Message> {
+pub fn container_popup_styling<Message>(
+    container: widget::Container<'_, Message>,
+) -> widget::Container<'_, Message> {
     container
         .style(|theme| {
             let mut style = container_style_background_strong(theme);

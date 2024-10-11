@@ -91,7 +91,7 @@ impl Category {
                 if let Self::Loaded { category, .. } = self {
                     if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
                         .set_title("Delete category")
-                        .set_description(&format!(
+                        .set_description(format!(
                             "Do you really want to delete {}?",
                             category.name()
                         ))
@@ -167,11 +167,10 @@ impl Category {
                         transactions,
                         categories,
                         move |transaction| {
-                            if let Some(sign) = transaction.categories().get(&category_id) {
-                                Some(*sign == fm_core::Sign::Positive)
-                            } else {
-                                None
-                            }
+                            transaction
+                                .categories()
+                                .get(&category_id)
+                                .map(|sign| *sign == fm_core::Sign::Positive)
                         },
                     ),
                     values,

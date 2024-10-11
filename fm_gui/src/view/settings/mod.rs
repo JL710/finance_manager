@@ -84,7 +84,7 @@ impl SettingsView {
                     let written_api_token = api_token.clone();
                     async_std::task::spawn_blocking(|| {
                         crate::settings::write_settings(&crate::settings::Settings::new(
-                            crate::settings::FinanceManager::API(
+                            crate::settings::FinanceManager::Api(
                                 written_api_url,
                                 written_api_token,
                             ),
@@ -131,7 +131,7 @@ impl SettingsView {
                 return Action::Task(iced::Task::future(async {
                     async_std::task::spawn_blocking(|| {
                         crate::settings::write_settings(&crate::settings::Settings::new(
-                            crate::settings::FinanceManager::RAM,
+                            crate::settings::FinanceManager::Ram,
                         ))
                         .unwrap()
                     })

@@ -3,11 +3,11 @@ use std::io::{Read, Write};
 
 #[derive(Debug, Clone)]
 pub enum FinanceManager {
-    RAM,
+    Ram,
     /// SQLite database: the path to the database file
     SQLite(String),
     /// REST API: the URL to the API and the API token
-    API(String, String),
+    Api(String, String),
 }
 
 #[derive(Debug, Clone)]
@@ -37,7 +37,7 @@ pub fn read_settings() -> Result<Settings> {
         Err(err) => {
             if err.kind() == std::io::ErrorKind::NotFound {
                 return Ok(Settings {
-                    finance_manager: FinanceManager::RAM,
+                    finance_manager: FinanceManager::Ram,
                 });
             } else {
                 return Err(err.into());
@@ -62,7 +62,7 @@ pub fn read_settings() -> Result<Settings> {
     // Read settings from file
     Ok(Settings {
         finance_manager: match fm_type {
-            "RAM" => FinanceManager::RAM,
+            "RAM" => FinanceManager::Ram,
             "SQLite" => {
                 let path = map
                     .get("finance_manager_info")
@@ -81,7 +81,7 @@ pub fn read_settings() -> Result<Settings> {
                     .context("Missing 'url' key")?
                     .as_str()
                     .context("'url' is not a string")?;
-                FinanceManager::API(url.to_string(), "ENTER YOUR TOKEN HERE".to_string())
+                FinanceManager::Api(url.to_string(), "ENTER YOUR TOKEN HERE".to_string())
             }
             _ => anyhow::bail!("Unknown finance manager type: {}", fm_type),
         },
@@ -91,7 +91,7 @@ pub fn read_settings() -> Result<Settings> {
 #[cfg(not(feature = "native"))]
 pub fn read_settings() -> Result<Settings> {
     Ok(Settings {
-        finance_manager: FinanceManager::RAM,
+        finance_manager: FinanceManager::Ram,
     })
 }
 
@@ -101,9 +101,9 @@ pub fn write_settings(settings: &Settings) -> Result<()> {
     value.insert(
         "finance_manager".to_string(),
         match &settings.finance_manager {
-            FinanceManager::RAM => "RAM",
+            FinanceManager::Ram => "RAM",
             FinanceManager::SQLite(_) => "SQLite",
-            FinanceManager::API(_, _) => "API",
+            FinanceManager::Api(_, _) => "API",
         }
         .into(),
     );
@@ -113,7 +113,7 @@ pub fn write_settings(settings: &Settings) -> Result<()> {
         FinanceManager::SQLite(path) => {
             fm_info.insert("path".to_string(), path.to_string().into());
         }
-        FinanceManager::API(url, _) => {
+        FinanceManager::Api(url, _) => {
             fm_info.insert("url".to_string(), url.to_string().into());
         }
         _ => {}

@@ -510,29 +510,26 @@ where
         }
     }
 
-    pub fn update_transaction_categories(
+    pub async fn update_transaction_categories(
         &mut self,
         id: Id,
         categories: HashMap<Id, Sign>,
-    ) -> impl Future<Output = Result<Transaction>> + MaybeSend + '_ {
-        async move {
-            let transaction = self.finance_manager.get_transaction(id).await?.unwrap();
-            Ok(self
-                .finance_manager
-                .update_transaction(
-                    *transaction.id(),
-                    transaction.amount().clone(),
-                    transaction.title().to_owned(),
-                    transaction.description().map(|x| x.to_owned()),
-                    *transaction.source(),
-                    *transaction.destination(),
-                    transaction.budget().map(|x| x.to_owned()),
-                    *transaction.date(),
-                    transaction.metadata().clone(),
-                    categories,
-                )
-                .await?)
-        }
+    ) -> Result<Transaction> {
+        let transaction = self.finance_manager.get_transaction(id).await?.unwrap();
+        self.finance_manager
+            .update_transaction(
+                *transaction.id(),
+                transaction.amount().clone(),
+                transaction.title().to_owned(),
+                transaction.description().map(|x| x.to_owned()),
+                *transaction.source(),
+                *transaction.destination(),
+                transaction.budget().map(|x| x.to_owned()),
+                *transaction.date(),
+                transaction.metadata().clone(),
+                categories,
+            )
+            .await
     }
 }
 

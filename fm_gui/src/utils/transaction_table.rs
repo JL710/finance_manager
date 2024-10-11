@@ -225,11 +225,7 @@ impl TransactionTable {
                         ]
                         .spacing(10),
                         category_popup(transaction.clone(), categories.clone()),
-                        if Some(transaction.id()) == self.category_popup.as_ref() {
-                            true
-                        } else {
-                            false
-                        },
+                        Some(transaction.id()) == self.category_popup.as_ref(),
                     )
                     .on_dismiss(Message::ClosePopup)
                     .alignment(iced_aw::widget::drop_down::Alignment::Start)
@@ -300,7 +296,7 @@ fn category_popup(
     let mut column = widget::column![];
     for category in categories {
         let category_id = *category.id();
-        let transaction_category = transaction.categories().get(&category_id).map(|x| *x);
+        let transaction_category = transaction.categories().get(&category_id).copied();
         column = column.push(
             widget::row![
                 widget::checkbox(
@@ -309,14 +305,14 @@ fn category_popup(
                 )
                 .on_toggle(move |value| if value {
                     Message::SetCategory {
-                        transaction_id: transaction_id,
-                        category_id: category_id,
+                        transaction_id,
+                        category_id,
                         sign: fm_core::Sign::Positive,
                     }
                 } else {
                     Message::RemoveCategory {
-                        transaction_id: transaction_id,
-                        category_id: category_id,
+                        transaction_id,
+                        category_id,
                     }
                 }),
                 widget::checkbox(
@@ -327,15 +323,13 @@ fn category_popup(
                         false
                     }
                 )
-                .on_toggle_maybe(if let Some(sign) = transaction_category {
-                    Some(move |_| Message::SetCategory {
-                        transaction_id: transaction_id,
-                        category_id: category_id,
+                .on_toggle_maybe(transaction_category.map(|sign| {
+                    move |_| Message::SetCategory {
+                        transaction_id,
+                        category_id,
                         sign: sign.invert(),
-                    })
-                } else {
-                    None
-                })
+                    }
+                })),
             ]
             .spacing(10),
         );

@@ -94,14 +94,15 @@ impl HeadingLevel {
 }
 
 pub fn markdown_settings() -> widget::markdown::Settings {
-    let mut settings = widget::markdown::Settings::default();
-    settings.h1_size = HeadingLevel::H1.text_size().into();
-    settings.h2_size = HeadingLevel::H2.text_size().into();
-    settings.h3_size = HeadingLevel::H3.text_size().into();
-    settings.h4_size = HeadingLevel::H4.text_size().into();
-    settings.h5_size = HeadingLevel::H5.text_size().into();
-    settings.h6_size = HeadingLevel::H6.text_size().into();
-    settings
+    widget::markdown::Settings {
+        h1_size: HeadingLevel::H1.text_size().into(),
+        h2_size: HeadingLevel::H2.text_size().into(),
+        h3_size: HeadingLevel::H3.text_size().into(),
+        h4_size: HeadingLevel::H4.text_size().into(),
+        h5_size: HeadingLevel::H5.text_size().into(),
+        h6_size: HeadingLevel::H6.text_size().into(),
+        ..Default::default()
+    }
 }
 
 pub fn heading<'a, Message: 'a>(

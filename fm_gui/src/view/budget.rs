@@ -34,6 +34,7 @@ pub enum Message {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum Budget {
     NotLoaded,
     Loaded {

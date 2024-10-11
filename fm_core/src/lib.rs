@@ -257,7 +257,6 @@ pub fn sum_up_transactions_by_day(
                 let i = values.len() - 1;
                 values[i] = (date_with_offset, amount);
                 continue;
-            } else {
             }
         }
         // if it is the first value or a new day, add a new entry
