@@ -1,4 +1,4 @@
-use super::{super::utils, category};
+use super::super::utils;
 
 use async_std::sync::Mutex;
 use iced::widget;
