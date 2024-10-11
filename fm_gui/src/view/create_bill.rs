@@ -339,6 +339,7 @@ mod add_transaction {
         accounts: Vec<fm_core::account::Account>,
         categories: Vec<fm_core::Category>,
         bills: Vec<fm_core::Bill>,
+        budgets: Vec<fm_core::Budget>,
         filter: Option<fm_core::transaction_filter::TransactionFilter>,
         transactions: Vec<fm_core::Transaction>,
         ignored_transactions: Vec<fm_core::Id>,
@@ -353,10 +354,12 @@ mod add_transaction {
             let accounts = locked_manager.get_accounts().await?;
             let categories = locked_manager.get_categories().await?;
             let bills = locked_manager.get_bills().await?;
+            let budgets = locked_manager.get_budgets().await?;
             Ok(Self {
                 accounts,
                 categories,
                 bills,
+                budgets,
                 filter: Some(fm_core::transaction_filter::TransactionFilter::default()),
                 transactions: Vec::new(),
                 ignored_transactions,
@@ -416,6 +419,7 @@ mod add_transaction {
                                 &self.accounts,
                                 &self.categories,
                                 &self.bills,
+                                &self.budgets
                             )
                             .into_element()
                         ]

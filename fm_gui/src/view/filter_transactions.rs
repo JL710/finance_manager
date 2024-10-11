@@ -27,6 +27,7 @@ pub enum Message {
         accounts: Vec<fm_core::account::Account>,
         categories: Vec<fm_core::Category>,
         bills: Vec<fm_core::Bill>,
+        budgets: Vec<fm_core::Budget>,
     },
     TransactionTableMessage(utils::transaction_table::Message),
 }
@@ -36,6 +37,7 @@ pub struct FilterTransactionView {
     accounts: Vec<fm_core::account::Account>,
     categories: Vec<fm_core::Category>,
     bills: Vec<fm_core::Bill>,
+    budgets: Vec<fm_core::Budget>,
     change_filter: bool,
     transaction_table: utils::TransactionTable,
     sums: Vec<(fm_core::DateTime, fm_core::Currency)>,
@@ -51,6 +53,7 @@ impl FilterTransactionView {
                 accounts: Vec::new(),
                 categories: Vec::new(),
                 bills: Vec::new(),
+                budgets: Vec::new(),
                 change_filter: false,
                 transaction_table: utils::TransactionTable::new(Vec::new(), Vec::new(), |_| None),
                 sums: Vec::new(),
@@ -61,10 +64,12 @@ impl FilterTransactionView {
                 let accounts = locked_manager.get_accounts().await.unwrap();
                 let categories = locked_manager.get_categories().await.unwrap();
                 let bills = locked_manager.get_bills().await.unwrap();
+                let budgets = locked_manager.get_budgets().await.unwrap();
                 Message::Initialize {
                     accounts,
                     categories,
                     bills,
+                    budgets,
                 }
             }),
         )
@@ -80,10 +85,12 @@ impl FilterTransactionView {
                 accounts,
                 categories,
                 bills,
+                budgets,
             } => {
                 self.accounts = accounts;
                 self.categories = categories;
                 self.bills = bills;
+                self.budgets = budgets;
                 self.transaction_table =
                     utils::TransactionTable::new(Vec::new(), self.categories.clone(), |_| None);
             }
@@ -167,6 +174,7 @@ impl FilterTransactionView {
                     &self.accounts,
                     &self.categories,
                     &self.bills,
+                    &self.budgets,
                 )
                 .into_element()
             } else {

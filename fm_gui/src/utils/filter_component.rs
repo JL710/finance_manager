@@ -8,6 +8,7 @@ pub struct FilterComponent<'a, Message> {
     accounts: &'a Vec<fm_core::account::Account>,
     categories: &'a Vec<fm_core::Category>,
     bills: &'a Vec<fm_core::Bill>,
+    budgets: &'a Vec<fm_core::Budget>,
 }
 
 impl<'a, Message: 'a> FilterComponent<'a, Message> {
@@ -17,6 +18,7 @@ impl<'a, Message: 'a> FilterComponent<'a, Message> {
         accounts: &'a Vec<fm_core::account::Account>,
         categories: &'a Vec<fm_core::Category>,
         bills: &'a Vec<fm_core::Bill>,
+        budgets: &'a Vec<fm_core::Budget>,
     ) -> Self {
         Self {
             filter,
@@ -24,6 +26,7 @@ impl<'a, Message: 'a> FilterComponent<'a, Message> {
             accounts,
             categories,
             bills,
+            budgets,
         }
     }
 
@@ -256,189 +259,6 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             );
         }
 
-        let mut category_column = widget::Column::new();
-        for filter in self.filter.get_category_filters() {
-            category_column = category_column.push(
-                widget::row![
-                    widget::checkbox("Negate", filter.negated).on_toggle(|x| {
-                        ComponentMessage::ChangeCategory(
-                            filter.clone(),
-                            Filter {
-                                negated: x,
-                                id: filter.id,
-                                include: filter.include,
-                                timespan: filter.timespan,
-                            },
-                        )
-                    }),
-                    widget::pick_list(
-                        self.categories
-                            .iter()
-                            .map(|x| DisplayedCategory {
-                                category: x.clone()
-                            })
-                            .collect::<Vec<_>>(),
-                        Some(DisplayedCategory {
-                            category: self
-                                .categories
-                                .iter()
-                                .find(|x| *x.id() == filter.id)
-                                .unwrap()
-                                .clone()
-                        }),
-                        |x| ComponentMessage::ChangeCategory(
-                            filter.clone(),
-                            Filter {
-                                negated: filter.negated,
-                                id: *x.category.id(),
-                                include: filter.include,
-                                timespan: filter.timespan,
-                            }
-                        )
-                    ),
-                    widget::checkbox("Exclude", !filter.include).on_toggle(|x| {
-                        ComponentMessage::ChangeCategory(
-                            filter.clone(),
-                            Filter {
-                                negated: filter.negated,
-                                id: filter.id,
-                                include: !x,
-                                timespan: filter.timespan,
-                            },
-                        )
-                    }),
-                    widget::checkbox("Custom Timespan", filter.timespan.is_some()).on_toggle(|x| {
-                        ComponentMessage::ChangeCategory(
-                            filter.clone(),
-                            Filter {
-                                negated: filter.negated,
-                                id: filter.id,
-                                include: filter.include,
-                                timespan: if x { Some((None, None)) } else { None },
-                            },
-                        )
-                    })
-                ]
-                .push_maybe(if filter.timespan.is_some() {
-                    Some(
-                        timespan_input::TimespanInput::new(
-                            |x| {
-                                ComponentMessage::ChangeCategory(
-                                    filter.clone(),
-                                    Filter {
-                                        negated: filter.negated,
-                                        id: filter.id,
-                                        include: filter.include,
-                                        timespan: Some(x),
-                                    },
-                                )
-                            },
-                            None,
-                        )
-                        .into_element(),
-                    )
-                } else {
-                    None
-                })
-                .push(widget::row![
-                    widget::horizontal_space(),
-                    widget::button("Delete")
-                        .on_press(ComponentMessage::DeleteCategory(filter.clone()))
-                ])
-                .align_y(iced::Alignment::Center)
-                .spacing(30),
-            );
-        }
-
-        let mut bill_column = widget::Column::new();
-        for bill_filter in self.filter.get_bill_filters() {
-            bill_column = bill_column.push(
-                widget::row![
-                    widget::checkbox("Negate", bill_filter.negated).on_toggle(|x| {
-                        ComponentMessage::ChangeBill(
-                            bill_filter.clone(),
-                            Filter {
-                                negated: x,
-                                id: bill_filter.id.clone(),
-                                include: bill_filter.include,
-                                timespan: bill_filter.timespan,
-                            },
-                        )
-                    }),
-                    widget::pick_list(
-                        self.bills
-                            .iter()
-                            .map(|x| DisplayedBill { bill: x.clone() })
-                            .collect::<Vec<_>>(),
-                        Some(DisplayedBill {
-                            bill: bill_filter.id.clone()
-                        }),
-                        |x| ComponentMessage::ChangeBill(
-                            bill_filter.clone(),
-                            Filter {
-                                negated: bill_filter.negated,
-                                id: x.bill,
-                                include: bill_filter.include,
-                                timespan: bill_filter.timespan
-                            }
-                        )
-                    ),
-                    widget::checkbox("Exclude", !bill_filter.include).on_toggle(|x| {
-                        ComponentMessage::ChangeBill(
-                            bill_filter.clone(),
-                            Filter {
-                                negated: bill_filter.negated,
-                                id: bill_filter.id.clone(),
-                                include: !x,
-                                timespan: bill_filter.timespan,
-                            },
-                        )
-                    }),
-                    widget::checkbox("Custom Timespan", bill_filter.timespan.is_some()).on_toggle(
-                        |x| {
-                            ComponentMessage::ChangeBill(
-                                bill_filter.clone(),
-                                Filter {
-                                    negated: bill_filter.negated,
-                                    id: bill_filter.id.clone(),
-                                    include: bill_filter.include,
-                                    timespan: if x { Some((None, None)) } else { None },
-                                },
-                            )
-                        }
-                    )
-                ]
-                .push_maybe(if bill_filter.timespan.is_some() {
-                    Some(
-                        timespan_input::TimespanInput::new(
-                            |x| {
-                                ComponentMessage::ChangeBill(
-                                    bill_filter.clone(),
-                                    Filter {
-                                        negated: bill_filter.negated,
-                                        id: bill_filter.id.clone(),
-                                        include: bill_filter.include,
-                                        timespan: Some(x),
-                                    },
-                                )
-                            },
-                            None,
-                        )
-                        .into_element(),
-                    )
-                } else {
-                    None
-                })
-                .push(widget::row![
-                    widget::horizontal_space(),
-                    widget::button("Delete")
-                        .on_press(ComponentMessage::DeleteBill(bill_filter.clone()))
-                ])
-                .align_y(iced::Alignment::Center)
-                .spacing(30),
-            );
-        }
-
         widget::container(
             widget::column![
                 // default timespan
@@ -458,8 +278,16 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                 ]
                 .spacing(10)
                 .align_y(iced::Alignment::Center),
-                widget::container(widget::scrollable(account_column.width(iced::Length::Fill)))
-                    .max_height(150),
+                widget::container(widget::scrollable(generate_filter_column(
+                    self.filter.get_account_filters(),
+                    self.accounts,
+                    |x| DisplayedAccount { account: x.clone() },
+                    |x| *x.account.id(),
+                    |x| *x.id(),
+                    ComponentMessage::ChangeAccount,
+                    ComponentMessage::DeleteAccount
+                )))
+                .max_height(150),
                 // category filters
                 widget::row![
                     widget::text("Categories"),
@@ -468,9 +296,17 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                 ]
                 .spacing(10)
                 .align_y(iced::Alignment::Center),
-                widget::container(widget::scrollable(
-                    category_column.width(iced::Length::Fill)
-                ))
+                widget::container(widget::scrollable(generate_filter_column(
+                    self.filter.get_category_filters(),
+                    self.categories,
+                    |x| DisplayedCategory {
+                        category: x.clone()
+                    },
+                    |x| { *x.category.id() },
+                    |x| *x.id(),
+                    ComponentMessage::ChangeCategory,
+                    ComponentMessage::DeleteCategory
+                )))
                 .max_height(150),
                 // bill filters
                 widget::row![
@@ -480,8 +316,16 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                 ]
                 .spacing(10)
                 .align_y(iced::Alignment::Center),
-                widget::container(widget::scrollable(bill_column.width(iced::Length::Fill)))
-                    .max_height(150),
+                widget::container(widget::scrollable(generate_filter_column(
+                    self.filter.get_bill_filters(),
+                    self.bills,
+                    |x| DisplayedBill { bill: x.clone() },
+                    |x| x.bill.clone(),
+                    |x| x.clone(),
+                    ComponentMessage::ChangeBill,
+                    ComponentMessage::DeleteBill
+                )))
+                .max_height(150),
                 // submit footer
                 widget::horizontal_rule(3),
                 widget::button("Submit").on_press(ComponentMessage::Submit)
@@ -492,4 +336,114 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
         .style(super::style::container_style_background_weak)
         .into()
     }
+}
+
+fn generate_filter_column<
+    'a,
+    O: Clone,
+    T: ToString + PartialEq + Clone + 'a,
+    I: Clone + std::fmt::Debug + PartialEq,
+>(
+    filters: &'a Vec<Filter<I>>,
+    options: &'a [O],
+    picklist_item_from_option: impl Fn(&O) -> T,
+    id_from_picklist_item: fn(&T) -> I,
+    id_from_option: impl Fn(&O) -> I,
+    change_message: fn(Filter<I>, Filter<I>) -> ComponentMessage,
+    delete_message: impl Fn(Filter<I>) -> ComponentMessage,
+) -> iced::Element<'a, ComponentMessage> {
+    let mut column = widget::Column::new().width(iced::Fill);
+
+    for filter in filters {
+        column = column.push(
+            widget::row![
+                widget::checkbox("Negate", filter.negated).on_toggle(move |x| {
+                    (change_message)(
+                        filter.clone(),
+                        Filter {
+                            negated: x,
+                            id: filter.id.clone(),
+                            include: filter.include,
+                            timespan: filter.timespan,
+                        },
+                    )
+                }),
+                widget::pick_list(
+                    options
+                        .iter()
+                        .map(&(picklist_item_from_option))
+                        .collect::<Vec<_>>(),
+                    Some((picklist_item_from_option)(
+                        &options
+                            .iter()
+                            .find(|x| (id_from_option)(x) == filter.id)
+                            .unwrap()
+                            .clone()
+                    )),
+                    move |x| (change_message)(
+                        filter.clone(),
+                        Filter {
+                            negated: filter.negated,
+                            id: (id_from_picklist_item)(&x),
+                            include: filter.include,
+                            timespan: filter.timespan,
+                        }
+                    )
+                ),
+                widget::checkbox("Exclude", !filter.include).on_toggle(move |x| {
+                    (change_message)(
+                        filter.clone(),
+                        Filter {
+                            negated: filter.negated,
+                            id: filter.id.clone(),
+                            include: !x,
+                            timespan: filter.timespan,
+                        },
+                    )
+                }),
+                widget::checkbox("Custom Timespan", filter.timespan.is_some()).on_toggle(
+                    move |x| {
+                        (change_message)(
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: filter.id.clone(),
+                                include: filter.include,
+                                timespan: if x { Some((None, None)) } else { None },
+                            },
+                        )
+                    }
+                )
+            ]
+            .push_maybe(if filter.timespan.is_some() {
+                Some(
+                    timespan_input::TimespanInput::new(
+                        move |x| {
+                            (change_message)(
+                                filter.clone(),
+                                Filter {
+                                    negated: filter.negated,
+                                    id: filter.id.clone(),
+                                    include: filter.include,
+                                    timespan: Some(x),
+                                },
+                            )
+                        },
+                        None,
+                    )
+                    .into_element(),
+                )
+            } else {
+                None
+            })
+            .push(widget::row![
+                widget::horizontal_space(),
+                widget::button("Delete").on_press((delete_message)(filter.clone()))
+            ])
+            .align_y(iced::Alignment::Center)
+            .spacing(30),
+        );
+    }
+
+    column.into()
 }
