@@ -55,7 +55,7 @@ pub enum AppMessage {
 }
 
 #[derive(Debug)]
-#[allow(clippy::enum_variant_names)]
+#[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
 enum View {
     Empty,
     Tutorial(Vec<widget::markdown::Item>),

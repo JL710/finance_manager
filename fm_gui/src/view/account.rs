@@ -48,6 +48,7 @@ pub enum Message {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum Account {
     NotLoaded,
     Loaded {

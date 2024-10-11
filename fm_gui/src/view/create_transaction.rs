@@ -54,18 +54,22 @@ pub enum Message {
     SelectCategory(fm_core::Id),
     ChangeSelectedCategorySign(fm_core::Id, fm_core::Sign),
     Initialize(
-        Vec<fm_core::Budget>,
-        Vec<fm_core::account::Account>,
-        Vec<fm_core::Category>,
+        Box<(
+            Vec<fm_core::Budget>,
+            Vec<fm_core::account::Account>,
+            Vec<fm_core::Category>,
+        )>,
     ),
     InitializeFromExisting(
-        fm_core::Transaction,
-        fm_core::account::Account,
-        fm_core::account::Account,
-        Option<fm_core::Budget>,
-        Vec<fm_core::Budget>,
-        Vec<fm_core::account::Account>,
-        Vec<fm_core::Category>,
+        Box<(
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+            Option<fm_core::Budget>,
+            Vec<fm_core::Budget>,
+            Vec<fm_core::account::Account>,
+            Vec<fm_core::Category>,
+        )>,
     ),
     TransactionCreated(fm_core::Id),
 }
@@ -115,7 +119,7 @@ impl CreateTransactionView {
                 let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
                 let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
                 let categories = finance_manager.lock().await.get_categories().await.unwrap();
-                Message::Initialize(budgets, accounts, categories)
+                Message::Initialize(Box::new((budgets, accounts, categories)))
             }),
         )
     }
@@ -152,7 +156,7 @@ impl CreateTransactionView {
                 let accounts = locked_manager.get_accounts().await.unwrap();
                 let available_categories = locked_manager.get_categories().await.unwrap();
 
-                Message::InitializeFromExisting(
+                Message::InitializeFromExisting(Box::new((
                     transaction,
                     source,
                     destination,
@@ -160,7 +164,7 @@ impl CreateTransactionView {
                     budgets,
                     accounts,
                     available_categories,
-                )
+                )))
             }),
         )
     }
@@ -238,7 +242,8 @@ impl CreateTransactionView {
                     ));
                 }
             }
-            Message::Initialize(budgets, accounts, categories) => {
+            Message::Initialize(init) => {
+                let (budgets, accounts, categories) = *init;
                 self.budget_state = widget::combo_box::State::new(budgets);
                 self.available_categories = categories;
                 self.source_state = widget::combo_box::State::new(
@@ -254,15 +259,16 @@ impl CreateTransactionView {
                         .collect(),
                 );
             }
-            Message::InitializeFromExisting(
-                transaction,
-                source,
-                destination,
-                budget,
-                budgets,
-                accounts,
-                available_categories,
-            ) => {
+            Message::InitializeFromExisting(init) => {
+                let (
+                    transaction,
+                    source,
+                    destination,
+                    budget,
+                    budgets,
+                    accounts,
+                    available_categories,
+                ) = *init;
                 self.id = Some(*transaction.id());
                 self.amount_input = Some(transaction.amount());
                 self.title_input.clone_from(transaction.title());

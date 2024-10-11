@@ -5,6 +5,16 @@ use iced::widget;
 
 use super::super::utils;
 
+#[derive(Debug, Clone)]
+struct Init {
+    transaction: fm_core::Transaction,
+    source: fm_core::account::Account,
+    destination: fm_core::account::Account,
+    budget: Option<fm_core::Budget>,
+    categories: Vec<fm_core::Category>,
+}
+
+#[allow(clippy::large_enum_variant)]
 pub enum Action {
     None,
     Edit(fm_core::Id),
@@ -20,13 +30,7 @@ pub enum Message {
     Delete,
     ViewAccount(fm_core::Id),
     ViewBudget(fm_core::Id),
-    Initialize {
-        transaction: fm_core::Transaction,
-        source: fm_core::account::Account,
-        destination: fm_core::account::Account,
-        budget: Option<fm_core::Budget>,
-        categories: Vec<fm_core::Category>,
-    },
+    Initialize(Box<Init>),
     NewBill,
 }
 
@@ -84,13 +88,13 @@ impl Transaction {
                     None => None,
                 };
                 let categories = locked_manager.get_categories().await.unwrap();
-                Message::Initialize {
+                Message::Initialize(Box::new(Init {
                     transaction,
                     source,
                     destination,
                     budget,
                     categories,
-                }
+                }))
             }),
         )
     }
@@ -101,19 +105,13 @@ impl Transaction {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
-            Message::Initialize {
-                transaction,
-                source,
-                destination,
-                budget,
-                categories,
-            } => {
+            Message::Initialize(init) => {
                 *self = Self::Loaded {
-                    transaction,
-                    source,
-                    destination,
-                    budget,
-                    categories,
+                    transaction: init.transaction,
+                    source: init.source,
+                    destination: init.destination,
+                    budget: init.budget,
+                    categories: init.categories,
                 };
                 Action::None
             }

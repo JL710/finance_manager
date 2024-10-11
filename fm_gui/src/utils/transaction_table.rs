@@ -11,6 +11,7 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Message {
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),

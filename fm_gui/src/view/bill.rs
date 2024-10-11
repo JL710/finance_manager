@@ -18,9 +18,11 @@ pub enum Message {
     ViewTransaction(fm_core::Id),
     Edit,
     Initialize(
-        fm_core::Bill,
-        fm_core::Currency,
-        Vec<(fm_core::Transaction, fm_core::Sign)>,
+        Box<(
+            fm_core::Bill,
+            fm_core::Currency,
+            Vec<(fm_core::Transaction, fm_core::Sign)>,
+        )>,
     ),
     Delete,
     Deleted,
@@ -59,7 +61,7 @@ impl Bill {
                         .unwrap();
                     transactions.push((transaction, *sign));
                 }
-                Message::Initialize(bill, bill_sum, transactions)
+                Message::Initialize(Box::new((bill, bill_sum, transactions)))
             }),
         )
     }
@@ -78,10 +80,11 @@ impl Bill {
                     Action::None
                 }
             }
-            Message::Initialize(bill, sum, transactions) => {
+            Message::Initialize(init) => {
+                let (bill, bill_sum, transactions) = *init;
                 *self = Self::Loaded {
                     bill,
-                    bill_sum: sum,
+                    bill_sum,
                     transactions,
                 };
                 Action::None
