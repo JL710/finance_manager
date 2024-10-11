@@ -1,7 +1,4 @@
 use super::{Bill, Id, Timespan, Transaction};
-pub type AccountFilter = (bool, Id, bool, Option<Timespan>); // true if negated, id, include (true) or exclude (false), optional timespan
-pub type CategoryFilter = (bool, Id, bool, Option<Timespan>); // true if negated, id, include (true) or exclude (false), optional timespan
-pub type BillFilter = (bool, super::Bill, bool, Option<Timespan>); // true if negated, id, include (true) or exclude (false), optional timespan
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Filter<I: Clone + std::fmt::Debug> {
@@ -19,8 +16,8 @@ pub struct Filter<I: Clone + std::fmt::Debug> {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFilter {
     default_timespan: Timespan,
-    accounts: Vec<AccountFilter>,
-    categories: Vec<CategoryFilter>,
+    accounts: Vec<Filter<Id>>,
+    categories: Vec<Filter<Id>>,
     bills: Vec<Filter<Bill>>,
 }
 
@@ -33,19 +30,25 @@ impl TransactionFilter {
         &self.default_timespan
     }
 
-    pub fn get_account_filters(&self) -> &Vec<AccountFilter> {
+    pub fn get_account_filters(&self) -> &Vec<Filter<Id>> {
         &self.accounts
     }
 
-    pub fn add_account(&mut self, filter: AccountFilter) {
+    pub fn add_account(&mut self, filter: Filter<Id>) {
         self.accounts.push(filter);
     }
 
-    pub fn delete_account(&mut self, filter: AccountFilter) {
+    pub fn push_account(self, filter: Filter<Id>) -> Self {
+        let mut new = self;
+        new.add_account(filter);
+        new
+    }
+
+    pub fn delete_account(&mut self, filter: Filter<Id>) {
         self.accounts.retain(|x| *x != filter);
     }
 
-    pub fn edit_account(&mut self, old: AccountFilter, new: AccountFilter) {
+    pub fn edit_account(&mut self, old: Filter<Id>, new: Filter<Id>) {
         for f in self.accounts.iter_mut() {
             if *f == old {
                 *f = new;
@@ -54,19 +57,25 @@ impl TransactionFilter {
         }
     }
 
-    pub fn get_category_filters(&self) -> &Vec<CategoryFilter> {
+    pub fn get_category_filters(&self) -> &Vec<Filter<Id>> {
         &self.categories
     }
 
-    pub fn add_category(&mut self, filter: CategoryFilter) {
+    pub fn add_category(&mut self, filter: Filter<Id>) {
         self.categories.push(filter);
     }
 
-    pub fn delete_category(&mut self, filter: CategoryFilter) {
+    pub fn push_category(self, filter: Filter<Id>) -> Self {
+        let mut new = self;
+        new.add_category(filter);
+        new
+    }
+
+    pub fn delete_category(&mut self, filter: Filter<Id>) {
         self.categories.retain(|x| *x != filter);
     }
 
-    pub fn edit_category(&mut self, old: CategoryFilter, new: CategoryFilter) {
+    pub fn edit_category(&mut self, old: Filter<Id>, new: Filter<Id>) {
         for f in self.categories.iter_mut() {
             if *f == old {
                 *f = new;
@@ -81,6 +90,12 @@ impl TransactionFilter {
 
     pub fn add_bill(&mut self, filter: Filter<Bill>) {
         self.bills.push(filter);
+    }
+
+    pub fn push_bill(self, filter: Filter<Bill>) -> Self {
+        let mut new = self;
+        new.add_bill(filter);
+        new
     }
 
     pub fn delete_bill(&mut self, filter: Filter<Bill>) {
@@ -98,24 +113,29 @@ impl TransactionFilter {
 
     pub fn total_timespan(&self) -> Timespan {
         let mut timespan = self.default_timespan;
-        for account_timespan in self
+        for timespan_iteration in self
             .accounts
             .iter()
-            .map(|x| x.3)
-            .chain(self.categories.iter().map(|x| x.3))
+            .map(|x| x.timespan)
+            .chain(self.categories.iter().map(|x| x.timespan))
+            .chain(self.bills.iter().map(|x| x.timespan))
         {
-            if account_timespan.is_none() {
+            if timespan_iteration.is_none() {
                 continue;
             }
-            let (start, end) = account_timespan.unwrap();
+            let (start, end) = timespan_iteration.unwrap();
 
             // check start
             if let Some(timespan_start) = timespan.0 {
+                println!("check1.0");
                 if start.is_none() {
                     timespan.0 = None;
                 } else if start.unwrap() < timespan_start {
+                    println!("check1");
                     timespan.0 = start;
                 }
+            } else if let Some(start) = start {
+                timespan.0 = Some(start);
             }
 
             // check end
@@ -123,8 +143,11 @@ impl TransactionFilter {
                 if end.is_none() {
                     timespan.1 = None;
                 } else if end.unwrap() > timespan_end {
+                    println!("check2");
                     timespan.1 = end;
                 }
+            } else if let Some(end) = end {
+                timespan.1 = Some(end);
             }
         }
 
@@ -137,8 +160,10 @@ impl TransactionFilter {
             let account_filter_iterator = self
                 .accounts
                 .iter()
-                .filter(|account| transaction.connection_with_account(account.1) != account.0)
-                .map(|x| (x.2, x.3));
+                .filter(|account| {
+                    transaction.connection_with_account(account.id) != account.negated
+                })
+                .map(|x| (x.include, x.timespan));
             let category_filter_iterator = self
                 .categories
                 .iter()
@@ -146,12 +171,12 @@ impl TransactionFilter {
                     (transaction
                         .categories()
                         .iter()
-                        .filter(|x| *x.0 == category.1)
+                        .filter(|x| *x.0 == category.id)
                         .count()
                         >= 1)
-                        != category.0
+                        != category.negated
                 })
-                .map(|x| (x.2, x.3));
+                .map(|x| (x.include, x.timespan));
             let bill_filter_iterator = self
                 .bills
                 .iter()
@@ -204,6 +229,7 @@ mod test {
     use super::*;
     use crate::{Bill, Currency, Sign};
     use std::collections::HashMap;
+    use time::macros::*;
 
     fn generate_simple_transaction(id: Id, source: Id, destination: Id) -> Transaction {
         Transaction::new(
@@ -286,5 +312,77 @@ mod test {
         let result = filter.filter_transactions(generate_test_transactions_1());
         assert_eq!(result.len(), 1);
         assert_eq!(*result[0].id(), 2);
+    }
+
+    #[test]
+    fn filter_total_timespan_empty() {
+        let mut filter = TransactionFilter::default();
+        filter.add_bill(Filter {
+            negated: false,
+            id: generate_test_bill_1(),
+            include: true,
+            timespan: None,
+        });
+        filter.add_account(Filter {
+            negated: false,
+            id: 2,
+            include: true,
+            timespan: None,
+        });
+        filter.add_category(Filter {
+            negated: false,
+            id: 1,
+            include: true,
+            timespan: None,
+        });
+        assert_eq!(filter.total_timespan(), (None, None));
+    }
+
+    #[test]
+    fn filter_total_timespan_only_bill() {
+        let timespan = (
+            Some(time::OffsetDateTime::new_utc(
+                date!(2024 - 01 - 01),
+                time!(10:30),
+            )),
+            Some(time::OffsetDateTime::new_utc(
+                date!(2024 - 02 - 01),
+                time!(10:30),
+            )),
+        );
+
+        assert_eq!(
+            TransactionFilter::default()
+                .push_bill(Filter {
+                    negated: false,
+                    id: generate_test_bill_1(),
+                    include: true,
+                    timespan: Some(timespan.clone()),
+                })
+                .total_timespan(),
+            timespan.clone()
+        );
+        assert_eq!(
+            TransactionFilter::default()
+                .push_account(Filter {
+                    negated: false,
+                    id: 1,
+                    include: true,
+                    timespan: Some(timespan.clone()),
+                })
+                .total_timespan(),
+            timespan.clone()
+        );
+        assert_eq!(
+            TransactionFilter::default()
+                .push_category(Filter {
+                    negated: false,
+                    id: 2,
+                    include: true,
+                    timespan: Some(timespan.clone()),
+                })
+                .total_timespan(),
+            timespan.clone()
+        );
     }
 }

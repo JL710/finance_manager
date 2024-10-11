@@ -1,5 +1,5 @@
 use super::timespan_input;
-use fm_core::transaction_filter::{self, TransactionFilter};
+use fm_core::transaction_filter::{Filter, TransactionFilter};
 use iced::widget;
 
 pub struct FilterComponent<'a, Message> {
@@ -39,24 +39,15 @@ pub struct State {}
 pub enum ComponentMessage {
     Submit,
     ChangeDefaultTimespan(fm_core::Timespan),
-    ChangeAccount(
-        transaction_filter::AccountFilter,
-        transaction_filter::AccountFilter,
-    ),
+    ChangeAccount(Filter<fm_core::Id>, Filter<fm_core::Id>),
     NewAccount,
-    DeleteAccount(transaction_filter::AccountFilter),
-    ChangeCategory(
-        transaction_filter::CategoryFilter,
-        transaction_filter::CategoryFilter,
-    ),
+    DeleteAccount(Filter<fm_core::Id>),
+    ChangeCategory(Filter<fm_core::Id>, Filter<fm_core::Id>),
     NewCategory,
-    DeleteCategory(transaction_filter::CategoryFilter),
+    DeleteCategory(Filter<fm_core::Id>),
     NewBill,
-    ChangeBill(
-        transaction_filter::Filter<fm_core::Bill>,
-        transaction_filter::Filter<fm_core::Bill>,
-    ),
-    DeleteBill(transaction_filter::Filter<fm_core::Bill>),
+    ChangeBill(Filter<fm_core::Bill>, Filter<fm_core::Bill>),
+    DeleteBill(Filter<fm_core::Bill>),
 }
 
 #[derive(Debug, Clone)]
@@ -125,12 +116,12 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             }
             ComponentMessage::NewAccount => {
                 if !self.accounts.is_empty() {
-                    self.filter.add_account((
-                        false,
-                        *self.accounts.first().unwrap().id(),
-                        true,
-                        None,
-                    ));
+                    self.filter.add_account(Filter {
+                        negated: false,
+                        id: *self.accounts.first().unwrap().id(),
+                        include: true,
+                        timespan: None,
+                    });
                 }
             }
             ComponentMessage::DeleteAccount(account) => {
@@ -141,12 +132,12 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             }
             ComponentMessage::NewCategory => {
                 if !self.categories.is_empty() {
-                    self.filter.add_category((
-                        false,
-                        *self.categories.first().unwrap().id(),
-                        true,
-                        None,
-                    ));
+                    self.filter.add_category(Filter {
+                        negated: false,
+                        id: *self.categories.first().unwrap().id(),
+                        include: true,
+                        timespan: None,
+                    });
                 }
             }
             ComponentMessage::DeleteCategory(category) => {
@@ -154,7 +145,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
             }
             ComponentMessage::NewBill => {
                 if let Some(bill) = self.bills.first() {
-                    self.filter.add_bill(fm_core::transaction_filter::Filter {
+                    self.filter.add_bill(Filter {
                         negated: false,
                         id: bill.clone(),
                         include: true,
@@ -177,8 +168,16 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
         for filter in self.filter.get_account_filters() {
             account_column = account_column.push(
                 widget::row![
-                    widget::checkbox("Negate", filter.0).on_toggle(|x| {
-                        ComponentMessage::ChangeAccount(*filter, (x, filter.1, filter.2, filter.3))
+                    widget::checkbox("Negate", filter.negated).on_toggle(|x| {
+                        ComponentMessage::ChangeAccount(
+                            filter.clone(),
+                            Filter {
+                                negated: x,
+                                id: filter.id,
+                                include: filter.include,
+                                timespan: filter.timespan,
+                            },
+                        )
                     }),
                     widget::pick_list(
                         self.accounts
@@ -189,37 +188,55 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                             account: self
                                 .accounts
                                 .iter()
-                                .find(|x| *x.id() == filter.1)
+                                .find(|x| *x.id() == filter.id)
                                 .unwrap()
                                 .clone()
                         }),
                         |x| ComponentMessage::ChangeAccount(
-                            *filter,
-                            (filter.0, *x.account.id(), filter.2, filter.3)
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: *x.account.id(),
+                                include: filter.include,
+                                timespan: filter.timespan
+                            }
                         )
                     ),
-                    widget::checkbox("Exclude", !filter.2).on_toggle(|x| {
-                        ComponentMessage::ChangeAccount(*filter, (filter.0, filter.1, !x, filter.3))
-                    }),
-                    widget::checkbox("Custom Timespan", filter.3.is_some()).on_toggle(|x| {
+                    widget::checkbox("Exclude", !filter.include).on_toggle(|x| {
                         ComponentMessage::ChangeAccount(
-                            *filter,
-                            (
-                                filter.0,
-                                filter.1,
-                                filter.2,
-                                if x { Some((None, None)) } else { None },
-                            ),
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: filter.id,
+                                include: !x,
+                                timespan: filter.timespan,
+                            },
+                        )
+                    }),
+                    widget::checkbox("Custom Timespan", filter.timespan.is_some()).on_toggle(|x| {
+                        ComponentMessage::ChangeAccount(
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: filter.id,
+                                include: filter.include,
+                                timespan: if x { Some((None, None)) } else { None },
+                            },
                         )
                     })
                 ]
-                .push_maybe(if filter.3.is_some() {
+                .push_maybe(if filter.timespan.is_some() {
                     Some(
                         timespan_input::TimespanInput::new(
                             |x| {
                                 ComponentMessage::ChangeAccount(
-                                    *filter,
-                                    (filter.0, filter.1, filter.2, Some(x)),
+                                    filter.clone(),
+                                    Filter {
+                                        negated: filter.negated,
+                                        id: filter.id,
+                                        include: filter.include,
+                                        timespan: Some(x),
+                                    },
                                 )
                             },
                             None,
@@ -231,7 +248,8 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                 })
                 .push(widget::row![
                     widget::horizontal_space(),
-                    widget::button("Delete").on_press(ComponentMessage::DeleteAccount(*filter))
+                    widget::button("Delete")
+                        .on_press(ComponentMessage::DeleteAccount(filter.clone()))
                 ])
                 .align_y(iced::Alignment::Center)
                 .spacing(30),
@@ -242,8 +260,16 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
         for filter in self.filter.get_category_filters() {
             category_column = category_column.push(
                 widget::row![
-                    widget::checkbox("Negate", filter.0).on_toggle(|x| {
-                        ComponentMessage::ChangeCategory(*filter, (x, filter.1, filter.2, filter.3))
+                    widget::checkbox("Negate", filter.negated).on_toggle(|x| {
+                        ComponentMessage::ChangeCategory(
+                            filter.clone(),
+                            Filter {
+                                negated: x,
+                                id: filter.id,
+                                include: filter.include,
+                                timespan: filter.timespan,
+                            },
+                        )
                     }),
                     widget::pick_list(
                         self.categories
@@ -256,40 +282,55 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                             category: self
                                 .categories
                                 .iter()
-                                .find(|x| *x.id() == filter.1)
+                                .find(|x| *x.id() == filter.id)
                                 .unwrap()
                                 .clone()
                         }),
                         |x| ComponentMessage::ChangeCategory(
-                            *filter,
-                            (filter.0, *x.category.id(), filter.2, filter.3)
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: *x.category.id(),
+                                include: filter.include,
+                                timespan: filter.timespan,
+                            }
                         )
                     ),
-                    widget::checkbox("Exclude", !filter.2).on_toggle(|x| {
+                    widget::checkbox("Exclude", !filter.include).on_toggle(|x| {
                         ComponentMessage::ChangeCategory(
-                            *filter,
-                            (filter.0, filter.1, !x, filter.3),
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: filter.id,
+                                include: !x,
+                                timespan: filter.timespan,
+                            },
                         )
                     }),
-                    widget::checkbox("Custom Timespan", filter.3.is_some()).on_toggle(|x| {
+                    widget::checkbox("Custom Timespan", filter.timespan.is_some()).on_toggle(|x| {
                         ComponentMessage::ChangeCategory(
-                            *filter,
-                            (
-                                filter.0,
-                                filter.1,
-                                filter.2,
-                                if x { Some((None, None)) } else { None },
-                            ),
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: filter.id,
+                                include: filter.include,
+                                timespan: if x { Some((None, None)) } else { None },
+                            },
                         )
                     })
                 ]
-                .push_maybe(if filter.3.is_some() {
+                .push_maybe(if filter.timespan.is_some() {
                     Some(
                         timespan_input::TimespanInput::new(
                             |x| {
                                 ComponentMessage::ChangeCategory(
-                                    *filter,
-                                    (filter.0, filter.1, filter.2, Some(x)),
+                                    filter.clone(),
+                                    Filter {
+                                        negated: filter.negated,
+                                        id: filter.id,
+                                        include: filter.include,
+                                        timespan: Some(x),
+                                    },
                                 )
                             },
                             None,
@@ -301,7 +342,8 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                 })
                 .push(widget::row![
                     widget::horizontal_space(),
-                    widget::button("Delete").on_press(ComponentMessage::DeleteCategory(*filter))
+                    widget::button("Delete")
+                        .on_press(ComponentMessage::DeleteCategory(filter.clone()))
                 ])
                 .align_y(iced::Alignment::Center)
                 .spacing(30),
@@ -315,7 +357,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                     widget::checkbox("Negate", bill_filter.negated).on_toggle(|x| {
                         ComponentMessage::ChangeBill(
                             bill_filter.clone(),
-                            fm_core::transaction_filter::Filter {
+                            Filter {
                                 negated: x,
                                 id: bill_filter.id.clone(),
                                 include: bill_filter.include,
@@ -333,7 +375,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                         }),
                         |x| ComponentMessage::ChangeBill(
                             bill_filter.clone(),
-                            fm_core::transaction_filter::Filter {
+                            Filter {
                                 negated: bill_filter.negated,
                                 id: x.bill,
                                 include: bill_filter.include,
@@ -344,7 +386,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                     widget::checkbox("Exclude", !bill_filter.include).on_toggle(|x| {
                         ComponentMessage::ChangeBill(
                             bill_filter.clone(),
-                            fm_core::transaction_filter::Filter {
+                            Filter {
                                 negated: bill_filter.negated,
                                 id: bill_filter.id.clone(),
                                 include: !x,
@@ -356,7 +398,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                         |x| {
                             ComponentMessage::ChangeBill(
                                 bill_filter.clone(),
-                                fm_core::transaction_filter::Filter {
+                                Filter {
                                     negated: bill_filter.negated,
                                     id: bill_filter.id.clone(),
                                     include: bill_filter.include,
@@ -372,7 +414,7 @@ impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Messa
                             |x| {
                                 ComponentMessage::ChangeBill(
                                     bill_filter.clone(),
-                                    fm_core::transaction_filter::Filter {
+                                    Filter {
                                         negated: bill_filter.negated,
                                         id: bill_filter.id.clone(),
                                         include: bill_filter.include,
