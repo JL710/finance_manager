@@ -373,6 +373,7 @@ impl CreateTransactionView {
                 "Description",
                 widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
             ]
+            .align_y(iced::Center)
             .spacing(10),
             widget::row![
                 "Date: ",
@@ -426,6 +427,7 @@ impl CreateTransactionView {
                 }),
                 widget::button("X").on_press(Message::ClearBudget)
             ]
+            .align_y(iced::Center)
             .spacing(10),
             widget::horizontal_rule(10),
             widget::text("Categories"),
