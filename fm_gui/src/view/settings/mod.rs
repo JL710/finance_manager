@@ -82,16 +82,11 @@ impl SettingsView {
                 return Action::Task(iced::Task::future(async move {
                     let written_api_url = api_url.clone();
                     let written_api_token = api_token.clone();
-                    async_std::task::spawn_blocking(|| {
-                        crate::settings::write_settings(&crate::settings::Settings::new(
-                            crate::settings::FinanceManager::Api(
-                                written_api_url,
-                                written_api_token,
-                            ),
-                        ))
-                        .unwrap()
-                    })
-                    .await;
+                    crate::settings::write_settings(crate::settings::Settings::new(
+                        crate::settings::FinanceManager::Api(written_api_url, written_api_token),
+                    ))
+                    .await
+                    .unwrap();
 
                     Message::NewFinanceManager(Arc::new(Mutex::new(
                         fm_core::FMController::with_finance_manager(
@@ -107,13 +102,11 @@ impl SettingsView {
                 let sqlite_path = self.sqlite_path.clone();
                 return Action::Task(iced::Task::future(async move {
                     let written_sqlite_path = sqlite_path.clone();
-                    async_std::task::spawn_blocking(|| {
-                        crate::settings::write_settings(&crate::settings::Settings::new(
-                            crate::settings::FinanceManager::SQLite(written_sqlite_path),
-                        ))
-                        .unwrap()
-                    })
-                    .await;
+                    crate::settings::write_settings(crate::settings::Settings::new(
+                        crate::settings::FinanceManager::SQLite(written_sqlite_path),
+                    ))
+                    .await
+                    .unwrap();
 
                     Message::NewFinanceManager(Arc::new(Mutex::new(
                             fm_core::FMController::with_finance_manager(
@@ -129,13 +122,11 @@ impl SettingsView {
             }
             Message::SwitchToRAM => {
                 return Action::Task(iced::Task::future(async {
-                    async_std::task::spawn_blocking(|| {
-                        crate::settings::write_settings(&crate::settings::Settings::new(
-                            crate::settings::FinanceManager::Ram,
-                        ))
-                        .unwrap()
-                    })
-                    .await;
+                    crate::settings::write_settings(crate::settings::Settings::new(
+                        crate::settings::FinanceManager::Ram,
+                    ))
+                    .await
+                    .unwrap();
                     Message::NewFinanceManager(Arc::new(Mutex::new(
                         fm_core::FMController::with_finance_manager(
                             super::super::finance_managers::FinanceManagers::Ram(

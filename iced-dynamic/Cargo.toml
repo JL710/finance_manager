@@ -17,4 +17,4 @@ iced = { version = "0.13.1", features = [
 ] }
 
 [lib]
-crate-type = ["dylib"]
+crate-type = ["lib"]

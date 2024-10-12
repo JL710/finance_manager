@@ -44,11 +44,19 @@ Run the GUI natively with SQLite support:
 cd fm_gui
 cargo run --no-default-features
 ```
+
 Run the GUI natively without SQLite support:
 ```
 cd fm_gui
 cargo run
 ```
+
+Run the GUI on wasm:
+```
+cd fm_gui
+trunk serve --no-default-features
+```
+> You need to have [`trunk`](https://trunkrs.dev/) installed
 
 ## Installing
 Use the commands from the `Run the GUI` section and replace `cargo run` with `cargo install`.

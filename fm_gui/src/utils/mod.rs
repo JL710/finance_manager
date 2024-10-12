@@ -110,12 +110,18 @@ pub fn heading<'a, Message: 'a>(
     level: HeadingLevel,
 ) -> iced::Element<'a, Message> {
     widget::container(widget::column![
-        widget::text(text.into())
-            .size(level.text_size())
-            .font(iced::Font {
-                weight: iced::font::Weight::Bold,
-                ..Default::default()
-            }),
+        {
+            if cfg!(target_arch = "wasm32") {
+                widget::text(text.into()).size(level.text_size())
+            } else {
+                widget::text(text.into())
+                    .size(level.text_size())
+                    .font(iced::Font {
+                        weight: iced::font::Weight::Bold,
+                        ..Default::default()
+                    })
+            }
+        },
         widget::horizontal_rule(2.).style(|theme: &iced::Theme| widget::rule::Style {
             color: theme.palette().text,
             ..widget::rule::default(theme)

@@ -96,37 +96,40 @@ pub fn read_settings() -> Result<Settings> {
 }
 
 #[cfg(feature = "native")]
-pub fn write_settings(settings: &Settings) -> Result<()> {
-    let mut value = serde_json::Map::new();
-    value.insert(
-        "finance_manager".to_string(),
+pub async fn write_settings(settings: Settings) -> Result<()> {
+    async_std::task::spawn_blocking(move || {
+        let mut value = serde_json::Map::new();
+        value.insert(
+            "finance_manager".to_string(),
+            match &settings.finance_manager {
+                FinanceManager::Ram => "RAM",
+                FinanceManager::SQLite(_) => "SQLite",
+                FinanceManager::Api(_, _) => "API",
+            }
+            .into(),
+        );
+
+        let mut fm_info = serde_json::Map::new();
         match &settings.finance_manager {
-            FinanceManager::Ram => "RAM",
-            FinanceManager::SQLite(_) => "SQLite",
-            FinanceManager::Api(_, _) => "API",
+            FinanceManager::SQLite(path) => {
+                fm_info.insert("path".to_string(), path.to_string().into());
+            }
+            FinanceManager::Api(url, _) => {
+                fm_info.insert("url".to_string(), url.to_string().into());
+            }
+            _ => {}
         }
-        .into(),
-    );
+        value.insert("finance_manager_info".to_string(), fm_info.into());
 
-    let mut fm_info = serde_json::Map::new();
-    match &settings.finance_manager {
-        FinanceManager::SQLite(path) => {
-            fm_info.insert("path".to_string(), path.to_string().into());
-        }
-        FinanceManager::Api(url, _) => {
-            fm_info.insert("url".to_string(), url.to_string().into());
-        }
-        _ => {}
-    }
-    value.insert("finance_manager_info".to_string(), fm_info.into());
+        let mut file = std::fs::File::create(get_settings_path())?;
+        file.write_all(serde_json::Value::Object(value).to_string().as_bytes())?;
 
-    let mut file = std::fs::File::create(get_settings_path())?;
-    file.write_all(serde_json::Value::Object(value).to_string().as_bytes())?;
-
-    Ok(())
+        Ok(())
+    })
+    .await
 }
 
 #[cfg(not(feature = "native"))]
-pub fn write_settings(settings: &Settings) -> Result<()> {
+pub async fn write_settings(settings: Settings) -> Result<()> {
     Ok(())
 }
