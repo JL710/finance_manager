@@ -37,7 +37,6 @@ fn timeout(map: &mut HashMap<std::net::IpAddr, Vec<u64>>, addr: &std::net::IpAdd
         failed_list.push(now);
         map.insert(*addr, failed_list);
     }
-    println!("{:?}", map);
 }
 
 fn is_timeouted(map: &HashMap<std::net::IpAddr, Vec<u64>>, addr: &std::net::IpAddr) -> bool {

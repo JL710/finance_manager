@@ -156,11 +156,9 @@ impl TransactionFilter {
 
             // check start
             if let Some(timespan_start) = timespan.0 {
-                println!("check1.0");
                 if start.is_none() {
                     timespan.0 = None;
                 } else if start.unwrap() < timespan_start {
-                    println!("check1");
                     timespan.0 = start;
                 }
             } else if let Some(start) = start {
@@ -172,7 +170,6 @@ impl TransactionFilter {
                 if end.is_none() {
                     timespan.1 = None;
                 } else if end.unwrap() > timespan_end {
-                    println!("check2");
                     timespan.1 = end;
                 }
             } else if let Some(end) = end {
