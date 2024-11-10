@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::Tokenized;
+use fm_core::FinanceManager;
 
 #[derive(Clone)]
 struct State {
@@ -271,6 +272,7 @@ async fn get_account_sum(
         .finance_manager
         .lock()
         .await
+        .raw_fm()
         .get_account_sum(&account_data.0, account_data.1)
         .await
         .unwrap();
