@@ -378,7 +378,7 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_budget)
     }
 
-    async fn get_transactions(&self, timespan: Timespan) -> Result<Vec<Transaction>> {
+    async fn get_transactions_in_timespan(&self, timespan: Timespan) -> Result<Vec<Transaction>> {
         let mut transactions = self.transactions.clone();
 
         if let Some(begin) = timespan.0 {

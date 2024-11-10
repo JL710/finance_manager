@@ -877,7 +877,7 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(Budget::new(id, name, description, total_value, timespan))
     }
 
-    async fn get_transactions(&self, timespan: Timespan) -> Result<Vec<Transaction>> {
+    async fn get_transactions_in_timespan(&self, timespan: Timespan) -> Result<Vec<Transaction>> {
         let connection = self.connect().await;
 
         macro_rules! transaction_query {

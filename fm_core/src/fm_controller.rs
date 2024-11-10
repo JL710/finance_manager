@@ -33,18 +33,14 @@ where
         &'a self,
         bill: &'a Bill,
     ) -> impl Future<Output = Result<Currency>> + MaybeSend + 'a {
-        let transactions = bill
-            .transactions()
-            .clone()
-            .into_iter()
-            .map(|(id, sign)| (self.finance_manager.get_transaction(id), sign))
-            .collect::<Vec<_>>();
+        let transactions_future =
+            self.get_transactions(bill.transactions.keys().cloned().collect::<Vec<_>>());
 
         async move {
             let mut sum = Currency::default();
-            for (transaction_future, sign) in transactions {
-                let transaction = transaction_future.await?.unwrap();
-                match sign {
+            let transactions = transactions_future.await.unwrap();
+            for transaction in transactions {
+                match bill.transactions.get(transaction.id()).unwrap() {
                     Sign::Positive => sum += transaction.amount(),
                     Sign::Negative => sum -= transaction.amount(),
                 }
@@ -113,7 +109,7 @@ where
         &self,
         filter: transaction_filter::TransactionFilter,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
-        let transactions_future = self.get_transactions(filter.total_timespan());
+        let transactions_future = self.get_transactions_in_timespan(filter.total_timespan());
         async move {
             let transactions = transactions_future.await?;
             Ok(filter.filter_transactions(transactions))
@@ -381,11 +377,18 @@ where
             .context("underlying finance manager error")
     }
 
-    pub fn get_transactions(
+    pub fn get_transactions_in_timespan(
         &self,
         timespan: Timespan,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
-        self.finance_manager.get_transactions(timespan)
+        self.finance_manager.get_transactions_in_timespan(timespan)
+    }
+
+    pub fn get_transactions(
+        &self,
+        ids: Vec<Id>,
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
+        self.finance_manager.get_transactions(ids)
     }
 
     pub fn get_transactions_of_budget(

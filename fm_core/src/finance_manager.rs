@@ -90,27 +90,6 @@ pub trait FinanceManager: Send + Clone + Sized {
         due_date: Option<DateTime>,
     ) -> impl Future<Output = Result<()>> + MaybeSend;
 
-    fn get_bill_sum(&self, bill: &Bill) -> impl Future<Output = Result<Currency>> + MaybeSend {
-        let transactions = bill
-            .transactions()
-            .clone()
-            .into_iter()
-            .map(|(id, sign)| (self.get_transaction(id), sign))
-            .collect::<Vec<_>>();
-
-        async move {
-            let mut sum = Currency::default();
-            for (transaction_future, sign) in transactions {
-                let transaction = transaction_future.await?.unwrap();
-                match sign {
-                    Sign::Positive => sum += transaction.amount(),
-                    Sign::Negative => sum -= transaction.amount(),
-                }
-            }
-            Ok(sum)
-        }
-    }
-
     fn get_bills(&self) -> impl Future<Output = Result<Vec<Bill>>> + MaybeSend;
 
     fn get_bill(&self, id: &Id) -> impl Future<Output = Result<Option<Bill>>> + MaybeSend;
@@ -121,7 +100,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         &self,
         filter: transaction_filter::TransactionFilter,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend {
-        let transactions_future = self.get_transactions(filter.total_timespan());
+        let transactions_future = self.get_transactions_in_timespan(filter.total_timespan());
         async move {
             let transactions = transactions_future.await?;
             Ok(filter.filter_transactions(transactions))
@@ -139,6 +118,23 @@ pub trait FinanceManager: Send + Clone + Sized {
         &self,
         id: Id,
     ) -> impl Future<Output = Result<Option<Transaction>>> + MaybeSend;
+
+    fn get_transactions(
+        &self,
+        ids: Vec<Id>,
+    ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend {
+        let mut futures = Vec::with_capacity(ids.len());
+        for id in ids {
+            futures.push(self.get_transaction(id));
+        }
+        async move {
+            let mut transactions = Vec::with_capacity(futures.len());
+            for future in futures {
+                transactions.push(future.await?.unwrap());
+            }
+            Ok(transactions)
+        }
+    }
 
     fn get_transactions_of_account(
         &self,
@@ -197,7 +193,7 @@ pub trait FinanceManager: Send + Clone + Sized {
     /// This function should only delete the transaction it self.
     fn delete_transaction(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
 
-    fn get_transactions(
+    fn get_transactions_in_timespan(
         &self,
         timespan: Timespan,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend;

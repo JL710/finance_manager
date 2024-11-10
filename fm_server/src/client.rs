@@ -326,11 +326,16 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
-    async fn get_transactions(
+    async fn get_transactions_in_timespan(
         &self,
         timespan: fm_core::Timespan,
     ) -> Result<Vec<fm_core::Transaction>> {
-        client_post_macro!(self.url, self.token.clone(), "get_transactions", timespan)
+        client_post_macro!(
+            self.url,
+            self.token.clone(),
+            "get_transactions_in_timespan",
+            timespan
+        )
     }
 
     async fn get_categories(&self) -> Result<Vec<fm_core::Category>> {
@@ -368,5 +373,9 @@ impl fm_core::FinanceManager for Client {
             "get_transactions_of_category",
             (category, timespan)
         )
+    }
+
+    async fn get_transactions(&self, ids: Vec<fm_core::Id>) -> Result<Vec<fm_core::Transaction>> {
+        client_post_macro!(self.url, self.token.clone(), "get_transactions", ids)
     }
 }

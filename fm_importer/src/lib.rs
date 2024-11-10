@@ -182,7 +182,7 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
         let cached_transactions = fm_controller
             .lock()
             .await
-            .get_transactions((None, None))
+            .get_transactions_in_timespan((None, None))
             .await?;
 
         Ok(Self {

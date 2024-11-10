@@ -154,6 +154,10 @@ pub async fn run(url: String, db: String, token: String) {
         .route("/update_transaction", post(update_transaction))
         .route("/delete_transaction", post(delete_transaction))
         .route("/update_budget", post(update_budget))
+        .route(
+            "/get_transactions_in_timespan",
+            post(get_transactions_in_timespan),
+        )
         .route("/get_transactions", post(get_transactions))
         .route("/get_categories", post(get_categories))
         .route("/get_category", post(get_category))
@@ -481,9 +485,23 @@ async fn update_budget(
     json!(budget).into()
 }
 
-async fn get_transactions(
+async fn get_transactions_in_timespan(
     axum::extract::State(state): axum::extract::State<State>,
     axum::extract::Json(data): axum::extract::Json<fm_core::Timespan>,
+) -> Json<Value> {
+    let transactions = state
+        .finance_manager
+        .lock()
+        .await
+        .get_transactions_in_timespan(data)
+        .await
+        .unwrap();
+    json!(transactions).into()
+}
+
+async fn get_transactions(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<Vec<fm_core::Id>>,
 ) -> Json<Value> {
     let transactions = state
         .finance_manager

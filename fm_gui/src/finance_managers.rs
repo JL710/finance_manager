@@ -462,15 +462,24 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
-    async fn get_transactions(
+    async fn get_transactions_in_timespan(
         &self,
         timespan: (Option<fm_core::DateTime>, Option<fm_core::DateTime>),
     ) -> Result<Vec<fm_core::Transaction>> {
         match self {
-            FinanceManagers::Server(client) => client.get_transactions(timespan).await,
+            FinanceManagers::Server(client) => client.get_transactions_in_timespan(timespan).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => sqlite.get_transactions(timespan).await,
-            FinanceManagers::Ram(ram) => ram.get_transactions(timespan).await,
+            FinanceManagers::Sqlite(sqlite) => sqlite.get_transactions_in_timespan(timespan).await,
+            FinanceManagers::Ram(ram) => ram.get_transactions_in_timespan(timespan).await,
+        }
+    }
+
+    async fn get_transactions(&self, ids: Vec<fm_core::Id>) -> Result<Vec<fm_core::Transaction>> {
+        match self {
+            FinanceManagers::Server(client) => client.get_transactions(ids).await,
+            #[cfg(feature = "native")]
+            FinanceManagers::Sqlite(sqlite) => sqlite.get_transactions(ids).await,
+            FinanceManagers::Ram(ram) => ram.get_transactions(ids).await,
         }
     }
 
