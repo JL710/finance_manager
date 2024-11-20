@@ -26,6 +26,22 @@ pub fn container_popup_styling<Message>(
         .padding(10)
 }
 
+pub fn button_sidebar(
+    theme: &iced::Theme,
+    status: widget::button::Status,
+) -> widget::button::Style {
+    let mut style = widget::button::text(theme, status);
+    style.text_color = match status {
+        widget::button::Status::Active => theme.extended_palette().primary.strong.color,
+        widget::button::Status::Disabled => theme.extended_palette().primary.weak.color,
+        widget::button::Status::Hovered => theme.extended_palette().primary.base.color,
+        widget::button::Status::Pressed => {
+            theme.extended_palette().primary.base.color.scale_alpha(0.9)
+        }
+    };
+    style
+}
+
 pub fn text_input_danger(
     theme: &iced::Theme,
     status: widget::text_input::Status,

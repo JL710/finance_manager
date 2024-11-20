@@ -468,14 +468,17 @@ impl App {
         ) -> iced::Element<'a, AppMessage> {
             widget::button(
                 widget::row![
+                    widget::Svg::new(icon.clone()).width(iced::Shrink).style(
+                        |theme: &iced::Theme, _| widget::svg::Style {
+                            color: Some(theme.palette().primary)
+                        }
+                    ),
                     text,
-                    widget::horizontal_space(),
-                    widget::Svg::new(icon.clone()).width(iced::Shrink)
                 ]
                 .align_y(iced::Center)
                 .spacing(10),
             )
-            .width(iced::Length::Fill)
+            .style(utils::style::button_sidebar)
             .on_press(message)
             .into()
         }
@@ -512,7 +515,6 @@ impl App {
                     &self.svg_cache.folder_fill,
                     AppMessage::SwitchToBillOverview
                 ),
-                widget::horizontal_rule(5),
                 icon_menu_item(
                     "Create Transaction",
                     &self.svg_cache.plus_circle_fill,
@@ -526,11 +528,10 @@ impl App {
                 ),
                 widget::button("License")
                     .on_press(AppMessage::SwitchToLicense)
-                    .width(iced::Length::Fill),
+                    .style(utils::style::button_sidebar),
             ]
             .align_x(iced::Alignment::Start)
-            .spacing(10)
-            .width(iced::Length::FillPortion(2)),
+            .spacing(10),
             iced::widget::vertical_rule(5),
             iced::widget::container(match self.current_view {
                 View::Empty => widget::container(
@@ -577,8 +578,8 @@ impl App {
                 View::BillOverview(ref view) => view.view().map(AppMessage::BillOverviewMessage),
                 View::ViewBill(ref view) => view.view().map(AppMessage::ViewBillMessage),
             })
+            .width(iced::Fill)
             .padding(10)
-            .width(iced::Length::FillPortion(9))
         ]
         .into()
     }
