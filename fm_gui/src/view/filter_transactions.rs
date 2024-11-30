@@ -1,4 +1,3 @@
-use super::super::utils;
 use async_std::sync::Mutex;
 use fm_core::transaction_filter::TransactionFilter;
 use std::sync::Arc;

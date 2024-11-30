@@ -1,4 +1,3 @@
-use super::super::utils;
 use iced::widget;
 
 use async_std::sync::Mutex;

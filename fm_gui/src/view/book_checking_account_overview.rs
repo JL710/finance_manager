@@ -1,5 +1,3 @@
-use super::super::utils;
-
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;

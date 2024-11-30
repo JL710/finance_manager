@@ -1,5 +1,3 @@
-use super::super::utils;
-
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -316,8 +314,6 @@ mod add_transaction {
     use anyhow::Result;
 
     use iced::widget;
-
-    use crate::utils;
 
     pub enum Action {
         Escape,

@@ -2,8 +2,6 @@ use fm_core;
 
 use iced::widget;
 
-use super::super::utils;
-
 use async_std::sync::Mutex;
 use std::sync::Arc;
 

@@ -1,0 +1,15 @@
+[package]
+name = "utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fm_core = { path = "../../fm_core", default-features = false }
+iced.workspace = true
+time = { version = "0.3.36", features = [
+    "formatting",
+    "local-offset",
+    "parsing",
+] }
+anyhow.workspace = true
+async-std.workspace = true

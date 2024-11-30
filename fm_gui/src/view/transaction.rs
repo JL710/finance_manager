@@ -3,8 +3,6 @@ use std::sync::Arc;
 
 use iced::widget;
 
-use super::super::utils;
-
 #[derive(Debug, Clone)]
 struct Init {
     transaction: fm_core::Transaction,

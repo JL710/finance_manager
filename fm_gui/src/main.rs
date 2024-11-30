@@ -1,6 +1,5 @@
 mod finance_managers;
 mod settings;
-mod utils;
 mod view;
 
 use async_std::sync::Mutex;
@@ -94,20 +93,22 @@ struct SvgCache {
 impl Default for SvgCache {
     fn default() -> Self {
         SvgCache {
-            bank2: widget::svg::Handle::from_memory(include_bytes!("assets/bank2.svg")),
-            cash: widget::svg::Handle::from_memory(include_bytes!("assets/cash.svg")),
+            bank2: widget::svg::Handle::from_memory(include_bytes!("../assets/bank2.svg")),
+            cash: widget::svg::Handle::from_memory(include_bytes!("../assets/cash.svg")),
             piggy_bank_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "assets/piggy-bank-fill.svg"
+                "../assets/piggy-bank-fill.svg"
             )),
             bookmark_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "assets/bookmark-fill.svg"
+                "../assets/bookmark-fill.svg"
             )),
-            send_fill: widget::svg::Handle::from_memory(include_bytes!("assets/send-fill.svg")),
-            folder_fill: widget::svg::Handle::from_memory(include_bytes!("assets/folder-fill.svg")),
+            send_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/send-fill.svg")),
+            folder_fill: widget::svg::Handle::from_memory(include_bytes!(
+                "../assets/folder-fill.svg"
+            )),
             plus_circle_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "assets/plus-circle-fill.svg"
+                "../assets/plus-circle-fill.svg"
             )),
-            gear_fill: widget::svg::Handle::from_memory(include_bytes!("assets/gear-fill.svg")),
+            gear_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/gear-fill.svg")),
         }
     }
 }
@@ -747,7 +748,7 @@ fn main() {
         .theme(|_| iced::Theme::Nord)
         .window(iced::window::Settings {
             icon: Some(
-                iced::window::icon::from_file_data(include_bytes!("assets/FM_Logo.png"), None)
+                iced::window::icon::from_file_data(include_bytes!("../assets/FM_Logo.png"), None)
                     .unwrap(),
             ),
             ..Default::default()
