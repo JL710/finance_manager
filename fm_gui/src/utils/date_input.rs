@@ -4,7 +4,7 @@ pub struct DateInput<Message: Clone> {
     required: bool,
 }
 
-impl<'a, Message: Clone + 'a> DateInput<Message> {
+impl<Message: Clone> DateInput<Message> {
     pub fn new(produce_message: impl Fn(Option<fm_core::DateTime>) -> Message + 'static) -> Self {
         Self {
             produce_message: Box::new(produce_message),

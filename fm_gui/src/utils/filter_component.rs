@@ -104,7 +104,7 @@ impl PartialEq for DisplayedBill {
     }
 }
 
-impl<'a, Message> iced::widget::Component<Message> for FilterComponent<'a, Message> {
+impl<Message> iced::widget::Component<Message> for FilterComponent<Message> {
     type State = State;
     type Event = ComponentMessage;
 

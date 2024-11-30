@@ -4,7 +4,7 @@ pub struct CurrencyInput<Message: Clone> {
     required: bool,
 }
 
-impl<'a, Message: Clone + 'a> CurrencyInput<Message> {
+impl<Message: Clone> CurrencyInput<Message> {
     pub fn new(
         value: Option<fm_core::Currency>,
         produce_message: impl Fn(Option<fm_core::Currency>) -> Message + 'static,
