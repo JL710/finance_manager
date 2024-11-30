@@ -85,7 +85,6 @@ impl Category {
         message: Message,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
-        println!("{:?}", message);
         match message {
             Message::Delete => {
                 if let Self::Loaded { category, .. } = self {
