@@ -144,3 +144,35 @@ pub fn parse_number(input: &str) -> Option<f64> {
         .collect::<String>();
     input.parse().ok()
 }
+
+fn modal<'a, Message>(
+    base: impl Into<iced::Element<'a, Message>>,
+    content: impl Into<iced::Element<'a, Message>>,
+    on_blur: Message,
+    open: bool,
+) -> iced::Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    widget::stack![base.into(),]
+        .push_maybe(if open {
+            Some(widget::opaque(
+                widget::mouse_area(widget::center(widget::opaque(content)).style(|_theme| {
+                    widget::container::Style {
+                        background: Some(
+                            iced::Color {
+                                a: 0.8,
+                                ..iced::Color::BLACK
+                            }
+                            .into(),
+                        ),
+                        ..widget::container::Style::default()
+                    }
+                }))
+                .on_press(on_blur),
+            ))
+        } else {
+            None
+        })
+        .into()
+}

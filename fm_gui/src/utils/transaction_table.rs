@@ -1,4 +1,5 @@
 use super::{colored_currency_display, link, TableView};
+use crate::utils;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -215,22 +216,13 @@ impl TransactionTable {
                     link(widget::text(destination.to_string().clone()))
                         .on_press(Message::ViewAccount(*destination.id()))
                         .into(),
-                    iced_aw::widget::DropDown::new(
-                        widget::row![
-                            widget::button(
-                                widget::Svg::new(self.edit_svg.clone()).width(iced::Shrink)
-                            )
+                    widget::row![
+                        widget::button(widget::Svg::new(self.edit_svg.clone()).width(iced::Shrink))
                             .on_press(Message::OpenCategoryPopup(*transaction.id()))
                             .style(widget::button::secondary),
-                            widget::text(get_category_text(transaction, categories)),
-                        ]
-                        .spacing(10),
-                        category_popup(transaction.clone(), categories.clone()),
-                        Some(transaction.id()) == self.category_popup.as_ref(),
-                    )
-                    .on_dismiss(Message::ClosePopup)
-                    .alignment(iced_aw::widget::drop_down::Alignment::Start)
-                    .width(iced::Fill)
+                        widget::text(get_category_text(transaction, categories)),
+                    ]
+                    .spacing(10)
                     .into(),
                 ]
             },
@@ -271,7 +263,24 @@ impl TransactionTable {
         })
         .on_page_change(|_| Message::TableViewPageChange);
 
-        table.into()
+        utils::modal(
+            widget::container(table).padding(10.0),
+            if let Some(id) = self.category_popup {
+                category_popup(
+                    self.transactions
+                        .iter()
+                        .find(|x| *x.0.id() == id)
+                        .unwrap()
+                        .0
+                        .clone(),
+                    self.categories.clone(),
+                )
+            } else {
+                "".into()
+            },
+            Message::ClosePopup,
+            self.category_popup.is_some(),
+        )
     }
 }
 
