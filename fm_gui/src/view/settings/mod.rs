@@ -18,8 +18,12 @@ pub enum Action {
 pub enum Message {
     ChangeAPIUrl(String),
     ChangeAPIToken(String),
+    #[cfg(feature = "native")]
     ChangeSqlitePath(String),
+    #[cfg(feature = "native")]
+    StartSQLiteFileSelector,
     SwitchToAPI,
+    #[cfg(feature = "native")]
     SwitchToSqlite,
     SwitchToRAM,
     NewFinanceManager(Arc<Mutex<fm_core::FMController<FinanceManagers>>>),
@@ -72,6 +76,7 @@ impl SettingsView {
             Message::ChangeAPIToken(token) => {
                 self.api_token = token;
             }
+            #[cfg(feature = "native")]
             Message::ChangeSqlitePath(path) => {
                 self.sqlite_path = path;
             }
@@ -115,10 +120,6 @@ impl SettingsView {
                                 )))))
                 }));
             }
-            #[cfg(not(feature = "native"))]
-            Message::SwitchToSqlite => {
-                return Action::None;
-            }
             Message::SwitchToRAM => {
                 return Action::Task(iced::Task::future(async {
                     crate::settings::write_settings(crate::settings::Settings::new(
@@ -140,12 +141,21 @@ impl SettingsView {
                 self.current_status = finance_manager.try_lock().unwrap().raw_fm().to_string();
                 return Action::NewFinanceManager(finance_manager);
             }
+            #[cfg(feature = "native")]
+            Message::StartSQLiteFileSelector => {
+                if let Some(filepath) = rfd::FileDialog::new()
+                    .set_title("Select SQLite 3 Database")
+                    .pick_file()
+                {
+                    self.sqlite_path = filepath.to_str().unwrap().to_string();
+                }
+            }
         }
         Action::None
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        widget::column![
+        let mut col = widget::column![
             utils::heading("Setting", utils::HeadingLevel::H1),
             widget::text!("Current Status: {}", self.current_status),
             widget::Rule::horizontal(10),
@@ -167,18 +177,26 @@ impl SettingsView {
                 .spacing(10),
                 widget::button("Switch").on_press(Message::SwitchToAPI)
             ]
-            .spacing(10),
-            widget::Rule::horizontal(10),
-            widget::row![
-                widget::text("Sqlite Path:"),
-                widget::text_input::TextInput::new("Sqlite Path", &self.sqlite_path)
-                    .on_input(Message::ChangeSqlitePath),
-                widget::button("Switch").on_press(Message::SwitchToSqlite)
-            ]
-            .spacing(10),
-            widget::Rule::horizontal(10),
-            widget::button("Switch to RAM").on_press(Message::SwitchToRAM),
-        ]
-        .into()
+            .spacing(10)
+        ];
+
+        #[cfg(feature = "native")]
+        {
+            col = col.push(
+                widget::row![
+                    widget::text("Sqlite Path:"),
+                    widget::text_input::TextInput::new("Sqlite Path", &self.sqlite_path)
+                        .on_input(Message::ChangeSqlitePath),
+                    widget::button("Select File").on_press(Message::StartSQLiteFileSelector),
+                    widget::button("Switch").on_press(Message::SwitchToSqlite)
+                ]
+                .spacing(10),
+            );
+        }
+
+        col.push(widget::Rule::horizontal(10))
+            .push(widget::button("Switch to RAM").on_press(Message::SwitchToRAM))
+            .spacing(10)
+            .into()
     }
 }
