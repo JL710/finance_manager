@@ -88,6 +88,7 @@ struct SvgCache {
     folder_fill: widget::svg::Handle,
     plus_circle_fill: widget::svg::Handle,
     gear_fill: widget::svg::Handle,
+    book_fill: widget::svg::Handle,
 }
 
 impl Default for SvgCache {
@@ -109,6 +110,7 @@ impl Default for SvgCache {
                 "../assets/plus-circle-fill.svg"
             )),
             gear_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/gear-fill.svg")),
+            book_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/book-fill.svg")),
         }
     }
 }
@@ -527,9 +529,11 @@ impl App {
                     &self.svg_cache.gear_fill,
                     AppMessage::SwitchToSettingsView
                 ),
-                widget::button("License")
-                    .on_press(AppMessage::SwitchToLicense)
-                    .style(utils::style::button_sidebar),
+                icon_menu_item(
+                    "License",
+                    &self.svg_cache.book_fill,
+                    AppMessage::SwitchToLicense
+                ),
             ]
             .align_x(iced::Alignment::Start)
             .spacing(10),
