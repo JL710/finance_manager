@@ -24,7 +24,7 @@ macro_rules! message_match_action {
 #[derive(Debug, Clone)]
 pub enum AppMessage {
     Ignore,
-    BudgetOverViewMessage(view::budget_overview::Message),
+    ToggleSidebarCollapse,
     SwitchToBudgetOverview,
     SwitchToCreateTransActionView,
     SwitchToAssetAccountsView,
@@ -34,6 +34,7 @@ pub enum AppMessage {
     SwitchToFilterTransactionView,
     SwitchToBillOverview,
     SwitchToLicense,
+    BudgetOverViewMessage(view::budget_overview::Message),
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
     CreateTransactionViewMessage(view::create_transaction::Message),
@@ -89,6 +90,7 @@ struct SvgCache {
     plus_circle_fill: widget::svg::Handle,
     gear_fill: widget::svg::Handle,
     book_fill: widget::svg::Handle,
+    list: widget::svg::Handle,
 }
 
 impl Default for SvgCache {
@@ -111,6 +113,7 @@ impl Default for SvgCache {
             )),
             gear_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/gear-fill.svg")),
             book_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/book-fill.svg")),
+            list: widget::svg::Handle::from_memory(include_bytes!("../assets/list.svg")),
         }
     }
 }
@@ -119,6 +122,7 @@ pub struct App {
     finance_manager: Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>,
     current_view: View,
     svg_cache: SvgCache,
+    side_bar_collapsed: bool,
 }
 
 impl Default for App {
@@ -131,6 +135,7 @@ impl Default for App {
             current_view: View::Empty,
             finance_manager: Arc::new(Mutex::new(finance_manager)),
             svg_cache: SvgCache::default(),
+            side_bar_collapsed: false,
         }
     }
 }
@@ -145,12 +150,16 @@ impl App {
             ),
             finance_manager,
             svg_cache: SvgCache::default(),
+            side_bar_collapsed: false,
         }
     }
 
     fn update(&mut self, message: AppMessage) -> iced::Task<AppMessage> {
         match message {
             AppMessage::Ignore => {}
+            AppMessage::ToggleSidebarCollapse => {
+                self.side_bar_collapsed = !self.side_bar_collapsed;
+            }
             AppMessage::SwitchToLicense => {
                 self.current_view = View::License;
             }
@@ -468,71 +477,109 @@ impl App {
             text: &'a str,
             icon: &widget::svg::Handle,
             message: AppMessage,
+            collapsed: bool,
         ) -> iced::Element<'a, AppMessage> {
-            widget::button(
-                widget::row![
-                    widget::Svg::new(icon.clone()).width(iced::Shrink).style(
-                        |theme: &iced::Theme, _| widget::svg::Style {
-                            color: Some(theme.palette().primary)
-                        }
-                    ),
-                    text,
-                ]
-                .align_y(iced::Center)
-                .spacing(10),
-            )
-            .style(utils::style::button_sidebar)
-            .on_press(message)
-            .into()
+            if collapsed {
+                widget::tooltip(
+                    widget::button(
+                        widget::Svg::new(icon.clone())
+                            .width(iced::Shrink)
+                            .style(|theme: &iced::Theme, _| widget::svg::Style {
+                                color: Some(theme.palette().primary),
+                            })
+                            .height(25),
+                    )
+                    .style(widget::button::text)
+                    .on_press(message),
+                    utils::style::container_popup_styling(widget::container(text)),
+                    widget::tooltip::Position::Right,
+                )
+                .into()
+            } else {
+                widget::button(
+                    widget::row![
+                        widget::Svg::new(icon.clone()).width(iced::Shrink).style(
+                            |theme: &iced::Theme, _| widget::svg::Style {
+                                color: Some(theme.palette().primary)
+                            }
+                        ),
+                        text,
+                    ]
+                    .height(25)
+                    .align_y(iced::Center)
+                    .spacing(10),
+                )
+                .style(utils::style::button_sidebar)
+                .on_press(message)
+                .into()
+            }
         }
 
         iced::widget::row![
             widget::column![
+                widget::button(
+                    widget::Svg::new(self.svg_cache.list.clone())
+                        .style(|theme: &iced::Theme, _| widget::svg::Style {
+                            color: Some(theme.palette().primary)
+                        })
+                        .width(iced::Shrink)
+                )
+                .on_press(AppMessage::ToggleSidebarCollapse)
+                .style(widget::button::text),
                 icon_menu_item(
                     "AssetAccounts",
                     &self.svg_cache.bank2,
-                    AppMessage::SwitchToAssetAccountsView
+                    AppMessage::SwitchToAssetAccountsView,
+                    self.side_bar_collapsed
                 ),
                 icon_menu_item(
                     "BookCheckingAccounts",
                     &self.svg_cache.cash,
-                    AppMessage::SwitchToBookCheckingAccountOverview
+                    AppMessage::SwitchToBookCheckingAccountOverview,
+                    self.side_bar_collapsed
                 ),
                 icon_menu_item(
                     "Budgets",
                     &self.svg_cache.piggy_bank_fill,
-                    AppMessage::SwitchToBudgetOverview
+                    AppMessage::SwitchToBudgetOverview,
+                    self.side_bar_collapsed
                 ),
                 icon_menu_item(
                     "Categories",
                     &self.svg_cache.bookmark_fill,
-                    AppMessage::SwitchToCategoryOverview
+                    AppMessage::SwitchToCategoryOverview,
+                    self.side_bar_collapsed
                 ),
                 icon_menu_item(
                     "Transactions",
                     &self.svg_cache.send_fill,
-                    AppMessage::SwitchToFilterTransactionView
+                    AppMessage::SwitchToFilterTransactionView,
+                    self.side_bar_collapsed
                 ),
                 icon_menu_item(
                     "Bills",
                     &self.svg_cache.folder_fill,
-                    AppMessage::SwitchToBillOverview
+                    AppMessage::SwitchToBillOverview,
+                    self.side_bar_collapsed
                 ),
                 icon_menu_item(
                     "Create Transaction",
                     &self.svg_cache.plus_circle_fill,
-                    AppMessage::SwitchToCreateTransActionView
+                    AppMessage::SwitchToCreateTransActionView,
+                    self.side_bar_collapsed
                 ),
                 widget::vertical_space(),
                 icon_menu_item(
                     "Settings",
                     &self.svg_cache.gear_fill,
-                    AppMessage::SwitchToSettingsView
+                    AppMessage::SwitchToSettingsView,
+                    self.side_bar_collapsed
                 ),
                 icon_menu_item(
                     "License",
                     &self.svg_cache.book_fill,
-                    AppMessage::SwitchToLicense
+                    AppMessage::SwitchToLicense,
+                    self.side_bar_collapsed
                 ),
             ]
             .align_x(iced::Alignment::Start)
