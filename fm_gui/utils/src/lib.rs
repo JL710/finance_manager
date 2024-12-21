@@ -1,7 +1,7 @@
 use iced::widget;
 
 mod currency_input;
-mod date_input;
+pub mod date_input;
 mod filter_component;
 pub mod style;
 mod table_view;

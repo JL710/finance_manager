@@ -1,93 +1,95 @@
-pub struct DateInput<Message: Clone> {
-    produce_message: Box<dyn Fn(Option<fm_core::DateTime>) -> Message>,
+#[derive(Default, Debug, Clone)]
+pub struct State {
+    value: String,
     default_value: Option<fm_core::DateTime>,
-    required: bool,
 }
 
-impl<Message: Clone> DateInput<Message> {
-    pub fn new(produce_message: impl Fn(Option<fm_core::DateTime>) -> Message + 'static) -> Self {
+impl State {
+    pub fn new(value: Option<fm_core::DateTime>) -> Self {
         Self {
-            produce_message: Box::new(produce_message),
+            value: if let Some(date) = value {
+                date.format(&time::format_description::parse("[day].[month].[year]").unwrap())
+                    .unwrap()
+            } else {
+                String::new()
+            },
             default_value: None,
-            required: false,
         }
     }
 
-    pub fn default_value(mut self, default_value: Option<fm_core::DateTime>) -> Self {
-        self.default_value = default_value;
-        self
+    pub fn new_with_raw(value: String) -> Self {
+        Self {
+            value,
+            default_value: None,
+        }
     }
 
-    /// Marks the input as red if it is empty
-    pub fn required(mut self, required: bool) -> Self {
-        self.required = required;
-        self
+    pub fn default_value(&mut self, value: Option<fm_core::DateTime>) {
+        self.default_value = value;
     }
 
-    fn get_value_as_string(&self, state: &State) -> String {
-        match state.input {
-            Some(ref x) => x.clone(),
-            None => match self.default_value {
-                Some(x) => x
-                    .format(&time::format_description::parse("[day].[month].[year]").unwrap())
-                    .unwrap(),
-                None => String::new(),
+    /// Will return the user input as datetime if possible or default datetime if given.
+    pub fn date(&self) -> Option<fm_core::DateTime> {
+        match super::parse_to_datetime(&self.value) {
+            Ok(value) => Some(value),
+            _ => match self.default_value {
+                Some(value) => Some(value),
+                _ => None,
             },
         }
     }
-}
 
-impl<'a, Message: Clone + 'a> From<DateInput<Message>> for iced::Element<'a, Message> {
-    fn from(date_input: DateInput<Message>) -> iced::Element<'a, Message> {
-        iced::widget::component(date_input)
+    pub fn raw_input(&self) -> &str {
+        &self.value
     }
-}
 
-#[derive(Debug, Clone, Default)]
-pub struct State {
-    input: Option<String>,
+    pub fn perform(&mut self, action: Action) {
+        match action {
+            Action::InputChanged(new_value) => self.value = new_value,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
-pub enum Event {
+pub enum Action {
     InputChanged(String),
 }
 
-impl<Message: Clone> iced::widget::Component<Message> for DateInput<Message> {
-    type Event = Event;
-    type State = State;
+pub struct DateInput<'a> {
+    required: bool,
+    state: &'a State,
+}
 
-    fn update(&mut self, state: &mut Self::State, event: Self::Event) -> Option<Message> {
-        match event {
-            Event::InputChanged(input) => {
-                state.input = Some(input);
-                if let Ok(x) = super::parse_to_datetime(state.input.as_ref().unwrap()) {
-                    Some((self.produce_message)(Some(x)))
-                } else {
-                    Some((self.produce_message)(None))
-                }
-            }
-        }
-    }
-
-    fn view(&self, state: &Self::State) -> iced::Element<'_, Self::Event> {
-        let value = self.get_value_as_string(state);
-
-        let date_is_valid_parsed = super::parse_to_datetime(&value).is_ok();
-        let input_is_empty = value.is_empty();
-
-        iced::widget::text_input("Date", &value)
-            .on_input(Event::InputChanged)
+impl<'a> DateInput<'a> {
+    pub fn view(self) -> iced::Element<'a, Action> {
+        iced::widget::text_input("Date", self.state.raw_input())
+            .on_input(Action::InputChanged)
             .style(move |theme: &iced::Theme, status| {
                 let mut original = iced::widget::text_input::default(theme, status);
 
-                if (input_is_empty && self.required) || (!input_is_empty && !date_is_valid_parsed) {
+                if (self.state.raw_input().is_empty() && self.required)
+                    || (!self.state.raw_input().is_empty() && self.state.date().is_none())
+                {
                     original.border.color = theme.palette().danger;
-                } else if !input_is_empty && date_is_valid_parsed {
+                } else if !self.state.raw_input().is_empty() && self.state.date().is_some() {
                     original.border.color = theme.palette().success;
                 }
                 original
             })
             .into()
+    }
+
+    pub fn as_element(self) -> iced::Element<'a, Action> {
+        self.into()
+    }
+}
+
+pub fn date_input(state: &'_ State, required: bool) -> DateInput<'_> {
+    DateInput { state, required }
+}
+
+impl<'a> From<DateInput<'a>> for iced::Element<'a, Action> {
+    fn from(value: DateInput<'a>) -> Self {
+        value.view()
     }
 }

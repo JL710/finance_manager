@@ -11,7 +11,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    DueDateChanged(Option<fm_core::DateTime>),
+    DueDateChanged(utils::date_input::Action),
     NameInputChanged(String),
     ValueChanged(Option<fm_core::Currency>),
     DescriptionInputChanged(widget::text_editor::Action),
@@ -32,7 +32,7 @@ pub struct CreateBillView {
     name_input: String,
     description_input: widget::text_editor::Content,
     value: Option<fm_core::Currency>,
-    due_date: Option<fm_core::DateTime>,
+    due_date_input: utils::date_input::State,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
     add_transaction: Option<add_transaction::AddTransaction>,
     submitted: bool,
@@ -90,12 +90,12 @@ impl CreateBillView {
                     &bill.description().clone().unwrap_or_default(),
                 );
                 self.value = Some(bill.value().clone());
-                self.due_date = *bill.due_date();
+                self.due_date_input = utils::date_input::State::new(*bill.due_date());
                 self.transactions = transactions;
                 self.add_transaction = None;
             }
-            Message::DueDateChanged(date) => {
-                self.due_date = date;
+            Message::DueDateChanged(action) => {
+                self.due_date_input.perform(action);
             }
             Message::NameInputChanged(name) => {
                 self.name_input = name;
@@ -118,7 +118,7 @@ impl CreateBillView {
                 } else {
                     Some(self.description_input.text())
                 };
-                let due_date = self.due_date;
+                let due_date = self.due_date_input.date();
                 let value = self.value.clone().unwrap();
                 let mut transactions =
                     std::collections::HashMap::with_capacity(self.transactions.len());
@@ -226,7 +226,9 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Due Date: ",
-                utils::DateInput::new(Message::DueDateChanged).default_value(self.due_date),
+                utils::date_input::date_input(&self.due_date_input, false)
+                    .as_element()
+                    .map(Message::DueDateChanged),
             ]
             .width(iced::Length::Fill)
             .spacing(10),
