@@ -295,10 +295,8 @@ impl FilterComponent {
                     self.filter.get_category_filters(),
                     &self.category_timespan_inputs,
                     &self.categories,
-                    |x| DisplayedCategory {
-                        category: x.clone()
-                    },
-                    |x| *x.category.id(),
+                    |x| DisplayedCategory(x.clone()),
+                    |x| *x.0.id(),
                     |x| *x.id(),
                     InnerMessage::ChangeCategory,
                     InnerMessage::EditCategoryTimespan,
@@ -317,8 +315,8 @@ impl FilterComponent {
                     self.filter.get_bill_filters(),
                     &self.bill_timespan_inputs,
                     &self.bills,
-                    |x| DisplayedBill { bill: x.clone() },
-                    |x| x.bill.clone(),
+                    |x| DisplayedBill(x.clone()),
+                    |x| x.0.clone(),
                     |x| x.clone(),
                     InnerMessage::ChangeBill,
                     InnerMessage::EditBillTimespan,
@@ -337,8 +335,8 @@ impl FilterComponent {
                     self.filter.get_budget_filters(),
                     &self.budget_timespan_inputs,
                     &self.budgets,
-                    |x| DisplayedBudget { budget: x.clone() },
-                    |x| *x.budget.id(),
+                    |x| DisplayedBudget(x.clone()),
+                    |x| *x.0.id(),
                     |x| *x.id(),
                     InnerMessage::ChangeBudget,
                     InnerMessage::EditBudgetTimespan,
@@ -477,52 +475,46 @@ impl PartialEq for DisplayedAccount {
 }
 
 #[derive(Debug, Clone)]
-struct DisplayedCategory {
-    category: fm_core::Category,
-}
+struct DisplayedCategory(fm_core::Category);
 
 impl std::fmt::Display for DisplayedCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.category.name())
+        write!(f, "{}", self.0.name())
     }
 }
 
 impl PartialEq for DisplayedCategory {
     fn eq(&self, other: &Self) -> bool {
-        self.category.id() == other.category.id()
+        self.0.id() == other.0.id()
     }
 }
 
 #[derive(Debug, Clone)]
-struct DisplayedBill {
-    bill: fm_core::Bill,
-}
+struct DisplayedBill(fm_core::Bill);
 
 impl std::fmt::Display for DisplayedBill {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.bill.name())
+        write!(f, "{}", self.0.name())
     }
 }
 
 impl PartialEq for DisplayedBill {
     fn eq(&self, other: &Self) -> bool {
-        self.bill.id() == other.bill.id()
+        self.0.id() == other.0.id()
     }
 }
 
 #[derive(Debug, Clone)]
-struct DisplayedBudget {
-    budget: fm_core::Budget,
-}
+struct DisplayedBudget(fm_core::Budget);
 
 impl std::fmt::Display for DisplayedBudget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.budget.name())
+        write!(f, "{}", self.0.name())
     }
 }
 
 impl PartialEq for DisplayedBudget {
     fn eq(&self, other: &Self) -> bool {
-        self.budget.id() == other.budget.id()
+        self.0.id() == other.0.id()
     }
 }
