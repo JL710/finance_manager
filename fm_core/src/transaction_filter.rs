@@ -1,6 +1,6 @@
 use super::{Bill, Id, Timespan, Transaction};
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Hash)]
 pub struct Filter<I: Clone + std::fmt::Debug> {
     pub negated: bool,
     pub id: I,

@@ -58,6 +58,7 @@ pub enum Action {
 pub struct DateInput<'a> {
     required: bool,
     state: &'a State,
+    placeholder: String,
 }
 
 impl<'a> DateInput<'a> {
@@ -78,14 +79,14 @@ impl<'a> DateInput<'a> {
             })
             .into()
     }
-
-    pub fn as_element(self) -> iced::Element<'a, Action> {
-        self.into()
-    }
 }
 
-pub fn date_input(state: &'_ State, required: bool) -> DateInput<'_> {
-    DateInput { state, required }
+pub fn date_input<'a>(state: &'a State, placeholder: &'a str, required: bool) -> DateInput<'a> {
+    DateInput {
+        state,
+        required,
+        placeholder: placeholder.to_owned(),
+    }
 }
 
 impl<'a> From<DateInput<'a>> for iced::Element<'a, Action> {

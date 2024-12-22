@@ -11,7 +11,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ChangeFilter(TransactionFilter),
+    FilterComponent(utils::filter_component::InnerMessage),
     ToggleEditFilter,
     ViewAccount(fm_core::Id),
     ViewTransaction(fm_core::Id),
@@ -37,7 +37,7 @@ pub struct FilterTransactionView {
     categories: Vec<fm_core::Category>,
     bills: Vec<fm_core::Bill>,
     budgets: Vec<fm_core::Budget>,
-    change_filter: bool,
+    change_filter: Option<utils::filter_component::FilterComponent>,
     transaction_table: utils::TransactionTable,
     sums: Vec<(fm_core::DateTime, fm_core::Currency)>,
     filter: TransactionFilter,
@@ -53,7 +53,7 @@ impl FilterTransactionView {
                 categories: Vec::new(),
                 bills: Vec::new(),
                 budgets: Vec::new(),
-                change_filter: false,
+                change_filter: None,
                 transaction_table: utils::TransactionTable::new(Vec::new(), Vec::new(), |_| None),
                 sums: Vec::new(),
                 filter: TransactionFilter::default(),
@@ -94,35 +94,16 @@ impl FilterTransactionView {
                     utils::TransactionTable::new(Vec::new(), self.categories.clone(), |_| None);
             }
             Message::ToggleEditFilter => {
-                self.change_filter = !self.change_filter;
-            }
-            Message::ChangeFilter(filter) => {
-                self.filter = filter.clone();
-                self.change_filter = false;
-                return Action::Task(iced::Task::future(async move {
-                    let locked_manager = finance_manager.lock().await;
-                    let transactions = locked_manager
-                        .get_filtered_transactions(filter.clone())
-                        .await
-                        .unwrap();
-                    let accounts = locked_manager.get_accounts().await.unwrap();
-
-                    let mut tuples = Vec::new();
-                    for transaction in transactions {
-                        let source = accounts
-                            .iter()
-                            .find(|x| x.id() == transaction.source())
-                            .unwrap()
-                            .clone();
-                        let destination = accounts
-                            .iter()
-                            .find(|x| x.id() == transaction.destination())
-                            .unwrap()
-                            .clone();
-                        tuples.push((transaction, source, destination));
-                    }
-                    Message::UpdateTransactions(tuples)
-                }));
+                self.change_filter = if self.change_filter.is_some() {
+                    None
+                } else {
+                    Some(utils::filter_component::FilterComponent::new(
+                        self.accounts.clone(),
+                        self.categories.clone(),
+                        self.bills.clone(),
+                        self.budgets.clone(),
+                    ))
+                };
             }
             Message::ViewAccount(id) => return Action::ViewAccount(id),
             Message::ViewTransaction(id) => return Action::ViewTransaction(id),
@@ -147,6 +128,41 @@ impl FilterTransactionView {
                     }
                 }
             }
+            Message::FilterComponent(m) => {
+                if let Some(component) = &mut self.change_filter {
+                    match component.update(m) {
+                        utils::filter_component::Action::Submit(new_filter) => {
+                            self.filter = new_filter.clone();
+                            self.change_filter = None;
+                            return Action::Task(iced::Task::future(async move {
+                                let locked_manager = finance_manager.lock().await;
+                                let transactions = locked_manager
+                                    .get_filtered_transactions(new_filter.clone())
+                                    .await
+                                    .unwrap();
+                                let accounts = locked_manager.get_accounts().await.unwrap();
+
+                                let mut tuples = Vec::new();
+                                for transaction in transactions {
+                                    let source = accounts
+                                        .iter()
+                                        .find(|x| x.id() == transaction.source())
+                                        .unwrap()
+                                        .clone();
+                                    let destination = accounts
+                                        .iter()
+                                        .find(|x| x.id() == transaction.destination())
+                                        .unwrap()
+                                        .clone();
+                                    tuples.push((transaction, source, destination));
+                                }
+                                Message::UpdateTransactions(tuples)
+                            }));
+                        }
+                        utils::filter_component::Action::None => {}
+                    }
+                }
+            }
         }
         Action::None
     }
@@ -166,16 +182,8 @@ impl FilterTransactionView {
             ],
             iced::widget::button(iced::widget::text("Edit Filter"))
                 .on_press(Message::ToggleEditFilter),
-            if self.change_filter {
-                utils::FilterComponent::new(
-                    self.filter.clone(),
-                    Message::ChangeFilter,
-                    &self.accounts,
-                    &self.categories,
-                    &self.bills,
-                    &self.budgets,
-                )
-                .into_element()
+            if let Some(filter_component) = &self.change_filter {
+                filter_component.view().map(Message::FilterComponent)
             } else {
                 self.transaction_table
                     .view()

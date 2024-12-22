@@ -2,10 +2,10 @@ use iced::widget;
 
 mod currency_input;
 pub mod date_input;
-mod filter_component;
+pub mod filter_component;
 pub mod style;
 mod table_view;
-mod timespan_input;
+pub mod timespan_input;
 pub mod transaction_table;
 
 pub use currency_input::CurrencyInput;

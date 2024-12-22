@@ -226,8 +226,8 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Due Date: ",
-                utils::date_input::date_input(&self.due_date_input, false)
-                    .as_element()
+                utils::date_input::date_input(&self.due_date_input, "", false)
+                    .view()
                     .map(Message::DueDateChanged),
             ]
             .width(iced::Length::Fill)
@@ -327,7 +327,7 @@ mod add_transaction {
     #[derive(Debug, Clone)]
     pub enum Message {
         Back,
-        FilterSubmit(fm_core::transaction_filter::TransactionFilter),
+        FilterComponent(utils::filter_component::InnerMessage),
         AddTransaction(fm_core::Transaction),
         FetchedTransactions(Vec<fm_core::Transaction>),
     }
@@ -338,7 +338,7 @@ mod add_transaction {
         categories: Vec<fm_core::Category>,
         bills: Vec<fm_core::Bill>,
         budgets: Vec<fm_core::Budget>,
-        filter: Option<fm_core::transaction_filter::TransactionFilter>,
+        filter: Option<utils::filter_component::FilterComponent>,
         transactions: Vec<fm_core::Transaction>,
         ignored_transactions: Vec<fm_core::Id>,
     }
@@ -354,11 +354,16 @@ mod add_transaction {
             let bills = locked_manager.get_bills().await?;
             let budgets = locked_manager.get_budgets().await?;
             Ok(Self {
+                filter: Some(utils::filter_component::FilterComponent::new(
+                    accounts.clone(),
+                    categories.clone(),
+                    bills.clone(),
+                    budgets.clone(),
+                )),
                 accounts,
                 categories,
                 bills,
                 budgets,
-                filter: Some(fm_core::transaction_filter::TransactionFilter::default()),
                 transactions: Vec::new(),
                 ignored_transactions,
             })
@@ -371,17 +376,25 @@ mod add_transaction {
         ) -> Action {
             match message {
                 Message::Back => Action::Escape,
-                Message::FilterSubmit(filter) => {
-                    self.filter = None;
-                    Action::Task(iced::Task::future(async move {
-                        let locked_manager = finance_manager.lock().await;
-                        Message::FetchedTransactions(
-                            locked_manager
-                                .get_filtered_transactions(filter.clone())
-                                .await
-                                .unwrap(),
-                        )
-                    }))
+                Message::FilterComponent(m) => {
+                    if let Some(filter) = &mut self.filter {
+                        match filter.update(m) {
+                            utils::filter_component::Action::Submit(submitted_filter) => {
+                                self.filter = None;
+                                return Action::Task(iced::Task::future(async move {
+                                    let locked_manager = finance_manager.lock().await;
+                                    Message::FetchedTransactions(
+                                        locked_manager
+                                            .get_filtered_transactions(submitted_filter.clone())
+                                            .await
+                                            .unwrap(),
+                                    )
+                                }));
+                            }
+                            utils::filter_component::Action::None => {}
+                        }
+                    }
+                    Action::None
                 }
                 Message::AddTransaction(transaction) => {
                     self.ignored_transactions.push(*transaction.id());
@@ -411,15 +424,7 @@ mod add_transaction {
                     iced::Element::new(
                         widget::column![
                             "Create Filter for Transactions:",
-                            utils::FilterComponent::new(
-                                filter.clone(),
-                                Message::FilterSubmit,
-                                &self.accounts,
-                                &self.categories,
-                                &self.bills,
-                                &self.budgets
-                            )
-                            .into_element()
+                            filter.view().map(Message::FilterComponent),
                         ]
                         .spacing(10)
                         .width(iced::Length::Fill),

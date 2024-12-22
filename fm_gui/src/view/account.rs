@@ -22,7 +22,7 @@ pub enum Message {
     Edit,
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
-    ChangeTransactionTimespan(fm_core::Timespan),
+    ChangeTransactionTimespan(utils::timespan_input::Action),
     SetTransactions(
         Vec<(
             fm_core::Transaction,
@@ -53,6 +53,7 @@ pub enum Account {
         account: fm_core::account::Account,
         current_value: fm_core::Currency,
         transaction_table: utils::TransactionTable,
+        timespan_input: utils::timespan_input::State,
     },
 }
 
@@ -76,6 +77,7 @@ impl Account {
                 categories,
                 move |transaction| Some(*transaction.destination() == account_id),
             ),
+            timespan_input: utils::timespan_input::State::default(),
         }
     }
 
@@ -129,6 +131,7 @@ impl Account {
                         categories,
                         move |transaction| Some(*transaction.destination() == account_id),
                     ),
+                    timespan_input: utils::timespan_input::State::default(),
                 };
                 Action::None
             }
@@ -157,7 +160,13 @@ impl Account {
                 }
                 Action::None
             }
-            Message::ChangeTransactionTimespan(timespan) => {
+            Message::ChangeTransactionTimespan(action) => {
+                let timespan = if let Self::Loaded { timespan_input, .. } = self {
+                    timespan_input.perform(action);
+                    timespan_input.timespan()
+                } else {
+                    return Action::None;
+                };
                 let account_id = if let Self::Loaded { account, .. } = self {
                     *account.id()
                 } else {
@@ -261,15 +270,19 @@ impl Account {
             account,
             transaction_table,
             current_value,
+            timespan_input,
         } = self
         {
             match account {
                 fm_core::account::Account::AssetAccount(acc) => {
-                    asset_account_view(acc, transaction_table, current_value)
+                    asset_account_view(acc, transaction_table, current_value, timespan_input)
                 }
-                fm_core::account::Account::BookCheckingAccount(acc) => {
-                    book_checking_account_view(acc, transaction_table, current_value)
-                }
+                fm_core::account::Account::BookCheckingAccount(acc) => book_checking_account_view(
+                    acc,
+                    transaction_table,
+                    current_value,
+                    timespan_input,
+                ),
             }
         } else {
             widget::text!("Loading...").into()
@@ -281,6 +294,7 @@ fn asset_account_view<'a>(
     account: &'a fm_core::account::AssetAccount,
     transaction_table: &'a utils::TransactionTable,
     current_value: &fm_core::Currency,
+    timespan_input: &'a utils::timespan_input::State,
 ) -> iced::Element<'a, Message> {
     widget::column![
         utils::heading("Asset Account", utils::HeadingLevel::H1),
@@ -312,7 +326,9 @@ fn asset_account_view<'a>(
             .spacing(10)
         ],
         widget::horizontal_rule(10),
-        utils::TimespanInput::new(Message::ChangeTransactionTimespan, None).into_element(),
+        utils::timespan_input::timespan_input(timespan_input)
+            .view()
+            .map(Message::ChangeTransactionTimespan),
         transaction_table
             .view()
             .map(Message::TransactionTableMessage),
@@ -325,6 +341,7 @@ fn book_checking_account_view<'a>(
     account: &'a fm_core::account::BookCheckingAccount,
     transaction_table: &'a utils::TransactionTable,
     current_value: &fm_core::Currency,
+    timespan_input: &'a utils::timespan_input::State,
 ) -> iced::Element<'a, Message> {
     widget::column![
         utils::heading("Book Checking Account", utils::HeadingLevel::H1),
@@ -355,7 +372,9 @@ fn book_checking_account_view<'a>(
             .spacing(10)
         ],
         widget::horizontal_rule(10),
-        utils::TimespanInput::new(Message::ChangeTransactionTimespan, None).into_element(),
+        utils::timespan_input::timespan_input(timespan_input)
+            .view()
+            .map(Message::ChangeTransactionTimespan),
         transaction_table
             .view()
             .map(Message::TransactionTableMessage),

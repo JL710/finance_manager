@@ -185,6 +185,18 @@ pub struct Bill {
     due_date: Option<DateTime>,
 }
 
+impl Eq for Bill {}
+
+impl std::hash::Hash for Bill {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.name.hash(state);
+        self.description.hash(state);
+        self.value.hash(state);
+        self.due_date.hash(state);
+    }
+}
+
 impl Bill {
     pub fn new(
         id: Id,

@@ -3,7 +3,7 @@ use std::ops::Neg;
 use anyhow::Result;
 use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq, Hash)]
 pub enum Currency {
     Eur(BigDecimal),
 }

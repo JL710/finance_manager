@@ -15,7 +15,7 @@ pub enum Action {
 pub enum Message {
     Delete,
     Edit,
-    ChangedTimespan(fm_core::Timespan),
+    ChangedTimespan(utils::timespan_input::Action),
     Set(
         fm_core::Category,
         Vec<(fm_core::DateTime, fm_core::Currency)>,
@@ -38,6 +38,7 @@ pub enum Category {
         category: fm_core::Category,
         transaction_table: utils::TransactionTable,
         values: Vec<(fm_core::DateTime, fm_core::Currency)>,
+        timespan_input: utils::timespan_input::State,
     },
 }
 
@@ -118,15 +119,24 @@ impl Category {
                     Action::None
                 }
             }
-            Message::ChangedTimespan(new_timespan) => {
-                if let Self::Loaded { category, .. } = self {
+            Message::ChangedTimespan(action) => {
+                if let Self::Loaded {
+                    category,
+                    timespan_input,
+                    ..
+                } = self
+                {
+                    timespan_input.perform(action);
+
                     let cloned_category = category.clone();
                     let id = *category.id();
+                    let timespan = timespan_input.timespan();
+
                     Action::Task(iced::Task::future(async move {
                         let transactions = finance_manager
                             .lock()
                             .await
-                            .get_transactions_of_category(id, new_timespan)
+                            .get_transactions_of_category(id, timespan)
                             .await
                             .unwrap();
                         let accounts = finance_manager
@@ -145,7 +155,7 @@ impl Category {
                         let values = finance_manager
                             .lock()
                             .await
-                            .get_relative_category_values(id, new_timespan)
+                            .get_relative_category_values(id, timespan)
                             .await
                             .unwrap();
                         let categories =
@@ -171,6 +181,7 @@ impl Category {
                         },
                     ),
                     values,
+                    timespan_input: utils::timespan_input::State::default(),
                 };
                 Action::None
             }
@@ -205,7 +216,7 @@ impl Category {
             category,
             transaction_table,
             values,
-            ..
+            timespan_input,
         } = self
         {
             widget::column![
@@ -234,7 +245,9 @@ impl Category {
                     .spacing(10)
                 ]
                 .spacing(10),
-                utils::TimespanInput::new(Message::ChangedTimespan, None).into_element(),
+                utils::timespan_input::timespan_input(timespan_input)
+                    .view()
+                    .map(Message::ChangedTimespan),
                 transaction_table
                     .view()
                     .map(Message::TransactionTableMessage),

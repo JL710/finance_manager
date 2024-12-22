@@ -375,8 +375,8 @@ impl CreateTransactionView {
             .spacing(10),
             widget::row![
                 "Date: ",
-                utils::date_input::date_input(&self.date_input, true)
-                    .as_element()
+                utils::date_input::date_input(&self.date_input, "", true)
+                    .view()
                     .map(Message::DateInput)
             ]
             .width(iced::Fill),
