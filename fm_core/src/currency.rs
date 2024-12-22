@@ -71,10 +71,32 @@ impl Ord for Currency {
     }
 }
 
+fn big_decimal_to_string(decimal: &BigDecimal) -> String {
+    let decimal_string = decimal.to_string();
+    let splits = decimal_string.split('.').collect::<Vec<_>>();
+
+    let mut pre_decimal_part = String::new();
+    for c in splits[0].chars().rev().enumerate() {
+        if c.0 % 3 == 0 {
+            pre_decimal_part += " ";
+        }
+        pre_decimal_part += &c.1.to_string();
+    }
+    pre_decimal_part = pre_decimal_part.chars().rev().collect();
+
+    if splits.len() == 1 {
+        pre_decimal_part
+    } else if splits.len() == 2 {
+        format!("{}.{}", pre_decimal_part, splits[1])
+    } else {
+        panic!("to many parts of number string")
+    }
+}
+
 impl std::fmt::Display for Currency {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Currency::Eur(value) => write!(f, "{}€", value),
+            Currency::Eur(value) => write!(f, "{}€", big_decimal_to_string(value)),
         }
     }
 }
