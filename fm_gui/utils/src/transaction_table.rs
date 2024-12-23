@@ -1,4 +1,4 @@
-use super::{colored_currency_display, link, TableView};
+use super::{colored_currency_display, link};
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -25,9 +25,9 @@ pub enum Message {
         sign: fm_core::Sign,
     },
     OpenCategoryPopup(fm_core::Id),
-    TableViewPageChange,
     ClosePopup,
     TransactionCategoryUpdated(fm_core::Transaction),
+    TransactionTable(crate::table_view::InnerMessage<Message>),
 }
 
 pub struct TransactionTable {
@@ -36,6 +36,15 @@ pub struct TransactionTable {
         fm_core::account::Account,
         fm_core::account::Account,
     )>,
+    transaction_table: crate::table_view::State<
+        (
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+        ),
+        Vec<fm_core::Category>,
+        6,
+    >,
     amount_positive: Box<dyn Fn(fm_core::Transaction) -> Option<bool>>,
     categories: Vec<fm_core::Category>,
     /// The id of the transaction that has the category popup open if any
@@ -73,9 +82,36 @@ impl TransactionTable {
         amount_positive: impl Fn(fm_core::Transaction) -> Option<bool> + Copy + 'static,
     ) -> Self {
         Self {
-            transactions,
+            transactions: transactions.clone(),
+            categories: categories.clone(),
             amount_positive: Box::new(amount_positive),
-            categories,
+            transaction_table: crate::table_view::State::new(transactions, categories)
+                .sortable_columns([true, true, true, true, true, true])
+                .sort_by(move |a, b, column_index| match column_index {
+                    0 => a.0.title().cmp(b.0.title()),
+                    1 => a.0.date().cmp(b.0.date()),
+                    2 => {
+                        let a = (amount_positive)(a.0.clone()).map_or(a.0.amount(), |positive| {
+                            if positive {
+                                a.0.amount()
+                            } else {
+                                a.0.amount().negative()
+                            }
+                        });
+                        let b = (amount_positive)(b.0.clone()).map_or(b.0.amount(), |positive| {
+                            if positive {
+                                b.0.amount()
+                            } else {
+                                b.0.amount().negative()
+                            }
+                        });
+                        a.cmp(&b)
+                    }
+                    3 => a.1.name().cmp(b.1.name()),
+                    4 => a.2.name().cmp(b.2.name()),
+                    5 => a.0.categories().len().cmp(&b.0.categories().len()),
+                    _ => std::cmp::Ordering::Equal,
+                }),
             category_popup: None,
             edit_svg: widget::svg::Handle::from_memory(include_bytes!(
                 "../../assets/pencil-fill.svg"
@@ -108,10 +144,6 @@ impl TransactionTable {
                 } else {
                     self.category_popup = Some(id);
                 }
-                Action::None
-            }
-            Message::TableViewPageChange => {
-                self.category_popup = None;
                 Action::None
             }
             Message::ClosePopup => {
@@ -177,92 +209,82 @@ impl TransactionTable {
                 self.transactions[index].0 = transaction;
                 Action::None
             }
+            Message::TransactionTable(inner) => {
+                match self.transaction_table.perform(inner) {
+                    crate::table_view::Action::OuterMessage(m) => {
+                        return self.update(m, finance_manager);
+                    }
+                    crate::table_view::Action::PageChange(_) => {
+                        self.category_popup = None;
+                    }
+                    crate::table_view::Action::None => {}
+                }
+                Action::None
+            }
         }
     }
 
     pub fn view(&self) -> iced::Element<Message> {
         let mut transactions = self.transactions.clone();
         transactions.sort_by(|(a, _, _), (b, _, _)| b.date().cmp(a.date()));
-        let table = TableView::new(
-            transactions.clone(),
-            self.categories.clone(),
-            move |(transaction, source, destination): &(
-                fm_core::Transaction,
-                fm_core::account::Account,
-                fm_core::account::Account,
-            ),
-                  categories| {
-                [
-                    link(widget::text(transaction.title().clone()))
-                        .on_press(Message::ViewTransaction(*transaction.id()))
+        let table = crate::table_view::table_view(&self.transaction_table)
+            .headers([
+                "Title".to_owned(),
+                "Date".to_owned(),
+                "Amount".to_owned(),
+                "Source".to_owned(),
+                "Destination".to_owned(),
+                "Categories".to_owned(),
+            ])
+            .view(
+                move |(transaction, source, destination): &(
+                    fm_core::Transaction,
+                    fm_core::account::Account,
+                    fm_core::account::Account,
+                ),
+                      categories| {
+                    [
+                        link(widget::text(transaction.title().clone()))
+                            .on_press(Message::ViewTransaction(*transaction.id()))
+                            .into(),
+                        widget::text(
+                            transaction
+                                .date()
+                                .to_offset(fm_core::get_local_timezone().unwrap())
+                                .format(
+                                    &time::format_description::parse("[day].[month].[year]")
+                                        .unwrap(),
+                                )
+                                .unwrap(),
+                        )
                         .into(),
-                    widget::text(
-                        transaction
-                            .date()
-                            .to_offset(fm_core::get_local_timezone().unwrap())
-                            .format(
-                                &time::format_description::parse("[day].[month].[year]").unwrap(),
+                        match (self.amount_positive)(transaction.clone()) {
+                            Some(true) => colored_currency_display(&transaction.amount()),
+                            Some(false) => {
+                                colored_currency_display(&transaction.amount().negative())
+                            }
+                            None => widget::text(transaction.amount().to_string()).into(),
+                        },
+                        link(widget::text(source.to_string().clone()))
+                            .on_press(Message::ViewAccount(*source.id()))
+                            .into(),
+                        link(widget::text(destination.to_string().clone()))
+                            .on_press(Message::ViewAccount(*destination.id()))
+                            .into(),
+                        widget::row![
+                            widget::button(
+                                widget::Svg::new(self.edit_svg.clone()).width(iced::Shrink)
                             )
-                            .unwrap(),
-                    )
-                    .into(),
-                    match (self.amount_positive)(transaction.clone()) {
-                        Some(true) => colored_currency_display(&transaction.amount()),
-                        Some(false) => colored_currency_display(&transaction.amount().negative()),
-                        None => widget::text(transaction.amount().to_string()).into(),
-                    },
-                    link(widget::text(source.to_string().clone()))
-                        .on_press(Message::ViewAccount(*source.id()))
-                        .into(),
-                    link(widget::text(destination.to_string().clone()))
-                        .on_press(Message::ViewAccount(*destination.id()))
-                        .into(),
-                    widget::row![
-                        widget::button(widget::Svg::new(self.edit_svg.clone()).width(iced::Shrink))
                             .on_press(Message::OpenCategoryPopup(*transaction.id()))
                             .style(widget::button::secondary),
-                        widget::text(get_category_text(transaction, categories)),
+                            widget::text(get_category_text(transaction, categories)),
+                        ]
+                        .spacing(10)
+                        .into(),
                     ]
-                    .spacing(10)
-                    .into(),
-                ]
-            },
-        )
-        .headers([
-            "Title".to_owned(),
-            "Date".to_owned(),
-            "Amount".to_owned(),
-            "Source".to_owned(),
-            "Destination".to_owned(),
-            "Categories".to_owned(),
-        ])
-        .columns_sortable([true, true, true, true, true, true])
-        .sort_by(move |a, b, column_index| match column_index {
-            0 => a.0.title().cmp(b.0.title()),
-            1 => a.0.date().cmp(b.0.date()),
-            2 => {
-                let a = (self.amount_positive)(a.0.clone()).map_or(a.0.amount(), |positive| {
-                    if positive {
-                        a.0.amount()
-                    } else {
-                        a.0.amount().negative()
-                    }
-                });
-                let b = (self.amount_positive)(b.0.clone()).map_or(b.0.amount(), |positive| {
-                    if positive {
-                        b.0.amount()
-                    } else {
-                        b.0.amount().negative()
-                    }
-                });
-                a.cmp(&b)
-            }
-            3 => a.1.name().cmp(b.1.name()),
-            4 => a.2.name().cmp(b.2.name()),
-            5 => a.0.categories().len().cmp(&b.0.categories().len()),
-            _ => std::cmp::Ordering::Equal,
-        })
-        .on_page_change(|_| Message::TableViewPageChange);
+                },
+            )
+            .map(Message::TransactionTable);
 
         crate::modal(
             widget::container(table).padding(10.0),

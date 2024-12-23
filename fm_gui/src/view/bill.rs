@@ -24,16 +24,17 @@ pub enum Message {
     ),
     Delete,
     Deleted,
+    TransactionTable(utils::table_view::InnerMessage<Message>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum Bill {
     NotLoaded,
     Loaded {
         bill: fm_core::Bill,
         bill_sum: fm_core::Currency,
-        transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
+        transaction_table: utils::table_view::State<(fm_core::Transaction, fm_core::Sign), (), 5>,
     },
 }
 
@@ -83,7 +84,28 @@ impl Bill {
                 *self = Self::Loaded {
                     bill,
                     bill_sum,
-                    transactions,
+                    transaction_table: utils::table_view::State::new(transactions, ())
+                        .sort_by(|a, b, column| match column {
+                            0 => match (a.1, b.1) {
+                                (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
+                                    std::cmp::Ordering::Greater
+                                }
+                                (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
+                                    std::cmp::Ordering::Less
+                                }
+                                _ => std::cmp::Ordering::Equal,
+                            },
+                            1 => a.0.title().cmp(b.0.title()),
+                            2 => {
+                                a.0.description()
+                                    .unwrap_or("")
+                                    .cmp(b.0.description().unwrap_or(""))
+                            }
+                            3 => a.0.amount().cmp(&b.0.amount()),
+                            4 => a.0.date().cmp(b.0.date()),
+                            _ => std::cmp::Ordering::Equal,
+                        })
+                        .sortable_columns([true, true, true, true, true]),
                 };
                 Action::None
             }
@@ -113,6 +135,21 @@ impl Bill {
                 }
             }
             Message::Deleted => Action::Deleted,
+            Message::TransactionTable(inner) => {
+                if let Self::Loaded {
+                    transaction_table, ..
+                } = self
+                {
+                    match transaction_table.perform(inner) {
+                        utils::table_view::Action::PageChange(_) => {}
+                        utils::table_view::Action::None => {}
+                        utils::table_view::Action::OuterMessage(m) => {
+                            return self.update(m, finance_manager);
+                        }
+                    }
+                }
+                Action::None
+            }
         }
     }
 
@@ -120,7 +157,7 @@ impl Bill {
         if let Self::Loaded {
             bill,
             bill_sum,
-            transactions,
+            transaction_table,
         } = self
         {
             widget::column![
@@ -159,53 +196,33 @@ impl Bill {
                     .spacing(10)
                 ],
                 widget::horizontal_rule(10),
-                utils::TableView::new(transactions.clone(), (), |(transaction, sign), _| [
-                    widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
-                    utils::link(widget::text(transaction.title().clone()))
-                        .on_press(Message::ViewTransaction(*transaction.id()))
+                utils::table_view::table_view(transaction_table)
+                    .headers(["Negative", "Title", "Description", "Amount", "Date"])
+                    .view(|(transaction, sign), _| [
+                        widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
+                        utils::link(widget::text(transaction.title().clone()))
+                            .on_press(Message::ViewTransaction(*transaction.id()))
+                            .into(),
+                        widget::text(
+                            transaction
+                                .description()
+                                .map_or(String::new(), |x| x.to_string())
+                        )
                         .into(),
-                    widget::text(
-                        transaction
-                            .description()
-                            .map_or(String::new(), |x| x.to_string())
-                    )
-                    .into(),
-                    widget::text!("{}€", transaction.amount().to_num_string()).into(),
-                    widget::text(
-                        transaction
-                            .date()
-                            .to_offset(fm_core::get_local_timezone().unwrap())
-                            .format(
-                                &time::format_description::parse("[day].[month].[year]").unwrap()
-                            )
-                            .unwrap()
-                    )
-                    .into(),
-                ])
-                .headers(["Negative", "Title", "Description", "Amount", "Date"])
-                .sort_by(|a, b, column| {
-                    match column {
-                        0 => match (a.1, b.1) {
-                            (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
-                                std::cmp::Ordering::Greater
-                            }
-                            (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
-                                std::cmp::Ordering::Less
-                            }
-                            _ => std::cmp::Ordering::Equal,
-                        },
-                        1 => a.0.title().cmp(b.0.title()),
-                        2 => {
-                            a.0.description()
-                                .unwrap_or("")
-                                .cmp(b.0.description().unwrap_or(""))
-                        }
-                        3 => a.0.amount().cmp(&b.0.amount()),
-                        4 => a.0.date().cmp(b.0.date()),
-                        _ => std::cmp::Ordering::Equal,
-                    }
-                })
-                .columns_sortable([true, true, true, true, true])
+                        widget::text!("{}€", transaction.amount().to_num_string()).into(),
+                        widget::text(
+                            transaction
+                                .date()
+                                .to_offset(fm_core::get_local_timezone().unwrap())
+                                .format(
+                                    &time::format_description::parse("[day].[month].[year]")
+                                        .unwrap()
+                                )
+                                .unwrap()
+                        )
+                        .into(),
+                    ])
+                    .map(Message::TransactionTable),
             ]
             .height(iced::Fill)
             .spacing(10)

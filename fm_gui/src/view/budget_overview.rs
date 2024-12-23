@@ -14,25 +14,35 @@ pub enum Message {
     CreateBudget,
     ViewBudget(fm_core::Id),
     Initialize(Vec<(fm_core::Budget, fm_core::Currency)>),
+    BudgetTable(utils::table_view::InnerMessage<Message>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BudgetOverview {
     budgets: Vec<(fm_core::Budget, fm_core::Currency)>,
+    budget_table: utils::table_view::State<(fm_core::Budget, fm_core::Currency), (), 3>,
 }
 
 impl BudgetOverview {
     pub fn new(budgets: Vec<(fm_core::Budget, fm_core::Currency)>) -> Self {
-        Self { budgets }
+        Self {
+            budgets: budgets.clone(),
+            budget_table: utils::table_view::State::new(budgets, ())
+                .sort_by(|a, b, column| match column {
+                    0 => a.0.name().cmp(b.0.name()),
+                    1 => a.1.cmp(&b.1),
+                    2 => a.0.total_value().cmp(&b.0.total_value()),
+                    _ => panic!(),
+                })
+                .sortable_columns([true, true, true]),
+        }
     }
 
     pub fn fetch(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
-            Self {
-                budgets: Vec::new(),
-            },
+            BudgetOverview::new(Vec::new()),
             iced::Task::future(async move {
                 let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
                 let mut tuples = Vec::new();
@@ -56,45 +66,49 @@ impl BudgetOverview {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::CreateBudget => Action::CreateBudget,
             Message::ViewBudget(id) => Action::ViewBudget(id),
             Message::Initialize(budgets) => {
-                self.budgets = budgets;
+                self.budgets = budgets.clone();
+                self.budget_table.set_items(budgets);
+                Action::None
+            }
+            Message::BudgetTable(inner) => {
+                match self.budget_table.perform(inner) {
+                    utils::table_view::Action::OuterMessage(m) => {
+                        return self.update(m, finance_manager)
+                    }
+                    _ => {}
+                }
                 Action::None
             }
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        let budget_table = utils::TableView::new(self.budgets.clone(), (), |budget, _| {
-            [
-                utils::link(widget::text(budget.0.name().to_string()))
-                    .on_press(Message::ViewBudget(*budget.0.id()))
-                    .into(),
-                widget::text!("{}", &budget.1).into(),
-                widget::text!("{}", budget.0.total_value()).into(),
-            ]
-        })
-        .headers([
-            "Name".to_string(),
-            "Current".to_string(),
-            "Total".to_string(),
-        ])
-        .sort_by(|a, b, column| match column {
-            0 => a.0.name().cmp(b.0.name()),
-            1 => a.1.cmp(&b.1),
-            2 => a.0.total_value().cmp(&b.0.total_value()),
-            _ => panic!(),
-        })
-        .columns_sortable([true, true, true]);
         widget::column![
             utils::heading("Budget Overview", utils::HeadingLevel::H1),
             widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
             widget::horizontal_rule(10),
-            budget_table,
+            utils::table_view::table_view(&self.budget_table)
+                .headers([
+                    "Name".to_string(),
+                    "Current".to_string(),
+                    "Total".to_string(),
+                ])
+                .view(|budget, _| {
+                    [
+                        utils::link(widget::text(budget.0.name().to_string()))
+                            .on_press(Message::ViewBudget(*budget.0.id()))
+                            .into(),
+                        widget::text!("{}", &budget.1).into(),
+                        widget::text!("{}", budget.0.total_value()).into(),
+                    ]
+                })
+                .map(Message::BudgetTable),
         ]
         .height(iced::Fill)
         .spacing(10)

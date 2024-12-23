@@ -14,19 +14,31 @@ pub enum Message {
     CreateAssetAccount,
     AccountView(fm_core::account::AssetAccount),
     Initialize(Vec<(fm_core::account::AssetAccount, fm_core::Currency)>),
+    TableViewMessage(utils::table_view::InnerMessage<Message>),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug)]
 pub struct AssetAccountOverview {
-    accounts: Vec<(fm_core::account::AssetAccount, fm_core::Currency)>,
+    account_table:
+        utils::table_view::State<(fm_core::account::AssetAccount, fm_core::Currency), (), 2>,
+}
+
+impl std::default::Default for AssetAccountOverview {
+    fn default() -> Self {
+        AssetAccountOverview::new(Vec::new())
+    }
 }
 
 impl AssetAccountOverview {
     pub fn new(accounts: Vec<(fm_core::account::AssetAccount, fm_core::Currency)>) -> Self {
-        let asset_accounts = accounts;
-
         Self {
-            accounts: asset_accounts,
+            account_table: utils::table_view::State::new(accounts, ())
+                .sort_by(|a, b, column| match column {
+                    0 => a.0.name().cmp(b.0.name()),
+                    1 => a.1.cmp(&b.1),
+                    _ => panic!(),
+                })
+                .sortable_columns([true, true]),
         }
     }
 
@@ -66,34 +78,37 @@ impl AssetAccountOverview {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::Initialize(accounts) => {
-                self.accounts = accounts;
-                Action::None
+                self.account_table.set_items(accounts);
             }
-            Message::CreateAssetAccount => Action::CreateAssetAccount,
-            Message::AccountView(account) => Action::ViewAccount(account.id()),
+            Message::CreateAssetAccount => return Action::CreateAssetAccount,
+            Message::AccountView(account) => return Action::ViewAccount(account.id()),
+            Message::TableViewMessage(m) => match self.account_table.perform(m) {
+                utils::table_view::Action::OuterMessage(m) => {
+                    return self.update(m, finance_manager);
+                }
+                utils::table_view::Action::PageChange(_) => {}
+                utils::table_view::Action::None => {}
+            },
         }
+        Action::None
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        let account_table = utils::TableView::new(self.accounts.clone(), (), |account, _| {
-            [
-                utils::link(widget::text(account.0.name().to_string()))
-                    .on_press(Message::AccountView(account.0.clone()))
-                    .into(),
-                utils::colored_currency_display(&account.1),
-            ]
-        })
-        .sort_by(|a, b, column| match column {
-            0 => a.0.name().cmp(b.0.name()),
-            1 => a.1.cmp(&b.1),
-            _ => panic!(),
-        })
-        .columns_sortable([true, true])
-        .headers(["Account".to_string(), "Current Value".to_string()]);
+        let account_table = utils::table_view::table_view(&self.account_table)
+            .headers(["Account".to_string(), "Current Value".to_string()])
+            .view(|account, _| {
+                [
+                    utils::link(widget::text(account.0.name().to_string()))
+                        .on_press(Message::AccountView(account.0.clone()))
+                        .into(),
+                    utils::colored_currency_display(&account.1),
+                ]
+            })
+            .map(Message::TableViewMessage);
 
         widget::column![
             utils::heading("Asset Account Overview", utils::HeadingLevel::H1),

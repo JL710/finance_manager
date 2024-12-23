@@ -1,15 +1,136 @@
 use iced::widget;
 
-pub struct TableView<'a, T, C, Message, const COLUMNS: usize, TR>
-where
-    TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
-{
+#[derive(Debug, Clone)]
+pub enum Action<Message> {
+    OuterMessage(Message),
+    PageChange(usize),
+    None,
+}
+
+#[derive(Debug, Clone)]
+pub enum InnerMessage<Message> {
+    OuterMessage(Box<Message>),
+    SortByColumn(usize),
+    ChangePageBy(isize),
+}
+
+pub struct State<T, C, const COLUMNS: usize> {
     items: Vec<T>,
     context: C,
-    headers: Option<[String; COLUMNS]>,
+    page_size: usize,
+    page: usize,
+    sort_column: Option<usize>,
+    sort_reverse: bool,
     sortable: [bool; COLUMNS],
-    to_row: TR,
-    sort_by_callback: Option<Box<dyn Fn(&T, &T, usize) -> std::cmp::Ordering + 'a>>,
+    sort_by_callback: Option<Box<dyn Fn(&T, &T, usize) -> std::cmp::Ordering>>,
+}
+
+impl<T, C, const COLUMNS: usize> std::fmt::Debug for State<T, C, COLUMNS> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{ items length: {:?}, context, page_size: {:?}, page: {:?}, sort_column: {:?}, sort_reverse: {:?}, sortable: {:?} }}",
+         self.items.len(), self.page_size, self.page, self.sort_column, self.sort_reverse, self.sortable)
+    }
+}
+
+impl<T, C, const COLUMNS: usize> State<T, C, COLUMNS> {
+    pub fn new(items: Vec<T>, context: C) -> Self {
+        Self {
+            items,
+            context,
+            page_size: 50,
+            page: 0,
+            sort_column: None,
+            sort_reverse: false,
+            sortable: [false; COLUMNS],
+            sort_by_callback: None,
+        }
+    }
+
+    pub fn sortable_columns(mut self, sortable: [bool; COLUMNS]) -> Self {
+        self.sortable = sortable;
+        self
+    }
+
+    /// Callback produces based on the items T and the column index and reverse state a Ordering.
+    pub fn sort_by(
+        mut self,
+        callback: impl Fn(&T, &T, usize) -> std::cmp::Ordering + 'static,
+    ) -> Self {
+        self.sort_by_callback = Some(Box::new(callback));
+        self
+    }
+
+    fn sort(&mut self, column: usize, reverse: bool) {
+        if let Some(sort_by_callback) = &self.sort_by_callback {
+            self.items.sort_by(|a, b| {
+                let mut ordering = sort_by_callback(a, b, column);
+                if reverse {
+                    ordering = ordering.reverse();
+                }
+                ordering
+            });
+        }
+    }
+
+    pub fn page_size(mut self, page_size: usize) -> Self {
+        self.page_size = page_size;
+        self.page = 0;
+        self
+    }
+
+    pub fn page(mut self, page: usize) {
+        if page < 0 {
+            self.page = 0;
+            return;
+        }
+        if page > self.max_page() {
+            self.page = self.max_page();
+            return;
+        }
+        self.page = page;
+    }
+
+    fn max_page(&self) -> usize {
+        self.items.len() / self.page_size
+    }
+
+    pub fn perform<Message>(&mut self, message: InnerMessage<Message>) -> Action<Message> {
+        match message {
+            InnerMessage::ChangePageBy(value) => {
+                let new_page = (self.page as i32 + value as i32).max(0) as usize;
+                if new_page < self.max_page() {
+                    self.page = new_page;
+                    Action::PageChange(new_page)
+                } else {
+                    Action::None
+                }
+            }
+            InnerMessage::OuterMessage(outer) => Action::OuterMessage(*outer),
+            InnerMessage::SortByColumn(column) => {
+                if self.sort_column == Some(column) {
+                    self.sort_reverse = !self.sort_reverse;
+                } else {
+                    self.sort_column = Some(column);
+                    self.sort_reverse = false;
+                }
+                self.sort(column, self.sort_reverse);
+                self.page = 0;
+                Action::PageChange(0)
+            }
+        }
+    }
+
+    pub fn set_items(&mut self, items: Vec<T>) {
+        self.items = items;
+        self.page = 0;
+        self.sort_column = None;
+        self.sort_reverse = false;
+    }
+}
+
+pub struct TableView<'a, T, C, const COLUMNS: usize> {
+    state: &'a State<T, C, COLUMNS>,
+    headers: Option<[String; COLUMNS]>,
     alignment: Option<
         Box<
             dyn Fn(&T, usize, usize) -> (iced::alignment::Horizontal, iced::alignment::Vertical)
@@ -18,43 +139,17 @@ where
     >,
     spacing: u16,
     padding: u16,
-    page_size: usize,
-    page_count: usize,
-    on_page_change: Option<Box<dyn Fn(usize) -> Message + 'a>>,
 }
 
-impl<'a, T: 'a, C: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
-    TableView<'a, T, C, Message, COLUMNS, TR>
-where
-    TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
-{
-    pub fn new(items: Vec<T>, context: C, to_row: TR) -> Self {
-        const PAGE_SIZE: usize = 50;
-        let page_count = items.len() / PAGE_SIZE;
+impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
+    pub fn new(state: &'a State<T, C, COLUMNS>) -> Self {
         Self {
-            page_count: if page_count > 0 { page_count } else { 1 },
-            items,
-            context,
+            state,
             headers: None,
-            sortable: [false; COLUMNS],
-            to_row,
-            sort_by_callback: None,
             alignment: None,
             spacing: 10,
             padding: 10,
-            page_size: PAGE_SIZE,
-            on_page_change: None,
         }
-    }
-
-    pub fn on_page_change(mut self, callback: impl Fn(usize) -> Message + 'a) -> Self {
-        self.on_page_change = Some(Box::new(callback));
-        self
-    }
-
-    pub fn columns_sortable(mut self, sortable: [bool; COLUMNS]) -> Self {
-        self.sortable = sortable;
-        self
     }
 
     pub fn spacing(mut self, spacing: u16) -> Self {
@@ -80,24 +175,6 @@ where
         self
     }
 
-    /// Callback produces based on the items T and the column index and reverse state a Ordering.
-    pub fn sort_by(mut self, callback: impl Fn(&T, &T, usize) -> std::cmp::Ordering + 'a) -> Self {
-        self.sort_by_callback = Some(Box::new(callback));
-        self
-    }
-
-    fn sort(&mut self, column: usize, reverse: bool) {
-        if let Some(sort_by_callback) = &self.sort_by_callback {
-            self.items.sort_by(|a, b| {
-                let mut ordering = sort_by_callback(a, b, column);
-                if reverse {
-                    ordering = ordering.reverse();
-                }
-                ordering
-            });
-        }
-    }
-
     /// Sets the alignment for the content of cells.
     ///
     /// Params:
@@ -116,77 +193,23 @@ where
         self
     }
 
-    pub fn page_size(mut self, page_size: usize) -> Self {
-        let page_count = self.items.len() / page_size;
-        self.page_count = if page_count > 0 { page_count } else { 1 };
-        self.page_size = page_size;
-        self
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct TableViewState {
-    sort_column: usize,
-    reverse: bool,
-    page: usize,
-}
-
-#[derive(Debug, Clone)]
-pub enum TableViewMessage<Message> {
-    Message(Message),
-    SortByColumn(usize),
-    ChangePageBy(isize),
-}
-
-impl<'a, T: 'a, C: 'a, Message, const COLUMNS: usize, TR> widget::Component<Message>
-    for TableView<'a, T, C, Message, COLUMNS, TR>
-where
-    TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
-    Message: 'a + Clone,
-{
-    type State = TableViewState;
-    type Event = TableViewMessage<Message>;
-
-    fn update(&mut self, state: &mut Self::State, event: Self::Event) -> Option<Message> {
-        match event {
-            Self::Event::Message(message) => return Some(message),
-            Self::Event::SortByColumn(column) => {
-                if state.sort_column == column {
-                    state.reverse = !state.reverse;
-                } else {
-                    state.sort_column = column;
-                    state.reverse = false;
-                }
-                self.sort(state.sort_column, state.reverse);
-                state.page = 0;
-                if let Some(on_page_change) = &self.on_page_change {
-                    return Some(on_page_change(0));
-                }
-            }
-            Self::Event::ChangePageBy(page) => {
-                let new_page = (state.page as i32 + page as i32).max(0) as usize;
-                if new_page < self.page_count {
-                    state.page = new_page;
-                }
-                if let Some(on_page_change) = &self.on_page_change {
-                    return Some(on_page_change(state.page));
-                }
-            }
-        }
-        None
-    }
-
-    fn view(&self, state: &Self::State) -> iced::Element<'a, Self::Event> {
+    pub fn view<Message: Clone + 'a>(
+        self,
+        to_row: impl Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS],
+    ) -> iced::Element<'a, InnerMessage<Message>> {
         let mut data_column = widget::column![].spacing(self.spacing);
         for (row_index, item) in self
+            .state
             .items
             .iter()
             .enumerate()
-            .skip(state.page * self.page_size)
-            .take(self.page_size)
+            .skip(self.state.page * self.state.page_size)
+            .take(self.state.page_size)
         {
-            let row_elements: [iced::Element<TableViewMessage<Message>>; COLUMNS] =
-                (self.to_row)(item, &self.context).map(|x| x.map(|m| TableViewMessage::Message(m)));
+            let row_elements: [iced::Element<InnerMessage<Message>>; COLUMNS] =
+                (to_row)(item, &self.state.context)
+                    .map(|x| x.map(|m| InnerMessage::OuterMessage(Box::new(m))));
+
             let mut row = widget::row![].spacing(self.spacing);
             for (column_index, element) in row_elements.into_iter().enumerate() {
                 let mut cell = widget::container(element).width(iced::Length::FillPortion(1));
@@ -211,12 +234,13 @@ where
             for (index, header) in headers.iter().enumerate() {
                 row = row.push(
                     widget::row![widget::text(header.clone()),]
-                        .push_maybe(if self.sortable[index] {
+                        .push_maybe(if self.state.sortable[index] {
                             Some(
-                                    widget::button(
-                                        widget::svg::Svg::new(widget::svg::Handle::from_memory(
-                                            std::borrow::Cow::from(if index == state.sort_column {
-                                                if state.reverse {
+                                widget::button(
+                                    widget::svg::Svg::new(widget::svg::Handle::from_memory(
+                                        std::borrow::Cow::from(
+                                            if Some(index) == self.state.sort_column {
+                                                if self.state.sort_reverse {
                                                     &include_bytes!(
                                                         "../../assets/filter-circle-fill.svg"
                                                     )[..]
@@ -227,14 +251,15 @@ where
                                                 }
                                             } else {
                                                 &include_bytes!("../../assets/filter.svg")[..]
-                                            }),
-                                        ))
-                                        .content_fit(iced::ContentFit::Fill)
-                                        .width(iced::Length::Shrink),
-                                    )
-                                    .padding(3)
-                                    .on_press(TableViewMessage::SortByColumn(index)),
+                                            },
+                                        ),
+                                    ))
+                                    .content_fit(iced::ContentFit::Fill)
+                                    .width(iced::Length::Shrink),
                                 )
+                                .padding(3)
+                                .on_press(InnerMessage::SortByColumn(index)),
+                            )
                         } else {
                             None
                         })
@@ -253,9 +278,9 @@ where
         column = column.push(widget::scrollable(data_column).height(iced::Fill));
         column = column.push(
             widget::row![
-                widget::button("Previous").on_press(TableViewMessage::ChangePageBy(-1)),
-                widget::text!("Page {}/{}", state.page + 1, self.page_count),
-                widget::button("Next").on_press(TableViewMessage::ChangePageBy(1))
+                widget::button("Previous").on_press(InnerMessage::ChangePageBy(-1)),
+                widget::text!("Page {}/{}", self.state.page + 1, self.state.max_page() + 1),
+                widget::button("Next").on_press(InnerMessage::ChangePageBy(1))
             ]
             .spacing(10),
         );
@@ -264,12 +289,8 @@ where
     }
 }
 
-impl<'a, T: 'a, C: 'a, Message: Clone + 'a, const COLUMNS: usize, TR>
-    From<TableView<'a, T, C, Message, COLUMNS, TR>> for iced::Element<'a, Message>
-where
-    TR: Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
-{
-    fn from(value: TableView<'a, T, C, Message, COLUMNS, TR>) -> Self {
-        widget::component(value)
-    }
+pub fn table_view<'a, T, C, const COLUMNS: usize>(
+    state: &'a State<T, C, COLUMNS>,
+) -> TableView<'a, T, C, COLUMNS> {
+    TableView::new(state)
 }

@@ -16,17 +16,16 @@ pub enum Message {
     ValueChanged(utils::currency_input::Action),
     DescriptionInputChanged(widget::text_editor::Action),
     AddTransactionToggle,
-    AddTransaction(fm_core::Transaction),
     ChangeTransactionSign(fm_core::Id, fm_core::Sign),
     RemoveTransaction(fm_core::Id),
     AddTransactionMessage(add_transaction::Message),
-    FetchedAddTransaction(add_transaction::AddTransaction),
     Submit,
     Initialize(fm_core::Bill, Vec<(fm_core::Transaction, fm_core::Sign)>),
     BillCreated(fm_core::Id),
+    TransactionTable(utils::table_view::InnerMessage<Message>),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CreateBillView {
     id: Option<fm_core::Id>,
     name_input: String,
@@ -34,16 +33,55 @@ pub struct CreateBillView {
     value: utils::currency_input::State,
     due_date_input: utils::date_input::State,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
+    transaction_table: utils::table_view::State<(fm_core::Transaction, fm_core::Sign), (), 5>,
     add_transaction: Option<add_transaction::AddTransaction>,
     submitted: bool,
 }
 
+impl std::default::Default for CreateBillView {
+    fn default() -> Self {
+        Self {
+            id: None,
+            name_input: String::new(),
+            description_input: widget::text_editor::Content::default(),
+            value: utils::currency_input::State::default(),
+            due_date_input: utils::date_input::State::default(),
+            transactions: Vec::new(),
+            transaction_table: utils::table_view::State::new(Vec::new(), ())
+                .sort_by(
+                    |a: &(fm_core::Transaction, fm_core::Sign),
+                     b: &(fm_core::Transaction, fm_core::Sign),
+                     column| match column {
+                        0 => match (a.1, b.1) {
+                            (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
+                                std::cmp::Ordering::Less
+                            }
+                            (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
+                                std::cmp::Ordering::Greater
+                            }
+                            _ => std::cmp::Ordering::Equal,
+                        },
+                        2 => a.0.title().cmp(b.0.title()),
+                        3 => a.0.amount().cmp(&b.0.amount()),
+                        4 => a.0.date().cmp(b.0.date()),
+                        _ => panic!(),
+                    },
+                )
+                .sortable_columns([true, false, true, true, true]),
+            add_transaction: None,
+            submitted: false,
+        }
+    }
+}
+
 impl CreateBillView {
     pub fn new_with_transaction(transaction: fm_core::Transaction) -> Self {
-        Self {
-            transactions: vec![(transaction, fm_core::Sign::Negative)],
-            ..Self::default()
-        }
+        let mut new = Self::default();
+        new.transactions
+            .push((transaction.clone(), fm_core::Sign::Negative));
+        new.transaction_table
+            .set_items(vec![(transaction, fm_core::Sign::Negative)]);
+        new
     }
 
     pub fn fetch(
@@ -91,7 +129,8 @@ impl CreateBillView {
                 );
                 self.value = utils::currency_input::State::new(bill.value().clone());
                 self.due_date_input = utils::date_input::State::new(*bill.due_date());
-                self.transactions = transactions;
+                self.transactions = transactions.clone();
+                self.transaction_table.set_items(transactions);
                 self.add_transaction = None;
             }
             Message::DueDateChanged(action) => {
@@ -155,23 +194,10 @@ impl CreateBillView {
                     return Action::None;
                 }
                 let ignored_transactions = self.transactions.iter().map(|x| *x.0.id()).collect();
-                return Action::Task(iced::Task::future(async move {
-                    Message::FetchedAddTransaction(
-                        add_transaction::AddTransaction::fetch(
-                            finance_manager,
-                            ignored_transactions,
-                        )
-                        .await
-                        .unwrap(),
-                    )
-                }));
-            }
-            Message::FetchedAddTransaction(add_transaction) => {
-                self.add_transaction = Some(add_transaction);
-            }
-            Message::AddTransaction(transaction) => {
-                self.transactions
-                    .push((transaction, fm_core::Sign::Positive));
+                let (view, task) =
+                    add_transaction::AddTransaction::fetch(finance_manager, ignored_transactions);
+                self.add_transaction = Some(view);
+                return Action::Task(task.map(Message::AddTransactionMessage));
             }
             Message::ChangeTransactionSign(transaction_id, sign) => {
                 self.transactions
@@ -192,6 +218,7 @@ impl CreateBillView {
                         add_transaction::Action::AddTransaction(transaction) => {
                             self.transactions
                                 .push((transaction, fm_core::Sign::Negative));
+                            self.transaction_table.set_items(self.transactions.clone());
                         }
                         add_transaction::Action::Task(task) => {
                             return Action::Task(task.map(Message::AddTransactionMessage));
@@ -200,6 +227,12 @@ impl CreateBillView {
                     }
                 }
             }
+            Message::TransactionTable(inner) => match self.transaction_table.perform(inner) {
+                utils::table_view::Action::OuterMessage(m) => {
+                    return self.update(m, finance_manager)
+                }
+                _ => {}
+            },
         }
         Action::None
     }
@@ -236,62 +269,46 @@ impl CreateBillView {
             .spacing(10),
             "Transactions:",
             widget::container(
-                utils::TableView::new(self.transactions.clone(), (), |(transaction, sign), _| {
-                    let transaction_id = *transaction.id();
-                    [
-                        widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
-                            .on_toggle(move |x| {
-                                Message::ChangeTransactionSign(
-                                    transaction_id,
-                                    if x {
-                                        fm_core::Sign::Positive
-                                    } else {
-                                        fm_core::Sign::Negative
-                                    },
-                                )
-                            })
+                utils::table_view::table_view(&self.transaction_table)
+                    .headers(["", "", "Title", "Amount", "Date",])
+                    .alignment(|_, _, _| (
+                        iced::alignment::Horizontal::Left,
+                        iced::alignment::Vertical::Center
+                    ))
+                    .view(|(transaction, sign), _| {
+                        let transaction_id = *transaction.id();
+                        [
+                            widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
+                                .on_toggle(move |x| {
+                                    Message::ChangeTransactionSign(
+                                        transaction_id,
+                                        if x {
+                                            fm_core::Sign::Positive
+                                        } else {
+                                            fm_core::Sign::Negative
+                                        },
+                                    )
+                                })
+                                .into(),
+                            widget::button("Delete")
+                                .on_press(Message::RemoveTransaction(transaction_id))
+                                .into(),
+                            widget::text(transaction.title().clone()).into(),
+                            widget::text(transaction.amount().to_num_string()).into(),
+                            widget::text(
+                                transaction
+                                    .date()
+                                    .to_offset(fm_core::get_local_timezone().unwrap())
+                                    .format(
+                                        &time::format_description::parse("[day].[month].[year]")
+                                            .unwrap(),
+                                    )
+                                    .unwrap(),
+                            )
                             .into(),
-                        widget::button("Delete")
-                            .on_press(Message::RemoveTransaction(transaction_id))
-                            .into(),
-                        widget::text(transaction.title().clone()).into(),
-                        widget::text(transaction.amount().to_num_string()).into(),
-                        widget::text(
-                            transaction
-                                .date()
-                                .to_offset(fm_core::get_local_timezone().unwrap())
-                                .format(
-                                    &time::format_description::parse("[day].[month].[year]")
-                                        .unwrap(),
-                                )
-                                .unwrap(),
-                        )
-                        .into(),
-                    ]
-                })
-                .headers(["", "", "Title", "Amount", "Date",])
-                .sort_by(|a, b, column| match column {
-                    0 => {
-                        match (a.1, b.1) {
-                            (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
-                                std::cmp::Ordering::Less
-                            }
-                            (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
-                                std::cmp::Ordering::Greater
-                            }
-                            _ => std::cmp::Ordering::Equal,
-                        }
-                    }
-                    2 => a.0.title().cmp(b.0.title()),
-                    3 => a.0.amount().cmp(&b.0.amount()),
-                    4 => a.0.date().cmp(b.0.date()),
-                    _ => panic!(),
-                })
-                .columns_sortable([true, false, true, true, true])
-                .alignment(|_, _, _| (
-                    iced::alignment::Horizontal::Left,
-                    iced::alignment::Vertical::Center
-                ))
+                        ]
+                    })
+                    .map(Message::TransactionTable)
             )
             .height(iced::Fill),
             widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
@@ -315,8 +332,6 @@ mod add_transaction {
     use async_std::sync::Mutex;
     use std::sync::Arc;
 
-    use anyhow::Result;
-
     use iced::widget;
 
     pub enum Action {
@@ -332,43 +347,67 @@ mod add_transaction {
         FilterComponent(utils::filter_component::InnerMessage),
         AddTransaction(fm_core::Transaction),
         FetchedTransactions(Vec<fm_core::Transaction>),
+        Table(utils::table_view::InnerMessage<Message>),
+        Init(
+            Option<utils::filter_component::FilterComponent>,
+            Vec<fm_core::Transaction>,
+            Vec<fm_core::Id>,
+        ),
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct AddTransaction {
-        accounts: Vec<fm_core::account::Account>,
-        categories: Vec<fm_core::Category>,
-        bills: Vec<fm_core::Bill>,
-        budgets: Vec<fm_core::Budget>,
         filter: Option<utils::filter_component::FilterComponent>,
         transactions: Vec<fm_core::Transaction>,
         ignored_transactions: Vec<fm_core::Id>,
+        table: utils::table_view::State<fm_core::Transaction, (), 4>,
     }
 
     impl AddTransaction {
-        pub async fn fetch(
+        pub fn new(
+            filter: Option<utils::filter_component::FilterComponent>,
+            transactions: Vec<fm_core::Transaction>,
+            ignored_transactions: Vec<fm_core::Id>,
+        ) -> Self {
+            Self {
+                filter: filter,
+                transactions: transactions.clone(),
+                ignored_transactions,
+                table: utils::table_view::State::new(transactions, ())
+                    .sort_by(|a, b, column| match column {
+                        1 => a.title().cmp(b.title()),
+                        2 => a.amount().cmp(&b.amount()),
+                        3 => a.date().cmp(b.date()),
+                        _ => panic!(),
+                    })
+                    .sortable_columns([false, true, true, true]),
+            }
+        }
+
+        pub fn fetch(
             finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
             ignored_transactions: Vec<fm_core::Id>,
-        ) -> Result<Self> {
-            let locked_manager = finance_manager.lock().await;
-            let accounts = locked_manager.get_accounts().await?;
-            let categories = locked_manager.get_categories().await?;
-            let bills = locked_manager.get_bills().await?;
-            let budgets = locked_manager.get_budgets().await?;
-            Ok(Self {
-                filter: Some(utils::filter_component::FilterComponent::new(
-                    accounts.clone(),
-                    categories.clone(),
-                    bills.clone(),
-                    budgets.clone(),
-                )),
-                accounts,
-                categories,
-                bills,
-                budgets,
-                transactions: Vec::new(),
-                ignored_transactions,
-            })
+        ) -> (Self, iced::Task<Message>) {
+            (
+                Self::new(None, Vec::new(), Vec::new()),
+                iced::Task::future(async move {
+                    let locked_manager = finance_manager.lock().await;
+                    let accounts = locked_manager.get_accounts().await.unwrap();
+                    let categories = locked_manager.get_categories().await.unwrap();
+                    let bills = locked_manager.get_bills().await.unwrap();
+                    let budgets = locked_manager.get_budgets().await.unwrap();
+                    Message::Init(
+                        Some(utils::filter_component::FilterComponent::new(
+                            accounts.clone(),
+                            categories.clone(),
+                            bills.clone(),
+                            budgets.clone(),
+                        )),
+                        Vec::new(),
+                        ignored_transactions,
+                    )
+                }),
+            )
         }
 
         pub fn update(
@@ -401,6 +440,7 @@ mod add_transaction {
                 Message::AddTransaction(transaction) => {
                     self.ignored_transactions.push(*transaction.id());
                     self.transactions.retain(|x| x.id() != transaction.id());
+                    self.table.set_items(self.transactions.clone());
                     Action::AddTransaction(transaction)
                 }
                 Message::FetchedTransactions(transactions) => {
@@ -413,6 +453,23 @@ mod add_transaction {
                         }
                         true
                     });
+                    self.table.set_items(self.transactions.clone());
+                    Action::None
+                }
+                Message::Table(inner) => {
+                    match self.table.perform(inner) {
+                        utils::table_view::Action::OuterMessage(m) => {
+                            return self.update(m, finance_manager);
+                        }
+                        _ => {}
+                    }
+                    Action::None
+                }
+                Message::Init(filter, transactions, ignored_transactions) => {
+                    self.filter = filter;
+                    self.transactions = transactions.clone();
+                    self.table.set_items(transactions);
+                    self.ignored_transactions = ignored_transactions;
                     Action::None
                 }
             }
@@ -432,39 +489,35 @@ mod add_transaction {
                         .width(iced::Length::Fill),
                     )
                 } else {
-                    utils::TableView::new(self.transactions.clone(), (), |x, _| {
-                        [
-                            widget::button("Add")
-                                .on_press(Message::AddTransaction(x.clone()))
-                                .into(),
-                            widget::text(x.title().clone()).into(),
-                            widget::text(x.amount().to_num_string()).into(),
-                            widget::text(
-                                x.date()
-                                    .to_offset(fm_core::get_local_timezone().unwrap())
-                                    .format(
-                                        &time::format_description::parse("[day].[month].[year]")
+                    utils::table_view::table_view(&self.table)
+                        .headers([
+                            "".to_string(),
+                            "Title".to_string(),
+                            "Amount".to_string(),
+                            "Date".to_string(),
+                        ])
+                        .view(|x, _| {
+                            [
+                                widget::button("Add")
+                                    .on_press(Message::AddTransaction(x.clone()))
+                                    .into(),
+                                widget::text(x.title().clone()).into(),
+                                widget::text(x.amount().to_num_string()).into(),
+                                widget::text(
+                                    x.date()
+                                        .to_offset(fm_core::get_local_timezone().unwrap())
+                                        .format(
+                                            &time::format_description::parse(
+                                                "[day].[month].[year]",
+                                            )
                                             .unwrap(),
-                                    )
-                                    .unwrap(),
-                            )
-                            .into(),
-                        ]
-                    })
-                    .headers([
-                        "".to_string(),
-                        "Title".to_string(),
-                        "Amount".to_string(),
-                        "Date".to_string(),
-                    ])
-                    .sort_by(|a, b, column| match column {
-                        1 => a.title().cmp(b.title()),
-                        2 => a.amount().cmp(&b.amount()),
-                        3 => a.date().cmp(b.date()),
-                        _ => panic!(),
-                    })
-                    .columns_sortable([false, true, true, true])
-                    .into()
+                                        )
+                                        .unwrap(),
+                                )
+                                .into(),
+                            ]
+                        })
+                        .map(Message::Table)
                 }
             ]
             .spacing(10)
