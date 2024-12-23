@@ -13,7 +13,7 @@ pub enum Action {
 pub enum Message {
     DueDateChanged(utils::date_input::Action),
     NameInputChanged(String),
-    ValueChanged(Option<fm_core::Currency>),
+    ValueChanged(utils::currency_input::Action),
     DescriptionInputChanged(widget::text_editor::Action),
     AddTransactionToggle,
     AddTransaction(fm_core::Transaction),
@@ -31,7 +31,7 @@ pub struct CreateBillView {
     id: Option<fm_core::Id>,
     name_input: String,
     description_input: widget::text_editor::Content,
-    value: Option<fm_core::Currency>,
+    value: utils::currency_input::State,
     due_date_input: utils::date_input::State,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
     add_transaction: Option<add_transaction::AddTransaction>,
@@ -89,7 +89,7 @@ impl CreateBillView {
                 self.description_input = widget::text_editor::Content::with_text(
                     &bill.description().clone().unwrap_or_default(),
                 );
-                self.value = Some(bill.value().clone());
+                self.value = utils::currency_input::State::new(bill.value().clone());
                 self.due_date_input = utils::date_input::State::new(*bill.due_date());
                 self.transactions = transactions;
                 self.add_transaction = None;
@@ -100,8 +100,8 @@ impl CreateBillView {
             Message::NameInputChanged(name) => {
                 self.name_input = name;
             }
-            Message::ValueChanged(value) => {
-                self.value = value;
+            Message::ValueChanged(action) => {
+                self.value.perform(action);
             }
             Message::DescriptionInputChanged(action) => {
                 self.description_input.perform(action);
@@ -119,7 +119,7 @@ impl CreateBillView {
                     Some(self.description_input.text())
                 };
                 let due_date = self.due_date_input.date();
-                let value = self.value.clone().unwrap();
+                let value = self.value.currency().unwrap();
                 let mut transactions =
                     std::collections::HashMap::with_capacity(self.transactions.len());
                 for transaction in &self.transactions {
@@ -220,7 +220,9 @@ impl CreateBillView {
             .spacing(10),
             widget::row![
                 "Value: ",
-                utils::CurrencyInput::new(self.value.clone(), Message::ValueChanged).required(true)
+                utils::currency_input::currency_input(&self.value, true)
+                    .view()
+                    .map(Message::ValueChanged),
             ]
             .width(iced::Length::Fill)
             .spacing(10),
@@ -305,7 +307,7 @@ impl CreateBillView {
     }
 
     fn submittable(&self) -> bool {
-        !self.name_input.is_empty() && self.value.is_some()
+        !self.name_input.is_empty() && self.value.currency().is_some()
     }
 }
 

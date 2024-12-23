@@ -1,6 +1,6 @@
 use iced::widget;
 
-mod currency_input;
+pub mod currency_input;
 pub mod date_input;
 pub mod filter_component;
 pub mod style;
@@ -8,11 +8,7 @@ mod table_view;
 pub mod timespan_input;
 pub mod transaction_table;
 
-pub use currency_input::CurrencyInput;
-pub use date_input::DateInput;
-pub use filter_component::FilterComponent;
 pub use table_view::TableView;
-pub use timespan_input::TimespanInput;
 pub use transaction_table::TransactionTable;
 
 pub fn labeled_entry<'a, Message: 'a + Clone>(

@@ -37,7 +37,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    AmountInput(Option<fm_core::Currency>),
+    AmountInput(utils::currency_input::Action),
     TitleInput(String),
     DescriptionInput(widget::text_editor::Action),
     DateInput(utils::date_input::Action),
@@ -75,7 +75,7 @@ pub enum Message {
 #[derive(Debug)]
 pub struct CreateTransactionView {
     id: Option<fm_core::Id>,
-    amount_input: Option<fm_core::Currency>,
+    amount_input: utils::currency_input::State,
     title_input: String,
     description_input: widget::text_editor::Content,
     source_input: Option<SelectedAccount>,
@@ -98,7 +98,7 @@ impl CreateTransactionView {
         (
             Self {
                 id: None,
-                amount_input: None,
+                amount_input: utils::currency_input::State::default(),
                 title_input: String::new(),
                 description_input: widget::text_editor::Content::new(),
                 source_input: None,
@@ -181,8 +181,8 @@ impl CreateTransactionView {
                         .map(|x| Message::TransactionCreated(*x.id())),
                 );
             }
-            Message::AmountInput(content) => {
-                self.amount_input = content;
+            Message::AmountInput(action) => {
+                self.amount_input.perform(action);
             }
             Message::TitleInput(content) => self.title_input = content,
             Message::DescriptionInput(action) => self.description_input.perform(action),
@@ -268,7 +268,7 @@ impl CreateTransactionView {
                     available_categories,
                 ) = *init;
                 self.id = Some(*transaction.id());
-                self.amount_input = Some(transaction.amount());
+                self.amount_input = utils::currency_input::State::new(transaction.amount());
                 self.title_input.clone_from(transaction.title());
                 self.description_input = widget::text_editor::Content::with_text(
                     transaction.description().unwrap_or_default(),
@@ -361,8 +361,9 @@ impl CreateTransactionView {
             utils::heading("Create Transaction", utils::HeadingLevel::H1),
             widget::row![
                 "Amount: ",
-                utils::CurrencyInput::new(self.amount_input.clone(), Message::AmountInput)
-                    .required(true)
+                utils::currency_input::currency_input(&self.amount_input, true)
+                    .view()
+                    .map(Message::AmountInput),
             ]
             .width(iced::Fill)
             .spacing(10),
@@ -450,7 +451,7 @@ impl CreateTransactionView {
             return false;
         }
         // check if amount is a valid currency
-        if self.amount_input.is_none() {
+        if self.amount_input.currency().is_none() {
             return false;
         }
         // check if date is empty
@@ -481,7 +482,7 @@ impl CreateTransactionView {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> iced::Task<fm_core::Transaction> {
         let option_id = self.id;
-        let amount = self.amount_input.clone().unwrap();
+        let amount = self.amount_input.currency().unwrap();
         let title = self.title_input.clone();
         let description = if self.description_input.text().trim().is_empty() {
             None

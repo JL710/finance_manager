@@ -17,21 +17,35 @@ pub enum Message {
     NoteInput(widget::text_editor::Action),
     IbanInput(String),
     BicInput(String),
-    OffsetInput(Option<fm_core::Currency>),
+    OffsetInput(utils::currency_input::Action),
     Submit,
     AssetAccountCreated(fm_core::Id),
     Initialize(fm_core::account::AssetAccount),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CreateAssetAccountDialog {
     id: Option<fm_core::Id>,
     name_input: String,
     note_input: widget::text_editor::Content,
     iban_input: String,
     bic_input: String,
-    offset_input: Option<fm_core::Currency>,
+    offset_input: utils::currency_input::State,
     submitted: bool,
+}
+
+impl std::default::Default for CreateAssetAccountDialog {
+    fn default() -> Self {
+        Self {
+            offset_input: utils::currency_input::State::new(fm_core::Currency::from(0.0)),
+            id: None,
+            name_input: String::new(),
+            note_input: widget::text_editor::Content::default(),
+            iban_input: String::new(),
+            bic_input: String::new(),
+            submitted: false,
+        }
+    }
 }
 
 impl CreateAssetAccountDialog {
@@ -75,14 +89,14 @@ impl CreateAssetAccountDialog {
                     .clone()
                     .map_or(String::new(), |iban| iban.to_string());
                 self.bic_input = account.bic().unwrap_or_default().to_string();
-                self.offset_input = Some(account.offset().to_owned());
+                self.offset_input = utils::currency_input::State::new(account.offset().to_owned());
             }
             Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
             Message::NameInput(input) => self.name_input = input,
             Message::NoteInput(input) => self.note_input.perform(input),
             Message::IbanInput(input) => self.iban_input = input,
             Message::BicInput(input) => self.bic_input = input,
-            Message::OffsetInput(input) => self.offset_input = input,
+            Message::OffsetInput(action) => self.offset_input.perform(action),
             Message::Submit => {
                 self.submitted = true;
                 let name = self.name_input.clone();
@@ -101,7 +115,7 @@ impl CreateAssetAccountDialog {
                 } else {
                     Some(self.bic_input.clone())
                 };
-                let offset = self.offset_input.clone().unwrap();
+                let offset = self.offset_input.currency().unwrap();
                 let id = self.id;
                 return Action::Task(iced::Task::future(async move {
                     let account = if let Some(some_id) = id {
@@ -143,8 +157,9 @@ impl CreateAssetAccountDialog {
             utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
             widget::row![
                 "Offset",
-                utils::CurrencyInput::new(self.offset_input.clone(), Message::OffsetInput)
-                    .required(true)
+                utils::currency_input::currency_input(&self.offset_input, true)
+                    .view()
+                    .map(Message::OffsetInput),
             ]
             .width(iced::Fill)
             .spacing(10),
@@ -162,7 +177,7 @@ impl CreateAssetAccountDialog {
         if self.name_input.is_empty() {
             return false;
         }
-        if self.offset_input.is_none() {
+        if self.offset_input.currency().is_none() {
             return false;
         }
         true
