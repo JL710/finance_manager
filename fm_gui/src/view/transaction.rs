@@ -191,7 +191,7 @@ impl Transaction {
                             "Negative",
                             transaction
                                 .budget()
-                                .map_or(false, |x| x.1 == fm_core::Sign::Negative)
+                                .is_some_and(|x| x.1 == fm_core::Sign::Negative)
                         )
                     ]
                     .spacing(10),

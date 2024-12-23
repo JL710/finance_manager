@@ -30,13 +30,7 @@ impl State {
 
     /// Will return the user input as datetime if possible or default datetime if given.
     pub fn date(&self) -> Option<fm_core::DateTime> {
-        match super::parse_to_datetime(&self.value) {
-            Ok(value) => Some(value),
-            _ => match self.default_value {
-                Some(value) => Some(value),
-                _ => None,
-            },
-        }
+        super::parse_to_datetime(&self.value).map_or(self.default_value, Some)
     }
 
     pub fn raw_input(&self) -> &str {
@@ -63,7 +57,7 @@ pub struct DateInput<'a> {
 
 impl<'a> DateInput<'a> {
     pub fn view(self) -> iced::Element<'a, Action> {
-        iced::widget::text_input("Date", self.state.raw_input())
+        iced::widget::text_input(&self.placeholder, self.state.raw_input())
             .on_input(Action::InputChanged)
             .style(move |theme: &iced::Theme, status| {
                 let mut original = iced::widget::text_input::default(theme, status);

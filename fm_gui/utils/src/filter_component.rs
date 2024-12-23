@@ -437,7 +437,7 @@ fn generate_filter_column<
             .push_maybe(if filter.timespan.is_some() {
                 Some(
                     crate::timespan_input::timespan_input(
-                        timespan_input_states.get(&filter).unwrap(),
+                        timespan_input_states.get(filter).unwrap(),
                     )
                     .view()
                     .map(move |x| (change_timespan)(filter.clone(), x)),

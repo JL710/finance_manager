@@ -24,11 +24,7 @@ impl State {
     }
 
     pub fn currency(&self) -> Option<fm_core::Currency> {
-        if let Some(x) = super::parse_number(&self.value) {
-            Some(fm_core::Currency::from(x))
-        } else {
-            None
-        }
+        super::parse_number(&self.value).map(|x| fm_core::Currency::from(x))
     }
 }
 
@@ -67,6 +63,6 @@ impl<'a> CurrencyInput<'a> {
     }
 }
 
-pub fn currency_input<'a>(state: &'a State, required: bool) -> CurrencyInput<'a> {
+pub fn currency_input(state: &State, required: bool) -> CurrencyInput<'_> {
     CurrencyInput::new(state, required)
 }

@@ -227,12 +227,13 @@ impl CreateBillView {
                     }
                 }
             }
-            Message::TransactionTable(inner) => match self.transaction_table.perform(inner) {
-                utils::table_view::Action::OuterMessage(m) => {
-                    return self.update(m, finance_manager)
+            Message::TransactionTable(inner) => {
+                if let utils::table_view::Action::OuterMessage(m) =
+                    self.transaction_table.perform(inner)
+                {
+                    return self.update(m, finance_manager);
                 }
-                _ => {}
-            },
+            }
         }
         Action::None
     }
@@ -457,11 +458,8 @@ mod add_transaction {
                     Action::None
                 }
                 Message::Table(inner) => {
-                    match self.table.perform(inner) {
-                        utils::table_view::Action::OuterMessage(m) => {
-                            return self.update(m, finance_manager);
-                        }
-                        _ => {}
+                    if let utils::table_view::Action::OuterMessage(m) = self.table.perform(inner) {
+                        return self.update(m, finance_manager);
                     }
                     Action::None
                 }

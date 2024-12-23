@@ -79,10 +79,6 @@ impl<T, C, const COLUMNS: usize> State<T, C, COLUMNS> {
     }
 
     pub fn page(mut self, page: usize) {
-        if page < 0 {
-            self.page = 0;
-            return;
-        }
         if page > self.max_page() {
             self.page = self.max_page();
             return;
@@ -289,8 +285,8 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
     }
 }
 
-pub fn table_view<'a, T, C, const COLUMNS: usize>(
-    state: &'a State<T, C, COLUMNS>,
-) -> TableView<'a, T, C, COLUMNS> {
+pub fn table_view<T, C, const COLUMNS: usize>(
+    state: &State<T, C, COLUMNS>,
+) -> TableView<'_, T, C, COLUMNS> {
     TableView::new(state)
 }

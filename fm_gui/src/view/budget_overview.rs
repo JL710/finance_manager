@@ -66,7 +66,7 @@ impl BudgetOverview {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::CreateBudget => Action::CreateBudget,
@@ -77,11 +77,9 @@ impl BudgetOverview {
                 Action::None
             }
             Message::BudgetTable(inner) => {
-                match self.budget_table.perform(inner) {
-                    utils::table_view::Action::OuterMessage(m) => {
-                        return self.update(m, finance_manager)
-                    }
-                    _ => {}
+                if let utils::table_view::Action::OuterMessage(m) = self.budget_table.perform(inner)
+                {
+                    return self.update(m, _finance_manager);
                 }
                 Action::None
             }

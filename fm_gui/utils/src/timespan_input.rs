@@ -61,7 +61,7 @@ impl<'a> TimespanInput<'a> {
     }
 }
 
-pub fn timespan_input<'a>(state: &'a State) -> TimespanInput<'a> {
+pub fn timespan_input(state: &State) -> TimespanInput<'_> {
     TimespanInput { state }
 }
 

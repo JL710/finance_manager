@@ -417,7 +417,7 @@ impl CreateTransactionView {
                     "Negative",
                     self.budget_input
                         .as_ref()
-                        .map_or(false, |x| x.1 == fm_core::Sign::Negative)
+                        .is_some_and(|x| x.1 == fm_core::Sign::Negative)
                 )
                 .on_toggle_maybe(if self.budget_input.is_some() {
                     Some(Message::BudgetSignChange)
