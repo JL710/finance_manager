@@ -142,6 +142,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         timespan: Timespan,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend;
 
+    #[allow(clippy::too_many_arguments)]
     fn create_transaction(
         &mut self,
         amount: Currency,
@@ -155,6 +156,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         categories: HashMap<Id, Sign>,
     ) -> impl Future<Output = Result<Transaction>> + MaybeSend;
 
+    #[allow(clippy::too_many_arguments)]
     fn update_transaction(
         &mut self,
         id: Id,

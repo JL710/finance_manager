@@ -22,6 +22,7 @@ impl PartialEq for Transaction {
 }
 
 impl Transaction {
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn new(
         id: Id,
         amount: Currency,

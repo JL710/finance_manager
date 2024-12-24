@@ -233,6 +233,7 @@ where
             .get_transactions_of_account(account, timespan)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_transaction(
         &mut self,
         amount: Currency,
@@ -261,6 +262,7 @@ where
         ))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn update_transaction(
         &mut self,
         id: Id,

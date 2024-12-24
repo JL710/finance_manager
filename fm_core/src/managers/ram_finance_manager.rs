@@ -153,11 +153,11 @@ impl FinanceManager for RamFinanceManager {
     }
 
     async fn get_accounts(&self) -> Result<Vec<account::Account>> {
-        return Ok(self
+        Ok(self
             .accounts
             .iter()
             .map(|x| x.1.clone())
-            .collect::<Vec<account::Account>>());
+            .collect::<Vec<account::Account>>())
     }
 
     async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
