@@ -35,8 +35,6 @@ pub struct MessageContainer(Message);
 #[derive(Debug, Clone)]
 enum Message {
     Edit,
-    ViewTransaction(fm_core::Id),
-    ViewAccount(fm_core::Id),
     ChangeTransactionTimespan(utils::timespan_input::Action),
     SetTransactions(
         Vec<(
@@ -64,29 +62,6 @@ pub enum Account {
 }
 
 impl Account {
-    pub fn new(
-        account: fm_core::account::Account,
-        account_sum: fm_core::Currency,
-        transactions: Vec<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )>,
-        categories: Vec<fm_core::Category>,
-    ) -> Self {
-        let account_id = *account.id();
-        Self::Loaded {
-            current_value: account_sum,
-            account,
-            transaction_table: utils::TransactionTable::new(
-                transactions,
-                categories,
-                move |transaction| Some(*transaction.destination() == account_id),
-            ),
-            timespan_input: utils::timespan_input::State::default(),
-        }
-    }
-
     pub fn fetch(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         account_id: fm_core::Id,
@@ -161,8 +136,6 @@ impl Account {
                     Action::None
                 }
             }
-            Message::ViewTransaction(id) => Action::ViewTransaction(id),
-            Message::ViewAccount(id) => Action::ViewAccount(id),
             Message::SetTransactions(new_transactions) => {
                 if let Self::Loaded {
                     transaction_table, ..

@@ -49,22 +49,6 @@ pub enum Transaction {
 }
 
 impl Transaction {
-    pub fn new(
-        transaction: fm_core::Transaction,
-        source: fm_core::account::Account,
-        destination: fm_core::account::Account,
-        budget: Option<fm_core::Budget>,
-        categories: Vec<fm_core::Category>,
-    ) -> Self {
-        Self::Loaded {
-            transaction,
-            source,
-            destination,
-            budget,
-            categories,
-        }
-    }
-
     pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,

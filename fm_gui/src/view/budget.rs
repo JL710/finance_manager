@@ -29,8 +29,6 @@ pub struct MessageContainer(Message);
 
 #[derive(Debug, Clone)]
 enum Message {
-    ViewTransaction(fm_core::Id),
-    ViewAccount(fm_core::Id),
     Edit,
     IncreaseOffset,
     DecreaseOffset,
@@ -109,8 +107,6 @@ impl Budget {
                 .unwrap();
                 Action::None
             }
-            Message::ViewAccount(id) => Action::ViewAccount(id),
-            Message::ViewTransaction(id) => Action::ViewTransaction(id),
             Message::Edit => {
                 if let Self::Loaded { budget, .. } = self {
                     Action::Edit(*budget.id())

@@ -33,24 +33,6 @@ pub struct CreateBookCheckingAccount {
 }
 
 impl CreateBookCheckingAccount {
-    pub fn new(account: fm_core::account::BookCheckingAccount) -> Self {
-        Self {
-            id: Some(account.id()),
-            name_input: account.name().to_string(),
-            note_input: account
-                .note()
-                .map_or(widget::text_editor::Content::default(), |note| {
-                    widget::text_editor::Content::with_text(note)
-                }),
-            iban_input: account
-                .iban()
-                .clone()
-                .map_or(String::new(), |iban| iban.to_string()),
-            bic_input: account.bic().map_or(String::new(), |bic| bic.to_string()),
-            submitted: false,
-        }
-    }
-
     pub fn fetch(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         account_id: fm_core::Id,
