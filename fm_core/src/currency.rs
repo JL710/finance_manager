@@ -83,6 +83,9 @@ fn big_decimal_to_string(decimal: &BigDecimal) -> String {
         pre_decimal_part += &c.1.to_string();
     }
     pre_decimal_part = pre_decimal_part.chars().rev().collect();
+    if let Some(striped) = pre_decimal_part.strip_suffix(' ') {
+        pre_decimal_part = striped.to_owned();
+    }
 
     if splits.len() == 1 {
         pre_decimal_part
