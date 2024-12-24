@@ -17,7 +17,7 @@ pub enum Message {
 
 #[derive(Debug)]
 pub struct CategoryOverview {
-    category_table: utils::table_view::State<fm_core::Category, (), 1>,
+    category_table: utils::table_view::State<fm_core::Category, ()>,
 }
 
 impl CategoryOverview {
@@ -25,7 +25,7 @@ impl CategoryOverview {
         Self {
             category_table: utils::table_view::State::new(categories, ())
                 .sort_by(|a, b, _| a.name().cmp(b.name()))
-                .sortable_columns([true]),
+                .sortable_columns([0]),
         }
     }
 

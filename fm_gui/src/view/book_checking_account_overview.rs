@@ -19,7 +19,7 @@ pub enum Message {
 #[derive(Debug)]
 pub struct BookCheckingAccountOverview {
     accounts_table:
-        utils::table_view::State<(fm_core::account::BookCheckingAccount, fm_core::Currency), (), 2>,
+        utils::table_view::State<(fm_core::account::BookCheckingAccount, fm_core::Currency), ()>,
 }
 
 impl BookCheckingAccountOverview {
@@ -31,7 +31,7 @@ impl BookCheckingAccountOverview {
                     1 => a.1.cmp(&b.1),
                     _ => std::cmp::Ordering::Equal,
                 })
-                .sortable_columns([true, true]),
+                .sortable_columns([0, 1]),
         }
     }
 

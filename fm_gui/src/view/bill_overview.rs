@@ -18,7 +18,7 @@ pub enum Message {
 
 #[derive(Debug)]
 pub struct BillOverview {
-    bill_table: utils::table_view::State<(fm_core::Bill, fm_core::Currency), (), 5>,
+    bill_table: utils::table_view::State<(fm_core::Bill, fm_core::Currency), ()>,
 }
 
 impl BillOverview {
@@ -35,7 +35,7 @@ impl BillOverview {
                         panic!()
                     }
                 })
-                .sortable_columns([true, true, true, true, true]),
+                .sortable_columns([0, 1, 2, 3, 4]),
         }
     }
 

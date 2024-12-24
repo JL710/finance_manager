@@ -1,4 +1,5 @@
 use iced::widget;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
 pub enum Action<Message> {
@@ -15,25 +16,25 @@ pub enum InnerMessage<Message> {
 }
 
 #[allow(clippy::type_complexity)]
-pub struct State<T, C, const COLUMNS: usize> {
+pub struct State<T, C> {
     items: Vec<T>,
     context: C,
     page_size: usize,
     page: usize,
     sort_column: Option<usize>,
     sort_reverse: bool,
-    sortable: [bool; COLUMNS],
+    sortable: HashSet<usize>,
     sort_by_callback: Option<Box<dyn Fn(&T, &T, usize) -> std::cmp::Ordering>>,
 }
 
-impl<T, C, const COLUMNS: usize> std::fmt::Debug for State<T, C, COLUMNS> {
+impl<T, C> std::fmt::Debug for State<T, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{{ items length: {:?}, context, page_size: {:?}, page: {:?}, sort_column: {:?}, sort_reverse: {:?}, sortable: {:?} }}",
          self.items.len(), self.page_size, self.page, self.sort_column, self.sort_reverse, self.sortable)
     }
 }
 
-impl<T, C, const COLUMNS: usize> State<T, C, COLUMNS> {
+impl<T, C> State<T, C> {
     pub fn new(items: Vec<T>, context: C) -> Self {
         Self {
             items,
@@ -42,13 +43,20 @@ impl<T, C, const COLUMNS: usize> State<T, C, COLUMNS> {
             page: 0,
             sort_column: None,
             sort_reverse: false,
-            sortable: [false; COLUMNS],
+            sortable: HashSet::default(),
             sort_by_callback: None,
         }
     }
 
-    pub fn sortable_columns(mut self, sortable: [bool; COLUMNS]) -> Self {
-        self.sortable = sortable;
+    pub fn sortable_columns(mut self, sortable: impl Into<HashSet<usize>>) -> Self {
+        self.sortable = sortable.into();
+        self
+    }
+
+    pub fn column_sortable(mut self, column: usize, sortable: bool) -> Self {
+        if sortable {
+            self.sortable.insert(column);
+        }
         self
     }
 
@@ -129,7 +137,7 @@ pub type AlignmentFunction<'a, T> =
     dyn Fn(&T, usize, usize) -> (iced::alignment::Horizontal, iced::alignment::Vertical) + 'a;
 
 pub struct TableView<'a, T, C, const COLUMNS: usize> {
-    state: &'a State<T, C, COLUMNS>,
+    state: &'a State<T, C>,
     headers: Option<[String; COLUMNS]>,
     alignment: Option<Box<AlignmentFunction<'a, T>>>,
     spacing: u16,
@@ -137,7 +145,7 @@ pub struct TableView<'a, T, C, const COLUMNS: usize> {
 }
 
 impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
-    pub fn new(state: &'a State<T, C, COLUMNS>) -> Self {
+    pub fn new(state: &'a State<T, C>) -> Self {
         Self {
             state,
             headers: None,
@@ -229,7 +237,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
             for (index, header) in headers.iter().enumerate() {
                 row = row.push(
                     widget::row![widget::text(header.clone()),]
-                        .push_maybe(if self.state.sortable[index] {
+                        .push_maybe(if self.state.sortable.contains(&index) {
                             Some(
                                 widget::button(
                                     widget::svg::Svg::new(widget::svg::Handle::from_memory(
@@ -284,8 +292,6 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
     }
 }
 
-pub fn table_view<T, C, const COLUMNS: usize>(
-    state: &State<T, C, COLUMNS>,
-) -> TableView<'_, T, C, COLUMNS> {
+pub fn table_view<T, C, const COLUMNS: usize>(state: &State<T, C>) -> TableView<'_, T, C, COLUMNS> {
     TableView::new(state)
 }

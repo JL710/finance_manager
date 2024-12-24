@@ -20,7 +20,7 @@ pub enum Message {
 #[derive(Debug)]
 pub struct AssetAccountOverview {
     account_table:
-        utils::table_view::State<(fm_core::account::AssetAccount, fm_core::Currency), (), 2>,
+        utils::table_view::State<(fm_core::account::AssetAccount, fm_core::Currency), ()>,
 }
 
 impl std::default::Default for AssetAccountOverview {
@@ -38,7 +38,7 @@ impl AssetAccountOverview {
                     1 => a.1.cmp(&b.1),
                     _ => panic!(),
                 })
-                .sortable_columns([true, true]),
+                .sortable_columns([0, 1]),
         }
     }
 

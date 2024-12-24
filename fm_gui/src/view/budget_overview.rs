@@ -20,7 +20,7 @@ pub enum Message {
 #[derive(Debug)]
 pub struct BudgetOverview {
     budgets: Vec<(fm_core::Budget, fm_core::Currency)>,
-    budget_table: utils::table_view::State<(fm_core::Budget, fm_core::Currency), (), 3>,
+    budget_table: utils::table_view::State<(fm_core::Budget, fm_core::Currency), ()>,
 }
 
 impl BudgetOverview {
@@ -34,7 +34,7 @@ impl BudgetOverview {
                     2 => a.0.total_value().cmp(&b.0.total_value()),
                     _ => panic!(),
                 })
-                .sortable_columns([true, true, true]),
+                .sortable_columns([0, 1, 2]),
         }
     }
 

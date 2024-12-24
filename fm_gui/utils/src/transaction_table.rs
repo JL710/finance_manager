@@ -43,7 +43,6 @@ pub struct TransactionTable {
             fm_core::account::Account,
         ),
         Vec<fm_core::Category>,
-        6,
     >,
     amount_positive: Box<dyn Fn(fm_core::Transaction) -> Option<bool>>,
     categories: Vec<fm_core::Category>,
@@ -86,7 +85,7 @@ impl TransactionTable {
             categories: categories.clone(),
             amount_positive: Box::new(amount_positive),
             transaction_table: crate::table_view::State::new(transactions, categories)
-                .sortable_columns([true, true, true, true, true, true])
+                .sortable_columns([0, 1, 2, 3, 4, 5])
                 .sort_by(move |a, b, column_index| match column_index {
                     0 => a.0.title().cmp(b.0.title()),
                     1 => a.0.date().cmp(b.0.date()),

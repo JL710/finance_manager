@@ -33,7 +33,7 @@ pub struct CreateBillView {
     value: utils::currency_input::State,
     due_date_input: utils::date_input::State,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
-    transaction_table: utils::table_view::State<(fm_core::Transaction, fm_core::Sign), (), 5>,
+    transaction_table: utils::table_view::State<(fm_core::Transaction, fm_core::Sign), ()>,
     add_transaction: Option<add_transaction::AddTransaction>,
     submitted: bool,
 }
@@ -67,7 +67,7 @@ impl std::default::Default for CreateBillView {
                         _ => panic!(),
                     },
                 )
-                .sortable_columns([true, false, true, true, true]),
+                .sortable_columns([0, 2, 3, 4]),
             add_transaction: None,
             submitted: false,
         }
@@ -361,7 +361,7 @@ mod add_transaction {
         filter: Option<utils::filter_component::FilterComponent>,
         transactions: Vec<fm_core::Transaction>,
         ignored_transactions: Vec<fm_core::Id>,
-        table: utils::table_view::State<fm_core::Transaction, (), 4>,
+        table: utils::table_view::State<fm_core::Transaction, ()>,
     }
 
     impl AddTransaction {
@@ -381,7 +381,7 @@ mod add_transaction {
                         3 => a.date().cmp(b.date()),
                         _ => panic!(),
                     })
-                    .sortable_columns([false, true, true, true]),
+                    .sortable_columns([1, 2, 3]),
             }
         }
 

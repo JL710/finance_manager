@@ -38,7 +38,7 @@ pub enum Bill {
     Loaded {
         bill: fm_core::Bill,
         bill_sum: fm_core::Currency,
-        transaction_table: utils::table_view::State<(fm_core::Transaction, fm_core::Sign), (), 5>,
+        transaction_table: utils::table_view::State<(fm_core::Transaction, fm_core::Sign), ()>,
     },
 }
 
@@ -113,7 +113,7 @@ impl Bill {
                             4 => a.0.date().cmp(b.0.date()),
                             _ => std::cmp::Ordering::Equal,
                         })
-                        .sortable_columns([true, true, true, true, true]),
+                        .sortable_columns([0, 1, 2, 3, 4]),
                 };
                 Action::None
             }
