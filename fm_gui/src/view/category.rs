@@ -28,7 +28,7 @@ pub enum Message {
     ),
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
-    TransactionTableMessage(utils::transaction_table::Message),
+    TransactionTable(utils::transaction_table::Message),
 }
 
 #[derive(Debug)]
@@ -36,7 +36,7 @@ pub enum Category {
     NotLoaded,
     Loaded {
         category: fm_core::Category,
-        transaction_table: utils::TransactionTable,
+        transaction_table: Box<utils::TransactionTable>,
         values: Vec<(fm_core::DateTime, fm_core::Currency)>,
         timespan_input: utils::timespan_input::State,
     },
@@ -170,7 +170,7 @@ impl Category {
                 let category_id = *category.id();
                 *self = Self::Loaded {
                     category,
-                    transaction_table: utils::TransactionTable::new(
+                    transaction_table: Box::new(utils::TransactionTable::new(
                         transactions,
                         categories,
                         move |transaction| {
@@ -179,7 +179,7 @@ impl Category {
                                 .get(&category_id)
                                 .map(|sign| *sign == fm_core::Sign::Positive)
                         },
-                    ),
+                    )),
                     values,
                     timespan_input: utils::timespan_input::State::default(),
                 };
@@ -187,7 +187,7 @@ impl Category {
             }
             Message::ViewTransaction(transaction_id) => Action::ViewTransaction(transaction_id),
             Message::ViewAccount(account_id) => Action::ViewAccount(account_id),
-            Message::TransactionTableMessage(msg) => {
+            Message::TransactionTable(msg) => {
                 if let Self::Loaded {
                     transaction_table, ..
                 } = self
@@ -201,7 +201,7 @@ impl Category {
                             Action::ViewAccount(id)
                         }
                         utils::transaction_table::Action::Task(task) => {
-                            Action::Task(task.map(Message::TransactionTableMessage))
+                            Action::Task(task.map(Message::TransactionTable))
                         }
                     }
                 } else {
@@ -248,9 +248,7 @@ impl Category {
                 utils::timespan_input::timespan_input(timespan_input)
                     .view()
                     .map(Message::ChangedTimespan),
-                transaction_table
-                    .view()
-                    .map(Message::TransactionTableMessage),
+                transaction_table.view().map(Message::TransactionTable),
             ]
             .spacing(10)
             .height(iced::Fill)

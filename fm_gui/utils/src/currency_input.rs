@@ -24,7 +24,7 @@ impl State {
     }
 
     pub fn currency(&self) -> Option<fm_core::Currency> {
-        super::parse_number(&self.value).map(|x| fm_core::Currency::from(x))
+        super::parse_number(&self.value).map(fm_core::Currency::from)
     }
 }
 

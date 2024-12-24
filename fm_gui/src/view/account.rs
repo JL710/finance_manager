@@ -18,6 +18,18 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone)]
+struct Init {
+    account: fm_core::account::Account,
+    value: fm_core::Currency,
+    transactions: Vec<(
+        fm_core::Transaction,
+        fm_core::account::Account,
+        fm_core::account::Account,
+    )>,
+    categories: Vec<fm_core::Category>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Message {
     Edit,
     ViewTransaction(fm_core::Id),
@@ -30,19 +42,10 @@ pub enum Message {
             fm_core::account::Account,
         )>,
     ),
-    Initialize(
-        fm_core::account::Account,
-        fm_core::Currency,
-        Vec<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )>,
-        Vec<fm_core::Category>,
-    ),
+    Initialize(Box<Init>),
     Delete,
     Deleted(Arc<std::result::Result<(), fm_core::DeleteAccountError>>),
-    TransactionTableMessage(utils::transaction_table::Message),
+    TransactionTable(utils::transaction_table::Message),
 }
 
 #[derive(Debug)]
@@ -110,7 +113,12 @@ impl Account {
                     transaction_tuples.push((transaction, source, destination));
                 }
                 let categories = locked_manager.get_categories().await.unwrap();
-                Message::Initialize(account, account_sum, transaction_tuples, categories)
+                Message::Initialize(Box::new(Init {
+                    account,
+                    value: account_sum,
+                    transactions: transaction_tuples,
+                    categories,
+                }))
             }),
         )
     }
@@ -121,14 +129,14 @@ impl Account {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
-            Message::Initialize(account, current_value, transactions, categories) => {
-                let account_id = *account.id();
+            Message::Initialize(init) => {
+                let account_id = *init.account.id();
                 *self = Self::Loaded {
-                    account,
-                    current_value,
+                    account: init.account,
+                    current_value: init.value,
                     transaction_table: utils::TransactionTable::new(
-                        transactions,
-                        categories,
+                        init.transactions,
+                        init.categories,
                         move |transaction| Some(*transaction.destination() == account_id),
                     ),
                     timespan_input: utils::timespan_input::State::default(),
@@ -242,7 +250,7 @@ impl Account {
                     }
                 },
             },
-            Message::TransactionTableMessage(msg) => {
+            Message::TransactionTable(msg) => {
                 if let Self::Loaded {
                     transaction_table, ..
                 } = self
@@ -256,7 +264,7 @@ impl Account {
                             Action::ViewAccount(id)
                         }
                         utils::transaction_table::Action::Task(task) => {
-                            Action::Task(task.map(Message::TransactionTableMessage))
+                            Action::Task(task.map(Message::TransactionTable))
                         }
                     };
                 }
@@ -329,9 +337,7 @@ fn asset_account_view<'a>(
         utils::timespan_input::timespan_input(timespan_input)
             .view()
             .map(Message::ChangeTransactionTimespan),
-        transaction_table
-            .view()
-            .map(Message::TransactionTableMessage),
+        transaction_table.view().map(Message::TransactionTable),
     ]
     .height(iced::Fill)
     .into()
@@ -375,9 +381,7 @@ fn book_checking_account_view<'a>(
         utils::timespan_input::timespan_input(timespan_input)
             .view()
             .map(Message::ChangeTransactionTimespan),
-        transaction_table
-            .view()
-            .map(Message::TransactionTableMessage),
+        transaction_table.view().map(Message::TransactionTable),
     ]
     .height(iced::Fill)
     .into()

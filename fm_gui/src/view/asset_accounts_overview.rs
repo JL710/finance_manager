@@ -14,7 +14,7 @@ pub enum Message {
     CreateAssetAccount,
     AccountView(fm_core::account::AssetAccount),
     Initialize(Vec<(fm_core::account::AssetAccount, fm_core::Currency)>),
-    TableViewMessage(utils::table_view::InnerMessage<Message>),
+    TableView(utils::table_view::InnerMessage<Message>),
 }
 
 #[derive(Debug)]
@@ -78,7 +78,7 @@ impl AssetAccountOverview {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::Initialize(accounts) => {
@@ -86,13 +86,11 @@ impl AssetAccountOverview {
             }
             Message::CreateAssetAccount => return Action::CreateAssetAccount,
             Message::AccountView(account) => return Action::ViewAccount(account.id()),
-            Message::TableViewMessage(m) => match self.account_table.perform(m) {
-                utils::table_view::Action::OuterMessage(m) => {
-                    return self.update(m, finance_manager);
+            Message::TableView(m) => {
+                if let utils::table_view::Action::OuterMessage(m) = self.account_table.perform(m) {
+                    return self.update(m, _finance_manager);
                 }
-                utils::table_view::Action::PageChange(_) => {}
-                utils::table_view::Action::None => {}
-            },
+            }
         }
         Action::None
     }
@@ -108,7 +106,7 @@ impl AssetAccountOverview {
                     utils::colored_currency_display(&account.1),
                 ]
             })
-            .map(Message::TableViewMessage);
+            .map(Message::TableView);
 
         widget::column![
             utils::heading("Asset Account Overview", utils::HeadingLevel::H1),

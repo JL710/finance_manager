@@ -12,16 +12,17 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone)]
+struct Init {
+    bill: fm_core::Bill,
+    bill_sum: fm_core::Currency,
+    transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Message {
     ViewTransaction(fm_core::Id),
     Edit,
-    Initialize(
-        Box<(
-            fm_core::Bill,
-            fm_core::Currency,
-            Vec<(fm_core::Transaction, fm_core::Sign)>,
-        )>,
-    ),
+    Initialize(Box<Init>),
     Delete,
     Deleted,
     TransactionTable(utils::table_view::InnerMessage<Message>),
@@ -60,7 +61,11 @@ impl Bill {
                         .unwrap();
                     transactions.push((transaction, *sign));
                 }
-                Message::Initialize(Box::new((bill, bill_sum, transactions)))
+                Message::Initialize(Box::new(Init {
+                    bill,
+                    bill_sum,
+                    transactions,
+                }))
             }),
         )
     }
@@ -80,11 +85,10 @@ impl Bill {
                 }
             }
             Message::Initialize(init) => {
-                let (bill, bill_sum, transactions) = *init;
                 *self = Self::Loaded {
-                    bill,
-                    bill_sum,
-                    transaction_table: utils::table_view::State::new(transactions, ())
+                    bill: init.bill,
+                    bill_sum: init.bill_sum,
+                    transaction_table: utils::table_view::State::new(init.transactions, ())
                         .sort_by(|a, b, column| match column {
                             0 => match (a.1, b.1) {
                                 (fm_core::Sign::Positive, fm_core::Sign::Negative) => {

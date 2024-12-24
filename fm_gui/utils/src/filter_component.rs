@@ -355,6 +355,7 @@ impl FilterComponent {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn generate_filter_column<
     'a,
     O: Clone,

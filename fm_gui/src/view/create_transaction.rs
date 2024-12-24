@@ -36,6 +36,17 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone)]
+struct InitExisting {
+    transaction: fm_core::Transaction,
+    source: fm_core::account::Account,
+    destination: fm_core::account::Account,
+    budget: Option<fm_core::Budget>,
+    budgets: Vec<fm_core::Budget>,
+    accounts: Vec<fm_core::account::Account>,
+    available_categories: Vec<fm_core::Category>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Message {
     AmountInput(utils::currency_input::Action),
     TitleInput(String),
@@ -58,17 +69,7 @@ pub enum Message {
             Vec<fm_core::Category>,
         )>,
     ),
-    InitializeFromExisting(
-        Box<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-            Option<fm_core::Budget>,
-            Vec<fm_core::Budget>,
-            Vec<fm_core::account::Account>,
-            Vec<fm_core::Category>,
-        )>,
-    ),
+    InitializeFromExisting(Box<InitExisting>),
     TransactionCreated(fm_core::Id),
 }
 
@@ -154,7 +155,7 @@ impl CreateTransactionView {
                 let accounts = locked_manager.get_accounts().await.unwrap();
                 let available_categories = locked_manager.get_categories().await.unwrap();
 
-                Message::InitializeFromExisting(Box::new((
+                Message::InitializeFromExisting(Box::new(InitExisting {
                     transaction,
                     source,
                     destination,
@@ -162,7 +163,7 @@ impl CreateTransactionView {
                     budgets,
                     accounts,
                     available_categories,
-                )))
+                }))
             }),
         )
     }
@@ -258,41 +259,42 @@ impl CreateTransactionView {
                 );
             }
             Message::InitializeFromExisting(init) => {
-                let (
-                    transaction,
-                    source,
-                    destination,
-                    budget,
-                    budgets,
-                    accounts,
-                    available_categories,
-                ) = *init;
-                self.id = Some(*transaction.id());
-                self.amount_input = utils::currency_input::State::new(transaction.amount());
-                self.title_input.clone_from(transaction.title());
+                let init_existing = *init;
+                self.id = Some(*init_existing.transaction.id());
+                self.amount_input =
+                    utils::currency_input::State::new(init_existing.transaction.amount());
+                self.title_input
+                    .clone_from(init_existing.transaction.title());
                 self.description_input = widget::text_editor::Content::with_text(
-                    transaction.description().unwrap_or_default(),
+                    init_existing.transaction.description().unwrap_or_default(),
                 );
-                self.source_input = Some(SelectedAccount::Account(source));
+                self.source_input = Some(SelectedAccount::Account(init_existing.source));
                 self.source_state = widget::combo_box::State::new(
-                    accounts
+                    init_existing
+                        .accounts
                         .iter()
                         .map(|acc| SelectedAccount::Account(acc.clone()))
                         .collect(),
                 );
-                self.destination_input = Some(SelectedAccount::Account(destination));
+                self.destination_input = Some(SelectedAccount::Account(init_existing.destination));
                 self.destination_state = widget::combo_box::State::new(
-                    accounts
+                    init_existing
+                        .accounts
                         .iter()
                         .map(|acc| SelectedAccount::Account(acc.clone()))
                         .collect(),
                 );
-                self.budget_input = budget.map(|x| (x, transaction.budget().unwrap().1));
-                self.budget_state = widget::combo_box::State::new(budgets);
-                self.date_input = utils::date_input::State::new(Some(*transaction.date()));
-                self.metadata.clone_from(transaction.metadata());
-                self.available_categories = available_categories;
-                self.selected_categories = transaction
+                self.budget_input = init_existing
+                    .budget
+                    .map(|x| (x, init_existing.transaction.budget().unwrap().1));
+                self.budget_state = widget::combo_box::State::new(init_existing.budgets);
+                self.date_input =
+                    utils::date_input::State::new(Some(*init_existing.transaction.date()));
+                self.metadata
+                    .clone_from(init_existing.transaction.metadata());
+                self.available_categories = init_existing.available_categories;
+                self.selected_categories = init_existing
+                    .transaction
                     .categories()
                     .iter()
                     .map(|(k, v)| (*k, *v))

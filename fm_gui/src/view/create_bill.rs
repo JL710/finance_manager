@@ -18,7 +18,7 @@ pub enum Message {
     AddTransactionToggle,
     ChangeTransactionSign(fm_core::Id, fm_core::Sign),
     RemoveTransaction(fm_core::Id),
-    AddTransactionMessage(add_transaction::Message),
+    AddTransaction(add_transaction::Message),
     Submit,
     Initialize(fm_core::Bill, Vec<(fm_core::Transaction, fm_core::Sign)>),
     BillCreated(fm_core::Id),
@@ -197,7 +197,7 @@ impl CreateBillView {
                 let (view, task) =
                     add_transaction::AddTransaction::fetch(finance_manager, ignored_transactions);
                 self.add_transaction = Some(view);
-                return Action::Task(task.map(Message::AddTransactionMessage));
+                return Action::Task(task.map(Message::AddTransaction));
             }
             Message::ChangeTransactionSign(transaction_id, sign) => {
                 self.transactions
@@ -209,7 +209,7 @@ impl CreateBillView {
             Message::RemoveTransaction(transaction_id) => {
                 self.transactions.retain(|x| *x.0.id() != transaction_id);
             }
-            Message::AddTransactionMessage(m) => {
+            Message::AddTransaction(m) => {
                 if let Some(add_transaction) = &mut self.add_transaction {
                     match add_transaction.update(m, finance_manager) {
                         add_transaction::Action::Escape => {
@@ -217,11 +217,11 @@ impl CreateBillView {
                         }
                         add_transaction::Action::AddTransaction(transaction) => {
                             self.transactions
-                                .push((transaction, fm_core::Sign::Negative));
+                                .push((*transaction, fm_core::Sign::Negative));
                             self.transaction_table.set_items(self.transactions.clone());
                         }
                         add_transaction::Action::Task(task) => {
-                            return Action::Task(task.map(Message::AddTransactionMessage));
+                            return Action::Task(task.map(Message::AddTransaction));
                         }
                         add_transaction::Action::None => {}
                     }
@@ -240,7 +240,7 @@ impl CreateBillView {
 
     pub fn view(&self) -> iced::Element<Message> {
         if let Some(add_transaction) = &self.add_transaction {
-            return add_transaction.view().map(Message::AddTransactionMessage);
+            return add_transaction.view().map(Message::AddTransaction);
         }
 
         widget::column![
@@ -337,7 +337,7 @@ mod add_transaction {
 
     pub enum Action {
         Escape,
-        AddTransaction(fm_core::Transaction),
+        AddTransaction(Box<fm_core::Transaction>),
         Task(iced::Task<Message>),
         None,
     }
@@ -371,7 +371,7 @@ mod add_transaction {
             ignored_transactions: Vec<fm_core::Id>,
         ) -> Self {
             Self {
-                filter: filter,
+                filter,
                 transactions: transactions.clone(),
                 ignored_transactions,
                 table: utils::table_view::State::new(transactions, ())
@@ -442,7 +442,7 @@ mod add_transaction {
                     self.ignored_transactions.push(*transaction.id());
                     self.transactions.retain(|x| x.id() != transaction.id());
                     self.table.set_items(self.transactions.clone());
-                    Action::AddTransaction(transaction)
+                    Action::AddTransaction(Box::new(transaction))
                 }
                 Message::FetchedTransactions(transactions) => {
                     self.transactions = transactions;

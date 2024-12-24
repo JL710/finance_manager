@@ -14,6 +14,7 @@ pub enum InnerMessage<Message> {
     ChangePageBy(isize),
 }
 
+#[allow(clippy::type_complexity)]
 pub struct State<T, C, const COLUMNS: usize> {
     items: Vec<T>,
     context: C,
@@ -124,15 +125,13 @@ impl<T, C, const COLUMNS: usize> State<T, C, COLUMNS> {
     }
 }
 
+pub type AlignmentFunction<'a, T> =
+    dyn Fn(&T, usize, usize) -> (iced::alignment::Horizontal, iced::alignment::Vertical) + 'a;
+
 pub struct TableView<'a, T, C, const COLUMNS: usize> {
     state: &'a State<T, C, COLUMNS>,
     headers: Option<[String; COLUMNS]>,
-    alignment: Option<
-        Box<
-            dyn Fn(&T, usize, usize) -> (iced::alignment::Horizontal, iced::alignment::Vertical)
-                + 'a,
-        >,
-    >,
+    alignment: Option<Box<AlignmentFunction<'a, T>>>,
     spacing: u16,
     padding: u16,
 }

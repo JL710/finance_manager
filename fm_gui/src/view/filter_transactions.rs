@@ -11,7 +11,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    FilterComponent(utils::filter_component::InnerMessage),
+    FilterComponent(Box<utils::filter_component::InnerMessage>),
     ToggleEditFilter,
     ViewAccount(fm_core::Id),
     ViewTransaction(fm_core::Id),
@@ -28,7 +28,7 @@ pub enum Message {
         bills: Vec<fm_core::Bill>,
         budgets: Vec<fm_core::Budget>,
     },
-    TransactionTableMessage(utils::transaction_table::Message),
+    TransactionTable(utils::transaction_table::Message),
 }
 
 #[derive(Debug)]
@@ -114,7 +114,7 @@ impl FilterTransactionView {
                 );
                 self.transaction_table.change_transactions(transactions);
             }
-            Message::TransactionTableMessage(msg) => {
+            Message::TransactionTable(msg) => {
                 match self.transaction_table.update(msg, finance_manager) {
                     utils::transaction_table::Action::None => return Action::None,
                     utils::transaction_table::Action::ViewTransaction(id) => {
@@ -124,13 +124,13 @@ impl FilterTransactionView {
                         return Action::ViewAccount(id)
                     }
                     utils::transaction_table::Action::Task(task) => {
-                        return Action::Task(task.map(Message::TransactionTableMessage))
+                        return Action::Task(task.map(Message::TransactionTable))
                     }
                 }
             }
             Message::FilterComponent(m) => {
                 if let Some(component) = &mut self.change_filter {
-                    match component.update(m) {
+                    match component.update(*m) {
                         utils::filter_component::Action::Submit(new_filter) => {
                             self.filter = new_filter.clone();
                             self.change_filter = None;
@@ -183,11 +183,11 @@ impl FilterTransactionView {
             iced::widget::button(iced::widget::text("Edit Filter"))
                 .on_press(Message::ToggleEditFilter),
             if let Some(filter_component) = &self.change_filter {
-                filter_component.view().map(Message::FilterComponent)
-            } else {
-                self.transaction_table
+                filter_component
                     .view()
-                    .map(Message::TransactionTableMessage)
+                    .map(|x| Message::FilterComponent(Box::new(x)))
+            } else {
+                self.transaction_table.view().map(Message::TransactionTable)
             }
         ]
         .spacing(10)
