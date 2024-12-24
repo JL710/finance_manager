@@ -295,7 +295,13 @@ impl CreateBillView {
                                 .on_press(Message::RemoveTransaction(transaction_id))
                                 .into(),
                             widget::text(transaction.title().clone()).into(),
-                            widget::text(transaction.amount().to_num_string()).into(),
+                            utils::colored_currency_display(
+                                &(if *sign == fm_core::Sign::Negative {
+                                    transaction.amount().negative()
+                                } else {
+                                    transaction.amount()
+                                }),
+                            ),
                             widget::text(
                                 transaction
                                     .date()
