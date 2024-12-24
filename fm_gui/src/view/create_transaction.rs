@@ -32,7 +32,7 @@ impl std::fmt::Display for SelectedAccount {
 pub enum Action {
     None,
     TransactionCreated(fm_core::Id),
-    Task(iced::Task<Message>),
+    Task(iced::Task<MessageContainer>),
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +47,10 @@ struct InitExisting {
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+pub struct MessageContainer(Message);
+
+#[derive(Debug, Clone)]
+enum Message {
     AmountInput(utils::currency_input::Action),
     TitleInput(String),
     DescriptionInput(widget::text_editor::Action),
@@ -95,7 +98,7 @@ pub struct CreateTransactionView {
 impl CreateTransactionView {
     pub fn new(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
-    ) -> (Self, iced::Task<Message>) {
+    ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self {
                 id: None,
@@ -119,14 +122,15 @@ impl CreateTransactionView {
                 let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
                 let categories = finance_manager.lock().await.get_categories().await.unwrap();
                 Message::Initialize(Box::new((budgets, accounts, categories)))
-            }),
+            })
+            .map(MessageContainer),
         )
     }
 
     pub fn fetch(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         transaction_id: fm_core::Id,
-    ) -> (Self, iced::Task<Message>) {
+    ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::new(finance_manager.clone()).0,
             iced::Task::future(async move {
@@ -164,22 +168,24 @@ impl CreateTransactionView {
                     accounts,
                     available_categories,
                 }))
-            }),
+            })
+            .map(MessageContainer),
         )
     }
 
     pub fn update(
         &mut self,
-        message: Message,
+        message: MessageContainer,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
-        match message {
+        match message.0 {
             Message::TransactionCreated(id) => return Action::TransactionCreated(id),
             Message::Submit => {
                 self.submitted = true;
                 return Action::Task(
                     self.submit_command(finance_manager)
-                        .map(|x| Message::TransactionCreated(*x.id())),
+                        .map(|x| Message::TransactionCreated(*x.id()))
+                        .map(MessageContainer),
                 );
             }
             Message::AmountInput(action) => {
@@ -304,7 +310,7 @@ impl CreateTransactionView {
         Action::None
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message> {
+    pub fn view(&self) -> iced::Element<'_, MessageContainer> {
         if self.submitted {
             return "Loading...".into();
         }
@@ -359,92 +365,95 @@ impl CreateTransactionView {
             utils::style::text_input_danger
         };
 
-        widget::column![
-            utils::heading("Create Transaction", utils::HeadingLevel::H1),
-            widget::row![
-                "Amount: ",
-                utils::currency_input::currency_input(&self.amount_input, true)
-                    .view()
-                    .map(Message::AmountInput),
-            ]
-            .width(iced::Fill)
-            .spacing(10),
-            utils::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
-            widget::row![
-                "Description",
-                widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
-            ]
-            .align_y(iced::Center)
-            .spacing(10),
-            widget::row![
-                "Date: ",
-                utils::date_input::date_input(&self.date_input, "", true)
-                    .view()
-                    .map(Message::DateInput)
-            ]
-            .width(iced::Fill),
-            widget::row![
-                widget::text("Source"),
-                widget::ComboBox::new(
-                    &self.source_state,
-                    "Source",
-                    self.source_input.as_ref(),
-                    Message::SourceSelected
-                )
-                .on_input(Message::SourceInput)
-                .input_style(source_acc_style)
-            ]
-            .spacing(10),
-            widget::row![
-                widget::text("Destination"),
-                widget::ComboBox::new(
-                    &self.destination_state,
-                    "Destination",
-                    self.destination_input.as_ref(),
-                    Message::DestinationSelected
-                )
-                .on_input(Message::DestinationInput)
-                .input_style(destination_acc_style)
-            ]
-            .spacing(10),
-            widget::row![
-                widget::text("Budget"),
-                widget::ComboBox::new(
-                    &self.budget_state,
-                    "Budget",
-                    self.budget_input.as_ref().map(|x| &x.0),
-                    Message::BudgetSelected
-                ),
-                widget::checkbox(
-                    "Negative",
-                    self.budget_input
-                        .as_ref()
-                        .is_some_and(|x| x.1 == fm_core::Sign::Negative)
-                )
-                .on_toggle_maybe(if self.budget_input.is_some() {
-                    Some(Message::BudgetSignChange)
+        iced::Element::new(
+            widget::column![
+                utils::heading("Create Transaction", utils::HeadingLevel::H1),
+                widget::row![
+                    "Amount: ",
+                    utils::currency_input::currency_input(&self.amount_input, true)
+                        .view()
+                        .map(Message::AmountInput),
+                ]
+                .width(iced::Fill)
+                .spacing(10),
+                utils::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
+                widget::row![
+                    "Description",
+                    widget::text_editor(&self.description_input)
+                        .on_action(Message::DescriptionInput)
+                ]
+                .align_y(iced::Center)
+                .spacing(10),
+                widget::row![
+                    "Date: ",
+                    utils::date_input::date_input(&self.date_input, "", true)
+                        .view()
+                        .map(Message::DateInput)
+                ]
+                .width(iced::Fill),
+                widget::row![
+                    widget::text("Source"),
+                    widget::ComboBox::new(
+                        &self.source_state,
+                        "Source",
+                        self.source_input.as_ref(),
+                        Message::SourceSelected
+                    )
+                    .on_input(Message::SourceInput)
+                    .input_style(source_acc_style)
+                ]
+                .spacing(10),
+                widget::row![
+                    widget::text("Destination"),
+                    widget::ComboBox::new(
+                        &self.destination_state,
+                        "Destination",
+                        self.destination_input.as_ref(),
+                        Message::DestinationSelected
+                    )
+                    .on_input(Message::DestinationInput)
+                    .input_style(destination_acc_style)
+                ]
+                .spacing(10),
+                widget::row![
+                    widget::text("Budget"),
+                    widget::ComboBox::new(
+                        &self.budget_state,
+                        "Budget",
+                        self.budget_input.as_ref().map(|x| &x.0),
+                        Message::BudgetSelected
+                    ),
+                    widget::checkbox(
+                        "Negative",
+                        self.budget_input
+                            .as_ref()
+                            .is_some_and(|x| x.1 == fm_core::Sign::Negative)
+                    )
+                    .on_toggle_maybe(if self.budget_input.is_some() {
+                        Some(Message::BudgetSignChange)
+                    } else {
+                        None
+                    }),
+                    widget::button("X").on_press(Message::ClearBudget)
+                ]
+                .align_y(iced::Center)
+                .spacing(10),
+                widget::horizontal_rule(10),
+                widget::text("Categories"),
+                widget::scrollable(categories)
+                    .height(iced::Length::Fill)
+                    .width(iced::Length::Fill),
+                widget::horizontal_rule(10),
+                widget::button("Submit").on_press_maybe(if self.submittable() {
+                    Some(Message::Submit)
                 } else {
                     None
-                }),
-                widget::button("X").on_press(Message::ClearBudget)
+                })
             ]
-            .align_y(iced::Center)
+            .height(iced::Length::Fill)
             .spacing(10),
-            widget::horizontal_rule(10),
-            widget::text("Categories"),
-            widget::scrollable(categories)
-                .height(iced::Length::Fill)
-                .width(iced::Length::Fill),
-            widget::horizontal_rule(10),
-            widget::button("Submit").on_press_maybe(if self.submittable() {
-                Some(Message::Submit)
-            } else {
-                None
-            })
-        ]
-        .height(iced::Length::Fill)
-        .spacing(10)
-        .into()
+        )
+        .map(MessageContainer)
     }
 
     fn submittable(&self) -> bool {

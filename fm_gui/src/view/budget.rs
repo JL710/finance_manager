@@ -8,7 +8,7 @@ pub enum Action {
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
     Edit(fm_core::Id),
-    Task(iced::Task<Message>),
+    Task(iced::Task<MessageContainer>),
 }
 
 #[derive(Debug, Clone)]
@@ -25,7 +25,10 @@ struct Init {
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+pub struct MessageContainer(Message);
+
+#[derive(Debug, Clone)]
+enum Message {
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
     Edit,
@@ -79,21 +82,22 @@ impl Budget {
         id: fm_core::Id,
         offset: i32,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
-    ) -> (Self, iced::Task<Message>) {
+    ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
             iced::Task::perform(Self::initial_message(finance_manager, id, offset), |x| {
                 x.unwrap()
-            }),
+            })
+            .map(MessageContainer),
         )
     }
 
     pub fn update(
         &mut self,
-        message: Message,
+        message: MessageContainer,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
-        match message {
+        match message.0 {
             Message::Initialize(init) => {
                 *self = Self::new(
                     init.budget,
@@ -118,7 +122,7 @@ impl Budget {
                 if let Self::Loaded { budget, offset, .. } = self {
                     Action::Task(iced::Task::perform(
                         Self::initial_message(finance_manager, *budget.id(), *offset + 1),
-                        |x| x.unwrap(),
+                        |x| MessageContainer(x.unwrap()),
                     ))
                 } else {
                     Action::None
@@ -128,7 +132,7 @@ impl Budget {
                 if let Self::Loaded { budget, offset, .. } = self {
                     Action::Task(iced::Task::perform(
                         Self::initial_message(finance_manager, *budget.id(), *offset - 1),
-                        |x| x.unwrap(),
+                        |x| MessageContainer(x.unwrap()),
                     ))
                 } else {
                     Action::None
@@ -148,7 +152,7 @@ impl Budget {
                             Action::ViewAccount(id)
                         }
                         utils::transaction_table::Action::Task(task) => {
-                            Action::Task(task.map(Message::TransactionTable))
+                            Action::Task(task.map(Message::TransactionTable).map(MessageContainer))
                         }
                     }
                 } else {
@@ -158,7 +162,7 @@ impl Budget {
         }
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message> {
+    pub fn view(&self) -> iced::Element<'_, MessageContainer> {
         if let Self::Loaded {
             budget,
             current_value,
@@ -205,22 +209,24 @@ impl Budget {
                 column = column.push(widget::text!("Description: {}", content));
             }
 
-            widget::column![
-                utils::heading("Budget", utils::HeadingLevel::H1),
-                widget::row![
-                    column,
-                    widget::Space::with_width(iced::Length::Fill),
-                    widget::button("Edit").on_press(Message::Edit)
-                ],
-                widget::progress_bar(
-                    0.0..=budget.total_value().get_eur_num() as f32,
-                    current_value.get_eur_num() as f32
-                ),
-                transaction_table.view().map(Message::TransactionTable)
-            ]
-            .height(iced::Fill)
-            .spacing(10)
-            .into()
+            iced::Element::new(
+                widget::column![
+                    utils::heading("Budget", utils::HeadingLevel::H1),
+                    widget::row![
+                        column,
+                        widget::Space::with_width(iced::Length::Fill),
+                        widget::button("Edit").on_press(Message::Edit)
+                    ],
+                    widget::progress_bar(
+                        0.0..=budget.total_value().get_eur_num() as f32,
+                        current_value.get_eur_num() as f32
+                    ),
+                    transaction_table.view().map(Message::TransactionTable)
+                ]
+                .height(iced::Fill)
+                .spacing(10),
+            )
+            .map(MessageContainer)
         } else {
             widget::text("Loading...").into()
         }

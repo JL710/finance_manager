@@ -23,7 +23,10 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+pub struct MessageContainer(Message);
+
+#[derive(Debug, Clone)]
+enum Message {
     Edit,
     Delete,
     ViewAccount(fm_core::Id),
@@ -65,7 +68,7 @@ impl Transaction {
     pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
-    ) -> (Self, iced::Task<Message>) {
+    ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
             iced::Task::future(async move {
@@ -86,23 +89,23 @@ impl Transaction {
                     None => None,
                 };
                 let categories = locked_manager.get_categories().await.unwrap();
-                Message::Initialize(Box::new(Init {
+                MessageContainer(Message::Initialize(Box::new(Init {
                     transaction,
                     source,
                     destination,
                     budget,
                     categories,
-                }))
+                })))
             }),
         )
     }
 
     pub fn update(
         &mut self,
-        message: Message,
+        message: MessageContainer,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
-        match message {
+        match message.0 {
             Message::Initialize(init) => {
                 *self = Self::Loaded {
                     transaction: init.transaction,
@@ -156,7 +159,7 @@ impl Transaction {
         }
     }
 
-    pub fn view(&self) -> iced::Element<'static, Message> {
+    pub fn view(&self) -> iced::Element<'static, MessageContainer> {
         if let Self::Loaded {
             transaction,
             source,
@@ -228,7 +231,7 @@ impl Transaction {
                 );
             }
 
-            widget::column![
+            iced::Element::new(widget::column![
                 utils::heading("Transaction", utils::HeadingLevel::H1),
                 widget::row![
                     column,
@@ -246,8 +249,8 @@ impl Transaction {
                 ],
                 widget::horizontal_rule(10),
                 widget::scrollable(category_column)
-            ]
-            .into()
+            ])
+            .map(MessageContainer)
         } else {
             widget::text("Loading...").into()
         }

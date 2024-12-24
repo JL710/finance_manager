@@ -13,7 +13,7 @@ pub enum Action {
     ViewAccount(fm_core::Id),
     EditAssetAccount(fm_core::account::AssetAccount),
     EditBookCheckingAccount(fm_core::account::BookCheckingAccount),
-    Task(iced::Task<Message>),
+    Task(iced::Task<MessageContainer>),
     AccountDeleted(AccountType),
 }
 
@@ -30,7 +30,10 @@ struct Init {
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+pub struct MessageContainer(Message);
+
+#[derive(Debug, Clone)]
+enum Message {
     Edit,
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
@@ -87,7 +90,7 @@ impl Account {
     pub fn fetch(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         account_id: fm_core::Id,
-    ) -> (Self, iced::Task<Message>) {
+    ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
             iced::Task::future(async move {
@@ -119,16 +122,17 @@ impl Account {
                     transactions: transaction_tuples,
                     categories,
                 }))
-            }),
+            })
+            .map(MessageContainer),
         )
     }
 
     pub fn update(
         &mut self,
-        message: Message,
+        message: MessageContainer,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
-        match message {
+        match message.0 {
             Message::Initialize(init) => {
                 let account_id = *init.account.id();
                 *self = Self::Loaded {
@@ -180,21 +184,25 @@ impl Account {
                 } else {
                     return Action::None;
                 };
-                Action::Task(iced::Task::future(async move {
-                    let locked_manager = finance_manager.lock().await;
-                    let transactions = locked_manager
-                        .get_transactions_of_account(account_id, timespan)
-                        .await
-                        .unwrap();
-                    let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
-                    let mut transaction_tuples = Vec::with_capacity(transactions.len());
-                    for transaction in transactions {
-                        let source = accounts.get(transaction.source()).unwrap().clone();
-                        let destination = accounts.get(transaction.destination()).unwrap().clone();
-                        transaction_tuples.push((transaction, source, destination));
-                    }
-                    Message::SetTransactions(transaction_tuples)
-                }))
+                Action::Task(
+                    iced::Task::future(async move {
+                        let locked_manager = finance_manager.lock().await;
+                        let transactions = locked_manager
+                            .get_transactions_of_account(account_id, timespan)
+                            .await
+                            .unwrap();
+                        let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
+                        let mut transaction_tuples = Vec::with_capacity(transactions.len());
+                        for transaction in transactions {
+                            let source = accounts.get(transaction.source()).unwrap().clone();
+                            let destination =
+                                accounts.get(transaction.destination()).unwrap().clone();
+                            transaction_tuples.push((transaction, source, destination));
+                        }
+                        Message::SetTransactions(transaction_tuples)
+                    })
+                    .map(MessageContainer),
+                )
             }
             Message::Delete => {
                 if let Self::Loaded { account, .. } = self {
@@ -212,11 +220,14 @@ impl Account {
                     }
 
                     let acc_id = *account.id();
-                    Action::Task(iced::Task::future(async move {
-                        let mut locked_manager = finance_manager.lock().await;
-                        let result = locked_manager.delete_account(acc_id, false).await;
-                        Message::Deleted(Arc::new(result))
-                    }))
+                    Action::Task(
+                        iced::Task::future(async move {
+                            let mut locked_manager = finance_manager.lock().await;
+                            let result = locked_manager.delete_account(acc_id, false).await;
+                            Message::Deleted(Arc::new(result))
+                        })
+                        .map(MessageContainer),
+                    )
                 } else {
                     Action::None
                 }
@@ -264,7 +275,7 @@ impl Account {
                             Action::ViewAccount(id)
                         }
                         utils::transaction_table::Action::Task(task) => {
-                            Action::Task(task.map(Message::TransactionTable))
+                            Action::Task(task.map(Message::TransactionTable).map(MessageContainer))
                         }
                     };
                 }
@@ -273,7 +284,7 @@ impl Account {
         }
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message> {
+    pub fn view(&self) -> iced::Element<'_, MessageContainer> {
         if let Self::Loaded {
             account,
             transaction_table,
@@ -284,13 +295,15 @@ impl Account {
             match account {
                 fm_core::account::Account::AssetAccount(acc) => {
                     asset_account_view(acc, transaction_table, current_value, timespan_input)
+                        .map(MessageContainer)
                 }
                 fm_core::account::Account::BookCheckingAccount(acc) => book_checking_account_view(
                     acc,
                     transaction_table,
                     current_value,
                     timespan_input,
-                ),
+                )
+                .map(MessageContainer),
             }
         } else {
             widget::text!("Loading...").into()

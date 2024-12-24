@@ -37,11 +37,11 @@ pub enum AppMessage {
     BudgetOverViewMessage(view::budget_overview::Message),
     CreateAssetAccountMessage(view::create_asset_account::Message),
     CreateBudgetViewMessage(view::create_budget::Message),
-    CreateTransactionViewMessage(view::create_transaction::Message),
+    CreateTransactionViewMessage(view::create_transaction::MessageContainer),
     AssetAccountsMessage(view::asset_accounts_overview::Message),
-    ViewAccountMessage(view::account::Message),
-    TransactionViewMessage(view::transaction::Message),
-    ViewBudgetMessage(view::budget::Message),
+    ViewAccountMessage(view::account::MessageContainer),
+    TransactionViewMessage(view::transaction::MessageContainer),
+    ViewBudgetMessage(view::budget::MessageContainer),
     CreateCategoryMessage(view::create_category::Message),
     CategoryOverviewMessage(view::category_overview::Message),
     ViewCategoryMessage(view::category::Message),
@@ -51,7 +51,7 @@ pub enum AppMessage {
     FilterTransactionMessage(view::filter_transactions::Message),
     CreateBillMessage(view::create_bill::Message),
     BillOverviewMessage(view::bill_overview::Message),
-    ViewBillMessage(view::bill::Message),
+    ViewBillMessage(view::bill::MessageContainer),
 }
 
 #[derive(Debug)]

@@ -7,7 +7,7 @@ pub enum Action {
     None,
     ViewTransaction(fm_core::Id),
     Edit(fm_core::Id),
-    Task(iced::Task<Message>),
+    Task(iced::Task<MessageContainer>),
     Deleted,
 }
 
@@ -19,7 +19,10 @@ struct Init {
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+pub struct MessageContainer(Message);
+
+#[derive(Debug, Clone)]
+enum Message {
     ViewTransaction(fm_core::Id),
     Edit,
     Initialize(Box<Init>),
@@ -43,7 +46,7 @@ impl Bill {
     pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
-    ) -> (Self, iced::Task<Message>) {
+    ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
             iced::Task::future(async move {
@@ -66,16 +69,17 @@ impl Bill {
                     bill_sum,
                     transactions,
                 }))
-            }),
+            })
+            .map(MessageContainer),
         )
     }
 
     pub fn update(
         &mut self,
-        message: Message,
+        message: MessageContainer,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
-        match message {
+        match message.0 {
             Message::ViewTransaction(transaction_id) => Action::ViewTransaction(transaction_id),
             Message::Edit => {
                 if let Self::Loaded { bill, .. } = self {
@@ -125,15 +129,18 @@ impl Bill {
                     }
 
                     let bill_id = *bill.id();
-                    Action::Task(iced::Task::future(async move {
-                        finance_manager
-                            .lock()
-                            .await
-                            .delete_bill(bill_id)
-                            .await
-                            .unwrap();
-                        Message::Deleted
-                    }))
+                    Action::Task(
+                        iced::Task::future(async move {
+                            finance_manager
+                                .lock()
+                                .await
+                                .delete_bill(bill_id)
+                                .await
+                                .unwrap();
+                            Message::Deleted
+                        })
+                        .map(MessageContainer),
+                    )
                 } else {
                     Action::None
                 }
@@ -148,7 +155,7 @@ impl Bill {
                         utils::table_view::Action::PageChange(_) => {}
                         utils::table_view::Action::None => {}
                         utils::table_view::Action::OuterMessage(m) => {
-                            return self.update(m, finance_manager);
+                            return self.update(MessageContainer(m), finance_manager);
                         }
                     }
                 }
@@ -157,80 +164,82 @@ impl Bill {
         }
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<MessageContainer> {
         if let Self::Loaded {
             bill,
             bill_sum,
             transaction_table,
         } = self
         {
-            widget::column![
-                utils::heading("Bill", utils::HeadingLevel::H1),
-                widget::row![
-                    widget::column![
-                        widget::text!("Name: {}", bill.name()),
-                        widget::row![
-                            "Description: ",
-                            widget::container(widget::text(
-                                bill.description().clone().unwrap_or_default()
-                            ))
-                            .style(utils::style::container_style_background_weak)
+            iced::Element::new(
+                widget::column![
+                    utils::heading("Bill", utils::HeadingLevel::H1),
+                    widget::row![
+                        widget::column![
+                            widget::text!("Name: {}", bill.name()),
+                            widget::row![
+                                "Description: ",
+                                widget::container(widget::text(
+                                    bill.description().clone().unwrap_or_default()
+                                ))
+                                .style(utils::style::container_style_background_weak)
+                            ],
+                            widget::text!("Amount: {}€", bill.value().to_num_string()),
+                            widget::text!(
+                                "Due Date: {}",
+                                bill.due_date().map_or(String::new(), |d| d
+                                    .to_offset(fm_core::get_local_timezone().unwrap())
+                                    .format(
+                                        &time::format_description::parse("[day].[month].[year]")
+                                            .unwrap()
+                                    )
+                                    .unwrap())
+                            ),
+                            widget::row!["Sum: ", utils::colored_currency_display(bill_sum),]
+                                .spacing(10)
                         ],
-                        widget::text!("Amount: {}€", bill.value().to_num_string()),
-                        widget::text!(
-                            "Due Date: {}",
-                            bill.due_date().map_or(String::new(), |d| d
-                                .to_offset(fm_core::get_local_timezone().unwrap())
-                                .format(
-                                    &time::format_description::parse("[day].[month].[year]")
-                                        .unwrap()
-                                )
-                                .unwrap())
-                        ),
-                        widget::row!["Sum: ", utils::colored_currency_display(bill_sum),]
-                            .spacing(10)
+                        widget::horizontal_space(),
+                        widget::column![
+                            widget::button("Edit").on_press(Message::Edit),
+                            widget::button("Delete")
+                                .on_press(Message::Delete)
+                                .style(widget::button::danger),
+                        ]
+                        .spacing(10)
                     ],
-                    widget::horizontal_space(),
-                    widget::column![
-                        widget::button("Edit").on_press(Message::Edit),
-                        widget::button("Delete")
-                            .on_press(Message::Delete)
-                            .style(widget::button::danger),
-                    ]
-                    .spacing(10)
-                ],
-                widget::horizontal_rule(10),
-                utils::table_view::table_view(transaction_table)
-                    .headers(["Negative", "Title", "Description", "Amount", "Date"])
-                    .view(|(transaction, sign), _| [
-                        widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
-                        utils::link(widget::text(transaction.title().clone()))
-                            .on_press(Message::ViewTransaction(*transaction.id()))
+                    widget::horizontal_rule(10),
+                    utils::table_view::table_view(transaction_table)
+                        .headers(["Negative", "Title", "Description", "Amount", "Date"])
+                        .view(|(transaction, sign), _| [
+                            widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
+                            utils::link(widget::text(transaction.title().clone()))
+                                .on_press(Message::ViewTransaction(*transaction.id()))
+                                .into(),
+                            widget::text(
+                                transaction
+                                    .description()
+                                    .map_or(String::new(), |x| x.to_string())
+                            )
                             .into(),
-                        widget::text(
-                            transaction
-                                .description()
-                                .map_or(String::new(), |x| x.to_string())
-                        )
-                        .into(),
-                        widget::text!("{}€", transaction.amount().to_num_string()).into(),
-                        widget::text(
-                            transaction
-                                .date()
-                                .to_offset(fm_core::get_local_timezone().unwrap())
-                                .format(
-                                    &time::format_description::parse("[day].[month].[year]")
-                                        .unwrap()
-                                )
-                                .unwrap()
-                        )
-                        .into(),
-                    ])
-                    .map(Message::TransactionTable),
-            ]
-            .height(iced::Fill)
-            .spacing(10)
-            .into()
+                            widget::text!("{}€", transaction.amount().to_num_string()).into(),
+                            widget::text(
+                                transaction
+                                    .date()
+                                    .to_offset(fm_core::get_local_timezone().unwrap())
+                                    .format(
+                                        &time::format_description::parse("[day].[month].[year]")
+                                            .unwrap()
+                                    )
+                                    .unwrap()
+                            )
+                            .into(),
+                        ])
+                        .map(Message::TransactionTable),
+                ]
+                .height(iced::Fill)
+                .spacing(10),
+            )
+            .map(MessageContainer)
         } else {
             widget::text("Loading...").into()
         }
