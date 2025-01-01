@@ -33,6 +33,8 @@ pub enum Action {
     None,
     TransactionCreated(fm_core::Id),
     Task(iced::Task<MessageContainer>),
+    Cancel,
+    CancelWithId(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +76,7 @@ enum Message {
     ),
     InitializeFromExisting(Box<InitExisting>),
     TransactionCreated(fm_core::Id),
+    Cancel,
 }
 
 #[derive(Debug)]
@@ -306,6 +309,13 @@ impl CreateTransactionView {
                     .map(|(k, v)| (*k, *v))
                     .collect::<Vec<_>>();
             }
+            Message::Cancel => {
+                if let Some(id) = self.id {
+                    return Action::CancelWithId(id);
+                } else {
+                    return Action::Cancel;
+                }
+            }
         }
         Action::None
     }
@@ -444,11 +454,19 @@ impl CreateTransactionView {
                     .height(iced::Length::Fill)
                     .width(iced::Length::Fill),
                 widget::horizontal_rule(10),
-                widget::button("Submit").on_press_maybe(if self.submittable() {
-                    Some(Message::Submit)
-                } else {
-                    None
-                })
+                widget::row![
+                    widget::button("Cancel")
+                        .on_press(Message::Cancel)
+                        .style(widget::button::danger),
+                    widget::horizontal_space(),
+                    widget::button("Submit")
+                        .on_press_maybe(if self.submittable() {
+                            Some(Message::Submit)
+                        } else {
+                            None
+                        })
+                        .style(widget::button::success)
+                ],
             ]
             .height(iced::Length::Fill)
             .spacing(10),

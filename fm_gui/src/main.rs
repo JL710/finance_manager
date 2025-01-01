@@ -222,6 +222,12 @@ impl App {
                     view::create_transaction::Action::Task(t) => {
                         return t.map(AppMessage::CreateTransactionViewMessage);
                     }
+                    view::create_transaction::Action::Cancel => {
+                        return self.switch_view_transaction_filter();
+                    }
+                    view::create_transaction::Action::CancelWithId(transaction_id) => {
+                        return self.switch_view_transaction(transaction_id);
+                    }
                 }
             }
             AppMessage::SwitchToCreateTransActionView => {
