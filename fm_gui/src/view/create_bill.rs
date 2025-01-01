@@ -343,7 +343,6 @@ impl CreateBillView {
                     })
                     .style(widget::button::success),
             ]
-            .spacing(10)
         ]
         .height(iced::Fill)
         .spacing(10)

@@ -9,6 +9,8 @@ pub enum Action {
     None,
     AccountCreated(fm_core::Id),
     Task(iced::Task<Message>),
+    Cancel,
+    CancelWithId(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -20,6 +22,7 @@ pub enum Message {
     Submit,
     Initialize(fm_core::account::BookCheckingAccount),
     AccountCreated(fm_core::Id),
+    Cancel,
 }
 
 #[derive(Debug, Default)]
@@ -119,6 +122,13 @@ impl CreateBookCheckingAccount {
                     Message::AccountCreated(account.id())
                 }));
             }
+            Message::Cancel => {
+                if let Some(id) = self.id {
+                    return Action::CancelWithId(id);
+                } else {
+                    return Action::Cancel;
+                }
+            }
         }
         Action::None
     }
@@ -138,11 +148,19 @@ impl CreateBookCheckingAccount {
             .spacing(10),
             utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
             utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-            widget::button("Submit").on_press_maybe(if self.can_submit() {
-                Some(Message::Submit)
-            } else {
-                None
-            })
+            widget::row![
+                widget::button("Cancel")
+                    .on_press(Message::Cancel)
+                    .style(widget::button::danger),
+                widget::horizontal_space(),
+                widget::button("Submit")
+                    .on_press_maybe(if self.can_submit() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    })
+                    .style(widget::button::success)
+            ]
         ]
         .spacing(10)
         .into()

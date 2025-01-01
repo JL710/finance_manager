@@ -392,6 +392,12 @@ impl App {
                         return self.switch_view_account(id);
                     }
                     view::create_book_checking_account::Action::None => {}
+                    view::create_book_checking_account::Action::Cancel => {
+                        return self.switch_view_book_checking_account_overview()
+                    }
+                    view::create_book_checking_account::Action::CancelWithId(acc_id) => {
+                        return self.switch_view_account(acc_id)
+                    }
                 }
             }
             AppMessage::SwitchToSettingsView => {
