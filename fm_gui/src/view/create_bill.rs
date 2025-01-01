@@ -208,6 +208,7 @@ impl CreateBillView {
             }
             Message::RemoveTransaction(transaction_id) => {
                 self.transactions.retain(|x| *x.0.id() != transaction_id);
+                self.transaction_table.set_items(self.transactions.clone());
             }
             Message::AddTransaction(m) => {
                 if let Some(add_transaction) = &mut self.add_transaction {
