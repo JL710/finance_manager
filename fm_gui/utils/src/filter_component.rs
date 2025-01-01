@@ -69,6 +69,9 @@ impl FilterComponent {
     pub fn set_filter(&mut self, new_filter: fm_core::transaction_filter::TransactionFilter) {
         self.filter = new_filter;
 
+        self.default_transaction_input =
+            crate::timespan_input::State::new(Some(self.filter.get_default_timespan().clone()));
+
         fn set_inputs<I: Clone + std::fmt::Debug + Eq + std::hash::Hash>(
             inputs: &mut HashMap<Filter<I>, crate::timespan_input::State>,
             filters: &Vec<Filter<I>>,
@@ -120,12 +123,14 @@ impl FilterComponent {
             }
             InnerMessage::ChangeDefaultTimespan(action) => {
                 self.default_transaction_input.perform(action);
+                self.filter
+                    .set_default_timespan(self.default_transaction_input.timespan());
             }
             InnerMessage::NewAccountFilter => {
                 if !self.accounts.is_empty() {
                     self.filter.add_account(Filter {
                         negated: false,
-                        id: *self.accounts.first().unwrap().id(),
+                        id: Some(*self.accounts.first().unwrap().id()),
                         include: true,
                         timespan: None,
                     });
@@ -135,7 +140,7 @@ impl FilterComponent {
                 if let Some(bill) = self.bills.first() {
                     self.filter.add_bill(Filter {
                         negated: false,
-                        id: bill.clone(),
+                        id: Some(bill.clone()),
                         include: true,
                         timespan: None,
                     });
@@ -145,7 +150,7 @@ impl FilterComponent {
                 if !self.categories.is_empty() {
                     self.filter.add_category(Filter {
                         negated: false,
-                        id: *self.categories.first().unwrap().id(),
+                        id: Some(*self.categories.first().unwrap().id()),
                         include: true,
                         timespan: None,
                     });
@@ -155,7 +160,7 @@ impl FilterComponent {
                 if !self.budgets.is_empty() {
                     self.filter.add_budget(Filter {
                         negated: false,
-                        id: *self.budgets.first().unwrap().id(),
+                        id: Some(*self.budgets.first().unwrap().id()),
                         include: true,
                         timespan: None,
                     });
@@ -396,7 +401,7 @@ fn generate_filter_column<
                     Some((picklist_item_from_option)(
                         &options
                             .iter()
-                            .find(|x| (id_from_option)(x) == filter.id)
+                            .find(|x| Some((id_from_option)(x)) == filter.id)
                             .unwrap()
                             .clone()
                     )),
@@ -404,7 +409,7 @@ fn generate_filter_column<
                         filter.clone(),
                         Filter {
                             negated: filter.negated,
-                            id: (id_from_picklist_item)(&x),
+                            id: Some((id_from_picklist_item)(&x)),
                             include: filter.include,
                             timespan: filter.timespan,
                         }

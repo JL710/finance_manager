@@ -97,12 +97,15 @@ impl FilterTransactionView {
                 self.change_filter = if self.change_filter.is_some() {
                     None
                 } else {
-                    Some(utils::filter_component::FilterComponent::new(
-                        self.accounts.clone(),
-                        self.categories.clone(),
-                        self.bills.clone(),
-                        self.budgets.clone(),
-                    ))
+                    Some(
+                        utils::filter_component::FilterComponent::new(
+                            self.accounts.clone(),
+                            self.categories.clone(),
+                            self.bills.clone(),
+                            self.budgets.clone(),
+                        )
+                        .with_filter(self.filter.clone()),
+                    )
                 };
             }
             Message::ViewAccount(id) => return Action::ViewAccount(id),
