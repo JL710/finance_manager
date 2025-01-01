@@ -427,6 +427,12 @@ impl App {
                     view::create_bill::Action::Task(t) => {
                         return t.map(AppMessage::CreateBillMessage);
                     }
+                    view::create_bill::Action::CanceledWithoutExisting => {
+                        return self.switch_view_bill_overview()
+                    }
+                    view::create_bill::Action::Canceled(bill_id) => {
+                        return self.switch_view_bill(bill_id)
+                    }
                 }
             }
             AppMessage::BillOverviewMessage(m) => {

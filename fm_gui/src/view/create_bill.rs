@@ -6,6 +6,8 @@ use iced::widget;
 pub enum Action {
     None,
     BillCreated(fm_core::Id),
+    CanceledWithoutExisting,
+    Canceled(fm_core::Id),
     Task(iced::Task<Message>),
 }
 
@@ -23,6 +25,7 @@ pub enum Message {
     Initialize(fm_core::Bill, Vec<(fm_core::Transaction, fm_core::Sign)>),
     BillCreated(fm_core::Id),
     TransactionTable(utils::table_view::InnerMessage<Message>),
+    Cancel,
 }
 
 #[derive(Debug)]
@@ -118,6 +121,13 @@ impl CreateBillView {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
+            Message::Cancel => {
+                if let Some(id) = self.id {
+                    return Action::Canceled(id);
+                } else {
+                    return Action::CanceledWithoutExisting;
+                }
+            }
             Message::BillCreated(id) => {
                 return Action::BillCreated(id);
             }
@@ -320,11 +330,20 @@ impl CreateBillView {
             )
             .height(iced::Fill),
             widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
-            widget::button("Submit").on_press_maybe(if self.submittable() {
-                Some(Message::Submit)
-            } else {
-                None
-            }),
+            widget::row![
+                widget::button("Cancel")
+                    .on_press(Message::Cancel)
+                    .style(widget::button::danger),
+                widget::horizontal_space(),
+                widget::button("Submit")
+                    .on_press_maybe(if self.submittable() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    })
+                    .style(widget::button::success),
+            ]
+            .spacing(10)
         ]
         .height(iced::Fill)
         .spacing(10)
