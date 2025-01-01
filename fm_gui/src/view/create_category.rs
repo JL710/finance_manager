@@ -6,6 +6,8 @@ pub enum Action {
     None,
     CategoryCreated(fm_core::Id),
     Task(iced::Task<Message>),
+    Cancel,
+    CancelWithId(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -14,6 +16,7 @@ pub enum Message {
     NameInput(String),
     CategoryCreated(fm_core::Id),
     Initialize(fm_core::Category),
+    Cancel,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -57,6 +60,13 @@ impl CreateCategory {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
+            Message::Cancel => {
+                if let Some(id) = self.id {
+                    return Action::CancelWithId(id);
+                } else {
+                    return Action::Cancel;
+                }
+            }
             Message::CategoryCreated(id) => Action::CategoryCreated(id),
             Message::Initialize(category) => {
                 self.id = Some(*category.id());
@@ -91,11 +101,19 @@ impl CreateCategory {
         widget::column![
             utils::heading("Create Category", utils::HeadingLevel::H1),
             utils::labeled_entry("Name", &self.name, Message::NameInput, true),
-            widget::button("Submit").on_press_maybe(if self.is_submittable() {
-                Some(Message::Submit)
-            } else {
-                None
-            })
+            widget::row![
+                widget::button("Cancel")
+                    .on_press(Message::Cancel)
+                    .style(widget::button::danger),
+                widget::horizontal_space(),
+                widget::button("Submit")
+                    .on_press_maybe(if self.is_submittable() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    })
+                    .style(widget::button::success)
+            ],
         ]
         .spacing(10)
         .into()

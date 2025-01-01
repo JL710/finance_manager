@@ -335,6 +335,12 @@ impl App {
                     view::create_category::Action::Task(t) => {
                         return t.map(AppMessage::CreateCategoryMessage);
                     }
+                    view::create_category::Action::Cancel => {
+                        return self.switch_view_category_overview();
+                    }
+                    view::create_category::Action::CancelWithId(category_id) => {
+                        return self.switch_view_category(category_id);
+                    }
                 }
             }
             AppMessage::CategoryOverviewMessage(m) => {
