@@ -6,8 +6,8 @@ use iced::widget;
 pub enum Action {
     None,
     BillCreated(fm_core::Id),
-    CanceledWithoutExisting,
-    Canceled(fm_core::Id),
+    Cancel,
+    CancelWithId(fm_core::Id),
     Task(iced::Task<Message>),
 }
 
@@ -123,9 +123,9 @@ impl CreateBillView {
         match message {
             Message::Cancel => {
                 if let Some(id) = self.id {
-                    return Action::Canceled(id);
+                    return Action::CancelWithId(id);
                 } else {
-                    return Action::CanceledWithoutExisting;
+                    return Action::Cancel;
                 }
             }
             Message::BillCreated(id) => {

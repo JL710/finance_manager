@@ -188,6 +188,12 @@ impl App {
                     view::create_asset_account::Action::Task(t) => {
                         return t.map(AppMessage::CreateAssetAccountMessage);
                     }
+                    view::create_asset_account::Action::Cancel => {
+                        return self.switch_view_asset_account_overview()
+                    }
+                    view::create_asset_account::Action::CancelWithId(acc_id) => {
+                        return self.switch_view_account(acc_id);
+                    }
                 }
             }
             AppMessage::CreateBudgetViewMessage(m) => {
@@ -427,10 +433,8 @@ impl App {
                     view::create_bill::Action::Task(t) => {
                         return t.map(AppMessage::CreateBillMessage);
                     }
-                    view::create_bill::Action::CanceledWithoutExisting => {
-                        return self.switch_view_bill_overview()
-                    }
-                    view::create_bill::Action::Canceled(bill_id) => {
+                    view::create_bill::Action::Cancel => return self.switch_view_bill_overview(),
+                    view::create_bill::Action::CancelWithId(bill_id) => {
                         return self.switch_view_bill(bill_id)
                     }
                 }

@@ -9,6 +9,8 @@ pub enum Action {
     None,
     AssetAccountCreated(fm_core::Id),
     Task(iced::Task<Message>),
+    CancelWithId(fm_core::Id),
+    Cancel,
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +23,7 @@ pub enum Message {
     Submit,
     AssetAccountCreated(fm_core::Id),
     Initialize(fm_core::account::AssetAccount),
+    Cancel,
 }
 
 #[derive(Debug)]
@@ -79,6 +82,13 @@ impl CreateAssetAccountDialog {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
+            Message::Cancel => {
+                if let Some(id) = self.id {
+                    return Action::CancelWithId(id);
+                } else {
+                    return Action::Cancel;
+                }
+            }
             Message::Initialize(account) => {
                 self.id = Some(account.id());
                 self.name_input = account.name().to_string();
@@ -163,11 +173,19 @@ impl CreateAssetAccountDialog {
             ]
             .width(iced::Fill)
             .spacing(10),
-            widget::button("Submit").on_press_maybe(if self.can_submit() {
-                Some(Message::Submit)
-            } else {
-                None
-            })
+            widget::row![
+                widget::button("Cancel")
+                    .on_press(Message::Cancel)
+                    .style(widget::button::danger),
+                widget::horizontal_space(),
+                widget::button("Submit")
+                    .on_press_maybe(if self.can_submit() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    })
+                    .style(widget::button::success)
+            ]
         ]
         .spacing(10)
         .into()
