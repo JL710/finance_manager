@@ -205,6 +205,12 @@ impl App {
                     view::create_budget::Action::Task(t) => {
                         return t.map(AppMessage::CreateBudgetViewMessage);
                     }
+                    view::create_budget::Action::Cancel => {
+                        return self.switch_view_budget_overview();
+                    }
+                    view::create_budget::Action::CancelWithId(budget_id) => {
+                        return self.switch_view_budget(budget_id);
+                    }
                 }
             }
             AppMessage::CreateTransactionViewMessage(m) => {

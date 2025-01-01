@@ -10,6 +10,8 @@ pub enum Action {
     None,
     BudgetCreated(fm_core::Id),
     Task(iced::Task<Message>),
+    Cancel,
+    CancelWithId(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +25,7 @@ pub enum Message {
     Submit,
     BudgetCreated(fm_core::Id),
     Initialize(Option<fm_core::Budget>),
+    Cancel,
 }
 
 #[derive(Debug, Clone)]
@@ -156,6 +159,13 @@ impl CreateBudgetView {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
+            Message::Cancel => {
+                if let Some(id) = self.id {
+                    return Action::CancelWithId(id);
+                } else {
+                    return Action::Cancel;
+                }
+            }
             Message::BudgetCreated(id) => return Action::BudgetCreated(id),
             Message::Initialize(budget) => {
                 if let Some(budget) = budget {
@@ -269,11 +279,19 @@ impl CreateBudgetView {
             .spacing(10),
             utils::labeled_entry("Value", &self.value_input, Message::ValueInput, true),
             self.generate_recurring_view(),
-            widget::button::Button::new("Submit").on_press_maybe(if self.submittable() {
-                Some(Message::Submit)
-            } else {
-                None
-            }),
+            widget::row![
+                widget::button("Cancel")
+                    .on_press(Message::Cancel)
+                    .style(widget::button::danger),
+                widget::horizontal_space(),
+                widget::button::Button::new("Submit")
+                    .on_press_maybe(if self.submittable() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    })
+                    .style(widget::button::success),
+            ],
         ]
         .spacing(10)
         .into()
