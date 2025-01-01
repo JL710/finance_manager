@@ -109,11 +109,7 @@ where
         &self,
         filter: transaction_filter::TransactionFilter,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
-        let transactions_future = self.get_transactions_in_timespan(filter.total_timespan());
-        async move {
-            let transactions = transactions_future.await?;
-            Ok(filter.filter_transactions(transactions))
-        }
+        self.finance_manager.get_filtered_transactions(filter)
     }
 
     pub fn create_asset_account(

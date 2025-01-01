@@ -3,7 +3,9 @@ use super::{Bill, Id, Timespan, Transaction};
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Hash)]
 pub struct Filter<I: Clone + std::fmt::Debug> {
     pub negated: bool,
-    pub id: I,
+    /// If None the filter applies to every possibility where an id is given.
+    /// You can imagine it as the "any" wildcard.
+    pub id: Option<I>,
     pub include: bool,
     pub timespan: Option<Timespan>,
 }
@@ -180,43 +182,71 @@ impl TransactionFilter {
         timespan
     }
 
-    pub fn filter_transactions(&self, mut transactions: Vec<Transaction>) -> Vec<Transaction> {
+    pub fn filter_transactions(
+        &self,
+        mut transactions: Vec<Transaction>,
+        bills: &Vec<Bill>,
+    ) -> Vec<Transaction> {
         transactions.retain(|transaction| {
             // create iterators from filters with include/exclude and timespan
             let account_filter_iterator = self
                 .accounts
                 .iter()
                 .filter(|account| {
-                    transaction.connection_with_account(account.id) != account.negated
+                    if let Some(id) = account.id {
+                        transaction.connection_with_account(id) != account.negated
+                    } else {
+                        // I know this does not make that much sense, since every transaction needs an account.
+                        // On the other side, including all transactions with any account / all transactions might be helpful in some cases.
+                        // Negated excludes all.
+                        !account.negated
+                    }
                 })
                 .map(|x| (x.include, x.timespan));
             let category_filter_iterator = self
                 .categories
                 .iter()
                 .filter(|category| {
-                    (transaction
-                        .categories()
-                        .iter()
-                        .filter(|x| *x.0 == category.id)
-                        .count()
-                        >= 1)
-                        != category.negated
+                    if let Some(category_id) = category.id {
+                        (transaction
+                            .categories()
+                            .iter()
+                            .filter(|x| *x.0 == category_id)
+                            .count()
+                            >= 1)
+                            != category.negated
+                    } else {
+                        transaction.categories().is_empty() == category.negated
+                    }
                 })
                 .map(|x| (x.include, x.timespan));
             let bill_filter_iterator = self
                 .bills
                 .iter()
                 .filter(|bill_filter| {
-                    bill_filter.id.transactions().contains_key(transaction.id())
-                        != bill_filter.negated
+                    if let Some(id) = &bill_filter.id {
+                        id.transactions().contains_key(transaction.id()) != bill_filter.negated
+                    } else {
+                        let mut transaction_in_a_bill = false;
+                        for bill in bills {
+                            if bill.transactions().contains_key(transaction.id()) {
+                                transaction_in_a_bill = true;
+                                break;
+                            }
+                        }
+                        transaction_in_a_bill != bill_filter.negated
+                    }
                 })
                 .map(|x| (x.include, x.timespan));
             let budget_filter_iterator = self
                 .budgets
                 .iter()
                 .filter(|budget_filter| {
-                    (transaction.budget().map(|x| x.0) == Some(budget_filter.id))
-                        != budget_filter.negated
+                    if let Some(id) = budget_filter.id {
+                        (transaction.budget().map(|x| x.0) == Some(id)) != budget_filter.negated
+                    } else {
+                        transaction.budget().is_some() != budget_filter.negated
+                    }
                 })
                 .map(|x| (x.include, x.timespan));
 
@@ -348,6 +378,17 @@ mod test {
         )
     }
 
+    fn generate_simple_bill(id: Id, transactions: HashMap<Id, Sign>) -> Bill {
+        Bill::new(
+            id,
+            format!("id: {}", id),
+            None,
+            Currency::default(),
+            transactions,
+            None,
+        )
+    }
+
     #[test]
     fn filter_bill_include() {
         let transactions = generate_test_transactions_1();
@@ -355,11 +396,11 @@ mod test {
         let mut filter = TransactionFilter::default();
         filter.add_bill(Filter {
             negated: false,
-            id: bill,
+            id: Some(bill.clone()),
             include: true,
             timespan: None,
         });
-        let result = filter.filter_transactions(transactions);
+        let result = filter.filter_transactions(transactions, &vec![bill]);
         assert_eq!(result.len(), 2);
         result.iter().find(|x| *x.id() == 2).unwrap();
         result.iter().find(|x| *x.id() == 3).unwrap();
@@ -370,17 +411,20 @@ mod test {
         let mut filter = TransactionFilter::default();
         filter.add_bill(Filter {
             negated: false,
-            id: generate_test_bill_1(),
+            id: Some(generate_test_bill_1()),
             include: true,
             timespan: None,
         });
         filter.add_bill(Filter {
             negated: false,
-            id: generate_test_bill_2(),
+            id: Some(generate_test_bill_2()),
             include: false,
             timespan: None,
         });
-        let result = filter.filter_transactions(generate_test_transactions_1());
+        let result = filter.filter_transactions(
+            generate_test_transactions_1(),
+            &vec![generate_test_bill_1(), generate_test_bill_2()],
+        );
         assert_eq!(result.len(), 1);
         assert_eq!(*result[0].id(), 2);
     }
@@ -390,11 +434,11 @@ mod test {
         let result = TransactionFilter::default()
             .push_account(Filter {
                 negated: false,
-                id: 1,
+                id: Some(1),
                 include: true,
                 timespan: None,
             })
-            .filter_transactions(generate_test_transactions_1());
+            .filter_transactions(generate_test_transactions_1(), &Vec::new());
         assert_eq!(result.len(), 2);
         result.iter().find(|x| *x.id() == 1).unwrap();
         result.iter().find(|x| *x.id() == 4).unwrap();
@@ -405,17 +449,17 @@ mod test {
         let result = TransactionFilter::default()
             .push_account(Filter {
                 negated: false,
-                id: 1,
+                id: Some(1),
                 include: true,
                 timespan: None,
             })
             .push_account(Filter {
                 negated: false,
-                id: 5,
+                id: Some(5),
                 include: false,
                 timespan: None,
             })
-            .filter_transactions(generate_test_transactions_1());
+            .filter_transactions(generate_test_transactions_1(), &Vec::new());
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id(), &4);
     }
@@ -432,11 +476,11 @@ mod test {
         let result = TransactionFilter::default()
             .push_budget(Filter {
                 negated: false,
-                id: 2,
+                id: Some(2),
                 include: true,
                 timespan: None,
             })
-            .filter_transactions(transactions);
+            .filter_transactions(transactions, &Vec::new());
         assert_eq!(result.len(), 2);
         result.iter().find(|x| *x.id() == 2).unwrap();
         result.iter().find(|x| *x.id() == 3).unwrap();
@@ -454,17 +498,17 @@ mod test {
         let result = TransactionFilter::default()
             .push_account(Filter {
                 negated: false,
-                id: 1,
+                id: Some(1),
                 include: true,
                 timespan: None,
             })
             .push_budget(Filter {
                 negated: false,
-                id: 2,
+                id: Some(2),
                 include: false,
                 timespan: None,
             })
-            .filter_transactions(transactions);
+            .filter_transactions(transactions, &Vec::new());
         assert_eq!(result.len(), 2);
         assert!(result.iter().find(|x| x.id() == &1).is_some());
         assert!(result.iter().find(|x| x.id() == &4).is_some());
@@ -488,11 +532,11 @@ mod test {
         let result = TransactionFilter::default()
             .push_category(Filter {
                 negated: false,
-                id: 1,
+                id: Some(1),
                 include: true,
                 timespan: None,
             })
-            .filter_transactions(transactions);
+            .filter_transactions(transactions, &Vec::new());
         assert_eq!(result.len(), 2);
         result.iter().find(|x| *x.id() == 1).unwrap();
         result.iter().find(|x| *x.id() == 2).unwrap();
@@ -516,17 +560,17 @@ mod test {
         let result = TransactionFilter::default()
             .push_category(Filter {
                 negated: false,
-                id: 1,
+                id: Some(1),
                 include: true,
                 timespan: None,
             })
             .push_category(Filter {
                 negated: false,
-                id: 2,
+                id: Some(2),
                 include: false,
                 timespan: None,
             })
-            .filter_transactions(transactions);
+            .filter_transactions(transactions, &Vec::new());
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id(), &2);
     }
@@ -536,25 +580,25 @@ mod test {
         let mut filter = TransactionFilter::default();
         filter.add_bill(Filter {
             negated: false,
-            id: generate_test_bill_1(),
+            id: Some(generate_test_bill_1()),
             include: true,
             timespan: None,
         });
         filter.add_account(Filter {
             negated: false,
-            id: 2,
+            id: Some(2),
             include: true,
             timespan: None,
         });
         filter.add_category(Filter {
             negated: false,
-            id: 1,
+            id: Some(1),
             include: true,
             timespan: None,
         });
         filter.add_budget(Filter {
             negated: false,
-            id: 1,
+            id: Some(1),
             include: true,
             timespan: None,
         });
@@ -578,7 +622,7 @@ mod test {
             TransactionFilter::default()
                 .push_bill(Filter {
                     negated: false,
-                    id: generate_test_bill_1(),
+                    id: Some(generate_test_bill_1()),
                     include: true,
                     timespan: Some(timespan.clone()),
                 })
@@ -589,7 +633,7 @@ mod test {
             TransactionFilter::default()
                 .push_account(Filter {
                     negated: false,
-                    id: 1,
+                    id: Some(1),
                     include: true,
                     timespan: Some(timespan.clone()),
                 })
@@ -600,7 +644,7 @@ mod test {
             TransactionFilter::default()
                 .push_category(Filter {
                     negated: false,
-                    id: 2,
+                    id: Some(2),
                     include: true,
                     timespan: Some(timespan.clone()),
                 })
@@ -611,12 +655,227 @@ mod test {
             TransactionFilter::default()
                 .push_budget(Filter {
                     negated: false,
-                    id: 2,
+                    id: Some(2),
                     include: true,
                     timespan: Some(timespan.clone()),
                 })
                 .total_timespan(),
             timespan.clone()
         );
+    }
+
+    #[test]
+    fn ignore_transactions_with_category() {
+        let filter = TransactionFilter::default()
+            .push_category(Filter {
+                negated: false,
+                include: false,
+                id: None,
+                timespan: None,
+            })
+            .push_account(Filter {
+                negated: false,
+                include: true,
+                id: Some(1),
+                timespan: None,
+            });
+        let transactions = vec![
+            generate_advanced_transaction(
+                1,
+                1,
+                2,
+                None,
+                HashMap::from([(1, Sign::Positive), (2, Sign::Negative)]),
+            ),
+            generate_advanced_transaction(2, 1, 2, None, HashMap::default()),
+        ];
+
+        let result = filter.filter_transactions(transactions, &Vec::default());
+        assert_eq!(result.len(), 1);
+        assert_eq!(*result[0].id(), 2);
+    }
+
+    #[test]
+    fn ignore_transactions_without_category() {
+        let filter = TransactionFilter::default()
+            .push_category(Filter {
+                negated: true,
+                include: false,
+                id: None,
+                timespan: None,
+            })
+            .push_account(Filter {
+                negated: false,
+                include: true,
+                id: Some(1),
+                timespan: None,
+            });
+        let transactions = vec![
+            generate_advanced_transaction(
+                1,
+                1,
+                2,
+                None,
+                HashMap::from([(1, Sign::Positive), (2, Sign::Negative)]),
+            ),
+            generate_advanced_transaction(2, 1, 2, None, HashMap::default()),
+        ];
+
+        let result = filter.filter_transactions(transactions, &Vec::default());
+        assert_eq!(result.len(), 1);
+        assert_eq!(*result[0].id(), 1);
+    }
+
+    #[test]
+    fn ignore_transactions_with_budget() {
+        let filter = TransactionFilter::default()
+            .push_account(Filter {
+                negated: false,
+                id: Some(1),
+                include: true,
+                timespan: None,
+            })
+            .push_budget(Filter {
+                negated: false,
+                id: None,
+                include: false,
+                timespan: None,
+            });
+        let result = filter.filter_transactions(
+            vec![
+                generate_advanced_transaction(1, 1, 2, None, HashMap::default()),
+                generate_advanced_transaction(2, 1, 2, Some(1), HashMap::default()),
+            ],
+            &Vec::new(),
+        );
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id(), &1);
+    }
+
+    #[test]
+    fn ignore_transactions_without_budget() {
+        let filter = TransactionFilter::default()
+            .push_account(Filter {
+                negated: false,
+                id: Some(1),
+                include: true,
+                timespan: None,
+            })
+            .push_budget(Filter {
+                negated: true,
+                id: None,
+                include: false,
+                timespan: None,
+            });
+        let result = filter.filter_transactions(
+            vec![
+                generate_advanced_transaction(1, 1, 2, None, HashMap::default()),
+                generate_advanced_transaction(2, 1, 2, Some(1), HashMap::default()),
+            ],
+            &Vec::new(),
+        );
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id(), &2);
+    }
+
+    #[test]
+    fn ignore_transactions_with_bill() {
+        let filter = TransactionFilter::default()
+            .push_account(Filter {
+                negated: false,
+                id: Some(1),
+                include: true,
+                timespan: None,
+            })
+            .push_bill(Filter {
+                negated: false,
+                id: None,
+                include: false,
+                timespan: None,
+            });
+        let result = filter.filter_transactions(
+            vec![
+                generate_advanced_transaction(1, 1, 2, None, HashMap::default()),
+                generate_advanced_transaction(2, 1, 2, None, HashMap::default()),
+            ],
+            &vec![
+                generate_simple_bill(1, HashMap::from([(1, Sign::Negative)])),
+                generate_simple_bill(5, HashMap::default()),
+            ],
+        );
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id(), &2);
+    }
+
+    #[test]
+    fn ignore_transactions_without_bill() {
+        let filter = TransactionFilter::default()
+            .push_account(Filter {
+                negated: false,
+                id: Some(1),
+                include: true,
+                timespan: None,
+            })
+            .push_bill(Filter {
+                negated: true,
+                id: None,
+                include: false,
+                timespan: None,
+            });
+        let result = filter.filter_transactions(
+            vec![
+                generate_advanced_transaction(1, 1, 2, None, HashMap::default()),
+                generate_advanced_transaction(2, 1, 2, None, HashMap::default()),
+            ],
+            &vec![
+                generate_simple_bill(1, HashMap::from([(1, Sign::Negative)])),
+                generate_simple_bill(5, HashMap::default()),
+            ],
+        );
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id(), &1);
+    }
+
+    #[test]
+    fn ignore_transactions_with_account() {
+        let filter = TransactionFilter::default().push_account(Filter {
+            negated: false,
+            id: None,
+            include: false,
+            timespan: None,
+        });
+        let result = filter.filter_transactions(
+            vec![
+                generate_simple_transaction(1, 1, 2),
+                generate_simple_transaction(1, 2, 3),
+            ],
+            &Vec::default(),
+        );
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn ignore_transactions_without_account() {
+        let filter = TransactionFilter::default()
+            .push_account(Filter {
+                negated: true,
+                id: None,
+                include: false,
+                timespan: None,
+            })
+            .push_account(Filter {
+                negated: false,
+                id: Some(2),
+                include: true,
+                timespan: None,
+            });
+        let result = filter.filter_transactions(
+            vec![
+                generate_simple_transaction(1, 1, 2),
+                generate_simple_transaction(1, 2, 3),
+            ],
+            &Vec::default(),
+        );
+        assert_eq!(result.len(), 2);
     }
 }

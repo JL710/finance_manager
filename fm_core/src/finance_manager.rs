@@ -101,9 +101,12 @@ pub trait FinanceManager: Send + Clone + Sized {
         filter: transaction_filter::TransactionFilter,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend {
         let transactions_future = self.get_transactions_in_timespan(filter.total_timespan());
+        let bills_future = self.get_bills();
         async move {
             let transactions = transactions_future.await?;
-            Ok(filter.filter_transactions(transactions))
+            let bills = bills_future.await?;
+            let result = filter.filter_transactions(transactions, &bills);
+            Ok(result)
         }
     }
 
