@@ -181,7 +181,11 @@ impl Category {
                         },
                     )),
                     values,
-                    timespan_input: utils::timespan_input::State::default(),
+                    timespan_input: if let Self::Loaded { timespan_input, .. } = &self {
+                        timespan_input.clone()
+                    } else {
+                        utils::timespan_input::State::default()
+                    },
                 };
                 Action::None
             }
