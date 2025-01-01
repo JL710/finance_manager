@@ -127,6 +127,7 @@ impl TransactionTable {
         )>,
     ) {
         self.transactions = transactions;
+        self.transaction_table.set_items(self.transactions.clone());
     }
 
     pub fn update(
