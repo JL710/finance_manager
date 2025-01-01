@@ -70,7 +70,7 @@ impl FilterComponent {
         self.filter = new_filter;
 
         self.default_transaction_input =
-            crate::timespan_input::State::new(Some(self.filter.get_default_timespan().clone()));
+            crate::timespan_input::State::new(Some(*self.filter.get_default_timespan()));
 
         fn set_inputs<I: Clone + std::fmt::Debug + Eq + std::hash::Hash>(
             inputs: &mut HashMap<Filter<I>, crate::timespan_input::State>,
@@ -372,7 +372,7 @@ fn generate_filter_column<
     options: &'a [O],
     picklist_item_from_option: impl Fn(&O) -> T,
     id_from_picklist_item: fn(&T) -> I,
-    id_from_option: impl Fn(&O) -> I,
+    id_from_option: fn(&O) -> I,
     change_message: fn(Filter<I>, Filter<I>) -> InnerMessage,
     change_timespan: fn(Filter<I>, crate::timespan_input::Action) -> InnerMessage,
     delete_message: impl Fn(Filter<I>) -> InnerMessage,
@@ -393,7 +393,32 @@ fn generate_filter_column<
                         },
                     )
                 }),
-                widget::pick_list(
+                widget::checkbox("Specific", filter.id.is_some()).on_toggle(move |x| {
+                    if !x || options.is_empty() {
+                        (change_message)(
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: None,
+                                include: filter.include,
+                                timespan: filter.timespan,
+                            },
+                        )
+                    } else {
+                        (change_message)(
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: Some((id_from_option)(&options[0])),
+                                include: filter.include,
+                                timespan: filter.timespan,
+                            },
+                        )
+                    }
+                }),
+            ]
+            .push_maybe(if filter.id.is_some() {
+                Some(widget::pick_list(
                     options
                         .iter()
                         .map(&(picklist_item_from_option))
@@ -403,18 +428,24 @@ fn generate_filter_column<
                             .iter()
                             .find(|x| Some((id_from_option)(x)) == filter.id)
                             .unwrap()
-                            .clone()
+                            .clone(),
                     )),
-                    move |x| (change_message)(
-                        filter.clone(),
-                        Filter {
-                            negated: filter.negated,
-                            id: Some((id_from_picklist_item)(&x)),
-                            include: filter.include,
-                            timespan: filter.timespan,
-                        }
-                    )
-                ),
+                    move |x| {
+                        (change_message)(
+                            filter.clone(),
+                            Filter {
+                                negated: filter.negated,
+                                id: Some((id_from_picklist_item)(&x)),
+                                include: filter.include,
+                                timespan: filter.timespan,
+                            },
+                        )
+                    },
+                ))
+            } else {
+                None
+            })
+            .push(
                 widget::checkbox("Exclude", !filter.include).on_toggle(move |x| {
                     (change_message)(
                         filter.clone(),
@@ -426,6 +457,8 @@ fn generate_filter_column<
                         },
                     )
                 }),
+            )
+            .push(
                 widget::checkbox("Custom Timespan", filter.timespan.is_some()).on_toggle(
                     move |x| {
                         (change_message)(
@@ -437,9 +470,9 @@ fn generate_filter_column<
                                 timespan: if x { Some((None, None)) } else { None },
                             },
                         )
-                    }
-                )
-            ]
+                    },
+                ),
+            )
             .push_maybe(if filter.timespan.is_some() {
                 Some(
                     crate::timespan_input::timespan_input(
