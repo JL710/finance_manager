@@ -62,9 +62,9 @@ impl CreateCategory {
         match message {
             Message::Cancel => {
                 if let Some(id) = self.id {
-                    return Action::CancelWithId(id);
+                    Action::CancelWithId(id)
                 } else {
-                    return Action::Cancel;
+                    Action::Cancel
                 }
             }
             Message::CategoryCreated(id) => Action::CategoryCreated(id),
