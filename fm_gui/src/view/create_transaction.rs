@@ -375,7 +375,7 @@ impl CreateTransactionView {
             utils::style::text_input_danger
         };
 
-        iced::Element::new(
+        iced::Element::new(widget::scrollable(
             widget::column![
                 utils::heading("Create Transaction", utils::HeadingLevel::H1),
                 widget::row![
@@ -450,9 +450,7 @@ impl CreateTransactionView {
                 .spacing(10),
                 widget::horizontal_rule(10),
                 widget::text("Categories"),
-                widget::scrollable(categories)
-                    .height(iced::Length::Fill)
-                    .width(iced::Length::Fill),
+                categories,
                 widget::horizontal_rule(10),
                 widget::row![
                     widget::button("Cancel")
@@ -468,9 +466,8 @@ impl CreateTransactionView {
                         .style(widget::button::success)
                 ],
             ]
-            .height(iced::Length::Fill)
             .spacing(10),
-        )
+        ))
         .map(MessageContainer)
     }
 

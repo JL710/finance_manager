@@ -259,8 +259,11 @@ impl CreateBillView {
             utils::labeled_entry("Name", &self.name_input, Message::NameInputChanged, true),
             widget::row![
                 "Description: ",
-                widget::text_editor(&self.description_input)
-                    .on_action(Message::DescriptionInputChanged)
+                widget::container(widget::scrollable(
+                    widget::text_editor(&self.description_input)
+                        .on_action(Message::DescriptionInputChanged)
+                ))
+                .max_height(200)
             ]
             .spacing(10),
             widget::row![
