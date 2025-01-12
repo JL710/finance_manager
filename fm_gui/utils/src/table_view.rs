@@ -225,7 +225,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
             }
             data_column = data_column.push(
                 widget::container(row)
-                    .style(super::style::container_style_background_weak)
+                    .style(move |theme| row_style(row_index, theme))
                     .padding(self.padding),
             );
         }
@@ -294,4 +294,14 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
 
 pub fn table_view<T, C, const COLUMNS: usize>(state: &State<T, C>) -> TableView<'_, T, C, COLUMNS> {
     TableView::new(state)
+}
+
+fn row_style(row_index: usize, theme: &iced::Theme) -> widget::container::Style {
+    let factor = if row_index % 2 == 0 { 0.25 } else { 0.5 };
+    let mut weak = theme.extended_palette().background.weak.color;
+    let strong = theme.extended_palette().background.base.color;
+    weak.r += (strong.r - weak.r) * factor;
+    weak.g += (strong.g - weak.g) * factor;
+    weak.b += (strong.b - weak.b) * factor;
+    widget::container::Style::default().background(iced::Background::Color(weak))
 }
