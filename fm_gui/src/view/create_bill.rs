@@ -254,102 +254,105 @@ impl CreateBillView {
             return add_transaction.view().map(Message::AddTransaction);
         }
 
-        widget::column![
-            utils::heading("Create Bill", utils::HeadingLevel::H1),
-            utils::labeled_entry("Name", &self.name_input, Message::NameInputChanged, true),
-            widget::row![
-                "Description: ",
-                widget::container(widget::scrollable(
-                    widget::text_editor(&self.description_input)
-                        .on_action(Message::DescriptionInputChanged)
-                ))
-                .max_height(200)
-            ]
-            .spacing(10),
-            widget::row![
-                "Value: ",
-                utils::currency_input::currency_input(&self.value, true)
-                    .view()
-                    .map(Message::ValueChanged),
-            ]
-            .width(iced::Length::Fill)
-            .spacing(10),
-            widget::row![
-                "Due Date: ",
-                utils::date_input::date_input(&self.due_date_input, "", false)
-                    .view()
-                    .map(Message::DueDateChanged),
-            ]
-            .width(iced::Length::Fill)
-            .spacing(10),
-            "Transactions:",
-            widget::container(
-                utils::table_view::table_view(&self.transaction_table)
-                    .headers(["", "", "Title", "Amount", "Date",])
-                    .alignment(|_, _, _| (
-                        iced::alignment::Horizontal::Left,
-                        iced::alignment::Vertical::Center
+        super::view(
+            "Create Bill",
+            widget::column![
+                utils::labeled_entry("Name", &self.name_input, Message::NameInputChanged, true),
+                widget::row![
+                    "Description: ",
+                    widget::container(widget::scrollable(
+                        widget::text_editor(&self.description_input)
+                            .on_action(Message::DescriptionInputChanged)
                     ))
-                    .view(|(transaction, sign), _| {
-                        let transaction_id = *transaction.id();
-                        [
-                            widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
-                                .on_toggle(move |x| {
-                                    Message::ChangeTransactionSign(
-                                        transaction_id,
-                                        if x {
-                                            fm_core::Sign::Positive
-                                        } else {
-                                            fm_core::Sign::Negative
-                                        },
-                                    )
-                                })
-                                .into(),
-                            widget::button("Delete")
-                                .on_press(Message::RemoveTransaction(transaction_id))
-                                .into(),
-                            widget::text(transaction.title().clone()).into(),
-                            utils::colored_currency_display(
-                                &(if *sign == fm_core::Sign::Negative {
-                                    transaction.amount().negative()
-                                } else {
-                                    transaction.amount()
-                                }),
-                            ),
-                            widget::text(
-                                transaction
-                                    .date()
-                                    .to_offset(fm_core::get_local_timezone().unwrap())
-                                    .format(
-                                        &time::format_description::parse("[day].[month].[year]")
+                    .max_height(200)
+                ]
+                .spacing(10),
+                widget::row![
+                    "Value: ",
+                    utils::currency_input::currency_input(&self.value, true)
+                        .view()
+                        .map(Message::ValueChanged),
+                ]
+                .width(iced::Length::Fill)
+                .spacing(10),
+                widget::row![
+                    "Due Date: ",
+                    utils::date_input::date_input(&self.due_date_input, "", false)
+                        .view()
+                        .map(Message::DueDateChanged),
+                ]
+                .width(iced::Length::Fill)
+                .spacing(10),
+                "Transactions:",
+                widget::container(
+                    utils::table_view::table_view(&self.transaction_table)
+                        .headers(["", "", "Title", "Amount", "Date",])
+                        .alignment(|_, _, _| (
+                            iced::alignment::Horizontal::Left,
+                            iced::alignment::Vertical::Center
+                        ))
+                        .view(|(transaction, sign), _| {
+                            let transaction_id = *transaction.id();
+                            [
+                                widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
+                                    .on_toggle(move |x| {
+                                        Message::ChangeTransactionSign(
+                                            transaction_id,
+                                            if x {
+                                                fm_core::Sign::Positive
+                                            } else {
+                                                fm_core::Sign::Negative
+                                            },
+                                        )
+                                    })
+                                    .into(),
+                                widget::button("Delete")
+                                    .on_press(Message::RemoveTransaction(transaction_id))
+                                    .into(),
+                                widget::text(transaction.title().clone()).into(),
+                                utils::colored_currency_display(
+                                    &(if *sign == fm_core::Sign::Negative {
+                                        transaction.amount().negative()
+                                    } else {
+                                        transaction.amount()
+                                    }),
+                                ),
+                                widget::text(
+                                    transaction
+                                        .date()
+                                        .to_offset(fm_core::get_local_timezone().unwrap())
+                                        .format(
+                                            &time::format_description::parse(
+                                                "[day].[month].[year]",
+                                            )
                                             .unwrap(),
-                                    )
-                                    .unwrap(),
-                            )
-                            .into(),
-                        ]
-                    })
-                    .map(Message::TransactionTable)
-            )
-            .height(iced::Fill),
-            widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
-            widget::row![
-                widget::button("Cancel")
-                    .on_press(Message::Cancel)
-                    .style(widget::button::danger),
-                widget::horizontal_space(),
-                widget::button("Submit")
-                    .on_press_maybe(if self.submittable() {
-                        Some(Message::Submit)
-                    } else {
-                        None
-                    })
-                    .style(widget::button::success),
+                                        )
+                                        .unwrap(),
+                                )
+                                .into(),
+                            ]
+                        })
+                        .map(Message::TransactionTable)
+                )
+                .height(iced::Fill),
+                widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
+                widget::row![
+                    widget::button("Cancel")
+                        .on_press(Message::Cancel)
+                        .style(widget::button::danger),
+                    widget::horizontal_space(),
+                    widget::button("Submit")
+                        .on_press_maybe(if self.submittable() {
+                            Some(Message::Submit)
+                        } else {
+                            None
+                        })
+                        .style(widget::button::success),
+                ]
             ]
-        ]
-        .height(iced::Fill)
-        .spacing(10)
-        .into()
+            .height(iced::Fill)
+            .spacing(10),
+        )
     }
 
     fn submittable(&self) -> bool {

@@ -98,25 +98,26 @@ impl CreateCategory {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        widget::column![
-            utils::heading("Create Category", utils::HeadingLevel::H1),
-            utils::labeled_entry("Name", &self.name, Message::NameInput, true),
-            widget::row![
-                widget::button("Cancel")
-                    .on_press(Message::Cancel)
-                    .style(widget::button::danger),
-                widget::horizontal_space(),
-                widget::button("Submit")
-                    .on_press_maybe(if self.is_submittable() {
-                        Some(Message::Submit)
-                    } else {
-                        None
-                    })
-                    .style(widget::button::success)
-            ],
-        ]
-        .spacing(10)
-        .into()
+        super::view(
+            "Create Category",
+            widget::column![
+                utils::labeled_entry("Name", &self.name, Message::NameInput, true),
+                widget::row![
+                    widget::button("Cancel")
+                        .on_press(Message::Cancel)
+                        .style(widget::button::danger),
+                    widget::horizontal_space(),
+                    widget::button("Submit")
+                        .on_press_maybe(if self.is_submittable() {
+                            Some(Message::Submit)
+                        } else {
+                            None
+                        })
+                        .style(widget::button::success)
+                ],
+            ]
+            .spacing(10),
+        )
     }
 
     fn is_submittable(&self) -> bool {

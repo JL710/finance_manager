@@ -138,34 +138,35 @@ impl CreateBookCheckingAccount {
             return "Loading...".into();
         }
 
-        widget::scrollable(
-            widget::column![
-                utils::heading("Create Book Checking Account", utils::HeadingLevel::H1),
-                utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                widget::row![
-                    widget::text("Notes"),
-                    widget::text_editor(&self.note_input).on_action(Message::NoteInput)
+        super::view(
+            "Create Book Checking Account",
+            widget::scrollable(
+                widget::column![
+                    utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+                    widget::row![
+                        widget::text("Notes"),
+                        widget::text_editor(&self.note_input).on_action(Message::NoteInput)
+                    ]
+                    .spacing(10),
+                    utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+                    utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+                    widget::row![
+                        widget::button("Cancel")
+                            .on_press(Message::Cancel)
+                            .style(widget::button::danger),
+                        widget::horizontal_space(),
+                        widget::button("Submit")
+                            .on_press_maybe(if self.can_submit() {
+                                Some(Message::Submit)
+                            } else {
+                                None
+                            })
+                            .style(widget::button::success)
+                    ]
                 ]
                 .spacing(10),
-                utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-                utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                widget::row![
-                    widget::button("Cancel")
-                        .on_press(Message::Cancel)
-                        .style(widget::button::danger),
-                    widget::horizontal_space(),
-                    widget::button("Submit")
-                        .on_press_maybe(if self.can_submit() {
-                            Some(Message::Submit)
-                        } else {
-                            None
-                        })
-                        .style(widget::button::success)
-                ]
-            ]
-            .spacing(10),
+            ),
         )
-        .into()
     }
 
     fn can_submit(&self) -> bool {

@@ -87,29 +87,30 @@ impl BudgetOverview {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        widget::column![
-            utils::heading("Budget Overview", utils::HeadingLevel::H1),
-            widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
-            widget::horizontal_rule(10),
-            utils::table_view::table_view(&self.budget_table)
-                .headers([
-                    "Name".to_string(),
-                    "Current".to_string(),
-                    "Total".to_string(),
-                ])
-                .view(|budget, _| {
-                    [
-                        utils::link(widget::text(budget.0.name().to_string()))
-                            .on_press(Message::ViewBudget(*budget.0.id()))
-                            .into(),
-                        widget::text!("{}", &budget.1).into(),
-                        widget::text!("{}", budget.0.total_value()).into(),
-                    ]
-                })
-                .map(Message::BudgetTable),
-        ]
-        .height(iced::Fill)
-        .spacing(10)
-        .into()
+        super::view(
+            "Budget Overview",
+            widget::column![
+                widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
+                widget::horizontal_rule(10),
+                utils::table_view::table_view(&self.budget_table)
+                    .headers([
+                        "Name".to_string(),
+                        "Current".to_string(),
+                        "Total".to_string(),
+                    ])
+                    .view(|budget, _| {
+                        [
+                            utils::link(widget::text(budget.0.name().to_string()))
+                                .on_press(Message::ViewBudget(*budget.0.id()))
+                                .into(),
+                            widget::text!("{}", &budget.1).into(),
+                            widget::text!("{}", budget.0.total_value()).into(),
+                        ]
+                    })
+                    .map(Message::BudgetTable),
+            ]
+            .height(iced::Fill)
+            .spacing(10),
+        )
     }
 }

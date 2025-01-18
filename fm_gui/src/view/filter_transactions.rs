@@ -171,31 +171,32 @@ impl FilterTransactionView {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        iced::widget::column![
-            utils::heading("Find Transactions", utils::HeadingLevel::H1),
-            iced::widget::text("Filter Transactions"),
-            iced::widget::row![
-                iced::widget::text("Total: "),
-                iced::widget::text!(
-                    "{}",
-                    self.sums
-                        .last()
-                        .map_or(fm_core::Currency::default(), |x| x.1.clone())
-                )
-            ],
-            iced::widget::button(iced::widget::text("Edit Filter"))
-                .on_press(Message::ToggleEditFilter),
-            if let Some(filter_component) = &self.change_filter {
-                filter_component
-                    .view()
-                    .map(|x| Message::FilterComponent(Box::new(x)))
-            } else {
-                self.transaction_table.view().map(Message::TransactionTable)
-            }
-        ]
-        .spacing(10)
-        .height(iced::Fill)
-        .width(iced::Fill)
-        .into()
+        super::view(
+            "Find Transactions",
+            iced::widget::column![
+                iced::widget::text("Filter Transactions"),
+                iced::widget::row![
+                    iced::widget::text("Total: "),
+                    iced::widget::text!(
+                        "{}",
+                        self.sums
+                            .last()
+                            .map_or(fm_core::Currency::default(), |x| x.1.clone())
+                    )
+                ],
+                iced::widget::button(iced::widget::text("Edit Filter"))
+                    .on_press(Message::ToggleEditFilter),
+                if let Some(filter_component) = &self.change_filter {
+                    filter_component
+                        .view()
+                        .map(|x| Message::FilterComponent(Box::new(x)))
+                } else {
+                    self.transaction_table.view().map(Message::TransactionTable)
+                }
+            ]
+            .spacing(10)
+            .height(iced::Fill)
+            .width(iced::Fill),
+        )
     }
 }

@@ -156,7 +156,6 @@ impl SettingsView {
 
     pub fn view(&self) -> iced::Element<Message> {
         let mut col = widget::column![
-            utils::heading("Setting", utils::HeadingLevel::H1),
             widget::text!("Current Status: {}", self.current_status),
             widget::Rule::horizontal(10),
             widget::row![
@@ -194,9 +193,11 @@ impl SettingsView {
             );
         }
 
-        col.push(widget::Rule::horizontal(10))
-            .push(widget::button("Switch to RAM").on_press(Message::SwitchToRAM))
-            .spacing(10)
-            .into()
+        super::view(
+            "Settings",
+            col.push(widget::Rule::horizontal(10))
+                .push(widget::button("Switch to RAM").on_press(Message::SwitchToRAM))
+                .spacing(10),
+        )
     }
 }

@@ -223,41 +223,42 @@ impl Category {
             timespan_input,
         } = self
         {
-            widget::column![
-                utils::heading("Category", utils::HeadingLevel::H1),
-                widget::row![
-                    widget::column![
-                        widget::row![
-                            widget::text("Total value"),
-                            widget::text(if let Some(value) = values.last() {
-                                value.1.to_string()
-                            } else {
-                                "0€".to_string()
-                            }),
+            super::view(
+                "Category",
+                widget::column![
+                    widget::row![
+                        widget::column![
+                            widget::row![
+                                widget::text("Total value"),
+                                widget::text(if let Some(value) = values.last() {
+                                    value.1.to_string()
+                                } else {
+                                    "0€".to_string()
+                                }),
+                            ]
+                            .spacing(10),
+                            widget::text(category.name().to_string()),
                         ]
                         .spacing(10),
-                        widget::text(category.name().to_string()),
+                        widget::Space::with_width(iced::Length::Fill),
+                        widget::column![
+                            widget::button("Edit").on_press(Message::Edit),
+                            widget::button("Delete")
+                                .on_press(Message::Delete)
+                                .style(widget::button::danger),
+                        ]
+                        .spacing(10)
                     ]
                     .spacing(10),
-                    widget::Space::with_width(iced::Length::Fill),
-                    widget::column![
-                        widget::button("Edit").on_press(Message::Edit),
-                        widget::button("Delete")
-                            .on_press(Message::Delete)
-                            .style(widget::button::danger),
-                    ]
-                    .spacing(10)
+                    utils::timespan_input::timespan_input(timespan_input)
+                        .view()
+                        .map(Message::ChangedTimespan),
+                    transaction_table.view().map(Message::TransactionTable),
                 ]
-                .spacing(10),
-                utils::timespan_input::timespan_input(timespan_input)
-                    .view()
-                    .map(Message::ChangedTimespan),
-                transaction_table.view().map(Message::TransactionTable),
-            ]
-            .spacing(10)
-            .height(iced::Fill)
-            .width(iced::Fill)
-            .into()
+                .spacing(10)
+                .height(iced::Fill)
+                .width(iced::Fill),
+            )
         } else {
             widget::text("Loading...").into()
         }

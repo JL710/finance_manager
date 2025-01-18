@@ -205,9 +205,9 @@ impl Budget {
                 column = column.push(widget::text!("Description: {}", content));
             }
 
-            iced::Element::new(
+            super::view(
+                "Budget",
                 widget::column![
-                    utils::heading("Budget", utils::HeadingLevel::H1),
                     widget::row![
                         column,
                         widget::Space::with_width(iced::Length::Fill),

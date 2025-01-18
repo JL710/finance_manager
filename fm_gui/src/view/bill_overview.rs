@@ -81,32 +81,34 @@ impl BillOverview {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        widget::column![
-            utils::heading("Bill Overview", utils::HeadingLevel::H1),
-            widget::button("New").on_press(Message::NewBill),
-            utils::table_view::table_view(&self.bill_table)
-                .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
-                .view(|bill, _| [
-                    utils::link(widget::text(bill.0.name().clone()))
-                        .on_press(Message::ViewBill(*bill.0.id()))
+        super::view(
+            "Bill Overview",
+            widget::column![
+                widget::button("New").on_press(Message::NewBill),
+                utils::table_view::table_view(&self.bill_table)
+                    .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
+                    .view(|bill, _| [
+                        utils::link(widget::text(bill.0.name().clone()))
+                            .on_press(Message::ViewBill(*bill.0.id()))
+                            .into(),
+                        widget::text!("{}€", bill.0.value().to_num_string()).into(),
+                        utils::colored_currency_display(&bill.1),
+                        widget::text(bill.0.due_date().map_or(String::new(), |x| {
+                            x.to_offset(fm_core::get_local_timezone().unwrap())
+                                .format(
+                                    &time::format_description::parse("[day].[month].[year]")
+                                        .unwrap(),
+                                )
+                                .unwrap()
+                        }))
                         .into(),
-                    widget::text!("{}€", bill.0.value().to_num_string()).into(),
-                    utils::colored_currency_display(&bill.1),
-                    widget::text(bill.0.due_date().map_or(String::new(), |x| {
-                        x.to_offset(fm_core::get_local_timezone().unwrap())
-                            .format(
-                                &time::format_description::parse("[day].[month].[year]").unwrap(),
-                            )
-                            .unwrap()
-                    }))
-                    .into(),
-                    widget::text(bill.0.transactions().len()).into()
-                ])
-                .map(Message::BillTable),
-        ]
-        .spacing(10)
-        .height(iced::Fill)
-        .width(iced::Fill)
-        .into()
+                        widget::text(bill.0.transactions().len()).into()
+                    ])
+                    .map(Message::BillTable),
+            ]
+            .spacing(10)
+            .height(iced::Fill)
+            .width(iced::Fill),
+        )
     }
 }

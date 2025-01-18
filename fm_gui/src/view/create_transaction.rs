@@ -375,99 +375,101 @@ impl CreateTransactionView {
             utils::style::text_input_danger
         };
 
-        iced::Element::new(widget::scrollable(
-            widget::column![
-                utils::heading("Create Transaction", utils::HeadingLevel::H1),
-                widget::row![
-                    "Amount: ",
-                    utils::currency_input::currency_input(&self.amount_input, true)
-                        .view()
-                        .map(Message::AmountInput),
-                ]
-                .width(iced::Fill)
-                .spacing(10),
-                utils::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
-                widget::row![
-                    "Description",
-                    widget::text_editor(&self.description_input)
-                        .on_action(Message::DescriptionInput)
-                ]
-                .align_y(iced::Center)
-                .spacing(10),
-                widget::row![
-                    "Date: ",
-                    utils::date_input::date_input(&self.date_input, "", true)
-                        .view()
-                        .map(Message::DateInput)
-                ]
-                .width(iced::Fill),
-                widget::row![
-                    widget::text("Source"),
-                    widget::ComboBox::new(
-                        &self.source_state,
-                        "Source",
-                        self.source_input.as_ref(),
-                        Message::SourceSelected
-                    )
-                    .on_input(Message::SourceInput)
-                    .input_style(source_acc_style)
-                ]
-                .spacing(10),
-                widget::row![
-                    widget::text("Destination"),
-                    widget::ComboBox::new(
-                        &self.destination_state,
-                        "Destination",
-                        self.destination_input.as_ref(),
-                        Message::DestinationSelected
-                    )
-                    .on_input(Message::DestinationInput)
-                    .input_style(destination_acc_style)
-                ]
-                .spacing(10),
-                widget::row![
-                    widget::text("Budget"),
-                    widget::ComboBox::new(
-                        &self.budget_state,
-                        "Budget",
-                        self.budget_input.as_ref().map(|x| &x.0),
-                        Message::BudgetSelected
-                    ),
-                    widget::checkbox(
-                        "Negative",
-                        self.budget_input
-                            .as_ref()
-                            .is_some_and(|x| x.1 == fm_core::Sign::Negative)
-                    )
-                    .on_toggle_maybe(if self.budget_input.is_some() {
-                        Some(Message::BudgetSignChange)
-                    } else {
-                        None
-                    }),
-                    widget::button("X").on_press(Message::ClearBudget)
-                ]
-                .align_y(iced::Center)
-                .spacing(10),
-                widget::horizontal_rule(10),
-                widget::text("Categories"),
-                categories,
-                widget::horizontal_rule(10),
-                widget::row![
-                    widget::button("Cancel")
-                        .on_press(Message::Cancel)
-                        .style(widget::button::danger),
-                    widget::horizontal_space(),
-                    widget::button("Submit")
-                        .on_press_maybe(if self.submittable() {
-                            Some(Message::Submit)
+        super::view(
+            "Create Transaction",
+            widget::scrollable(
+                widget::column![
+                    widget::row![
+                        "Amount: ",
+                        utils::currency_input::currency_input(&self.amount_input, true)
+                            .view()
+                            .map(Message::AmountInput),
+                    ]
+                    .width(iced::Fill)
+                    .spacing(10),
+                    utils::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
+                    widget::row![
+                        "Description",
+                        widget::text_editor(&self.description_input)
+                            .on_action(Message::DescriptionInput)
+                    ]
+                    .align_y(iced::Center)
+                    .spacing(10),
+                    widget::row![
+                        "Date: ",
+                        utils::date_input::date_input(&self.date_input, "", true)
+                            .view()
+                            .map(Message::DateInput)
+                    ]
+                    .width(iced::Fill),
+                    widget::row![
+                        widget::text("Source"),
+                        widget::ComboBox::new(
+                            &self.source_state,
+                            "Source",
+                            self.source_input.as_ref(),
+                            Message::SourceSelected
+                        )
+                        .on_input(Message::SourceInput)
+                        .input_style(source_acc_style)
+                    ]
+                    .spacing(10),
+                    widget::row![
+                        widget::text("Destination"),
+                        widget::ComboBox::new(
+                            &self.destination_state,
+                            "Destination",
+                            self.destination_input.as_ref(),
+                            Message::DestinationSelected
+                        )
+                        .on_input(Message::DestinationInput)
+                        .input_style(destination_acc_style)
+                    ]
+                    .spacing(10),
+                    widget::row![
+                        widget::text("Budget"),
+                        widget::ComboBox::new(
+                            &self.budget_state,
+                            "Budget",
+                            self.budget_input.as_ref().map(|x| &x.0),
+                            Message::BudgetSelected
+                        ),
+                        widget::checkbox(
+                            "Negative",
+                            self.budget_input
+                                .as_ref()
+                                .is_some_and(|x| x.1 == fm_core::Sign::Negative)
+                        )
+                        .on_toggle_maybe(if self.budget_input.is_some() {
+                            Some(Message::BudgetSignChange)
                         } else {
                             None
-                        })
-                        .style(widget::button::success)
-                ],
-            ]
-            .spacing(10),
-        ))
+                        }),
+                        widget::button("X").on_press(Message::ClearBudget)
+                    ]
+                    .align_y(iced::Center)
+                    .spacing(10),
+                    widget::horizontal_rule(10),
+                    widget::text("Categories"),
+                    categories,
+                    widget::horizontal_rule(10),
+                    widget::row![
+                        widget::button("Cancel")
+                            .on_press(Message::Cancel)
+                            .style(widget::button::danger),
+                        widget::horizontal_space(),
+                        widget::button("Submit")
+                            .on_press_maybe(if self.submittable() {
+                                Some(Message::Submit)
+                            } else {
+                                None
+                            })
+                            .style(widget::button::success)
+                    ],
+                ]
+                .spacing(10),
+            ),
+        )
         .map(MessageContainer)
     }
 

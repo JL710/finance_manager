@@ -66,22 +66,23 @@ impl CategoryOverview {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        iced::widget::column![
-            utils::heading("Category Overview", utils::HeadingLevel::H1),
-            iced::widget::button("New Category").on_press(Message::NewCategory),
-            iced::widget::horizontal_rule(10),
-            utils::table_view::table_view(&self.category_table)
-                .headers(["Name".to_string()])
-                .view(
-                    |category, _| [utils::link(iced::widget::text(category.name().to_string()))
-                        .on_press(Message::ViewCategory(*category.id()))
-                        .into()]
-                )
-                .map(Message::CategoryTable),
-        ]
-        .spacing(10)
-        .height(iced::Fill)
-        .width(iced::Fill)
-        .into()
+        super::view(
+            "Category Overview",
+            iced::widget::column![
+                iced::widget::button("New Category").on_press(Message::NewCategory),
+                iced::widget::horizontal_rule(10),
+                utils::table_view::table_view(&self.category_table)
+                    .headers(["Name".to_string()])
+                    .view(|category, _| [utils::link(iced::widget::text(
+                        category.name().to_string()
+                    ))
+                    .on_press(Message::ViewCategory(*category.id()))
+                    .into()])
+                    .map(Message::CategoryTable),
+            ]
+            .spacing(10)
+            .height(iced::Fill)
+            .width(iced::Fill),
+        )
     }
 }

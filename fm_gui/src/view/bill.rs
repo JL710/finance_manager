@@ -171,9 +171,9 @@ impl Bill {
             transaction_table,
         } = self
         {
-            iced::Element::new(
+            super::view(
+                "Bill",
                 widget::column![
-                    utils::heading("Bill", utils::HeadingLevel::H1),
                     widget::row![
                         widget::column![
                             widget::text!("Name: {}", bill.name()),
@@ -241,7 +241,7 @@ impl Bill {
             )
             .map(MessageContainer)
         } else {
-            widget::text("Loading...").into()
+            super::view("Bill", "Loading...")
         }
     }
 }

@@ -279,7 +279,7 @@ impl Account {
                 .map(MessageContainer),
             }
         } else {
-            widget::text!("Loading...").into()
+            super::view("Account", "Loading")
         }
     }
 }
@@ -290,43 +290,44 @@ fn asset_account_view<'a>(
     current_value: &fm_core::Currency,
     timespan_input: &'a utils::timespan_input::State,
 ) -> iced::Element<'a, Message> {
-    widget::column![
-        utils::heading("Asset Account", utils::HeadingLevel::H1),
-        widget::row![
-            widget::column![
-                widget::text!("Account: {}", account.name()),
-                widget::text!("Notes: {}", account.note().unwrap_or("")),
-                widget::text!(
-                    "IBAN: {}",
-                    account
-                        .iban()
-                        .clone()
-                        .map_or(String::new(), |iban| iban.to_string())
-                ),
-                widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
-                widget::text!("Offset: {}", account.offset()),
-                widget::row![
-                    widget::text("Current Amount: "),
-                    utils::colored_currency_display(current_value)
+    super::view(
+        "Asset Account",
+        widget::column![
+            widget::row![
+                widget::column![
+                    widget::text!("Account: {}", account.name()),
+                    widget::text!("Notes: {}", account.note().unwrap_or("")),
+                    widget::text!(
+                        "IBAN: {}",
+                        account
+                            .iban()
+                            .clone()
+                            .map_or(String::new(), |iban| iban.to_string())
+                    ),
+                    widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
+                    widget::text!("Offset: {}", account.offset()),
+                    widget::row![
+                        widget::text("Current Amount: "),
+                        utils::colored_currency_display(current_value)
+                    ],
                 ],
+                widget::Space::with_width(iced::Length::Fill),
+                widget::column![
+                    widget::button("Edit").on_press(Message::Edit),
+                    widget::button("Delete")
+                        .on_press(Message::Delete)
+                        .style(widget::button::danger)
+                ]
+                .spacing(10)
             ],
-            widget::Space::with_width(iced::Length::Fill),
-            widget::column![
-                widget::button("Edit").on_press(Message::Edit),
-                widget::button("Delete")
-                    .on_press(Message::Delete)
-                    .style(widget::button::danger)
-            ]
-            .spacing(10)
-        ],
-        widget::horizontal_rule(10),
-        utils::timespan_input::timespan_input(timespan_input)
-            .view()
-            .map(Message::ChangeTransactionTimespan),
-        transaction_table.view().map(Message::TransactionTable),
-    ]
-    .height(iced::Fill)
-    .into()
+            widget::horizontal_rule(10),
+            utils::timespan_input::timespan_input(timespan_input)
+                .view()
+                .map(Message::ChangeTransactionTimespan),
+            transaction_table.view().map(Message::TransactionTable),
+        ]
+        .height(iced::Fill),
+    )
 }
 
 fn book_checking_account_view<'a>(
@@ -335,40 +336,41 @@ fn book_checking_account_view<'a>(
     current_value: &fm_core::Currency,
     timespan_input: &'a utils::timespan_input::State,
 ) -> iced::Element<'a, Message> {
-    widget::column![
-        utils::heading("Book Checking Account", utils::HeadingLevel::H1),
-        widget::row![
-            widget::column![
-                widget::text!("Account: {}", account.name()),
-                widget::text!("Notes: {}", account.note().unwrap_or("")),
-                widget::text!(
-                    "IBAN: {}",
-                    account
-                        .iban()
-                        .clone()
-                        .map_or(String::new(), |iban| iban.to_string())
-                ),
-                widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
-                widget::row![
-                    widget::text("Current Amount: "),
-                    utils::colored_currency_display(current_value)
+    super::view(
+        "Book Checking Account",
+        widget::column![
+            widget::row![
+                widget::column![
+                    widget::text!("Account: {}", account.name()),
+                    widget::text!("Notes: {}", account.note().unwrap_or("")),
+                    widget::text!(
+                        "IBAN: {}",
+                        account
+                            .iban()
+                            .clone()
+                            .map_or(String::new(), |iban| iban.to_string())
+                    ),
+                    widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
+                    widget::row![
+                        widget::text("Current Amount: "),
+                        utils::colored_currency_display(current_value)
+                    ],
                 ],
+                widget::Space::with_width(iced::Length::Fill),
+                widget::column![
+                    widget::button("Edit").on_press(Message::Edit),
+                    widget::button("Delete")
+                        .on_press(Message::Delete)
+                        .style(widget::button::danger)
+                ]
+                .spacing(10)
             ],
-            widget::Space::with_width(iced::Length::Fill),
-            widget::column![
-                widget::button("Edit").on_press(Message::Edit),
-                widget::button("Delete")
-                    .on_press(Message::Delete)
-                    .style(widget::button::danger)
-            ]
-            .spacing(10)
-        ],
-        widget::horizontal_rule(10),
-        utils::timespan_input::timespan_input(timespan_input)
-            .view()
-            .map(Message::ChangeTransactionTimespan),
-        transaction_table.view().map(Message::TransactionTable),
-    ]
-    .height(iced::Fill)
-    .into()
+            widget::horizontal_rule(10),
+            utils::timespan_input::timespan_input(timespan_input)
+                .view()
+                .map(Message::ChangeTransactionTimespan),
+            transaction_table.view().map(Message::TransactionTable),
+        ]
+        .height(iced::Fill),
+    )
 }
