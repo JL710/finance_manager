@@ -150,19 +150,14 @@ impl CreateBookCheckingAccount {
                     .spacing(10),
                     utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
                     utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                    widget::row![
-                        widget::button("Cancel")
-                            .on_press(Message::Cancel)
-                            .style(widget::button::danger),
-                        widget::horizontal_space(),
-                        widget::button("Submit")
-                            .on_press_maybe(if self.can_submit() {
-                                Some(Message::Submit)
-                            } else {
-                                None
-                            })
-                            .style(widget::button::success)
-                    ]
+                    utils::submit_cancel_row(
+                        if self.can_submit() {
+                            Some(Message::Submit)
+                        } else {
+                            None
+                        },
+                        Some(Message::Cancel)
+                    ),
                 ]
                 .spacing(10),
             ),

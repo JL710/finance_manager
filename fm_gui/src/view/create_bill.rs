@@ -336,19 +336,14 @@ impl CreateBillView {
                 )
                 .height(iced::Fill),
                 widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
-                widget::row![
-                    widget::button("Cancel")
-                        .on_press(Message::Cancel)
-                        .style(widget::button::danger),
-                    widget::horizontal_space(),
-                    widget::button("Submit")
-                        .on_press_maybe(if self.submittable() {
-                            Some(Message::Submit)
-                        } else {
-                            None
-                        })
-                        .style(widget::button::success),
-                ]
+                utils::submit_cancel_row(
+                    if self.submittable() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    },
+                    Some(Message::Cancel)
+                ),
             ]
             .height(iced::Fill)
             .spacing(10),

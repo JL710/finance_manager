@@ -175,19 +175,14 @@ impl CreateAssetAccountDialog {
                     ]
                     .width(iced::Fill)
                     .spacing(10),
-                    widget::row![
-                        widget::button("Cancel")
-                            .on_press(Message::Cancel)
-                            .style(widget::button::danger),
-                        widget::horizontal_space(),
-                        widget::button("Submit")
-                            .on_press_maybe(if self.can_submit() {
-                                Some(Message::Submit)
-                            } else {
-                                None
-                            })
-                            .style(widget::button::success)
-                    ]
+                    utils::submit_cancel_row(
+                        if self.can_submit() {
+                            Some(Message::Submit)
+                        } else {
+                            None
+                        },
+                        Some(Message::Cancel)
+                    ),
                 ]
                 .spacing(10),
             ),

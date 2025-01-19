@@ -186,3 +186,20 @@ where
         })
         .into()
 }
+
+pub fn submit_cancel_row<'a, Message: Clone + 'a>(
+    submit: Option<Message>,
+    cancel: Option<Message>,
+) -> iced::Element<'a, Message> {
+    widget::row![
+        widget::button("Cancel")
+            .on_press_maybe(cancel)
+            .style(widget::button::danger),
+        widget::horizontal_space(),
+        widget::button("Submit")
+            .on_press_maybe(submit)
+            .style(widget::button::success)
+    ]
+    .spacing(10)
+    .into()
+}
