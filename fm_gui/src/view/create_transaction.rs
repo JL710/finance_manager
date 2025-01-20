@@ -387,8 +387,7 @@ impl CreateTransactionView {
                     "Description",
                     widget::text_editor(&self.description_input)
                         .on_action(Message::DescriptionInput)
-                ]
-                .align_y(iced::Center),
+                ],
                 utils::spal_row![
                     "Date: ",
                     utils::date_input::date_input(&self.date_input, "", true)
