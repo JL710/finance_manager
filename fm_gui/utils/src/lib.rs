@@ -1,5 +1,6 @@
 pub use iced::{self, widget};
 
+pub mod button;
 pub mod currency_input;
 pub mod date_input;
 pub mod filter_component;
@@ -187,13 +188,9 @@ pub fn submit_cancel_row<'a, Message: Clone + 'a>(
     cancel: Option<Message>,
 ) -> iced::Element<'a, Message> {
     spal_row![
-        widget::button("Cancel")
-            .on_press_maybe(cancel)
-            .style(widget::button::danger),
+        button::cancel_button(cancel),
         widget::horizontal_space(),
-        widget::button("Submit")
-            .on_press_maybe(submit)
-            .style(widget::button::success)
+        button::submit_button(submit),
     ]
     .into()
 }
