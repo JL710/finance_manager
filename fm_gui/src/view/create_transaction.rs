@@ -331,7 +331,7 @@ impl CreateTransactionView {
                 .selected_categories
                 .iter()
                 .find(|x| x.0 == *category.id());
-            categories = categories.push(utils::spaced_row![
+            categories = categories.push(utils::spal_row![
                 widget::checkbox(category.name(), selected.is_some())
                     .on_toggle(move |_| { Message::SelectCategory(*category.id()) }),
                 widget::checkbox(
@@ -375,7 +375,7 @@ impl CreateTransactionView {
         super::view(
             "Create Transaction",
             widget::scrollable(utils::spaced_column![
-                utils::spaced_row![
+                utils::spal_row![
                     "Amount: ",
                     utils::currency_input::currency_input(&self.amount_input, true)
                         .view()
@@ -389,14 +389,14 @@ impl CreateTransactionView {
                         .on_action(Message::DescriptionInput)
                 ]
                 .align_y(iced::Center),
-                utils::spaced_row![
+                utils::spal_row![
                     "Date: ",
                     utils::date_input::date_input(&self.date_input, "", true)
                         .view()
                         .map(Message::DateInput)
                 ]
                 .width(iced::Fill),
-                utils::spaced_row![
+                utils::spal_row![
                     widget::text("Source"),
                     widget::ComboBox::new(
                         &self.source_state,
@@ -407,7 +407,7 @@ impl CreateTransactionView {
                     .on_input(Message::SourceInput)
                     .input_style(source_acc_style)
                 ],
-                utils::spaced_row![
+                utils::spal_row![
                     widget::text("Destination"),
                     widget::ComboBox::new(
                         &self.destination_state,
@@ -418,7 +418,7 @@ impl CreateTransactionView {
                     .on_input(Message::DestinationInput)
                     .input_style(destination_acc_style)
                 ],
-                utils::spaced_row![
+                utils::spal_row![
                     widget::text("Budget"),
                     widget::ComboBox::new(
                         &self.budget_state,

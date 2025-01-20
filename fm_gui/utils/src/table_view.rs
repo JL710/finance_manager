@@ -278,7 +278,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
         }
 
         column = column.push(widget::scrollable(data_column).height(iced::Fill));
-        column = column.push(super::spaced_row![
+        column = column.push(super::spal_row![
             widget::button("Previous").on_press(InnerMessage::ChangePageBy(-1)),
             widget::text!("Page {}/{}", self.state.page + 1, self.state.max_page() + 1),
             widget::button("Next").on_press(InnerMessage::ChangePageBy(1))

@@ -43,7 +43,7 @@ impl<'a> CurrencyInput<'a> {
             && super::parse_number(&self.state.value).is_none())
             || (self.required && self.state.value.is_empty());
 
-        super::spaced_row![
+        super::spal_row![
             iced::widget::text_input("Value", &self.state.value)
                 .on_input(Action::Input)
                 .style(move |theme: &iced::Theme, status| {

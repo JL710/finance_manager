@@ -531,7 +531,7 @@ impl App {
                 .into()
             } else {
                 widget::button(
-                    utils::spaced_row![
+                    utils::spal_row![
                         widget::Svg::new(icon.clone()).width(iced::Shrink).style(
                             |theme: &iced::Theme, _| widget::svg::Style {
                                 color: Some(theme.palette().primary)
@@ -539,8 +539,7 @@ impl App {
                         ),
                         text,
                     ]
-                    .height(25)
-                    .align_y(iced::Center),
+                    .height(25),
                 )
                 .style(utils::style::button_sidebar)
                 .on_press(message)

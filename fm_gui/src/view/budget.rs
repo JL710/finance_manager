@@ -168,7 +168,7 @@ impl Budget {
         } = self
         {
             let mut column = utils::spaced_column![
-                utils::spaced_row![
+                utils::spal_row![
                     widget::button("<").on_press(Message::DecreaseOffset),
                     widget::text!("Offset: {}", offset),
                     widget::text!(

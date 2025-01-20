@@ -170,7 +170,7 @@ impl Transaction {
             ];
 
             if let Some(budget) = &budget {
-                column = column.push(utils::spaced_row![
+                column = column.push(utils::spal_row![
                     utils::link(widget::text!("Budget: {}", budget.name()))
                         .on_press(Message::ViewBudget(*budget.id())),
                     widget::checkbox(
@@ -193,7 +193,7 @@ impl Transaction {
 
             let mut category_column = utils::spaced_column!();
             for category in transaction.categories() {
-                category_column = category_column.push(utils::spaced_row![
+                category_column = category_column.push(utils::spal_row![
                     widget::checkbox(
                         categories
                             .iter()

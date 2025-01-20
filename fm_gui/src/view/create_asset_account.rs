@@ -165,7 +165,7 @@ impl CreateAssetAccountDialog {
                 ],
                 utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
                 utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                utils::spaced_row![
+                utils::spal_row![
                     "Offset",
                     utils::currency_input::currency_input(&self.offset_input, true)
                         .view()

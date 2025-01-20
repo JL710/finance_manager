@@ -228,7 +228,7 @@ impl Category {
                 utils::spaced_column![
                     utils::spaced_row![
                         utils::spaced_column![
-                            utils::spaced_row![
+                            utils::spal_row![
                                 widget::text("Total value"),
                                 widget::text(if let Some(value) = values.last() {
                                     value.1.to_string()

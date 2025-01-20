@@ -266,14 +266,14 @@ impl CreateBillView {
                     ))
                     .max_height(200)
                 ],
-                utils::spaced_row![
+                utils::spal_row![
                     "Value: ",
                     utils::currency_input::currency_input(&self.value, true)
                         .view()
                         .map(Message::ValueChanged),
                 ]
                 .width(iced::Length::Fill),
-                utils::spaced_row![
+                utils::spal_row![
                     "Due Date: ",
                     utils::date_input::date_input(&self.due_date_input, "", false)
                         .view()

@@ -25,7 +25,7 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
         }
     }
 
-    spaced_row![widget::text(name), input].into()
+    spal_row![widget::text(name), input].into()
 }
 
 pub fn parse_to_datetime(date: &str) -> anyhow::Result<time::OffsetDateTime> {
@@ -186,7 +186,7 @@ pub fn submit_cancel_row<'a, Message: Clone + 'a>(
     submit: Option<Message>,
     cancel: Option<Message>,
 ) -> iced::Element<'a, Message> {
-    spaced_row![
+    spal_row![
         widget::button("Cancel")
             .on_press_maybe(cancel)
             .style(widget::button::danger),
@@ -198,6 +198,7 @@ pub fn submit_cancel_row<'a, Message: Clone + 'a>(
     .into()
 }
 
+/// The column macro from iced with a default spacing
 #[macro_export]
 macro_rules! spaced_column {
     () => (
@@ -208,6 +209,7 @@ macro_rules! spaced_column {
     );
 }
 
+/// The row macro from iced with a default spacing
 #[macro_export]
 macro_rules! spaced_row {
     () => (
@@ -215,5 +217,24 @@ macro_rules! spaced_row {
     );
     ($($x:expr),+ $(,)?) => (
         $crate::widget::Row::with_children([$($crate::iced::Element::from($x)),+]).spacing($crate::style::ROW_SPACING)
+    );
+}
+
+/// The default row macro from iced with a default padding and vertical centered layout.
+///
+/// Its initial purpose is to be used for inputs that have a label and some input.
+///
+/// spal stands for spaced and aligned
+#[macro_export]
+macro_rules! spal_row {
+    () => (
+        $crate::widget::Row::new()
+            .spacing(style::ROW_SPACING)
+            .align_y($crate::iced::Alignment::Center)
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Row::with_children([$($crate::iced::Element::from($x)),+])
+            .spacing($crate::style::ROW_SPACING)
+            .align_y($crate::iced::Alignment::Center)
     );
 }

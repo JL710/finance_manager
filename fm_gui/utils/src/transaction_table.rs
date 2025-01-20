@@ -271,7 +271,7 @@ impl TransactionTable {
                         link(widget::text(destination.to_string().clone()))
                             .on_press(Message::ViewAccount(*destination.id()))
                             .into(),
-                        super::spaced_row![
+                        super::spal_row![
                             widget::button(
                                 widget::Svg::new(self.edit_svg.clone()).width(iced::Shrink)
                             )
@@ -329,7 +329,7 @@ fn category_popup(
     for category in categories {
         let category_id = *category.id();
         let transaction_category = transaction.categories().get(&category_id).copied();
-        column = column.push(super::spaced_row![
+        column = column.push(super::spal_row![
             widget::checkbox(
                 category.name(),
                 transaction.categories().contains_key(category.id())

@@ -160,16 +160,13 @@ impl SettingsView {
             widget::Rule::horizontal(10),
             utils::spaced_row![
                 utils::spaced_column![
-                    utils::spaced_row![
-                        widget::text("API URL:"),
-                        widget::text_input::TextInput::new("API Url", &self.api_url)
-                            .on_input(Message::ChangeAPIUrl),
-                    ],
-                    utils::spaced_row![
-                        widget::text("API Token:"),
-                        widget::text_input::TextInput::new("API Token", &self.api_token)
-                            .on_input(Message::ChangeAPIToken)
-                    ]
+                    utils::labeled_entry("API URL:", &self.api_token, Message::ChangeAPIUrl, false),
+                    utils::labeled_entry(
+                        "API Token:",
+                        &self.api_token,
+                        Message::ChangeAPIToken,
+                        false
+                    ),
                 ],
                 widget::button("Switch").on_press(Message::SwitchToAPI)
             ]

@@ -261,14 +261,14 @@ impl FilterComponent {
     pub fn view(&self) -> iced::Element<InnerMessage> {
         widget::container(super::spaced_column![
             // default timespan
-            super::spaced_row![
+            super::spal_row![
                 widget::text("Default Timespan: "),
                 crate::timespan_input::timespan_input(&self.default_transaction_input)
                     .view()
                     .map(InnerMessage::ChangeDefaultTimespan),
             ],
             // account filters
-            super::spaced_row![
+            super::spal_row![
                 widget::text("Accounts"),
                 widget::button("New").on_press(InnerMessage::NewAccountFilter),
                 widget::horizontal_rule(3)
@@ -287,7 +287,7 @@ impl FilterComponent {
             )))
             .max_height(150),
             // category filters
-            super::spaced_row![
+            super::spal_row![
                 widget::text("Categories"),
                 widget::button("New").on_press(InnerMessage::NewCategoryFilter),
                 widget::horizontal_rule(3)
@@ -306,7 +306,7 @@ impl FilterComponent {
             )))
             .max_height(150),
             // bill filters
-            super::spaced_row![
+            super::spal_row![
                 widget::text("Bills"),
                 widget::button("New").on_press(InnerMessage::NewBillFilter),
                 widget::horizontal_rule(3)
@@ -325,7 +325,7 @@ impl FilterComponent {
             )))
             .max_height(150),
             // budget filters
-            super::spaced_row![
+            super::spal_row![
                 widget::text("Budget"),
                 widget::button("New").on_press(InnerMessage::NewBudgetFilter),
                 widget::horizontal_rule(3)

@@ -195,7 +195,7 @@ impl Bill {
                                     )
                                     .unwrap())
                             ),
-                            utils::spaced_row!["Sum: ", utils::colored_currency_display(bill_sum),]
+                            utils::spal_row!["Sum: ", utils::colored_currency_display(bill_sum),]
                         ],
                         widget::horizontal_space(),
                         utils::spaced_column![
