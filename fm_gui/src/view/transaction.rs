@@ -170,49 +170,40 @@ impl Transaction {
             ];
 
             if let Some(budget) = &budget {
-                column = column.push(
-                    widget::row![
-                        utils::link(widget::text!("Budget: {}", budget.name()))
-                            .on_press(Message::ViewBudget(*budget.id())),
-                        widget::checkbox(
-                            "Negative",
-                            transaction
-                                .budget()
-                                .is_some_and(|x| x.1 == fm_core::Sign::Negative)
-                        )
-                    ]
-                    .spacing(10),
-                );
+                column = column.push(utils::spaced_row![
+                    utils::link(widget::text!("Budget: {}", budget.name()))
+                        .on_press(Message::ViewBudget(*budget.id())),
+                    widget::checkbox(
+                        "Negative",
+                        transaction
+                            .budget()
+                            .is_some_and(|x| x.1 == fm_core::Sign::Negative)
+                    )
+                ]);
             }
 
             if let Some(content) = transaction.description() {
-                column = column.push(
-                    widget::row![
-                        widget::text("Description: "),
-                        widget::container(widget::text(content.to_string()))
-                            .padding(3)
-                            .style(utils::style::container_style_background_weak)
-                    ]
-                    .spacing(10),
-                );
+                column = column.push(utils::spaced_row![
+                    widget::text("Description: "),
+                    widget::container(widget::text(content.to_string()))
+                        .padding(3)
+                        .style(utils::style::container_style_background_weak)
+                ]);
             }
 
-            let mut category_column = widget::Column::new().spacing(10);
+            let mut category_column = utils::spaced_column!();
             for category in transaction.categories() {
-                category_column = category_column.push(
-                    widget::row![
-                        widget::checkbox(
-                            categories
-                                .iter()
-                                .find(|x| x.id() == category.0)
-                                .unwrap()
-                                .name(),
-                            true,
-                        ),
-                        widget::checkbox("Negative", *category.1 == fm_core::Sign::Negative)
-                    ]
-                    .spacing(10),
-                );
+                category_column = category_column.push(utils::spaced_row![
+                    widget::checkbox(
+                        categories
+                            .iter()
+                            .find(|x| x.id() == category.0)
+                            .unwrap()
+                            .name(),
+                        true,
+                    ),
+                    widget::checkbox("Negative", *category.1 == fm_core::Sign::Negative)
+                ]);
             }
 
             iced::Element::new(widget::column![
@@ -220,7 +211,7 @@ impl Transaction {
                 widget::row![
                     column,
                     widget::Space::with_width(iced::Length::Fill),
-                    widget::column![
+                    utils::spaced_column![
                         widget::button("Edit").on_press(Message::Edit),
                         widget::button("Delete")
                             .on_press(Message::Delete)
@@ -229,7 +220,6 @@ impl Transaction {
                             .on_press(Message::NewBill)
                             .style(widget::button::secondary)
                     ]
-                    .spacing(10)
                 ],
                 widget::horizontal_rule(10),
                 widget::scrollable(category_column)

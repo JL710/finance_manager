@@ -167,8 +167,8 @@ impl Budget {
             time_span,
         } = self
         {
-            let mut column = widget::column![
-                widget::row![
+            let mut column = utils::spaced_column![
+                utils::spaced_row![
                     widget::button("<").on_press(Message::DecreaseOffset),
                     widget::text!("Offset: {}", offset),
                     widget::text!(
@@ -192,14 +192,12 @@ impl Budget {
                     ),
                     widget::button(">").on_press(Message::IncreaseOffset),
                 ]
-                .align_y(iced::Alignment::Center)
-                .spacing(10),
+                .align_y(iced::Alignment::Center),
                 widget::text!("Name: {}", budget.name()),
                 widget::text!("Total Value: {}", budget.total_value()),
                 widget::text!("Current Value: {}", current_value),
                 widget::text!("Recurring: {}", budget.timespan())
-            ]
-            .spacing(10);
+            ];
 
             if let Some(content) = budget.description() {
                 column = column.push(widget::text!("Description: {}", content));
@@ -207,7 +205,7 @@ impl Budget {
 
             super::view(
                 "Budget",
-                widget::column![
+                utils::spaced_column![
                     widget::row![
                         column,
                         widget::Space::with_width(iced::Length::Fill),
@@ -219,8 +217,7 @@ impl Budget {
                     ),
                     transaction_table.view().map(Message::TransactionTable)
                 ]
-                .height(iced::Fill)
-                .spacing(10),
+                .height(iced::Fill),
             )
             .map(MessageContainer)
         } else {

@@ -68,7 +68,7 @@ impl CategoryOverview {
     pub fn view(&self) -> iced::Element<Message> {
         super::view(
             "Category Overview",
-            iced::widget::column![
+            utils::spaced_column![
                 iced::widget::button("New Category").on_press(Message::NewCategory),
                 iced::widget::horizontal_rule(10),
                 utils::table_view::table_view(&self.category_table)
@@ -80,7 +80,6 @@ impl CategoryOverview {
                     .into()])
                     .map(Message::CategoryTable),
             ]
-            .spacing(10)
             .height(iced::Fill)
             .width(iced::Fill),
         )

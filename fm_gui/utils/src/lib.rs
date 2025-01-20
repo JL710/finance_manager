@@ -1,4 +1,4 @@
-use iced::widget;
+pub use iced::{self, widget};
 
 pub mod currency_input;
 pub mod date_input;
@@ -25,7 +25,7 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
         }
     }
 
-    widget::row![widget::text(name), input].spacing(10).into()
+    spaced_row![widget::text(name), input].into()
 }
 
 pub fn parse_to_datetime(date: &str) -> anyhow::Result<time::OffsetDateTime> {
@@ -137,12 +137,7 @@ pub fn heading<'a, Message: 'a>(
             ..widget::rule::default(theme)
         })
     ])
-    .padding(iced::Padding {
-        top: 0.,
-        right: 0.,
-        bottom: 10.,
-        left: 0.,
-    })
+    .padding(iced::Padding::default().bottom(style::PADDING))
     .into()
 }
 
@@ -191,7 +186,7 @@ pub fn submit_cancel_row<'a, Message: Clone + 'a>(
     submit: Option<Message>,
     cancel: Option<Message>,
 ) -> iced::Element<'a, Message> {
-    widget::row![
+    spaced_row![
         widget::button("Cancel")
             .on_press_maybe(cancel)
             .style(widget::button::danger),
@@ -200,6 +195,25 @@ pub fn submit_cancel_row<'a, Message: Clone + 'a>(
             .on_press_maybe(submit)
             .style(widget::button::success)
     ]
-    .spacing(10)
     .into()
+}
+
+#[macro_export]
+macro_rules! spaced_column {
+    () => (
+        $crate::widget::Column::new().spacing($crate::style::COLUMN_SPACING)
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Column::with_children([$($crate::iced::Element::from($x)),+]).spacing($crate::style::COLUMN_SPACING)
+    );
+}
+
+#[macro_export]
+macro_rules! spaced_row {
+    () => (
+        $crate::widget::Row::new().spacing(style::ROW_SPACING)
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Row::with_children([$($crate::iced::Element::from($x)),+]).spacing($crate::style::ROW_SPACING)
+    );
 }

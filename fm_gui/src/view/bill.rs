@@ -173,7 +173,7 @@ impl Bill {
         {
             super::view(
                 "Bill",
-                widget::column![
+                utils::spaced_column![
                     widget::row![
                         widget::column![
                             widget::text!("Name: {}", bill.name()),
@@ -195,17 +195,15 @@ impl Bill {
                                     )
                                     .unwrap())
                             ),
-                            widget::row!["Sum: ", utils::colored_currency_display(bill_sum),]
-                                .spacing(10)
+                            utils::spaced_row!["Sum: ", utils::colored_currency_display(bill_sum),]
                         ],
                         widget::horizontal_space(),
-                        widget::column![
+                        utils::spaced_column![
                             widget::button("Edit").on_press(Message::Edit),
                             widget::button("Delete")
                                 .on_press(Message::Delete)
                                 .style(widget::button::danger),
                         ]
-                        .spacing(10)
                     ],
                     widget::horizontal_rule(10),
                     utils::table_view::table_view(transaction_table)
@@ -236,8 +234,7 @@ impl Bill {
                         ])
                         .map(Message::TransactionTable),
                 ]
-                .height(iced::Fill)
-                .spacing(10),
+                .height(iced::Fill),
             )
             .map(MessageContainer)
         } else {

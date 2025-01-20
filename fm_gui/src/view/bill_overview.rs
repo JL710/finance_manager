@@ -83,7 +83,7 @@ impl BillOverview {
     pub fn view(&self) -> iced::Element<Message> {
         super::view(
             "Bill Overview",
-            widget::column![
+            utils::spaced_column![
                 widget::button("New").on_press(Message::NewBill),
                 utils::table_view::table_view(&self.bill_table)
                     .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
@@ -106,7 +106,6 @@ impl BillOverview {
                     ])
                     .map(Message::BillTable),
             ]
-            .spacing(10)
             .height(iced::Fill)
             .width(iced::Fill),
         )

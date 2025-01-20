@@ -1,5 +1,10 @@
 use iced::widget;
 
+pub const SPACING: u16 = 10;
+pub const ROW_SPACING: u16 = SPACING;
+pub const COLUMN_SPACING: u16 = SPACING;
+pub const PADDING: u16 = 10;
+
 pub fn container_style_background_weak(theme: &iced::Theme) -> widget::container::Style {
     widget::container::Style::default().background(iced::Background::Color(
         theme.extended_palette().background.weak.color,
@@ -23,7 +28,7 @@ pub fn container_popup_styling<Message>(
             style.border.width = 3.0;
             style
         })
-        .padding(10)
+        .padding(PADDING)
 }
 
 pub fn button_sidebar(

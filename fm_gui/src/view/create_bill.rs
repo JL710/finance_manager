@@ -256,33 +256,30 @@ impl CreateBillView {
 
         super::view(
             "Create Bill",
-            widget::column![
+            utils::spaced_column![
                 utils::labeled_entry("Name", &self.name_input, Message::NameInputChanged, true),
-                widget::row![
+                utils::spaced_row![
                     "Description: ",
                     widget::container(widget::scrollable(
                         widget::text_editor(&self.description_input)
                             .on_action(Message::DescriptionInputChanged)
                     ))
                     .max_height(200)
-                ]
-                .spacing(10),
-                widget::row![
+                ],
+                utils::spaced_row![
                     "Value: ",
                     utils::currency_input::currency_input(&self.value, true)
                         .view()
                         .map(Message::ValueChanged),
                 ]
-                .width(iced::Length::Fill)
-                .spacing(10),
-                widget::row![
+                .width(iced::Length::Fill),
+                utils::spaced_row![
                     "Due Date: ",
                     utils::date_input::date_input(&self.due_date_input, "", false)
                         .view()
                         .map(Message::DueDateChanged),
                 ]
-                .width(iced::Length::Fill)
-                .spacing(10),
+                .width(iced::Length::Fill),
                 "Transactions:",
                 widget::container(
                     utils::table_view::table_view(&self.transaction_table)
@@ -345,8 +342,7 @@ impl CreateBillView {
                     Some(Message::Cancel)
                 ),
             ]
-            .height(iced::Fill)
-            .spacing(10),
+            .height(iced::Fill),
         )
     }
 
@@ -500,16 +496,15 @@ mod add_transaction {
         }
 
         pub fn view(&self) -> iced::Element<Message> {
-            widget::column![
+            utils::spaced_column![
                 utils::heading("Add", utils::HeadingLevel::H1),
                 widget::button("Back").on_press(Message::Back),
                 if let Some(filter) = &self.filter {
                     iced::Element::new(
-                        widget::column![
+                        utils::spaced_column![
                             "Create Filter for Transactions:",
                             filter.view().map(Message::FilterComponent),
                         ]
-                        .spacing(10)
                         .width(iced::Length::Fill),
                     )
                 } else {
@@ -544,7 +539,6 @@ mod add_transaction {
                         .map(Message::Table)
                 }
             ]
-            .spacing(10)
             .height(iced::Fill)
             .width(iced::Fill)
             .into()

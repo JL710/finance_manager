@@ -531,7 +531,7 @@ impl App {
                 .into()
             } else {
                 widget::button(
-                    widget::row![
+                    utils::spaced_row![
                         widget::Svg::new(icon.clone()).width(iced::Shrink).style(
                             |theme: &iced::Theme, _| widget::svg::Style {
                                 color: Some(theme.palette().primary)
@@ -540,8 +540,7 @@ impl App {
                         text,
                     ]
                     .height(25)
-                    .align_y(iced::Center)
-                    .spacing(10),
+                    .align_y(iced::Center),
                 )
                 .style(utils::style::button_sidebar)
                 .on_press(message)
@@ -550,7 +549,7 @@ impl App {
         }
 
         iced::widget::row![
-            widget::column![
+            utils::spaced_column![
                 widget::button(
                     widget::Svg::new(self.svg_cache.list.clone())
                         .style(|theme: &iced::Theme, _| widget::svg::Style {
@@ -616,8 +615,7 @@ impl App {
                     self.side_bar_collapsed
                 ),
             ]
-            .align_x(iced::Alignment::Start)
-            .spacing(10),
+            .align_x(iced::Alignment::Start),
             iced::widget::vertical_rule(5),
             iced::widget::container(match self.current_view {
                 View::Empty => widget::container(
@@ -665,7 +663,7 @@ impl App {
                 View::ViewBill(ref view) => view.view().map(AppMessage::ViewBillMessage),
             })
             .width(iced::Fill)
-            .padding(10)
+            .padding(utils::style::PADDING)
         ]
         .into()
     }

@@ -155,49 +155,41 @@ impl SettingsView {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let mut col = widget::column![
+        let mut col = utils::spaced_column![
             widget::text!("Current Status: {}", self.current_status),
             widget::Rule::horizontal(10),
-            widget::row![
-                widget::column![
-                    widget::row![
+            utils::spaced_row![
+                utils::spaced_column![
+                    utils::spaced_row![
                         widget::text("API URL:"),
                         widget::text_input::TextInput::new("API Url", &self.api_url)
                             .on_input(Message::ChangeAPIUrl),
-                    ]
-                    .spacing(10),
-                    widget::row![
+                    ],
+                    utils::spaced_row![
                         widget::text("API Token:"),
                         widget::text_input::TextInput::new("API Token", &self.api_token)
                             .on_input(Message::ChangeAPIToken)
                     ]
-                    .spacing(10)
-                ]
-                .spacing(10),
+                ],
                 widget::button("Switch").on_press(Message::SwitchToAPI)
             ]
-            .spacing(10)
         ];
 
         #[cfg(feature = "native")]
         {
-            col = col.push(
-                widget::row![
-                    widget::text("Sqlite Path:"),
-                    widget::text_input::TextInput::new("Sqlite Path", &self.sqlite_path)
-                        .on_input(Message::ChangeSqlitePath),
-                    widget::button("Select File").on_press(Message::StartSQLiteFileSelector),
-                    widget::button("Switch").on_press(Message::SwitchToSqlite)
-                ]
-                .spacing(10),
-            );
+            col = col.push(utils::spaced_row![
+                widget::text("Sqlite Path:"),
+                widget::text_input::TextInput::new("Sqlite Path", &self.sqlite_path)
+                    .on_input(Message::ChangeSqlitePath),
+                widget::button("Select File").on_press(Message::StartSQLiteFileSelector),
+                widget::button("Switch").on_press(Message::SwitchToSqlite)
+            ]);
         }
 
         super::view(
             "Settings",
             col.push(widget::Rule::horizontal(10))
-                .push(widget::button("Switch to RAM").on_press(Message::SwitchToRAM))
-                .spacing(10),
+                .push(widget::button("Switch to RAM").on_press(Message::SwitchToRAM)),
         )
     }
 }

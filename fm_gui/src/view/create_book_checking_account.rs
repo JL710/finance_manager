@@ -140,27 +140,23 @@ impl CreateBookCheckingAccount {
 
         super::view(
             "Create Book Checking Account",
-            widget::scrollable(
-                widget::column![
-                    utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                    widget::row![
-                        widget::text("Notes"),
-                        widget::text_editor(&self.note_input).on_action(Message::NoteInput)
-                    ]
-                    .spacing(10),
-                    utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-                    utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                    utils::submit_cancel_row(
-                        if self.can_submit() {
-                            Some(Message::Submit)
-                        } else {
-                            None
-                        },
-                        Some(Message::Cancel)
-                    ),
-                ]
-                .spacing(10),
-            ),
+            widget::scrollable(utils::spaced_column![
+                utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+                utils::spaced_row![
+                    widget::text("Notes"),
+                    widget::text_editor(&self.note_input).on_action(Message::NoteInput)
+                ],
+                utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+                utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+                utils::submit_cancel_row(
+                    if self.can_submit() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    },
+                    Some(Message::Cancel)
+                ),
+            ]),
         )
     }
 

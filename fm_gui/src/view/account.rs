@@ -312,13 +312,12 @@ fn asset_account_view<'a>(
                     ],
                 ],
                 widget::Space::with_width(iced::Length::Fill),
-                widget::column![
+                utils::spaced_column![
                     widget::button("Edit").on_press(Message::Edit),
                     widget::button("Delete")
                         .on_press(Message::Delete)
                         .style(widget::button::danger)
                 ]
-                .spacing(10)
             ],
             widget::horizontal_rule(10),
             utils::timespan_input::timespan_input(timespan_input)
@@ -357,13 +356,12 @@ fn book_checking_account_view<'a>(
                     ],
                 ],
                 widget::Space::with_width(iced::Length::Fill),
-                widget::column![
+                utils::spaced_column![
                     widget::button("Edit").on_press(Message::Edit),
                     widget::button("Delete")
                         .on_press(Message::Delete)
                         .style(widget::button::danger)
                 ]
-                .spacing(10)
             ],
             widget::horizontal_rule(10),
             utils::timespan_input::timespan_input(timespan_input)

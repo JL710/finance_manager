@@ -92,7 +92,7 @@ impl BookCheckingAccountOverview {
     pub fn view(&self) -> iced::Element<Message> {
         super::view(
             "Book Checking Account Overview",
-            iced::widget::column![
+            utils::spaced_column![
                 widget::button("Create new account").on_press(Message::New),
                 widget::horizontal_rule(10),
                 utils::table_view::table_view(&self.accounts_table)
@@ -105,7 +105,6 @@ impl BookCheckingAccountOverview {
                     ])
                     .map(Message::AccountTable)
             ]
-            .spacing(10)
             .height(iced::Fill)
             .width(iced::Fill),
         )

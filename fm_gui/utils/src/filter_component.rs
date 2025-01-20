@@ -259,102 +259,95 @@ impl FilterComponent {
     }
 
     pub fn view(&self) -> iced::Element<InnerMessage> {
-        widget::container(
-            widget::column![
-                // default timespan
-                widget::row![
-                    widget::text("Default Timespan: "),
-                    crate::timespan_input::timespan_input(&self.default_transaction_input)
-                        .view()
-                        .map(InnerMessage::ChangeDefaultTimespan),
-                ],
-                // account filters
-                widget::row![
-                    widget::text("Accounts"),
-                    widget::button("New").on_press(InnerMessage::NewAccountFilter),
-                    widget::horizontal_rule(3)
-                ]
-                .spacing(10)
-                .align_y(iced::Alignment::Center),
-                widget::container(widget::scrollable(generate_filter_column(
-                    self.filter.get_account_filters(),
-                    &self.account_timespan_inputs,
-                    &self.accounts,
-                    |x| DisplayedAccount { account: x.clone() },
-                    |x| *x.account.id(),
-                    |x| *x.id(),
-                    InnerMessage::ChangeAccount,
-                    InnerMessage::EditAccountTimespan,
-                    InnerMessage::DeleteAccount
-                )))
-                .max_height(150),
-                // category filters
-                widget::row![
-                    widget::text("Categories"),
-                    widget::button("New").on_press(InnerMessage::NewCategoryFilter),
-                    widget::horizontal_rule(3)
-                ]
-                .spacing(10)
-                .align_y(iced::Alignment::Center),
-                widget::container(widget::scrollable(generate_filter_column(
-                    self.filter.get_category_filters(),
-                    &self.category_timespan_inputs,
-                    &self.categories,
-                    |x| DisplayedCategory(x.clone()),
-                    |x| *x.0.id(),
-                    |x| *x.id(),
-                    InnerMessage::ChangeCategory,
-                    InnerMessage::EditCategoryTimespan,
-                    InnerMessage::DeleteCategory
-                )))
-                .max_height(150),
-                // bill filters
-                widget::row![
-                    widget::text("Bills"),
-                    widget::button("New").on_press(InnerMessage::NewBillFilter),
-                    widget::horizontal_rule(3)
-                ]
-                .spacing(10)
-                .align_y(iced::Alignment::Center),
-                widget::container(widget::scrollable(generate_filter_column(
-                    self.filter.get_bill_filters(),
-                    &self.bill_timespan_inputs,
-                    &self.bills,
-                    |x| DisplayedBill(x.clone()),
-                    |x| x.0.clone(),
-                    |x| x.clone(),
-                    InnerMessage::ChangeBill,
-                    InnerMessage::EditBillTimespan,
-                    InnerMessage::DeleteBill
-                )))
-                .max_height(150),
-                // budget filters
-                widget::row![
-                    widget::text("Budget"),
-                    widget::button("New").on_press(InnerMessage::NewBudgetFilter),
-                    widget::horizontal_rule(3)
-                ]
-                .spacing(10)
-                .align_y(iced::Alignment::Center),
-                widget::container(widget::scrollable(generate_filter_column(
-                    self.filter.get_budget_filters(),
-                    &self.budget_timespan_inputs,
-                    &self.budgets,
-                    |x| DisplayedBudget(x.clone()),
-                    |x| *x.0.id(),
-                    |x| *x.id(),
-                    InnerMessage::ChangeBudget,
-                    InnerMessage::EditBudgetTimespan,
-                    InnerMessage::DeleteBudget
-                )))
-                .max_height(150),
-                // submit footer
-                widget::horizontal_rule(3),
-                widget::button("Submit").on_press(InnerMessage::Submit)
+        widget::container(super::spaced_column![
+            // default timespan
+            super::spaced_row![
+                widget::text("Default Timespan: "),
+                crate::timespan_input::timespan_input(&self.default_transaction_input)
+                    .view()
+                    .map(InnerMessage::ChangeDefaultTimespan),
+            ],
+            // account filters
+            super::spaced_row![
+                widget::text("Accounts"),
+                widget::button("New").on_press(InnerMessage::NewAccountFilter),
+                widget::horizontal_rule(3)
             ]
-            .spacing(10),
-        )
-        .padding(10)
+            .align_y(iced::Alignment::Center),
+            widget::container(widget::scrollable(generate_filter_column(
+                self.filter.get_account_filters(),
+                &self.account_timespan_inputs,
+                &self.accounts,
+                |x| DisplayedAccount { account: x.clone() },
+                |x| *x.account.id(),
+                |x| *x.id(),
+                InnerMessage::ChangeAccount,
+                InnerMessage::EditAccountTimespan,
+                InnerMessage::DeleteAccount
+            )))
+            .max_height(150),
+            // category filters
+            super::spaced_row![
+                widget::text("Categories"),
+                widget::button("New").on_press(InnerMessage::NewCategoryFilter),
+                widget::horizontal_rule(3)
+            ]
+            .align_y(iced::Alignment::Center),
+            widget::container(widget::scrollable(generate_filter_column(
+                self.filter.get_category_filters(),
+                &self.category_timespan_inputs,
+                &self.categories,
+                |x| DisplayedCategory(x.clone()),
+                |x| *x.0.id(),
+                |x| *x.id(),
+                InnerMessage::ChangeCategory,
+                InnerMessage::EditCategoryTimespan,
+                InnerMessage::DeleteCategory
+            )))
+            .max_height(150),
+            // bill filters
+            super::spaced_row![
+                widget::text("Bills"),
+                widget::button("New").on_press(InnerMessage::NewBillFilter),
+                widget::horizontal_rule(3)
+            ]
+            .align_y(iced::Alignment::Center),
+            widget::container(widget::scrollable(generate_filter_column(
+                self.filter.get_bill_filters(),
+                &self.bill_timespan_inputs,
+                &self.bills,
+                |x| DisplayedBill(x.clone()),
+                |x| x.0.clone(),
+                |x| x.clone(),
+                InnerMessage::ChangeBill,
+                InnerMessage::EditBillTimespan,
+                InnerMessage::DeleteBill
+            )))
+            .max_height(150),
+            // budget filters
+            super::spaced_row![
+                widget::text("Budget"),
+                widget::button("New").on_press(InnerMessage::NewBudgetFilter),
+                widget::horizontal_rule(3)
+            ]
+            .align_y(iced::Alignment::Center),
+            widget::container(widget::scrollable(generate_filter_column(
+                self.filter.get_budget_filters(),
+                &self.budget_timespan_inputs,
+                &self.budgets,
+                |x| DisplayedBudget(x.clone()),
+                |x| *x.0.id(),
+                |x| *x.id(),
+                InnerMessage::ChangeBudget,
+                InnerMessage::EditBudgetTimespan,
+                InnerMessage::DeleteBudget
+            )))
+            .max_height(150),
+            // submit footer
+            widget::horizontal_rule(3),
+            widget::button("Submit").on_press(InnerMessage::Submit)
+        ])
+        .padding(super::style::PADDING)
         .style(super::style::container_style_background_weak)
         .into()
     }

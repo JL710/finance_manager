@@ -173,7 +173,7 @@ impl FilterTransactionView {
     pub fn view(&self) -> iced::Element<Message> {
         super::view(
             "Find Transactions",
-            iced::widget::column![
+            utils::spaced_column![
                 iced::widget::text("Filter Transactions"),
                 iced::widget::row![
                     iced::widget::text("Total: "),
@@ -194,7 +194,6 @@ impl FilterTransactionView {
                     self.transaction_table.view().map(Message::TransactionTable)
                 }
             ]
-            .spacing(10)
             .height(iced::Fill)
             .width(iced::Fill),
         )

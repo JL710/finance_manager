@@ -157,35 +157,30 @@ impl CreateAssetAccountDialog {
 
         super::view(
             "Create Asset Account",
-            widget::scrollable(
-                widget::column![
-                    utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                    widget::row![
-                        "Notes",
-                        widget::text_editor(&self.note_input).on_action(Message::NoteInput)
-                    ]
-                    .spacing(10),
-                    utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-                    utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                    widget::row![
-                        "Offset",
-                        utils::currency_input::currency_input(&self.offset_input, true)
-                            .view()
-                            .map(Message::OffsetInput),
-                    ]
-                    .width(iced::Fill)
-                    .spacing(10),
-                    utils::submit_cancel_row(
-                        if self.can_submit() {
-                            Some(Message::Submit)
-                        } else {
-                            None
-                        },
-                        Some(Message::Cancel)
-                    ),
+            widget::scrollable(utils::spaced_column![
+                utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+                utils::spaced_row![
+                    "Notes",
+                    widget::text_editor(&self.note_input).on_action(Message::NoteInput)
+                ],
+                utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+                utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+                utils::spaced_row![
+                    "Offset",
+                    utils::currency_input::currency_input(&self.offset_input, true)
+                        .view()
+                        .map(Message::OffsetInput),
                 ]
-                .spacing(10),
-            ),
+                .width(iced::Fill),
+                utils::submit_cancel_row(
+                    if self.can_submit() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    },
+                    Some(Message::Cancel)
+                ),
+            ]),
         )
     }
 

@@ -1,5 +1,4 @@
 use async_std::sync::Mutex;
-use iced::widget;
 use std::sync::Arc;
 
 pub enum Action {
@@ -100,7 +99,7 @@ impl CreateCategory {
     pub fn view(&self) -> iced::Element<Message> {
         super::view(
             "Create Category",
-            widget::column![
+            utils::spaced_column![
                 utils::labeled_entry("Name", &self.name, Message::NameInput, true),
                 utils::submit_cancel_row(
                     if self.is_submittable() {
@@ -110,8 +109,7 @@ impl CreateCategory {
                     },
                     Some(Message::Cancel)
                 ),
-            ]
-            .spacing(10),
+            ],
         )
     }
 

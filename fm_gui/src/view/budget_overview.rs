@@ -89,7 +89,7 @@ impl BudgetOverview {
     pub fn view(&self) -> iced::Element<'_, Message> {
         super::view(
             "Budget Overview",
-            widget::column![
+            utils::spaced_column![
                 widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
                 widget::horizontal_rule(10),
                 utils::table_view::table_view(&self.budget_table)
@@ -109,8 +109,7 @@ impl BudgetOverview {
                     })
                     .map(Message::BudgetTable),
             ]
-            .height(iced::Fill)
-            .spacing(10),
+            .height(iced::Fill),
         )
     }
 }

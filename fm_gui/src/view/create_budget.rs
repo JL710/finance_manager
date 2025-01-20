@@ -271,28 +271,24 @@ impl CreateBudgetView {
 
         super::view(
             "Create Budget",
-            widget::scrollable(
-                widget::column![
-                    utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                    widget::row![
-                        "Description",
-                        widget::text_editor(&self.description_input)
-                            .on_action(Message::DescriptionInput)
-                    ]
-                    .spacing(10),
-                    utils::labeled_entry("Value", &self.value_input, Message::ValueInput, true),
-                    self.generate_recurring_view(),
-                    utils::submit_cancel_row(
-                        if self.submittable() {
-                            Some(Message::Submit)
-                        } else {
-                            None
-                        },
-                        Some(Message::Cancel)
-                    ),
-                ]
-                .spacing(10),
-            ),
+            widget::scrollable(utils::spaced_column![
+                utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+                utils::spaced_row![
+                    "Description",
+                    widget::text_editor(&self.description_input)
+                        .on_action(Message::DescriptionInput)
+                ],
+                utils::labeled_entry("Value", &self.value_input, Message::ValueInput, true),
+                self.generate_recurring_view(),
+                utils::submit_cancel_row(
+                    if self.submittable() {
+                        Some(Message::Submit)
+                    } else {
+                        None
+                    },
+                    Some(Message::Cancel)
+                ),
+            ]),
         )
     }
 

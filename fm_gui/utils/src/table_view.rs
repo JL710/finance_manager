@@ -150,8 +150,8 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
             state,
             headers: None,
             alignment: None,
-            spacing: 10,
-            padding: 10,
+            spacing: super::style::SPACING,
+            padding: super::style::PADDING,
         }
     }
 
@@ -236,7 +236,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
             let mut row = widget::row![].spacing(self.spacing);
             for (index, header) in headers.iter().enumerate() {
                 row = row.push(
-                    widget::row![widget::text(header.clone()),]
+                    super::spaced_row![widget::text(header.clone()),]
                         .push_maybe(if self.state.sortable.contains(&index) {
                             Some(
                                 widget::button(
@@ -266,7 +266,6 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                         } else {
                             None
                         })
-                        .spacing(10)
                         .align_y(iced::Alignment::Center)
                         .width(iced::Length::FillPortion(1)),
                 );
@@ -279,14 +278,11 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
         }
 
         column = column.push(widget::scrollable(data_column).height(iced::Fill));
-        column = column.push(
-            widget::row![
-                widget::button("Previous").on_press(InnerMessage::ChangePageBy(-1)),
-                widget::text!("Page {}/{}", self.state.page + 1, self.state.max_page() + 1),
-                widget::button("Next").on_press(InnerMessage::ChangePageBy(1))
-            ]
-            .spacing(10),
-        );
+        column = column.push(super::spaced_row![
+            widget::button("Previous").on_press(InnerMessage::ChangePageBy(-1)),
+            widget::text!("Page {}/{}", self.state.page + 1, self.state.max_page() + 1),
+            widget::button("Next").on_press(InnerMessage::ChangePageBy(1))
+        ]);
 
         column.into()
     }

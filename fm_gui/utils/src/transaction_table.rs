@@ -271,7 +271,7 @@ impl TransactionTable {
                         link(widget::text(destination.to_string().clone()))
                             .on_press(Message::ViewAccount(*destination.id()))
                             .into(),
-                        widget::row![
+                        super::spaced_row![
                             widget::button(
                                 widget::Svg::new(self.edit_svg.clone()).width(iced::Shrink)
                             )
@@ -279,7 +279,6 @@ impl TransactionTable {
                             .style(widget::button::secondary),
                             widget::text(get_category_text(transaction, categories)),
                         ]
-                        .spacing(10)
                         .into(),
                     ]
                 },
@@ -287,7 +286,7 @@ impl TransactionTable {
             .map(Message::TransactionTable);
 
         crate::modal(
-            widget::container(table).padding(10.0),
+            widget::container(table).padding(super::style::PADDING),
             if let Some(id) = self.category_popup {
                 category_popup(
                     self.transactions
@@ -330,42 +329,39 @@ fn category_popup(
     for category in categories {
         let category_id = *category.id();
         let transaction_category = transaction.categories().get(&category_id).copied();
-        column = column.push(
-            widget::row![
-                widget::checkbox(
-                    category.name(),
-                    transaction.categories().contains_key(category.id())
-                )
-                .on_toggle(move |value| if value {
-                    Message::SetCategory {
-                        transaction_id,
-                        category_id,
-                        sign: fm_core::Sign::Positive,
-                    }
+        column = column.push(super::spaced_row![
+            widget::checkbox(
+                category.name(),
+                transaction.categories().contains_key(category.id())
+            )
+            .on_toggle(move |value| if value {
+                Message::SetCategory {
+                    transaction_id,
+                    category_id,
+                    sign: fm_core::Sign::Positive,
+                }
+            } else {
+                Message::RemoveCategory {
+                    transaction_id,
+                    category_id,
+                }
+            }),
+            widget::checkbox(
+                "Negative",
+                if let Some(sign) = transaction_category {
+                    sign == fm_core::Sign::Negative
                 } else {
-                    Message::RemoveCategory {
-                        transaction_id,
-                        category_id,
-                    }
-                }),
-                widget::checkbox(
-                    "Negative",
-                    if let Some(sign) = transaction_category {
-                        sign == fm_core::Sign::Negative
-                    } else {
-                        false
-                    }
-                )
-                .on_toggle_maybe(transaction_category.map(|sign| {
-                    move |_| Message::SetCategory {
-                        transaction_id,
-                        category_id,
-                        sign: sign.invert(),
-                    }
-                })),
-            ]
-            .spacing(10),
-        );
+                    false
+                }
+            )
+            .on_toggle_maybe(transaction_category.map(|sign| {
+                move |_| Message::SetCategory {
+                    transaction_id,
+                    category_id,
+                    sign: sign.invert(),
+                }
+            })),
+        ]);
     }
 
     super::style::container_popup_styling(widget::Container::new(column)).into()
