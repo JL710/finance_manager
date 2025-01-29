@@ -199,8 +199,8 @@ impl Bill {
                         ],
                         widget::horizontal_space(),
                         utils::spaced_column![
-                            utils::button::edit_button(Some(Message::Edit)),
-                            utils::button::delete_button(Some(Message::Delete))
+                            utils::button::edit(Some(Message::Edit)),
+                            utils::button::delete(Some(Message::Delete))
                         ]
                     ],
                     widget::horizontal_rule(10),

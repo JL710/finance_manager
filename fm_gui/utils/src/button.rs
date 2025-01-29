@@ -54,9 +54,7 @@ impl<'a, Message: 'a + Clone> From<SvgButton<'a, Message>> for iced::Element<'a,
 }
 
 const SUBMIT_SVG: &[u8] = include_bytes!("../../assets/check-lg.svg");
-pub fn submit_button<'a, Message: Clone + 'a>(
-    message: Option<Message>,
-) -> iced::Element<'a, Message> {
+pub fn submit<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Element<'a, Message> {
     SvgButton::new(widget::svg::Handle::from_memory(SUBMIT_SVG), "Save")
         .on_press_maybe(message)
         .style(widget::button::success)
@@ -64,9 +62,7 @@ pub fn submit_button<'a, Message: Clone + 'a>(
 }
 
 const CANCEL_SVG: &[u8] = include_bytes!("../../assets/x-lg.svg");
-pub fn cancel_button<'a, Message: Clone + 'a>(
-    message: Option<Message>,
-) -> iced::Element<'a, Message> {
+pub fn cancel<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Element<'a, Message> {
     SvgButton::new(widget::svg::Handle::from_memory(CANCEL_SVG), "Cancel")
         .on_press_maybe(message)
         .style(widget::button::danger)
@@ -74,9 +70,7 @@ pub fn cancel_button<'a, Message: Clone + 'a>(
 }
 
 const EDIT_SVG: &[u8] = include_bytes!("../../assets/pencil-square.svg");
-pub fn edit_button<'a, Message: Clone + 'a>(
-    message: Option<Message>,
-) -> iced::Element<'a, Message> {
+pub fn edit<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Element<'a, Message> {
     SvgButton::new(widget::svg::Handle::from_memory(EDIT_SVG), "Edit")
         .on_press_maybe(message)
         .style(widget::button::secondary)
@@ -84,9 +78,7 @@ pub fn edit_button<'a, Message: Clone + 'a>(
 }
 
 const DELETE_SVG: &[u8] = include_bytes!("../../assets/trash-fill.svg");
-pub fn delete_button<'a, Message: Clone + 'a>(
-    message: Option<Message>,
-) -> iced::Element<'a, Message> {
+pub fn delete<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Element<'a, Message> {
     SvgButton::new(widget::svg::Handle::from_memory(DELETE_SVG), "Delete")
         .on_press_maybe(message)
         .style(widget::button::danger)

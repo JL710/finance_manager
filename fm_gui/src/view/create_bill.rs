@@ -303,7 +303,7 @@ impl CreateBillView {
                                         )
                                     })
                                     .into(),
-                                utils::button::delete_button(Some(Message::RemoveTransaction(
+                                utils::button::delete(Some(Message::RemoveTransaction(
                                     transaction_id,
                                 ))),
                                 widget::text(transaction.title().clone()).into(),

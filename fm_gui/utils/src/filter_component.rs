@@ -479,7 +479,7 @@ fn generate_filter_column<
             })
             .push(widget::row![
                 widget::horizontal_space(),
-                super::button::delete_button(Some((delete_message)(filter.clone())))
+                super::button::delete(Some((delete_message)(filter.clone())))
             ])
             .align_y(iced::Alignment::Center)
             .spacing(30),

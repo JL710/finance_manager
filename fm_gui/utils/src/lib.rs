@@ -188,9 +188,9 @@ pub fn submit_cancel_row<'a, Message: Clone + 'a>(
     cancel: Option<Message>,
 ) -> iced::Element<'a, Message> {
     spal_row![
-        button::cancel_button(cancel),
+        button::cancel(cancel),
         widget::horizontal_space(),
-        button::submit_button(submit),
+        button::submit(submit),
     ]
     .into()
 }

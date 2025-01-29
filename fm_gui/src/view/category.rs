@@ -240,8 +240,8 @@ impl Category {
                         ],
                         widget::Space::with_width(iced::Length::Fill),
                         utils::spaced_column![
-                            utils::button::edit_button(Some(Message::Edit)),
-                            utils::button::delete_button(Some(Message::Delete))
+                            utils::button::edit(Some(Message::Edit)),
+                            utils::button::delete(Some(Message::Delete))
                         ]
                     ],
                     utils::timespan_input::timespan_input(timespan_input)

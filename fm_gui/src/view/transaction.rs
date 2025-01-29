@@ -212,8 +212,8 @@ impl Transaction {
                     column,
                     widget::Space::with_width(iced::Length::Fill),
                     utils::spaced_column![
-                        utils::button::edit_button(Some(Message::Edit)),
-                        utils::button::delete_button(Some(Message::Delete)),
+                        utils::button::edit(Some(Message::Edit)),
+                        utils::button::delete(Some(Message::Delete)),
                         widget::button("New Bill")
                             .on_press(Message::NewBill)
                             .style(widget::button::secondary)
