@@ -184,8 +184,7 @@ impl FilterTransactionView {
                             .map_or(fm_core::Currency::default(), |x| x.1.clone())
                     )
                 ],
-                iced::widget::button(iced::widget::text("Edit Filter"))
-                    .on_press(Message::ToggleEditFilter),
+                utils::button::edit_with_text("Edit Filter", Some(Message::ToggleEditFilter)),
                 if let Some(filter_component) = &self.change_filter {
                     filter_component
                         .view()
