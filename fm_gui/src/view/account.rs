@@ -292,7 +292,7 @@ fn asset_account_view<'a>(
 ) -> iced::Element<'a, Message> {
     super::view(
         "Asset Account",
-        widget::column![
+        utils::spaced_column![
             widget::row![
                 widget::column![
                     widget::text!("Account: {}", account.name()),
@@ -335,7 +335,7 @@ fn book_checking_account_view<'a>(
 ) -> iced::Element<'a, Message> {
     super::view(
         "Book Checking Account",
-        widget::column![
+        utils::spaced_column![
             widget::row![
                 widget::column![
                     widget::text!("Account: {}", account.name()),
