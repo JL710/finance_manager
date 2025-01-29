@@ -72,3 +72,23 @@ pub fn cancel_button<'a, Message: Clone + 'a>(
         .style(widget::button::danger)
         .into()
 }
+
+const EDIT_SVG: &[u8] = include_bytes!("../../assets/pencil-square.svg");
+pub fn edit_button<'a, Message: Clone + 'a>(
+    message: Option<Message>,
+) -> iced::Element<'a, Message> {
+    SvgButton::new(widget::svg::Handle::from_memory(EDIT_SVG), "Edit")
+        .on_press_maybe(message)
+        .style(widget::button::secondary)
+        .into()
+}
+
+const DELETE_SVG: &[u8] = include_bytes!("../../assets/trash-fill.svg");
+pub fn delete_button<'a, Message: Clone + 'a>(
+    message: Option<Message>,
+) -> iced::Element<'a, Message> {
+    SvgButton::new(widget::svg::Handle::from_memory(DELETE_SVG), "Delete")
+        .on_press_maybe(message)
+        .style(widget::button::danger)
+        .into()
+}

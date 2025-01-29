@@ -199,10 +199,8 @@ impl Bill {
                         ],
                         widget::horizontal_space(),
                         utils::spaced_column![
-                            widget::button("Edit").on_press(Message::Edit),
-                            widget::button("Delete")
-                                .on_press(Message::Delete)
-                                .style(widget::button::danger),
+                            utils::button::edit_button(Some(Message::Edit)),
+                            utils::button::delete_button(Some(Message::Delete))
                         ]
                     ],
                     widget::horizontal_rule(10),

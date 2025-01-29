@@ -209,7 +209,7 @@ impl Budget {
                     widget::row![
                         column,
                         widget::Space::with_width(iced::Length::Fill),
-                        widget::button("Edit").on_press(Message::Edit)
+                        utils::button::edit_button(Some(Message::Edit))
                     ],
                     widget::progress_bar(
                         0.0..=budget.total_value().get_eur_num() as f32,

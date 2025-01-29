@@ -303,9 +303,9 @@ impl CreateBillView {
                                         )
                                     })
                                     .into(),
-                                widget::button("Delete")
-                                    .on_press(Message::RemoveTransaction(transaction_id))
-                                    .into(),
+                                utils::button::delete_button(Some(Message::RemoveTransaction(
+                                    transaction_id,
+                                ))),
                                 widget::text(transaction.title().clone()).into(),
                                 utils::colored_currency_display(
                                     &(if *sign == fm_core::Sign::Negative {
