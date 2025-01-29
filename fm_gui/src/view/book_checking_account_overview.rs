@@ -93,7 +93,7 @@ impl BookCheckingAccountOverview {
         super::view(
             "Book Checking Account Overview",
             utils::spaced_column![
-                widget::button("Create new account").on_press(Message::New),
+                utils::button::new("Create new account", Some(Message::New)),
                 widget::horizontal_rule(10),
                 utils::table_view::table_view(&self.accounts_table)
                     .headers(["Account".to_string(), "Sum".to_string()])

@@ -286,7 +286,7 @@ impl TransactionTable {
             .map(Message::TransactionTable);
 
         crate::modal(
-            widget::container(table).padding(super::style::PADDING),
+            widget::container(table),
             if let Some(id) = self.category_popup {
                 category_popup(
                     self.transactions
@@ -364,5 +364,5 @@ fn category_popup(
         ]);
     }
 
-    super::style::container_popup_styling(widget::Container::new(column)).into()
+    super::style::container_popup_styling(widget::container(column)).into()
 }

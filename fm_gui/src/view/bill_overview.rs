@@ -84,7 +84,7 @@ impl BillOverview {
         super::view(
             "Bill Overview",
             utils::spaced_column![
-                widget::button("New").on_press(Message::NewBill),
+                utils::button::new("New", Some(Message::NewBill)),
                 utils::table_view::table_view(&self.bill_table)
                     .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
                     .view(|bill, _| [

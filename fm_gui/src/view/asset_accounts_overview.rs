@@ -111,9 +111,10 @@ impl AssetAccountOverview {
         super::view(
             "Asset Account Overview",
             utils::spaced_column![
-                widget::row![
-                    widget::button("New Asset Account").on_press(Message::CreateAssetAccount)
-                ],
+                widget::row![utils::button::new(
+                    "New Asset Account",
+                    Some(Message::CreateAssetAccount)
+                )],
                 widget::horizontal_rule(10),
                 account_table,
             ]

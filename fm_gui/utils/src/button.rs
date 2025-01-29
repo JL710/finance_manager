@@ -84,3 +84,13 @@ pub fn delete<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Elemen
         .style(widget::button::danger)
         .into()
 }
+
+const NEW_SVG: &[u8] = include_bytes!("../../assets/plus-square-fill.svg");
+pub fn new<'a, Message: Clone + 'a>(
+    content: &'a str,
+    message: Option<Message>,
+) -> iced::Element<'a, Message> {
+    SvgButton::new(widget::svg::Handle::from_memory(NEW_SVG), content)
+        .on_press_maybe(message)
+        .into()
+}

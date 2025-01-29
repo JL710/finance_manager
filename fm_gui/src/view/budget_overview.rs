@@ -90,7 +90,7 @@ impl BudgetOverview {
         super::view(
             "Budget Overview",
             utils::spaced_column![
-                widget::button::Button::new("Create Budget").on_press(Message::CreateBudget),
+                utils::button::new("Create Budget", Some(Message::CreateBudget)),
                 widget::horizontal_rule(10),
                 utils::table_view::table_view(&self.budget_table)
                     .headers([

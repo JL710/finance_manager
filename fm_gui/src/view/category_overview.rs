@@ -69,7 +69,7 @@ impl CategoryOverview {
         super::view(
             "Category Overview",
             utils::spaced_column![
-                iced::widget::button("New Category").on_press(Message::NewCategory),
+                utils::button::new("New Category", Some(Message::NewCategory)),
                 iced::widget::horizontal_rule(10),
                 utils::table_view::table_view(&self.category_table)
                     .headers(["Name".to_string()])

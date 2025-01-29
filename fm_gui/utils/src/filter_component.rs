@@ -270,7 +270,7 @@ impl FilterComponent {
             // account filters
             super::spal_row![
                 widget::text("Accounts"),
-                widget::button("New").on_press(InnerMessage::NewAccountFilter),
+                super::button::new("New", Some(InnerMessage::NewAccountFilter)),
                 widget::horizontal_rule(3)
             ]
             .align_y(iced::Alignment::Center),
@@ -289,7 +289,7 @@ impl FilterComponent {
             // category filters
             super::spal_row![
                 widget::text("Categories"),
-                widget::button("New").on_press(InnerMessage::NewCategoryFilter),
+                super::button::new("New", Some(InnerMessage::NewCategoryFilter)),
                 widget::horizontal_rule(3)
             ]
             .align_y(iced::Alignment::Center),
@@ -308,7 +308,7 @@ impl FilterComponent {
             // bill filters
             super::spal_row![
                 widget::text("Bills"),
-                widget::button("New").on_press(InnerMessage::NewBillFilter),
+                super::button::new("New", Some(InnerMessage::NewBillFilter)),
                 widget::horizontal_rule(3)
             ]
             .align_y(iced::Alignment::Center),
@@ -327,7 +327,7 @@ impl FilterComponent {
             // budget filters
             super::spal_row![
                 widget::text("Budget"),
-                widget::button("New").on_press(InnerMessage::NewBudgetFilter),
+                super::button::new("New", Some(InnerMessage::NewBudgetFilter)),
                 widget::horizontal_rule(3)
             ]
             .align_y(iced::Alignment::Center),

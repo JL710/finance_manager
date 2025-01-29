@@ -214,9 +214,7 @@ impl Transaction {
                     utils::spaced_column![
                         utils::button::edit(Some(Message::Edit)),
                         utils::button::delete(Some(Message::Delete)),
-                        widget::button("New Bill")
-                            .on_press(Message::NewBill)
-                            .style(widget::button::secondary)
+                        utils::button::new("New Bill", Some(Message::NewBill))
                     ]
                 ],
                 widget::horizontal_rule(10),

@@ -517,9 +517,7 @@ mod add_transaction {
                         ])
                         .view(|x, _| {
                             [
-                                widget::button("Add")
-                                    .on_press(Message::AddTransaction(x.clone()))
-                                    .into(),
+                                utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
                                 widget::text(x.title().clone()).into(),
                                 widget::text(x.amount().to_num_string()).into(),
                                 widget::text(
