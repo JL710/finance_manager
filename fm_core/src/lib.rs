@@ -37,6 +37,7 @@ impl<T> MaybeSend for T {}
 
 pub type DateTime = time::OffsetDateTime;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn get_local_timezone() -> Result<time::UtcOffset> {
     let utc_offset = tz::TimeZone::local()?
         .find_current_local_time_type()?
@@ -50,6 +51,11 @@ pub fn get_local_timezone() -> Result<time::UtcOffset> {
     }
 
     Ok(time::UtcOffset::from_whole_seconds(utc_offset)?)
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn get_local_timezone() -> Result<time::UtcOffset> {
+    Ok(time::UtcOffset::from_whole_seconds(0)?)
 }
 
 pub type Id = u64;
