@@ -32,7 +32,7 @@ impl<'a, Message: 'a + Clone> SvgButton<'a, Message> {
         mut self,
         style: impl Fn(&iced::Theme, widget::button::Status) -> widget::button::Style + 'a,
     ) -> Self {
-        self.class = (Box::new(style) as widget::button::StyleFn<'a, iced::Theme>).into();
+        self.class = Box::new(style) as widget::button::StyleFn<'a, iced::Theme>;
         self
     }
 

@@ -123,6 +123,7 @@ pub struct App {
     current_view: View,
     svg_cache: SvgCache,
     side_bar_collapsed: bool,
+    settings: settings::Settings,
 }
 
 impl Default for App {
@@ -136,6 +137,7 @@ impl Default for App {
             finance_manager: Arc::new(Mutex::new(finance_manager)),
             svg_cache: SvgCache::default(),
             side_bar_collapsed: false,
+            settings: settings::Settings::default(),
         }
     }
 }
@@ -143,6 +145,7 @@ impl Default for App {
 impl App {
     fn new(
         finance_manager: Arc<Mutex<fm_core::FMController<finance_managers::FinanceManagers>>>,
+        settings: settings::Settings,
     ) -> Self {
         App {
             current_view: View::Tutorial(
@@ -151,6 +154,7 @@ impl App {
             finance_manager,
             svg_cache: SvgCache::default(),
             side_bar_collapsed: false,
+            settings,
         }
     }
 
@@ -419,18 +423,15 @@ impl App {
                 }
             }
             AppMessage::SwitchToSettingsView => {
-                let (view, task) = view::settings::SettingsView::new(self.finance_manager.clone());
+                let (view, task) = view::settings::SettingsView::new(self.settings.clone());
                 self.current_view = View::Settings(view);
                 return task.map(AppMessage::SettingsMessage);
             }
             AppMessage::SettingsMessage(m) => {
                 match message_match_action!(self, m, View::Settings) {
                     view::settings::Action::None => {}
-                    view::settings::Action::Task(t) => {
-                        return t.map(AppMessage::SettingsMessage);
-                    }
-                    view::settings::Action::NewFinanceManager(fm) => {
-                        self.finance_manager = fm;
+                    view::settings::Action::ApplySettings(new_settings) => {
+                        return self.apply_settings(new_settings);
                     }
                 }
             }
@@ -768,6 +769,63 @@ impl App {
         self.current_view = View::CreateCategory(view);
         task.map(AppMessage::CreateCategoryMessage)
     }
+
+    fn apply_settings(&mut self, new_settings: settings::Settings) -> iced::Task<AppMessage> {
+        match new_settings.finance_manager.selected_finance_manager {
+            settings::SelectedFinanceManager::Ram => {
+                if !matches!(
+                    (*self.finance_manager).try_lock().unwrap().raw_fm(),
+                    finance_managers::FinanceManagers::Server(_)
+                ) {
+                    self.finance_manager =
+                        Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                            finance_managers::FinanceManagers::Ram(
+                                fm_core::managers::RamFinanceManager::default(),
+                            ),
+                        )));
+                }
+            }
+            settings::SelectedFinanceManager::SQLite => {
+                if !matches!(
+                    (*self.finance_manager).try_lock().unwrap().raw_fm(),
+                    finance_managers::FinanceManagers::Server(_)
+                ) {
+                    self.finance_manager =
+                        Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                            finance_managers::FinanceManagers::Sqlite(
+                                fm_core::managers::SqliteFinanceManager::new(
+                                    new_settings.finance_manager.sqlite_path.clone(),
+                                )
+                                .unwrap(),
+                            ),
+                        )));
+                }
+            }
+            settings::SelectedFinanceManager::Server => {
+                if !matches!(
+                    (*self.finance_manager).try_lock().unwrap().raw_fm(),
+                    finance_managers::FinanceManagers::Server(_)
+                ) {
+                    self.finance_manager =
+                        Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                            finance_managers::FinanceManagers::Server(
+                                fm_server::client::Client::new((
+                                    new_settings.finance_manager.server_url.clone(),
+                                    new_settings.finance_manager.server_token.clone(),
+                                ))
+                                .unwrap(),
+                            ),
+                        )));
+                }
+            }
+        }
+        self.settings = new_settings.clone();
+        let future = settings::write_settings(new_settings);
+        iced::Task::future(async move {
+            future.await.unwrap();
+            AppMessage::Ignore
+        })
+    }
 }
 
 #[derive(Parser)]
@@ -802,28 +860,44 @@ fn main() {
             .init();
     }
 
-    let app = App::new(match settings::read_settings().unwrap().finance_manager() {
-        settings::FinanceManager::Ram => Arc::new(Mutex::new(
-            fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Ram(
-                fm_core::managers::RamFinanceManager::new(()).unwrap(),
-            )),
-        )),
-        settings::FinanceManager::SQLite(path) => {
-            #[cfg(not(feature = "native"))]
-            panic!("SQLite is not supported in the wasm version");
-            #[cfg(feature = "native")]
-            Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
-                finance_managers::FinanceManagers::Sqlite(
-                    fm_core::managers::SqliteFinanceManager::new(path.to_owned()).unwrap(),
-                ),
-            )))
-        }
-        settings::FinanceManager::Api(url, api_token) => Arc::new(Mutex::new(
-            fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Server(
-                fm_server::client::Client::new((url.to_owned(), api_token.to_owned())).unwrap(),
-            )),
-        )),
-    });
+    let loaded_settings = settings::read_settings().unwrap();
+
+    let app = App::new(
+        match loaded_settings.finance_manager.selected_finance_manager {
+            settings::SelectedFinanceManager::Ram => {
+                Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                    finance_managers::FinanceManagers::Ram(
+                        fm_core::managers::RamFinanceManager::new(()).unwrap(),
+                    ),
+                )))
+            }
+            settings::SelectedFinanceManager::SQLite => {
+                #[cfg(not(feature = "native"))]
+                panic!("SQLite is not supported in the wasm version");
+                #[cfg(feature = "native")]
+                Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                    finance_managers::FinanceManagers::Sqlite(
+                        fm_core::managers::SqliteFinanceManager::new(
+                            loaded_settings.finance_manager.sqlite_path.clone(),
+                        )
+                        .unwrap(),
+                    ),
+                )))
+            }
+            settings::SelectedFinanceManager::Server => {
+                Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                    finance_managers::FinanceManagers::Server(
+                        fm_server::client::Client::new((
+                            loaded_settings.finance_manager.server_url.clone(),
+                            loaded_settings.finance_manager.server_token.clone(),
+                        ))
+                        .unwrap(),
+                    ),
+                )))
+            }
+        },
+        loaded_settings,
+    );
 
     // run the gui
     iced::application("Finance Manager", App::update, App::view)

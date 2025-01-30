@@ -30,6 +30,7 @@ iced.workspace = true
 fm_core.workspace = true
 time.workspace = true
 console_error_panic_hook = "0.1.7"
+serde = { version = "1.0.217", features = ["derive"] }
 
 [workspace.dependencies]
 iced = { version = "0.1.0", path = "../iced-dynamic", package = "iced-dynamic" } #iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", features = ["advanced"]}
