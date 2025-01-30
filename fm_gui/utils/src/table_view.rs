@@ -103,7 +103,7 @@ impl<T, C> State<T, C> {
         match message {
             InnerMessage::ChangePageBy(value) => {
                 let new_page = (self.page as i32 + value as i32).max(0) as usize;
-                if new_page < self.max_page() {
+                if new_page <= self.max_page() {
                     self.page = new_page;
                     Action::PageChange(new_page)
                 } else {
@@ -279,9 +279,17 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
 
         column = column.push(widget::scrollable(data_column).height(iced::Fill));
         column = column.push(super::spal_row![
-            widget::button("Previous").on_press(InnerMessage::ChangePageBy(-1)),
+            widget::button("Previous").on_press_maybe(if self.state.page == 0 {
+                None
+            } else {
+                Some(InnerMessage::ChangePageBy(-1))
+            }),
             widget::text!("Page {}/{}", self.state.page + 1, self.state.max_page() + 1),
-            widget::button("Next").on_press(InnerMessage::ChangePageBy(1))
+            widget::button("Next").on_press_maybe(if self.state.page == self.state.max_page() {
+                None
+            } else {
+                Some(InnerMessage::ChangePageBy(1))
+            })
         ]);
 
         column.into()
