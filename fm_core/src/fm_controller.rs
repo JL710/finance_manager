@@ -332,6 +332,10 @@ where
             .create_budget(name, description, total_value, timespan)
     }
 
+    pub fn delete_budget(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
+        self.finance_manager.delete_budget(id)
+    }
+
     pub fn update_budget(
         &mut self,
         id: Id,

@@ -16,7 +16,7 @@ pub async fn create_asset_account_test<T: FinanceManager>(mut fm: T) {
     {
         assert_eq!(fetched_account, account);
     } else {
-        assert!(false);
+        panic!();
     }
 }
 
@@ -48,7 +48,7 @@ pub async fn create_book_checking_account_test<T: FinanceManager>(mut fm: T) {
     {
         assert_eq!(fetched_account, account);
     } else {
-        assert!(false);
+        panic!()
     }
 }
 
@@ -75,10 +75,7 @@ pub async fn delete_category_test<T: FinanceManager>(mut fm: T) {
             None,
             DateTime::now_utc(),
             HashMap::new(),
-            [(category.id().clone(), Sign::Positive)]
-                .iter()
-                .cloned()
-                .collect(),
+            [(*category.id(), Sign::Positive)].iter().cloned().collect(),
         )
         .await
         .unwrap();
@@ -150,35 +147,32 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! unit_tests {
-    ($gen_fm:expr) => {
-        #[cfg(test)]
-        mod test {
-            use $crate::finance_manager_test::*;
+    ($runner:expr) => {
+        use $crate::finance_manager_test::*;
 
-            #[async_std::test]
-            async fn create_asset_account() {
-                create_asset_account_test(($gen_fm)().await).await;
-            }
+        #[async_std::test]
+        async fn create_asset_account() {
+            ($runner)(create_asset_account_test).await;
+        }
 
-            #[async_std::test]
-            async fn get_accounts() {
-                get_accounts_test(($gen_fm)().await).await;
-            }
+        #[async_std::test]
+        async fn get_accounts() {
+            ($runner)(get_accounts_test).await;
+        }
 
-            #[async_std::test]
-            async fn create_book_checking_account() {
-                create_book_checking_account_test(($gen_fm)().await).await;
-            }
+        #[async_std::test]
+        async fn create_book_checking_account() {
+            ($runner)(create_book_checking_account_test).await;
+        }
 
-            #[async_std::test]
-            async fn delete_category() {
-                delete_category_test(($gen_fm)().await).await;
-            }
+        #[async_std::test]
+        async fn delete_category() {
+            ($runner)(delete_category_test).await;
+        }
 
-            #[async_std::test]
-            async fn delete_budget() {
-                delete_budget_test(($gen_fm)().await).await;
-            }
+        #[async_std::test]
+        async fn delete_budget() {
+            ($runner)(delete_budget_test).await;
         }
     };
 }

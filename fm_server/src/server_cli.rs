@@ -16,7 +16,7 @@ struct Args {
 #[tokio::main]
 async fn tokio_run(url: String, db: Option<String>, token: String) {
     super::server::init_subscriber();
-    super::server::run(url, db, token).await;
+    super::server::run_with_url(url, db, token).await;
 }
 
 pub fn run() {

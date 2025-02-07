@@ -1,4 +1,4 @@
-use axum::{response::Json, routing::post, Router};
+use axum::{response::Json, routing::get, routing::post, Router};
 use serde_json::{json, Value};
 
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
@@ -121,7 +121,16 @@ pub fn init_subscriber() {
         .init();
 }
 
-pub async fn run(url: String, db: Option<String>, token: String) {
+pub async fn run_with_url(url: String, db: Option<String>, token: String) {
+    let listener = tokio::net::TcpListener::bind(url).await.unwrap();
+    run_with_listener(listener, db, token).await;
+}
+
+pub async fn run_with_listener(
+    listener: tokio::net::TcpListener,
+    db: Option<String>,
+    token: String,
+) {
     let state = State {
         finance_manager: Arc::new(Mutex::new(if let Some(db_path) = db {
             fm_core::FMController::new(db_path).unwrap()
@@ -150,6 +159,7 @@ pub async fn run(url: String, db: Option<String>, token: String) {
             post(get_transactions_of_account),
         )
         .route("/create_budget", post(create_budget))
+        .route("/delete_budget", post(delete_budget))
         .route("/create_transaction", post(create_transaction))
         .route(
             "/create_book_checking_account",
@@ -189,19 +199,22 @@ pub async fn run(url: String, db: Option<String>, token: String) {
         .route("/get_bills", post(get_bills))
         .route("/get_bill", post(get_bill))
         .route("/delete_account", post(delete_account))
+        .layer(axum::middleware::from_fn_with_state(state.clone(), auth))
+        .route("/status", get(status))
         .layer(tower_http::cors::CorsLayer::permissive())
         .layer(tower::ServiceBuilder::new().layer(tower_http::trace::TraceLayer::new_for_http()))
-        .layer(axum::middleware::from_fn_with_state(state.clone(), auth))
         .with_state(state);
 
-    // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind(url).await.unwrap();
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
     )
     .await
     .unwrap();
+}
+
+async fn status() -> String {
+    String::from("Online")
 }
 
 async fn get_budgets(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
@@ -330,6 +343,20 @@ async fn create_budget(
         .await
         .unwrap();
     json!(budget).into()
+}
+
+async fn delete_budget(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
+) -> Json<Value> {
+    state
+        .finance_manager
+        .lock()
+        .await
+        .delete_budget(data)
+        .await
+        .unwrap();
+    json!(()).into()
 }
 
 #[allow(clippy::type_complexity)]

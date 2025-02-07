@@ -507,4 +507,13 @@ impl FinanceManager for RamFinanceManager {
     }
 }
 
-crate::finance_manager_test::unit_tests!(|| async { super::RamFinanceManager::default() });
+#[cfg(test)]
+mod test {
+    async fn test_runner<FT: std::future::Future<Output = ()>>(
+        test: impl Fn(super::RamFinanceManager) -> FT,
+    ) {
+        test(super::RamFinanceManager::default()).await
+    }
+
+    crate::finance_manager_test::unit_tests!(test_runner);
+}

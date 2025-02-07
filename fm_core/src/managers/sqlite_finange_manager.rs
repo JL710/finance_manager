@@ -1294,6 +1294,13 @@ fn get_transactions_of_bill(
     Ok(transactions)
 }
 
-crate::finance_manager_test::unit_tests!(|| async {
-    super::SqliteFinanceManager::new_in_memory().unwrap()
-});
+#[cfg(test)]
+mod test {
+    async fn test_runner<FT: std::future::Future<Output = ()>>(
+        test: impl Fn(super::SqliteFinanceManager) -> FT,
+    ) {
+        test(super::SqliteFinanceManager::new_in_memory().unwrap()).await
+    }
+
+    crate::finance_manager_test::unit_tests!(test_runner);
+}
