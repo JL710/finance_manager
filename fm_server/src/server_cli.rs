@@ -13,7 +13,13 @@ struct Args {
     url: String,
 }
 
+#[tokio::main]
+async fn tokio_run(url: String, db: Option<String>, token: String) {
+    super::server::init_subscriber();
+    super::server::run(url, db, token).await;
+}
+
 pub fn run() {
     let args = Args::parse();
-    super::server::run(args.url, args.db, args.token);
+    tokio_run(args.url, Some(args.db), args.token);
 }

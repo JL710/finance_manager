@@ -110,14 +110,7 @@ async fn auth(
     }
 }
 
-#[tokio::main]
-pub async fn run(url: String, db: String, token: String) {
-    let state = State {
-        finance_manager: Arc::new(Mutex::new(fm_core::FMController::new(db).unwrap())),
-        token,
-        timeout: Arc::new(Mutex::new(HashMap::new())),
-    };
-
+pub fn init_subscriber() {
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .with(
@@ -126,6 +119,20 @@ pub async fn run(url: String, db: String, token: String) {
                 .unwrap(),
         )
         .init();
+}
+
+pub async fn run(url: String, db: Option<String>, token: String) {
+    let state = State {
+        finance_manager: Arc::new(Mutex::new(if let Some(db_path) = db {
+            fm_core::FMController::new(db_path).unwrap()
+        } else {
+            fm_core::FMController::with_finance_manager(
+                fm_core::managers::SqliteFinanceManager::new_in_memory().unwrap(),
+            )
+        })),
+        token,
+        timeout: Arc::new(Mutex::new(HashMap::new())),
+    };
 
     // build our application with a single route
     let app = Router::new()
