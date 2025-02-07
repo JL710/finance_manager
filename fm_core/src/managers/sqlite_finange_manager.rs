@@ -82,16 +82,16 @@ impl TryFrom<RecurringSignature> for Recurring {
 
 type BudgetSignature = (Id, String, Option<String>, f64, i32, i32, i64, Option<i64>);
 
-impl TryInto<Budget> for BudgetSignature {
+impl TryFrom<BudgetSignature> for Budget {
     type Error = anyhow::Error;
 
-    fn try_into(self) -> Result<Budget> {
+    fn try_from(value: BudgetSignature) -> std::result::Result<Self, Self::Error> {
         Ok(Budget::new(
-            self.0,
-            self.1,
-            self.2,
-            Currency::from_currency_id(self.4, BigDecimal::from_f64(self.3).unwrap())?,
-            Recurring::try_from((self.5, self.6, self.7))?,
+            value.0,
+            value.1,
+            value.2,
+            Currency::from_currency_id(value.4, BigDecimal::from_f64(value.3).unwrap())?,
+            Recurring::try_from((value.5, value.6, value.7))?,
         ))
     }
 }
@@ -696,6 +696,18 @@ impl FinanceManager for SqliteFinanceManager {
         ))
     }
 
+    async fn delete_budget(&mut self, id: Id) -> Result<()> {
+        let connection = self.connect().await;
+
+        connection.execute(
+            "UPDATE transactions SET budget=null, budget_sign=null WHERE id=?1",
+            (id,),
+        )?;
+        connection.execute("DELETE FROM budget WHERE id = ?1", (id,))?;
+
+        Ok(())
+    }
+
     async fn get_budgets(&self) -> Result<Vec<Budget>> {
         let connection = self.connect().await;
 
@@ -717,13 +729,17 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_budget(&self, id: Id) -> Result<Option<Budget>> {
         let connection = self.connect().await;
 
-        let result: BudgetSignature = connection.query_row(
+        let result: Option<BudgetSignature> = connection.query_row(
             "SELECT id, name, description, value, currency, timespan_type, timespan_field1, timespan_field2 FROM budget WHERE id=?1", 
             (&id,),
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?))
-        )?;
+        ).optional()?;
 
-        Ok(Some(result.try_into()?))
+        if let Some(x) = result {
+            Ok(Some(x.try_into()?))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn update_transaction(
@@ -1278,4 +1294,6 @@ fn get_transactions_of_bill(
     Ok(transactions)
 }
 
-crate::finance_manager::unit_tests!(|| { super::SqliteFinanceManager::new_in_memory().unwrap() });
+crate::finance_manager_test::unit_tests!(|| async {
+    super::SqliteFinanceManager::new_in_memory().unwrap()
+});

@@ -311,6 +311,15 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
+    async fn delete_budget(&mut self, id: fm_core::Id) -> Result<()> {
+        match self {
+            FinanceManagers::Server(client) => client.delete_budget(id).await,
+            #[cfg(feature = "native")]
+            FinanceManagers::Sqlite(sqlite) => sqlite.delete_budget(id).await,
+            FinanceManagers::Ram(ram) => ram.delete_budget(id).await,
+        }
+    }
+
     async fn create_category(&mut self, name: String) -> Result<fm_core::Category> {
         match self {
             FinanceManagers::Server(client) => client.create_category(name).await,

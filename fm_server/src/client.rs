@@ -253,6 +253,10 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
+    async fn delete_budget(&mut self, id: fm_core::Id) -> Result<()> {
+        todo!()
+    }
+
     async fn get_budgets(&self) -> Result<Vec<fm_core::Budget>> {
         client_post_macro!(self.url, self.token.clone(), "get_budgets", ())
     }

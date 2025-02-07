@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 mod finance_manager;
 pub use finance_manager::FinanceManager;
+pub mod finance_manager_test;
 
 mod fm_controller;
 pub use fm_controller::DeleteAccountError;

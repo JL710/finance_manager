@@ -230,6 +230,25 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_budget)
     }
 
+    async fn delete_budget(&mut self, id: Id) -> Result<()> {
+        for transaction in &mut self.transactions {
+            *transaction = Transaction::new(
+                *transaction.id(),
+                transaction.amount(),
+                transaction.title().to_owned(),
+                transaction.description().map(|x| x.to_owned()),
+                *transaction.source(),
+                *transaction.destination(),
+                None,
+                *transaction.date(),
+                transaction.metadata().clone(),
+                transaction.categories().clone(),
+            )
+        }
+        self.budgets.remove(&id);
+        Ok(())
+    }
+
     async fn get_budgets(&self) -> Result<Vec<Budget>> {
         Ok(self
             .budgets
@@ -488,4 +507,4 @@ impl FinanceManager for RamFinanceManager {
     }
 }
 
-crate::finance_manager::unit_tests!(|| { super::RamFinanceManager::default() });
+crate::finance_manager_test::unit_tests!(|| async { super::RamFinanceManager::default() });
