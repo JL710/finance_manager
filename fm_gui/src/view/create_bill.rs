@@ -210,11 +210,12 @@ impl CreateBillView {
                 return Action::Task(task.map(Message::AddTransaction));
             }
             Message::ChangeTransactionSign(transaction_id, sign) => {
-                self.transactions
+                self.transactions // FIXME: should the transactions only be stored in the transaction table state?
                     .iter_mut()
                     .find(|(x, _)| x.id() == &transaction_id)
                     .unwrap()
                     .1 = sign;
+                self.transaction_table.set_items(self.transactions.clone());
             }
             Message::RemoveTransaction(transaction_id) => {
                 self.transactions.retain(|x| *x.0.id() != transaction_id);
