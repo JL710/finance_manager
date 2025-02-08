@@ -409,8 +409,13 @@ where
         &'a self,
         budget: &'a Budget,
         offset: i32,
+        timezone: time::UtcOffset,
     ) -> Result<impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + 'a> {
-        let timespan = calculate_budget_timespan(budget, offset, time::OffsetDateTime::now_utc())?;
+        let timespan = calculate_budget_timespan(
+            budget,
+            offset,
+            time::OffsetDateTime::now_utc().to_offset(timezone),
+        )?;
         Ok(self.get_transactions_of_budget(*budget.id(), timespan))
     }
 
@@ -421,8 +426,9 @@ where
         &'a self,
         budget: &'a Budget,
         offset: i32,
+        timezone: time::UtcOffset,
     ) -> Result<impl Future<Output = Result<Currency>> + MaybeSend + 'a> {
-        let transactions_future = self.get_budget_transactions(budget, offset)?;
+        let transactions_future = self.get_budget_transactions(budget, offset, timezone)?;
         Ok(async {
             let transactions = transactions_future.await?;
             let mut sum = Currency::default();

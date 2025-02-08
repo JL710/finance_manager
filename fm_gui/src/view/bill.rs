@@ -187,13 +187,8 @@ impl Bill {
                             widget::text!("Amount: {}€", bill.value().to_num_string()),
                             widget::text!(
                                 "Due Date: {}",
-                                bill.due_date().map_or(String::new(), |d| d
-                                    .to_offset(fm_core::get_local_timezone().unwrap())
-                                    .format(
-                                        &time::format_description::parse("[day].[month].[year]")
-                                            .unwrap()
-                                    )
-                                    .unwrap())
+                                bill.due_date()
+                                    .map_or(String::new(), utils::convert_date_time_to_date_string)
                             ),
                             utils::spal_row!["Sum: ", utils::colored_currency_display(bill_sum),]
                         ],

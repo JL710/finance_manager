@@ -64,8 +64,11 @@ impl Budget {
         categories: Vec<fm_core::Category>,
         offset: i32,
     ) -> Result<Self> {
-        let timespan =
-            fm_core::calculate_budget_timespan(&budget, offset, time::OffsetDateTime::now_utc())?;
+        let timespan = fm_core::calculate_budget_timespan(
+            &budget,
+            offset,
+            fm_core::DateTime::now_utc().to_offset(fm_core::get_local_timezone().unwrap()),
+        )?;
         Ok(Self::Loaded {
             budget,
             current_value,
@@ -208,22 +211,8 @@ impl Budget {
                     widget::text!("Offset: {}", offset),
                     widget::text!(
                         "Time Span: {} - {}",
-                        time_span
-                            .0
-                            .unwrap()
-                            .to_offset(fm_core::get_local_timezone().unwrap())
-                            .format(
-                                &time::format_description::parse("[day].[month].[year]").unwrap()
-                            )
-                            .unwrap(),
-                        time_span
-                            .1
-                            .unwrap()
-                            .to_offset(fm_core::get_local_timezone().unwrap())
-                            .format(
-                                &time::format_description::parse("[day].[month].[year]").unwrap()
-                            )
-                            .unwrap()
+                        utils::convert_date_time_to_date_string(time_span.0.unwrap()),
+                        utils::convert_date_time_to_date_string(time_span.1.unwrap())
                     ),
                     widget::button(">").on_press(Message::IncreaseOffset),
                 ]
@@ -271,10 +260,12 @@ impl Budget {
         let locked_manager = finance_manager.lock().await;
         let budget = locked_manager.get_budget(id).await?.unwrap();
         let transactions = locked_manager
-            .get_budget_transactions(&budget, offset)?
+            .get_budget_transactions(&budget, offset, fm_core::get_local_timezone().unwrap())?
             .await
             .unwrap();
-        let current_value = locked_manager.get_budget_value(&budget, offset)?.await?;
+        let current_value = locked_manager
+            .get_budget_value(&budget, offset, fm_core::get_local_timezone().unwrap())?
+            .await?;
 
         let mut transaction_tuples = Vec::new();
         for transaction in transactions {

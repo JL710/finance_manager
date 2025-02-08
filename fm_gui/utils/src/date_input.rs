@@ -8,8 +8,7 @@ impl State {
     pub fn new(value: Option<fm_core::DateTime>) -> Self {
         Self {
             value: if let Some(date) = value {
-                date.format(&time::format_description::parse("[day].[month].[year]").unwrap())
-                    .unwrap()
+                super::convert_date_time_to_date_string(date)
             } else {
                 String::new()
             },

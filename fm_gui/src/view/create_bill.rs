@@ -314,18 +314,9 @@ impl CreateBillView {
                                         transaction.amount()
                                     }),
                                 ),
-                                widget::text(
-                                    transaction
-                                        .date()
-                                        .to_offset(fm_core::get_local_timezone().unwrap())
-                                        .format(
-                                            &time::format_description::parse(
-                                                "[day].[month].[year]",
-                                            )
-                                            .unwrap(),
-                                        )
-                                        .unwrap(),
-                                )
+                                widget::text(utils::convert_date_time_to_date_string(
+                                    *transaction.date(),
+                                ))
                                 .into(),
                             ]
                         })
@@ -520,18 +511,8 @@ mod add_transaction {
                                 utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
                                 widget::text(x.title().clone()).into(),
                                 widget::text(x.amount().to_num_string()).into(),
-                                widget::text(
-                                    x.date()
-                                        .to_offset(fm_core::get_local_timezone().unwrap())
-                                        .format(
-                                            &time::format_description::parse(
-                                                "[day].[month].[year]",
-                                            )
-                                            .unwrap(),
-                                        )
-                                        .unwrap(),
-                                )
-                                .into(),
+                                widget::text(utils::convert_date_time_to_date_string(*x.date()))
+                                    .into(),
                             ]
                         })
                         .map(Message::Table)

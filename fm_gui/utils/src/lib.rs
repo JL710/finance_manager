@@ -50,9 +50,16 @@ pub fn parse_to_datetime(date: &str) -> anyhow::Result<time::OffsetDateTime> {
             format!("{}.{}.{}", splits[0], splits[1], splits[2]).as_str(),
             &time::format_description::parse("[day].[month].[year]")?,
         )?,
-        time::Time::MIDNIGHT,
+        time::Time::from_hms(12, 0, 0).unwrap(),
         fm_core::get_local_timezone()?,
     ))
+}
+
+pub fn convert_date_time_to_date_string(date_time: fm_core::DateTime) -> String {
+    date_time
+        .to_offset(fm_core::get_local_timezone().unwrap())
+        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
+        .unwrap()
 }
 
 pub fn colored_currency_display<Message>(

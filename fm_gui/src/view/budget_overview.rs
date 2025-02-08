@@ -51,7 +51,7 @@ impl BudgetOverview {
                     let current_value = finance_manager
                         .lock()
                         .await
-                        .get_budget_value(&budget, 0)
+                        .get_budget_value(&budget, 0, fm_core::get_local_timezone().unwrap())
                         .unwrap()
                         .await
                         .unwrap();

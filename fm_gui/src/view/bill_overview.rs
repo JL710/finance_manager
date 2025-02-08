@@ -93,14 +93,11 @@ impl BillOverview {
                             .into(),
                         widget::text!("{}€", bill.0.value().to_num_string()).into(),
                         utils::colored_currency_display(&bill.1),
-                        widget::text(bill.0.due_date().map_or(String::new(), |x| {
-                            x.to_offset(fm_core::get_local_timezone().unwrap())
-                                .format(
-                                    &time::format_description::parse("[day].[month].[year]")
-                                        .unwrap(),
-                                )
-                                .unwrap()
-                        }))
+                        widget::text(
+                            bill.0
+                                .due_date()
+                                .map_or(String::new(), utils::convert_date_time_to_date_string)
+                        )
                         .into(),
                         widget::text(bill.0.transactions().len()).into()
                     ])

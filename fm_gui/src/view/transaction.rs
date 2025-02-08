@@ -161,11 +161,7 @@ impl Transaction {
                     .on_press(Message::ViewAccount(*destination.id())),
                 widget::text!(
                     "Date: {}",
-                    transaction
-                        .date()
-                        .to_offset(fm_core::get_local_timezone().unwrap())
-                        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
-                        .unwrap()
+                    utils::convert_date_time_to_date_string(*transaction.date())
                 ),
             ];
 
