@@ -22,7 +22,11 @@ pub enum Message {
     RemoveTransaction(fm_core::Id),
     AddTransaction(add_transaction::Message),
     Submit,
-    Initialize(fm_core::Bill, Vec<(fm_core::Transaction, fm_core::Sign)>),
+    Initialize(
+        Option<fm_core::Bill>,
+        Vec<(fm_core::Transaction, fm_core::Sign)>,
+        Vec<fm_core::account::Account>,
+    ),
     BillCreated(fm_core::Id),
     TransactionTable(utils::table_view::InnerMessage<Message>),
     Cancel,
@@ -36,7 +40,10 @@ pub struct CreateBillView {
     value: utils::currency_input::State,
     due_date_input: utils::date_input::State,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
-    transaction_table: utils::table_view::State<(fm_core::Transaction, fm_core::Sign), ()>,
+    transaction_table: utils::table_view::State<
+        (fm_core::Transaction, fm_core::Sign),
+        Vec<fm_core::account::Account>,
+    >,
     add_transaction: Option<add_transaction::AddTransaction>,
     submitted: bool,
 }
@@ -50,7 +57,7 @@ impl std::default::Default for CreateBillView {
             value: utils::currency_input::State::default(),
             due_date_input: utils::date_input::State::default(),
             transactions: Vec::new(),
-            transaction_table: utils::table_view::State::new(Vec::new(), ())
+            transaction_table: utils::table_view::State::new(Vec::new(), Vec::new())
                 .sort_by(
                     |a: &(fm_core::Transaction, fm_core::Sign),
                      b: &(fm_core::Transaction, fm_core::Sign),
@@ -78,13 +85,20 @@ impl std::default::Default for CreateBillView {
 }
 
 impl CreateBillView {
-    pub fn new_with_transaction(transaction: fm_core::Transaction) -> Self {
-        let mut new = Self::default();
-        new.transactions
-            .push((transaction.clone(), fm_core::Sign::Negative));
-        new.transaction_table
-            .set_items(vec![(transaction, fm_core::Sign::Negative)]);
-        new
+    pub fn new_with_transaction(
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        transaction: fm_core::Transaction,
+    ) -> (Self, iced::Task<Message>) {
+        (
+            Self::default(),
+            iced::Task::future(async move {
+                let locked_manager = finance_manager.lock().await;
+
+                let accounts = locked_manager.get_accounts().await.unwrap();
+
+                Message::Initialize(None, vec![(transaction, fm_core::Sign::Negative)], accounts)
+            }),
+        )
     }
 
     pub fn fetch(
@@ -110,7 +124,10 @@ impl CreateBillView {
                         *sign,
                     ));
                 }
-                Message::Initialize(bill, transactions)
+
+                let accounts = locked_manager.get_accounts().await.unwrap();
+
+                Message::Initialize(Some(bill), transactions, accounts)
             }),
         )
     }
@@ -131,16 +148,19 @@ impl CreateBillView {
             Message::BillCreated(id) => {
                 return Action::BillCreated(id);
             }
-            Message::Initialize(bill, transactions) => {
-                self.id = Some(*bill.id());
-                bill.name().clone_into(&mut self.name_input);
-                self.description_input = widget::text_editor::Content::with_text(
-                    &bill.description().clone().unwrap_or_default(),
-                );
-                self.value = utils::currency_input::State::new(bill.value().clone());
-                self.due_date_input = utils::date_input::State::new(*bill.due_date());
+            Message::Initialize(bill, transactions, accounts) => {
+                if let Some(bill) = bill {
+                    self.id = Some(*bill.id());
+                    bill.name().clone_into(&mut self.name_input);
+                    self.description_input = widget::text_editor::Content::with_text(
+                        &bill.description().clone().unwrap_or_default(),
+                    );
+                    self.value = utils::currency_input::State::new(bill.value().clone());
+                    self.due_date_input = utils::date_input::State::new(*bill.due_date());
+                }
                 self.transactions = transactions.clone();
                 self.transaction_table.set_items(transactions);
+                self.transaction_table.set_context(accounts);
                 self.add_transaction = None;
             }
             Message::DueDateChanged(action) => {
@@ -284,12 +304,12 @@ impl CreateBillView {
                 "Transactions:",
                 widget::container(
                     utils::table_view::table_view(&self.transaction_table)
-                        .headers(["", "", "Title", "Amount", "Date",])
+                        .headers(["", "", "Title", "Amount", "Date", "Source", "Destination"])
                         .alignment(|_, _, _| (
                             iced::alignment::Horizontal::Left,
                             iced::alignment::Vertical::Center
                         ))
-                        .view(|(transaction, sign), _| {
+                        .view(|(transaction, sign), accounts| {
                             let transaction_id = *transaction.id();
                             [
                                 widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
@@ -319,6 +339,22 @@ impl CreateBillView {
                                     *transaction.date(),
                                 ))
                                 .into(),
+                                widget::text(
+                                    accounts
+                                        .iter()
+                                        .find(|acc| acc.id() == transaction.source())
+                                        .unwrap()
+                                        .name(),
+                                )
+                                .into(),
+                                widget::text(
+                                    accounts
+                                        .iter()
+                                        .find(|acc| acc.id() == transaction.destination())
+                                        .unwrap()
+                                        .name(),
+                                )
+                                .into(),
                             ]
                         })
                         .map(Message::TransactionTable)
@@ -347,7 +383,7 @@ mod add_transaction {
     use async_std::sync::Mutex;
     use std::sync::Arc;
 
-    use iced::widget;
+    use iced::{futures::lock, widget};
 
     pub enum Action {
         Escape,
@@ -367,6 +403,7 @@ mod add_transaction {
             Option<utils::filter_component::FilterComponent>,
             Vec<fm_core::Transaction>,
             Vec<fm_core::Id>,
+            Vec<fm_core::account::Account>,
         ),
     }
 
@@ -375,20 +412,21 @@ mod add_transaction {
         filter: Option<utils::filter_component::FilterComponent>,
         transactions: Vec<fm_core::Transaction>,
         ignored_transactions: Vec<fm_core::Id>,
-        table: utils::table_view::State<fm_core::Transaction, ()>,
+        table: utils::table_view::State<fm_core::Transaction, Vec<fm_core::account::Account>>,
     }
 
     impl AddTransaction {
         pub fn new(
             filter: Option<utils::filter_component::FilterComponent>,
             transactions: Vec<fm_core::Transaction>,
+            accounts: Vec<fm_core::account::Account>,
             ignored_transactions: Vec<fm_core::Id>,
         ) -> Self {
             Self {
                 filter,
                 transactions: transactions.clone(),
                 ignored_transactions,
-                table: utils::table_view::State::new(transactions, ())
+                table: utils::table_view::State::new(transactions, accounts)
                     .sort_by(|a, b, column| match column {
                         1 => a.title().cmp(b.title()),
                         2 => a.amount().cmp(&b.amount()),
@@ -404,7 +442,7 @@ mod add_transaction {
             ignored_transactions: Vec<fm_core::Id>,
         ) -> (Self, iced::Task<Message>) {
             (
-                Self::new(None, Vec::new(), Vec::new()),
+                Self::new(None, Vec::new(), Vec::new(), Vec::new()),
                 iced::Task::future(async move {
                     let locked_manager = finance_manager.lock().await;
                     let accounts = locked_manager.get_accounts().await.unwrap();
@@ -414,12 +452,13 @@ mod add_transaction {
                     Message::Init(
                         Some(utils::filter_component::FilterComponent::new(
                             accounts.clone(),
-                            categories.clone(),
-                            bills.clone(),
-                            budgets.clone(),
+                            categories,
+                            bills,
+                            budgets,
                         )),
                         Vec::new(),
                         ignored_transactions,
+                        accounts,
                     )
                 }),
             )
@@ -477,10 +516,11 @@ mod add_transaction {
                     }
                     Action::None
                 }
-                Message::Init(filter, transactions, ignored_transactions) => {
+                Message::Init(filter, transactions, ignored_transactions, accounts) => {
                     self.filter = filter;
                     self.transactions = transactions.clone();
                     self.table.set_items(transactions);
+                    self.table.set_context(accounts);
                     self.ignored_transactions = ignored_transactions;
                     Action::None
                 }
@@ -501,19 +541,30 @@ mod add_transaction {
                     )
                 } else {
                     utils::table_view::table_view(&self.table)
-                        .headers([
-                            "".to_string(),
-                            "Title".to_string(),
-                            "Amount".to_string(),
-                            "Date".to_string(),
-                        ])
-                        .view(|x, _| {
+                        .headers(["", "Title", "Amount", "Date", "Source", "Destination"])
+                        .view(|x, accounts| {
                             [
                                 utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
                                 widget::text(x.title().clone()).into(),
                                 widget::text(x.amount().to_num_string()).into(),
                                 widget::text(utils::convert_date_time_to_date_string(*x.date()))
                                     .into(),
+                                widget::text(
+                                    accounts
+                                        .iter()
+                                        .find(|acc| acc.id() == x.source())
+                                        .unwrap()
+                                        .name(),
+                                )
+                                .into(),
+                                widget::text(
+                                    accounts
+                                        .iter()
+                                        .find(|acc| acc.id() == x.destination())
+                                        .unwrap()
+                                        .name(),
+                                )
+                                .into(),
                             ]
                         })
                         .map(Message::Table)

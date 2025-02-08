@@ -147,6 +147,10 @@ impl<T, C> State<T, C> {
             self.page = self.max_page();
         }
     }
+
+    pub fn set_context(&mut self, context: C) {
+        self.context = context;
+    }
 }
 
 pub type AlignmentFunction<'a, T> =
@@ -214,7 +218,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
 
     pub fn view<Message: Clone + 'a>(
         self,
-        to_row: impl Fn(&T, &C) -> [iced::Element<'a, Message>; COLUMNS],
+        to_row: impl Fn(&'a T, &'a C) -> [iced::Element<'a, Message>; COLUMNS],
     ) -> iced::Element<'a, InnerMessage<Message>> {
         let mut data_column = widget::column![].spacing(self.spacing);
         for (row_index, item) in self
