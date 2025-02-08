@@ -160,8 +160,7 @@ impl<T, C> State<T, C> {
     }
 }
 
-pub type AlignmentFunction<'a, T> =
-    dyn Fn(&T, usize, usize) -> (iced::alignment::Horizontal, iced::alignment::Vertical) + 'a;
+pub type AlignmentFunction<'a, T> = dyn Fn(&T, usize, usize) -> iced::alignment::Horizontal + 'a;
 
 pub struct TableView<'a, T, C, const COLUMNS: usize> {
     state: &'a State<T, C>,
@@ -224,8 +223,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
     ///     vertical and horizontal alignment
     pub fn alignment(
         mut self,
-        callback: impl Fn(&T, usize, usize) -> (iced::alignment::Horizontal, iced::alignment::Vertical)
-            + 'a,
+        callback: impl Fn(&T, usize, usize) -> iced::alignment::Horizontal + 'a,
     ) -> Self {
         self.alignment = Some(Box::new(callback));
         self
@@ -253,9 +251,8 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                 let mut cell = widget::container(element)
                     .width(iced::Length::FillPortion(self.cell_portions[column_index]));
                 if let Some(alignment) = &self.alignment {
-                    let (x_alignment, y_alignment) = (alignment)(item, column_index, row_index);
-                    cell = cell.align_x(x_alignment);
-                    cell = cell.align_y(y_alignment);
+                    let alignment = (alignment)(item, column_index, row_index);
+                    cell = cell.align_x(alignment);
                 }
                 row = row.push(cell);
             }
