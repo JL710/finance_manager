@@ -213,16 +213,9 @@ impl Bill {
                             )
                             .into(),
                             widget::text!("{}€", transaction.amount().to_num_string()).into(),
-                            widget::text(
-                                transaction
-                                    .date()
-                                    .to_offset(fm_core::get_local_timezone().unwrap())
-                                    .format(
-                                        &time::format_description::parse("[day].[month].[year]")
-                                            .unwrap()
-                                    )
-                                    .unwrap()
-                            )
+                            widget::text(utils::convert_date_time_to_date_string(
+                                *transaction.date()
+                            ))
                             .into(),
                         ])
                         .map(Message::TransactionTable),
