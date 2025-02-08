@@ -309,10 +309,6 @@ impl CreateBillView {
                 widget::container(
                     utils::table_view::table_view(&self.transaction_table)
                         .headers(["", "", "Title", "Amount", "Date", "Source", "Destination"])
-                        .alignment(|_, _, _| (
-                            iced::alignment::Horizontal::Left,
-                            iced::alignment::Vertical::Center
-                        ))
                         .view(|(transaction, sign), accounts| {
                             let transaction_id = *transaction.id();
                             [

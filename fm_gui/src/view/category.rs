@@ -25,6 +25,7 @@ pub enum Message {
             fm_core::account::Account,
         )>,
         Vec<fm_core::Category>,
+        Vec<fm_core::Budget>,
     ),
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
@@ -73,8 +74,8 @@ impl Category {
                     .unwrap();
 
                 let categories = locked_manager.get_categories().await.unwrap();
-
-                Message::Set(category, values, transaction_tuples, categories)
+                let budgets = locked_manager.get_budgets().await.unwrap();
+                Message::Set(category, values, transaction_tuples, categories, budgets)
             }),
         )
     }
@@ -133,18 +134,12 @@ impl Category {
                     let timespan = timespan_input.timespan();
 
                     Action::Task(iced::Task::future(async move {
-                        let transactions = finance_manager
-                            .lock()
-                            .await
+                        let locked_manager = finance_manager.lock().await;
+                        let transactions = locked_manager
                             .get_transactions_of_category(id, timespan)
                             .await
                             .unwrap();
-                        let accounts = finance_manager
-                            .lock()
-                            .await
-                            .get_accounts_hash_map()
-                            .await
-                            .unwrap();
+                        let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
                         let mut transaction_tuples = Vec::new();
                         for transaction in transactions {
                             let from_account = accounts.get(transaction.source()).unwrap().clone();
@@ -152,27 +147,32 @@ impl Category {
                                 accounts.get(transaction.destination()).unwrap().clone();
                             transaction_tuples.push((transaction, from_account, to_account));
                         }
-                        let values = finance_manager
-                            .lock()
-                            .await
+                        let values = locked_manager
                             .get_relative_category_values(id, timespan)
                             .await
                             .unwrap();
-                        let categories =
-                            finance_manager.lock().await.get_categories().await.unwrap();
-                        Message::Set(cloned_category, values, transaction_tuples, categories)
+                        let categories = locked_manager.get_categories().await.unwrap();
+                        let budgets = locked_manager.get_budgets().await.unwrap();
+                        Message::Set(
+                            cloned_category,
+                            values,
+                            transaction_tuples,
+                            categories,
+                            budgets,
+                        )
                     }))
                 } else {
                     Action::None
                 }
             }
-            Message::Set(category, values, transactions, categories) => {
+            Message::Set(category, values, transactions, categories, budgets) => {
                 let category_id = *category.id();
                 *self = Self::Loaded {
                     category,
                     transaction_table: Box::new(utils::TransactionTable::new(
                         transactions,
                         categories,
+                        budgets,
                         move |transaction| {
                             transaction
                                 .categories()

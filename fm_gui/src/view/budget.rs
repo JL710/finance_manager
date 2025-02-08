@@ -70,11 +70,12 @@ impl Budget {
             fm_core::DateTime::now_utc().to_offset(fm_core::get_local_timezone().unwrap()),
         )?;
         Ok(Self::Loaded {
-            budget,
+            budget: budget.clone(),
             current_value,
             transaction_table: utils::TransactionTable::new(
                 transactions,
                 categories,
+                vec![budget],
                 |transaction| Some(transaction.budget().unwrap().1 == fm_core::Sign::Positive),
             ),
             offset,

@@ -27,6 +27,7 @@ struct Init {
         fm_core::account::Account,
     )>,
     categories: Vec<fm_core::Category>,
+    budgets: Vec<fm_core::Budget>,
 }
 
 #[derive(Debug, Clone)]
@@ -91,11 +92,13 @@ impl Account {
                     transaction_tuples.push((transaction, source, destination));
                 }
                 let categories = locked_manager.get_categories().await.unwrap();
+                let budgets = locked_manager.get_budgets().await.unwrap();
                 Message::Initialize(Box::new(Init {
                     account,
                     value: account_sum,
                     transactions: transaction_tuples,
                     categories,
+                    budgets,
                 }))
             })
             .map(MessageContainer),
@@ -116,6 +119,7 @@ impl Account {
                     transaction_table: utils::TransactionTable::new(
                         init.transactions,
                         init.categories,
+                        init.budgets,
                         move |transaction| Some(*transaction.destination() == account_id),
                     ),
                     timespan_input: utils::timespan_input::State::default(),

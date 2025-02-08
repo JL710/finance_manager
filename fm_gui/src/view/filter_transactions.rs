@@ -54,7 +54,12 @@ impl FilterTransactionView {
                 bills: Vec::new(),
                 budgets: Vec::new(),
                 change_filter: None,
-                transaction_table: utils::TransactionTable::new(Vec::new(), Vec::new(), |_| None),
+                transaction_table: utils::TransactionTable::new(
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    |_| None,
+                ),
                 sums: Vec::new(),
                 filter: TransactionFilter::default(),
             },
@@ -89,9 +94,13 @@ impl FilterTransactionView {
                 self.accounts = accounts;
                 self.categories = categories;
                 self.bills = bills;
-                self.budgets = budgets;
-                self.transaction_table =
-                    utils::TransactionTable::new(Vec::new(), self.categories.clone(), |_| None);
+                self.budgets = budgets.clone();
+                self.transaction_table = utils::TransactionTable::new(
+                    Vec::new(),
+                    self.categories.clone(),
+                    budgets,
+                    |_| None,
+                );
             }
             Message::ToggleEditFilter => {
                 self.change_filter = if self.change_filter.is_some() {

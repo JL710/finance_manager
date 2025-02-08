@@ -37,7 +37,7 @@ pub struct TransactionTable {
             fm_core::account::Account,
             fm_core::account::Account,
         ),
-        Vec<fm_core::Category>,
+        (Vec<fm_core::Category>, Vec<fm_core::Budget>),
     >,
     amount_positive: Box<dyn Fn(fm_core::Transaction) -> Option<bool>>,
     categories: Vec<fm_core::Category>,
@@ -72,37 +72,39 @@ impl TransactionTable {
             fm_core::account::Account,
         )>,
         categories: Vec<fm_core::Category>,
+        budgets: Vec<fm_core::Budget>,
         amount_positive: impl Fn(fm_core::Transaction) -> Option<bool> + Copy + 'static,
     ) -> Self {
         let mut categories = categories;
         categories.sort();
-        let mut transaction_table = crate::table_view::State::new(transactions, categories.clone())
-            .sortable_columns([0, 1, 2, 3, 4, 5])
-            .sort_by(move |a, b, column_index| match column_index {
-                0 => a.0.title().cmp(b.0.title()),
-                1 => a.0.date().cmp(b.0.date()),
-                2 => {
-                    let a = (amount_positive)(a.0.clone()).map_or(a.0.amount(), |positive| {
-                        if positive {
-                            a.0.amount()
-                        } else {
-                            a.0.amount().negative()
-                        }
-                    });
-                    let b = (amount_positive)(b.0.clone()).map_or(b.0.amount(), |positive| {
-                        if positive {
-                            b.0.amount()
-                        } else {
-                            b.0.amount().negative()
-                        }
-                    });
-                    a.cmp(&b)
-                }
-                3 => a.1.name().cmp(b.1.name()),
-                4 => a.2.name().cmp(b.2.name()),
-                5 => a.0.categories().len().cmp(&b.0.categories().len()),
-                _ => std::cmp::Ordering::Equal,
-            });
+        let mut transaction_table =
+            crate::table_view::State::new(transactions, (categories.clone(), budgets))
+                .sortable_columns([0, 1, 2, 3, 4, 5])
+                .sort_by(move |a, b, column_index| match column_index {
+                    0 => a.0.title().cmp(b.0.title()),
+                    1 => a.0.date().cmp(b.0.date()),
+                    2 => {
+                        let a = (amount_positive)(a.0.clone()).map_or(a.0.amount(), |positive| {
+                            if positive {
+                                a.0.amount()
+                            } else {
+                                a.0.amount().negative()
+                            }
+                        });
+                        let b = (amount_positive)(b.0.clone()).map_or(b.0.amount(), |positive| {
+                            if positive {
+                                b.0.amount()
+                            } else {
+                                b.0.amount().negative()
+                            }
+                        });
+                        a.cmp(&b)
+                    }
+                    3 => a.1.name().cmp(b.1.name()),
+                    4 => a.2.name().cmp(b.2.name()),
+                    5 => a.0.categories().len().cmp(&b.0.categories().len()),
+                    _ => std::cmp::Ordering::Equal,
+                });
         transaction_table.sort(1, true);
         Self {
             categories,
@@ -232,21 +234,22 @@ impl TransactionTable {
     pub fn view(&self) -> iced::Element<Message> {
         let table = crate::table_view::table_view(&self.transaction_table)
             .headers([
-                "Title".to_owned(),
-                "Date".to_owned(),
-                "Amount".to_owned(),
-                "Source".to_owned(),
-                "Destination".to_owned(),
-                "Categories".to_owned(),
+                "Title",
+                "Date",
+                "Amount",
+                "Source",
+                "Destination",
+                "Categories",
+                "Budget",
             ])
-            .cell_portions([3, 1, 1, 3, 3, 3])
+            .cell_portions([3, 1, 1, 3, 3, 3, 2])
             .view(
                 move |(transaction, source, destination): &(
                     fm_core::Transaction,
                     fm_core::account::Account,
                     fm_core::account::Account,
                 ),
-                      categories| {
+                      context| {
                     [
                         link(widget::text(transaction.title().clone()))
                             .on_press(Message::ViewTransaction(*transaction.id()))
@@ -272,9 +275,22 @@ impl TransactionTable {
                             )
                             .on_press(Message::OpenCategoryPopup(*transaction.id()))
                             .style(widget::button::secondary),
-                            widget::text(get_category_text(transaction, categories)),
+                            widget::text(get_category_text(transaction, &context.0)),
                         ]
                         .into(),
+                        if let Some(budget) = transaction.budget() {
+                            widget::text(
+                                context
+                                    .1
+                                    .iter()
+                                    .find(|x| *x.id() == budget.0)
+                                    .unwrap()
+                                    .name(),
+                            )
+                            .into()
+                        } else {
+                            widget::text("").into()
+                        },
                     ]
                 },
             )
