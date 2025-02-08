@@ -74,10 +74,12 @@ impl std::default::Default for CreateBillView {
                         2 => a.0.title().cmp(b.0.title()),
                         3 => a.0.amount().cmp(&b.0.amount()),
                         4 => a.0.date().cmp(b.0.date()),
+                        5 => a.0.source().cmp(b.0.source()),
+                        6 => a.0.destination().cmp(b.0.destination()),
                         _ => panic!(),
                     },
                 )
-                .sortable_columns([0, 2, 3, 4]),
+                .sortable_columns([0, 2, 3, 4, 5, 6]),
             add_transaction: None,
             submitted: false,
         }
@@ -383,7 +385,7 @@ mod add_transaction {
     use async_std::sync::Mutex;
     use std::sync::Arc;
 
-    use iced::{futures::lock, widget};
+    use iced::widget;
 
     pub enum Action {
         Escape,
@@ -431,9 +433,11 @@ mod add_transaction {
                         1 => a.title().cmp(b.title()),
                         2 => a.amount().cmp(&b.amount()),
                         3 => a.date().cmp(b.date()),
+                        4 => a.source().cmp(b.source()),
+                        5 => a.destination().cmp(b.destination()),
                         _ => panic!(),
                     })
-                    .sortable_columns([1, 2, 3]),
+                    .sortable_columns([1, 2, 3, 4, 5]),
             }
         }
 
