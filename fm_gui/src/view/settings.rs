@@ -18,6 +18,8 @@ pub enum Message {
     ChangeSqlitePath(String),
     #[cfg(feature = "native")]
     StartSQLiteFileSelector,
+    #[cfg(feature = "native")]
+    StartSQLiteNewFileSelector,
     FmChoice(crate::settings::SelectedFinanceManager),
     Save,
 }
@@ -67,6 +69,17 @@ impl SettingsView {
                 if let Some(filepath) = rfd::FileDialog::new()
                     .set_title("Select SQLite 3 Database")
                     .pick_file()
+                {
+                    self.settings.finance_manager.sqlite_path =
+                        filepath.to_str().unwrap().to_string();
+                    self.unsaved = true;
+                }
+            }
+            #[cfg(feature = "native")]
+            Message::StartSQLiteNewFileSelector => {
+                if let Some(filepath) = rfd::FileDialog::new()
+                    .set_title("New SQLite 3 Database")
+                    .save_file()
                 {
                     self.settings.finance_manager.sqlite_path =
                         filepath.to_str().unwrap().to_string();
@@ -123,6 +136,7 @@ impl SettingsView {
                     )
                     .on_input(Message::ChangeSqlitePath),
                     widget::button("Select File").on_press(Message::StartSQLiteFileSelector),
+                    widget::button("New").on_press(Message::StartSQLiteNewFileSelector),
                 ],
             ));
         }
