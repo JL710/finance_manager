@@ -774,6 +774,7 @@ impl App {
     }
 
     fn apply_settings(&mut self, new_settings: settings::Settings) -> iced::Task<AppMessage> {
+        let mut valid_settings = true;
         match new_settings.finance_manager.selected_finance_manager {
             settings::SelectedFinanceManager::Ram => {
                 if !matches!(
@@ -794,15 +795,28 @@ impl App {
                     (*self.finance_manager).try_lock().unwrap().raw_fm(),
                     finance_managers::FinanceManagers::Server(_)
                 ) {
-                    self.finance_manager =
-                        Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
-                            finance_managers::FinanceManagers::Sqlite(
-                                fm_core::managers::SqliteFinanceManager::new(
-                                    new_settings.finance_manager.sqlite_path.clone(),
-                                )
-                                .unwrap(),
-                            ),
-                        )));
+                    let fm = match fm_core::managers::SqliteFinanceManager::new(
+                        new_settings.finance_manager.sqlite_path.clone(),
+                    ) {
+                        Ok(x) => Some(x),
+                        Err(_) => {
+                            if let View::Settings(settings_view) = &mut self.current_view {
+                                settings_view.set_unsaved();
+                            }
+                            rfd::MessageDialog::new()
+                                .set_title("Invalid SQLite Path")
+                                .set_description("The provided SQLite path is invalid.")
+                                .show();
+                            valid_settings = false;
+                            None
+                        }
+                    };
+                    if let Some(manager) = fm {
+                        self.finance_manager =
+                            Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                                finance_managers::FinanceManagers::Sqlite(manager),
+                            )));
+                    }
                 }
             }
             #[cfg(not(feature = "native"))]
@@ -825,12 +839,16 @@ impl App {
                 }
             }
         }
-        self.settings = new_settings.clone();
-        let future = settings::write_settings(new_settings);
-        iced::Task::future(async move {
-            future.await.unwrap();
-            AppMessage::Ignore
-        })
+        if valid_settings {
+            self.settings = new_settings.clone();
+            let future = settings::write_settings(new_settings);
+            iced::Task::future(async move {
+                future.await.unwrap();
+                AppMessage::Ignore
+            })
+        } else {
+            iced::Task::none()
+        }
     }
 }
 
@@ -883,10 +901,17 @@ fn main() {
                 #[cfg(feature = "native")]
                 Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
                     finance_managers::FinanceManagers::Sqlite(
-                        fm_core::managers::SqliteFinanceManager::new(
+                        if let Ok(fm) = fm_core::managers::SqliteFinanceManager::new(
                             loaded_settings.finance_manager.sqlite_path.clone(),
-                        )
-                        .unwrap(),
+                        ) {
+                            fm
+                        } else {
+                            rfd::MessageDialog::new()
+                                .set_title("Invalid SQLite Path")
+                                .set_description("The provided SQLite path is invalid.")
+                                .show();
+                            panic!("Invalid SQLite Path")
+                        },
                     ),
                 )))
             }

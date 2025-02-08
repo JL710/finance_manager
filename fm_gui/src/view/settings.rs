@@ -41,6 +41,10 @@ impl SettingsView {
         )
     }
 
+    pub fn set_unsaved(&mut self) {
+        self.unsaved = true;
+    }
+
     pub fn update(
         &mut self,
         message: Message,
@@ -189,5 +193,5 @@ fn valid_sqlite_path(path: &String) -> bool {
     if let Some(parent) = path.parent() {
         return parent.is_dir();
     }
-    return false;
+    false
 }
