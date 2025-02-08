@@ -31,11 +31,6 @@ pub enum Message {
 }
 
 pub struct TransactionTable {
-    transactions: Vec<(
-        fm_core::Transaction,
-        fm_core::account::Account,
-        fm_core::account::Account,
-    )>,
     transaction_table: crate::table_view::State<
         (
             fm_core::Transaction,
@@ -54,7 +49,6 @@ pub struct TransactionTable {
 impl std::fmt::Debug for TransactionTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TransactionTable")
-            .field("transactions", &self.transactions)
             .field("amount_positive", &"...")
             .field("categories", &self.categories)
             .field("category_popup", &self.category_popup)
@@ -81,7 +75,6 @@ impl TransactionTable {
         amount_positive: impl Fn(fm_core::Transaction) -> Option<bool> + Copy + 'static,
     ) -> Self {
         Self {
-            transactions: transactions.clone(),
             categories: categories.clone(),
             amount_positive: Box::new(amount_positive),
             transaction_table: crate::table_view::State::new(transactions, categories)
@@ -126,8 +119,7 @@ impl TransactionTable {
             fm_core::account::Account,
         )>,
     ) {
-        self.transactions = transactions;
-        self.transaction_table.set_items(self.transactions.clone());
+        self.transaction_table.set_items(transactions);
     }
 
     pub fn update(
@@ -155,7 +147,8 @@ impl TransactionTable {
                 category_id,
             } => {
                 let transaction = &self
-                    .transactions
+                    .transaction_table
+                    .items()
                     .iter()
                     .find(|x| *x.0.id() == transaction_id)
                     .unwrap()
@@ -180,7 +173,8 @@ impl TransactionTable {
                 sign,
             } => {
                 let transaction = &self
-                    .transactions
+                    .transaction_table
+                    .items()
                     .iter()
                     .find(|x| *x.0.id() == transaction_id)
                     .unwrap()
@@ -202,11 +196,14 @@ impl TransactionTable {
             Message::TransactionCategoryUpdated(transaction) => {
                 let transaction_id = *transaction.id();
                 let index = self
-                    .transactions
+                    .transaction_table
+                    .items()
                     .iter()
                     .position(|x| *x.0.id() == transaction_id)
                     .unwrap();
-                self.transactions[index].0 = transaction;
+                self.transaction_table.edit_items(move |transactions| {
+                    transactions[index].0 = transaction.clone();
+                });
                 Action::None
             }
             Message::TransactionTable(inner) => {
@@ -225,8 +222,6 @@ impl TransactionTable {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let mut transactions = self.transactions.clone();
-        transactions.sort_by(|(a, _, _), (b, _, _)| b.date().cmp(a.date()));
         let table = crate::table_view::table_view(&self.transaction_table)
             .headers([
                 "Title".to_owned(),
@@ -280,7 +275,8 @@ impl TransactionTable {
             widget::container(table),
             if let Some(id) = self.category_popup {
                 category_popup(
-                    self.transactions
+                    self.transaction_table
+                        .items()
                         .iter()
                         .find(|x| *x.0.id() == id)
                         .unwrap()

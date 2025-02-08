@@ -125,11 +125,24 @@ impl<T, C> State<T, C> {
         }
     }
 
+    pub fn items(&self) -> &Vec<T> {
+        &self.items
+    }
+
     pub fn set_items(&mut self, items: Vec<T>) {
         self.items = items;
         self.page = 0;
         self.sort_column = None;
         self.sort_reverse = false;
+    }
+
+    pub fn edit_items(&mut self, update: impl Fn(&mut Vec<T>)) {
+        (update)(&mut self.items);
+        self.sort_column = None;
+        self.sort_reverse = false;
+        if self.page > self.max_page() {
+            self.page = self.max_page();
+        }
     }
 }
 
