@@ -785,6 +785,7 @@ impl App {
                         )));
                 }
             }
+            #[cfg(feature = "native")]
             settings::SelectedFinanceManager::SQLite => {
                 if !matches!(
                     (*self.finance_manager).try_lock().unwrap().raw_fm(),
@@ -801,6 +802,8 @@ impl App {
                         )));
                 }
             }
+            #[cfg(not(feature = "native"))]
+            settings::SelectedFinanceManager::SQLite => {}
             settings::SelectedFinanceManager::Server => {
                 if !matches!(
                     (*self.finance_manager).try_lock().unwrap().raw_fm(),
