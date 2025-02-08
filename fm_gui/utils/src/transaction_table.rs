@@ -74,36 +74,40 @@ impl TransactionTable {
         categories: Vec<fm_core::Category>,
         amount_positive: impl Fn(fm_core::Transaction) -> Option<bool> + Copy + 'static,
     ) -> Self {
+        let mut categories = categories;
+        categories.sort_by(|a, b| a.name().cmp(b.name()));
+        let mut transaction_table = crate::table_view::State::new(transactions, categories.clone())
+            .sortable_columns([0, 1, 2, 3, 4, 5])
+            .sort_by(move |a, b, column_index| match column_index {
+                0 => a.0.title().cmp(b.0.title()),
+                1 => a.0.date().cmp(b.0.date()),
+                2 => {
+                    let a = (amount_positive)(a.0.clone()).map_or(a.0.amount(), |positive| {
+                        if positive {
+                            a.0.amount()
+                        } else {
+                            a.0.amount().negative()
+                        }
+                    });
+                    let b = (amount_positive)(b.0.clone()).map_or(b.0.amount(), |positive| {
+                        if positive {
+                            b.0.amount()
+                        } else {
+                            b.0.amount().negative()
+                        }
+                    });
+                    a.cmp(&b)
+                }
+                3 => a.1.name().cmp(b.1.name()),
+                4 => a.2.name().cmp(b.2.name()),
+                5 => a.0.categories().len().cmp(&b.0.categories().len()),
+                _ => std::cmp::Ordering::Equal,
+            });
+        transaction_table.sort(1, true);
         Self {
-            categories: categories.clone(),
+            categories,
             amount_positive: Box::new(amount_positive),
-            transaction_table: crate::table_view::State::new(transactions, categories)
-                .sortable_columns([0, 1, 2, 3, 4, 5])
-                .sort_by(move |a, b, column_index| match column_index {
-                    0 => a.0.title().cmp(b.0.title()),
-                    1 => a.0.date().cmp(b.0.date()),
-                    2 => {
-                        let a = (amount_positive)(a.0.clone()).map_or(a.0.amount(), |positive| {
-                            if positive {
-                                a.0.amount()
-                            } else {
-                                a.0.amount().negative()
-                            }
-                        });
-                        let b = (amount_positive)(b.0.clone()).map_or(b.0.amount(), |positive| {
-                            if positive {
-                                b.0.amount()
-                            } else {
-                                b.0.amount().negative()
-                            }
-                        });
-                        a.cmp(&b)
-                    }
-                    3 => a.1.name().cmp(b.1.name()),
-                    4 => a.2.name().cmp(b.2.name()),
-                    5 => a.0.categories().len().cmp(&b.0.categories().len()),
-                    _ => std::cmp::Ordering::Equal,
-                }),
+            transaction_table,
             category_popup: None,
             edit_svg: widget::svg::Handle::from_memory(include_bytes!(
                 "../../assets/pencil-fill.svg"
@@ -312,7 +316,7 @@ fn category_popup(
     categories: Vec<fm_core::Category>,
 ) -> iced::Element<'static, Message> {
     let transaction_id = *transaction.id();
-    let mut column = widget::column![];
+    let mut column = super::spaced_column![];
     for category in categories {
         let category_id = *category.id();
         let transaction_category = transaction.categories().get(&category_id).copied();

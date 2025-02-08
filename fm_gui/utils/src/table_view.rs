@@ -69,7 +69,7 @@ impl<T, C> State<T, C> {
         self
     }
 
-    fn sort(&mut self, column: usize, reverse: bool) {
+    pub fn sort(&mut self, column: usize, reverse: bool) {
         if let Some(sort_by_callback) = &self.sort_by_callback {
             self.items.sort_by(|a, b| {
                 let mut ordering = sort_by_callback(a, b, column);
@@ -78,6 +78,8 @@ impl<T, C> State<T, C> {
                 }
                 ordering
             });
+            self.sort_column = Some(column);
+            self.sort_reverse = reverse;
         }
     }
 
@@ -112,13 +114,14 @@ impl<T, C> State<T, C> {
             }
             InnerMessage::OuterMessage(outer) => Action::OuterMessage(*outer),
             InnerMessage::SortByColumn(column) => {
-                if self.sort_column == Some(column) {
-                    self.sort_reverse = !self.sort_reverse;
-                } else {
-                    self.sort_column = Some(column);
-                    self.sort_reverse = false;
-                }
-                self.sort(column, self.sort_reverse);
+                self.sort(
+                    column,
+                    if self.sort_column == Some(column) {
+                        !self.sort_reverse
+                    } else {
+                        false
+                    },
+                );
                 self.page = 0;
                 Action::PageChange(0)
             }
