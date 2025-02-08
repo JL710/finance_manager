@@ -440,7 +440,7 @@ impl CreateTransactionView {
                 ]
                 .align_y(iced::Center),
                 widget::horizontal_rule(10),
-                widget::text("Categories"),
+                widget::text("Categories:"),
                 categories,
                 widget::horizontal_rule(10),
                 utils::submit_cancel_row(

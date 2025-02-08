@@ -9,6 +9,7 @@ pub enum Action {
     ViewAccount(fm_core::Id),
     Edit(fm_core::Id),
     Task(iced::Task<MessageContainer>),
+    DeletedBudget,
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +35,8 @@ enum Message {
     DecreaseOffset,
     Initialize(Box<Init>),
     TransactionTable(utils::transaction_table::Message),
+    Delete,
+    Deleted,
 }
 
 #[derive(Debug)]
@@ -113,6 +116,38 @@ impl Budget {
                 } else {
                     Action::None
                 }
+            }
+            Message::Delete => {
+                if let Self::Loaded { budget, .. } = self {
+                    if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
+                        .set_title("Delete Budget")
+                        .set_description(format!("Do you really want to delete {}?", budget.name()))
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .show()
+                    {
+                        return Action::None;
+                    }
+
+                    let id = *budget.id();
+                    Action::Task(
+                        iced::Task::future(async move {
+                            finance_manager
+                                .lock()
+                                .await
+                                .delete_budget(id)
+                                .await
+                                .unwrap();
+                            Message::Deleted
+                        })
+                        .map(MessageContainer),
+                    )
+                } else {
+                    Action::None
+                }
+            }
+            Message::Deleted => {
+                *self = Self::NotLoaded;
+                Action::DeletedBudget
             }
             Message::IncreaseOffset => {
                 if let Self::Loaded { budget, offset, .. } = self {
@@ -209,7 +244,10 @@ impl Budget {
                     widget::row![
                         column,
                         widget::Space::with_width(iced::Length::Fill),
-                        utils::button::edit(Some(Message::Edit))
+                        utils::spaced_row![
+                            utils::button::edit(Some(Message::Edit)),
+                            utils::button::delete(Some(Message::Delete))
+                        ]
                     ],
                     widget::progress_bar(
                         0.0..=budget.total_value().get_eur_num() as f32,

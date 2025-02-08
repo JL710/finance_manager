@@ -334,6 +334,9 @@ impl App {
                     view::budget::Action::Task(t) => {
                         return t.map(AppMessage::ViewBudgetMessage);
                     }
+                    view::budget::Action::DeletedBudget => {
+                        return self.switch_view_budget_overview();
+                    }
                 }
             }
             AppMessage::CreateCategoryMessage(m) => {
