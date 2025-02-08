@@ -19,6 +19,7 @@ pub enum Action {
     Delete(iced::Task<()>),
     ViewAccount(fm_core::Id),
     ViewBudget(fm_core::Id),
+    ViewCategory(fm_core::Id),
     NewBillWithTransaction(fm_core::Transaction),
 }
 
@@ -31,6 +32,7 @@ enum Message {
     Delete,
     ViewAccount(fm_core::Id),
     ViewBudget(fm_core::Id),
+    ViewCategory(fm_core::Id),
     Initialize(Box<Init>),
     NewBill,
 }
@@ -140,10 +142,11 @@ impl Transaction {
             }
             Message::ViewAccount(acc) => Action::ViewAccount(acc),
             Message::ViewBudget(budget) => Action::ViewBudget(budget),
+            Message::ViewCategory(category) => Action::ViewCategory(category),
         }
     }
 
-    pub fn view(&self) -> iced::Element<'static, MessageContainer> {
+    pub fn view(&self) -> iced::Element<'_, MessageContainer> {
         if let Self::Loaded {
             transaction,
             source,
@@ -190,14 +193,16 @@ impl Transaction {
             let mut category_column = utils::spaced_column!();
             for category in transaction.categories() {
                 category_column = category_column.push(utils::spal_row![
-                    widget::checkbox(
+                    widget::checkbox("", true,),
+                    widget::button(
                         categories
                             .iter()
                             .find(|x| x.id() == category.0)
                             .unwrap()
-                            .name(),
-                        true,
-                    ),
+                            .name()
+                    )
+                    .style(widget::button::text)
+                    .on_press(Message::ViewCategory(*category.0)),
                     widget::checkbox("Negative", *category.1 == fm_core::Sign::Negative)
                 ]);
             }

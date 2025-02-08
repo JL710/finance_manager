@@ -326,6 +326,9 @@ impl App {
                         self.current_view = View::CreateBill(view);
                         return task.map(AppMessage::CreateBillMessage);
                     }
+                    view::transaction::Action::ViewCategory(category) => {
+                        return self.switch_view_category(category);
+                    }
                 }
             }
             AppMessage::ViewBudgetMessage(m) => {
