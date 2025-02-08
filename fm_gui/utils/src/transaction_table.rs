@@ -239,6 +239,7 @@ impl TransactionTable {
                 "Destination".to_owned(),
                 "Categories".to_owned(),
             ])
+            .cell_portions([3, 1, 1, 3, 3, 3])
             .view(
                 move |(transaction, source, destination): &(
                     fm_core::Transaction,

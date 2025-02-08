@@ -167,6 +167,7 @@ pub struct TableView<'a, T, C, const COLUMNS: usize> {
     state: &'a State<T, C>,
     headers: Option<[String; COLUMNS]>,
     alignment: Option<Box<AlignmentFunction<'a, T>>>,
+    cell_portions: [u16; COLUMNS],
     spacing: u16,
     padding: u16,
 }
@@ -179,6 +180,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
             alignment: None,
             spacing: super::style::SPACING,
             padding: super::style::PADDING,
+            cell_portions: [1; COLUMNS],
         }
     }
 
@@ -189,6 +191,12 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
 
     pub fn padding(mut self, padding: u16) -> Self {
         self.padding = padding;
+        self
+    }
+
+    /// The portion for each cell in a row used by width(Length::Portion(portion))
+    pub fn cell_portions(mut self, portions: [u16; COLUMNS]) -> Self {
+        self.cell_portions = portions;
         self
     }
 
@@ -242,7 +250,8 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
 
             let mut row = widget::row![].spacing(self.spacing);
             for (column_index, element) in row_elements.into_iter().enumerate() {
-                let mut cell = widget::container(element).width(iced::Length::FillPortion(1));
+                let mut cell = widget::container(element)
+                    .width(iced::Length::FillPortion(self.cell_portions[column_index]));
                 if let Some(alignment) = &self.alignment {
                     let (x_alignment, y_alignment) = (alignment)(item, column_index, row_index);
                     cell = cell.align_x(x_alignment);
@@ -294,7 +303,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                             None
                         })
                         .align_y(iced::Alignment::Center)
-                        .width(iced::Length::FillPortion(1)),
+                        .width(iced::Length::FillPortion(self.cell_portions[index])),
                 );
             }
             column = column.push(
