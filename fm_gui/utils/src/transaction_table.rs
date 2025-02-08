@@ -75,7 +75,7 @@ impl TransactionTable {
         amount_positive: impl Fn(fm_core::Transaction) -> Option<bool> + Copy + 'static,
     ) -> Self {
         let mut categories = categories;
-        categories.sort_by(|a, b| a.name().cmp(b.name()));
+        categories.sort();
         let mut transaction_table = crate::table_view::State::new(transactions, categories.clone())
             .sortable_columns([0, 1, 2, 3, 4, 5])
             .sort_by(move |a, b, column_index| match column_index {
@@ -124,6 +124,7 @@ impl TransactionTable {
         )>,
     ) {
         self.transaction_table.set_items(transactions);
+        self.transaction_table.sort(1, true);
     }
 
     pub fn update(

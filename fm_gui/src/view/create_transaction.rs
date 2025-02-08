@@ -302,8 +302,7 @@ impl CreateTransactionView {
                 self.metadata
                     .clone_from(init_existing.transaction.metadata());
                 self.available_categories = init_existing.available_categories;
-                self.available_categories
-                    .sort_by(|a, b| a.name().cmp(b.name()));
+                self.available_categories.sort();
                 self.selected_categories = init_existing
                     .transaction
                     .categories()

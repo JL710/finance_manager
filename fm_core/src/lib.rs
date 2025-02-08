@@ -137,6 +137,26 @@ impl Category {
     }
 }
 
+impl PartialEq for Category {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl PartialOrd for Category {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.name().cmp(other.name()))
+    }
+}
+
+impl Eq for Category {}
+
+impl Ord for Category {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name().cmp(other.name())
+    }
+}
+
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq)]
 pub enum Sign {
     Positive,

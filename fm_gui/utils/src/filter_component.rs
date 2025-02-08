@@ -52,6 +52,8 @@ impl FilterComponent {
         bills: Vec<fm_core::Bill>,
         budgets: Vec<fm_core::Budget>,
     ) -> Self {
+        let mut categories = categories;
+        categories.sort();
         Self {
             accounts,
             categories,
