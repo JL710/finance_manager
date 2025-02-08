@@ -163,7 +163,6 @@ impl Bill {
                 } = self
                 {
                     match transaction_table.perform(inner) {
-                        utils::table_view::Action::PageChange(_) => {}
                         utils::table_view::Action::None => {}
                         utils::table_view::Action::OuterMessage(m) => {
                             return self.update(MessageContainer(m), finance_manager);

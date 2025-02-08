@@ -3,7 +3,6 @@ use std::collections::HashSet;
 
 pub enum Action<Message> {
     OuterMessage(Message),
-    PageChange(usize),
     Task(iced::Task<InnerMessage<Message>>),
     None,
 }
@@ -110,7 +109,10 @@ impl<T, C> State<T, C> {
                 let new_page = (self.page as i32 + value as i32).max(0) as usize;
                 if new_page <= self.max_page() {
                     self.page = new_page;
-                    Action::PageChange(new_page)
+                    Action::Task(widget::scrollable::scroll_to(
+                        self.scrollable_id.clone(),
+                        widget::scrollable::AbsoluteOffset { x: 0.0, y: 0.0 },
+                    ))
                 } else {
                     Action::None
                 }
@@ -126,7 +128,10 @@ impl<T, C> State<T, C> {
                     },
                 );
                 self.page = 0;
-                Action::PageChange(0)
+                Action::Task(widget::scrollable::scroll_to(
+                    self.scrollable_id.clone(),
+                    widget::scrollable::AbsoluteOffset { x: 0.0, y: 0.0 },
+                ))
             }
             InnerMessage::ScrollToTop => Action::Task(widget::scrollable::scroll_to(
                 self.scrollable_id.clone(),

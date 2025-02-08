@@ -218,9 +218,6 @@ impl TransactionTable {
                     crate::table_view::Action::OuterMessage(m) => {
                         return self.update(m, finance_manager);
                     }
-                    crate::table_view::Action::PageChange(_) => {
-                        self.category_popup = None;
-                    }
                     crate::table_view::Action::None => {}
                     crate::table_view::Action::Task(task) => {
                         return Action::Task(task.map(Message::TransactionTable))
