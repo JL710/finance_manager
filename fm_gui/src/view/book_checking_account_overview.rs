@@ -6,6 +6,7 @@ pub enum Action {
     None,
     ViewAccount(fm_core::Id),
     CreateNewAccount,
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -69,7 +70,7 @@ impl BookCheckingAccountOverview {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::ViewAccount(id) => Action::ViewAccount(id),
@@ -78,14 +79,13 @@ impl BookCheckingAccountOverview {
                 Action::None
             }
             Message::New => Action::CreateNewAccount,
-            Message::AccountTable(inner) => {
-                if let utils::table_view::Action::OuterMessage(m) =
-                    self.accounts_table.perform(inner)
-                {
-                    return self.update(m, _finance_manager);
+            Message::AccountTable(inner) => match self.accounts_table.perform(inner) {
+                utils::table_view::Action::OuterMessage(m) => self.update(m, finance_manager),
+                utils::table_view::Action::Task(task) => {
+                    Action::Task(task.map(Message::AccountTable))
                 }
-                Action::None
-            }
+                _ => Action::None,
+            },
         }
     }
 

@@ -7,6 +7,7 @@ pub enum Action {
     None,
     ViewBudget(fm_core::Id),
     CreateBudget,
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -76,13 +77,13 @@ impl BudgetOverview {
                 self.budget_table.set_items(budgets);
                 Action::None
             }
-            Message::BudgetTable(inner) => {
-                if let utils::table_view::Action::OuterMessage(m) = self.budget_table.perform(inner)
-                {
-                    return self.update(m, _finance_manager);
+            Message::BudgetTable(inner) => match self.budget_table.perform(inner) {
+                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_manager),
+                utils::table_view::Action::Task(task) => {
+                    Action::Task(task.map(Message::BudgetTable))
                 }
-                Action::None
-            }
+                _ => Action::None,
+            },
         }
     }
 

@@ -5,6 +5,7 @@ pub enum Action {
     None,
     ViewCategory(fm_core::Id),
     NewCategory,
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -54,14 +55,13 @@ impl CategoryOverview {
                 self.category_table.set_items(categories);
                 Action::None
             }
-            Message::CategoryTable(inner) => {
-                if let utils::table_view::Action::OuterMessage(m) =
-                    self.category_table.perform(inner)
-                {
-                    return self.update(m, _finance_manager);
+            Message::CategoryTable(inner) => match self.category_table.perform(inner) {
+                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_manager),
+                utils::table_view::Action::Task(task) => {
+                    Action::Task(task.map(Message::CategoryTable))
                 }
-                Action::None
-            }
+                _ => Action::None,
+            },
         }
     }
 

@@ -168,6 +168,11 @@ impl Bill {
                         utils::table_view::Action::OuterMessage(m) => {
                             return self.update(MessageContainer(m), finance_manager);
                         }
+                        utils::table_view::Action::Task(task) => {
+                            return Action::Task(
+                                task.map(Message::TransactionTable).map(MessageContainer),
+                            )
+                        }
                     }
                 }
                 Action::None

@@ -261,13 +261,15 @@ impl CreateBillView {
                     }
                 }
             }
-            Message::TransactionTable(inner) => {
-                if let utils::table_view::Action::OuterMessage(m) =
-                    self.transaction_table.perform(inner)
-                {
+            Message::TransactionTable(inner) => match self.transaction_table.perform(inner) {
+                utils::table_view::Action::OuterMessage(m) => {
                     return self.update(m, finance_manager);
                 }
-            }
+                utils::table_view::Action::Task(task) => {
+                    return Action::Task(task.map(Message::TransactionTable))
+                }
+                _ => {}
+            },
         }
         Action::None
     }
@@ -514,12 +516,11 @@ mod add_transaction {
                     self.table.set_items(self.transactions.clone());
                     Action::None
                 }
-                Message::Table(inner) => {
-                    if let utils::table_view::Action::OuterMessage(m) = self.table.perform(inner) {
-                        return self.update(m, finance_manager);
-                    }
-                    Action::None
-                }
+                Message::Table(inner) => match self.table.perform(inner) {
+                    utils::table_view::Action::OuterMessage(m) => self.update(m, finance_manager),
+                    utils::table_view::Action::Task(task) => Action::Task(task.map(Message::Table)),
+                    _ => Action::None,
+                },
                 Message::Init(filter, transactions, ignored_transactions, accounts) => {
                     self.filter = filter;
                     self.transactions = transactions.clone();

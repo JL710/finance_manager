@@ -6,6 +6,7 @@ pub enum Action {
     ViewBill(fm_core::Id),
     NewBill,
     None,
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -75,6 +76,7 @@ impl BillOverview {
             Message::NewBill => Action::NewBill,
             Message::BillTable(inner) => match self.bill_table.perform(inner) {
                 utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_manager),
+                utils::table_view::Action::Task(task) => Action::Task(task.map(Message::BillTable)),
                 _ => Action::None,
             },
         }

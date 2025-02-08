@@ -220,6 +220,9 @@ impl TransactionTable {
                         self.category_popup = None;
                     }
                     crate::table_view::Action::None => {}
+                    crate::table_view::Action::Task(task) => {
+                        return Action::Task(task.map(Message::TransactionTable))
+                    }
                 }
                 Action::None
             }

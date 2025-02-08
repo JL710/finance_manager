@@ -1,10 +1,10 @@
 use iced::widget;
 use std::collections::HashSet;
 
-#[derive(Debug, Clone)]
 pub enum Action<Message> {
     OuterMessage(Message),
     PageChange(usize),
+    Task(iced::Task<InnerMessage<Message>>),
     None,
 }
 
@@ -13,6 +13,7 @@ pub enum InnerMessage<Message> {
     OuterMessage(Box<Message>),
     SortByColumn(usize),
     ChangePageBy(isize),
+    ScrollToTop,
 }
 
 #[allow(clippy::type_complexity)]
@@ -25,6 +26,7 @@ pub struct State<T, C> {
     sort_reverse: bool,
     sortable: HashSet<usize>,
     sort_by_callback: Option<Box<dyn Fn(&T, &T, usize) -> std::cmp::Ordering>>,
+    scrollable_id: widget::scrollable::Id,
 }
 
 impl<T, C> std::fmt::Debug for State<T, C> {
@@ -45,6 +47,7 @@ impl<T, C> State<T, C> {
             sort_reverse: false,
             sortable: HashSet::default(),
             sort_by_callback: None,
+            scrollable_id: widget::scrollable::Id::unique(),
         }
     }
 
@@ -125,6 +128,10 @@ impl<T, C> State<T, C> {
                 self.page = 0;
                 Action::PageChange(0)
             }
+            InnerMessage::ScrollToTop => Action::Task(widget::scrollable::scroll_to(
+                self.scrollable_id.clone(),
+                widget::scrollable::AbsoluteOffset { x: 0.0, y: 0.0 },
+            )),
         }
     }
 
@@ -297,7 +304,11 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
             );
         }
 
-        column = column.push(widget::scrollable(data_column).height(iced::Fill));
+        column = column.push(
+            widget::scrollable(data_column)
+                .id(self.state.scrollable_id.clone())
+                .height(iced::Fill),
+        );
         column = column.push(super::spal_row![
             widget::button("Previous").on_press_maybe(if self.state.page == 0 {
                 None
@@ -309,7 +320,8 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                 None
             } else {
                 Some(InnerMessage::ChangePageBy(1))
-            })
+            }),
+            widget::button("Scroll to Top").on_press(InnerMessage::ScrollToTop)
         ]);
 
         column.into()

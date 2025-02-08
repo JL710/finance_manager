@@ -178,6 +178,9 @@ impl App {
                             view::create_budget::CreateBudgetView::default(),
                         );
                     }
+                    view::budget_overview::Action::Task(task) => {
+                        return task.map(AppMessage::BudgetOverViewMessage)
+                    }
                 }
             }
             AppMessage::SwitchToBudgetOverview => {
@@ -248,6 +251,9 @@ impl App {
                         );
                     }
                     view::asset_accounts_overview::Action::None => {}
+                    view::asset_accounts_overview::Action::Task(task) => {
+                        return task.map(AppMessage::AssetAccountsMessage)
+                    }
                 }
             }
             AppMessage::SwitchToAssetAccountsView => {
@@ -369,6 +375,9 @@ impl App {
                             View::CreateCategory(view::create_category::CreateCategory::default());
                     }
                     view::category_overview::Action::None => {}
+                    view::category_overview::Action::Task(task) => {
+                        return task.map(AppMessage::CategoryOverviewMessage)
+                    }
                 }
             }
             AppMessage::SwitchToCategoryOverview => {
@@ -405,6 +414,9 @@ impl App {
                             view::create_book_checking_account::CreateBookCheckingAccount::default(
                             ),
                         );
+                    }
+                    view::book_checking_account_overview::Action::Task(task) => {
+                        return task.map(AppMessage::BookCheckingAccountOverviewMessage)
                     }
                 }
             }
@@ -480,6 +492,10 @@ impl App {
                             View::CreateBill(view::create_bill::CreateBillView::default());
                     }
                     view::bill_overview::Action::None => {}
+
+                    view::bill_overview::Action::Task(task) => {
+                        return task.map(AppMessage::BillOverviewMessage)
+                    }
                 }
             }
             AppMessage::SwitchToFilterTransactionView => {

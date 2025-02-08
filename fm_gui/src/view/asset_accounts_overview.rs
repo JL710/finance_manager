@@ -7,6 +7,7 @@ pub enum Action {
     CreateAssetAccount,
     /// could be any kind of account type
     ViewAccount(fm_core::Id),
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -78,7 +79,7 @@ impl AssetAccountOverview {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::Initialize(accounts) => {
@@ -86,11 +87,15 @@ impl AssetAccountOverview {
             }
             Message::CreateAssetAccount => return Action::CreateAssetAccount,
             Message::AccountView(account) => return Action::ViewAccount(account.id()),
-            Message::TableView(m) => {
-                if let utils::table_view::Action::OuterMessage(m) = self.account_table.perform(m) {
-                    return self.update(m, _finance_manager);
+            Message::TableView(m) => match self.account_table.perform(m) {
+                utils::table_view::Action::OuterMessage(m) => {
+                    return self.update(m, finance_manager);
                 }
-            }
+                utils::table_view::Action::Task(task) => {
+                    return Action::Task(task.map(Message::TableView))
+                }
+                _ => {}
+            },
         }
         Action::None
     }
