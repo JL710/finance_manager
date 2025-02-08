@@ -16,6 +16,7 @@ struct Init {
     bill: fm_core::Bill,
     bill_sum: fm_core::Currency,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
+    accounts: Vec<fm_core::account::Account>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,7 +39,10 @@ pub enum Bill {
     Loaded {
         bill: fm_core::Bill,
         bill_sum: fm_core::Currency,
-        transaction_table: utils::table_view::State<(fm_core::Transaction, fm_core::Sign), ()>,
+        transaction_table: utils::table_view::State<
+            (fm_core::Transaction, fm_core::Sign),
+            Vec<fm_core::account::Account>,
+        >,
     },
 }
 
@@ -64,10 +68,12 @@ impl Bill {
                         .unwrap();
                     transactions.push((transaction, *sign));
                 }
+                let accounts = locked_manager.get_accounts().await.unwrap();
                 Message::Initialize(Box::new(Init {
                     bill,
                     bill_sum,
                     transactions,
+                    accounts,
                 }))
             })
             .map(MessageContainer),
@@ -92,28 +98,33 @@ impl Bill {
                 *self = Self::Loaded {
                     bill: init.bill,
                     bill_sum: init.bill_sum,
-                    transaction_table: utils::table_view::State::new(init.transactions, ())
-                        .sort_by(|a, b, column| match column {
-                            0 => match (a.1, b.1) {
-                                (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
-                                    std::cmp::Ordering::Greater
-                                }
-                                (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
-                                    std::cmp::Ordering::Less
-                                }
-                                _ => std::cmp::Ordering::Equal,
-                            },
-                            1 => a.0.title().cmp(b.0.title()),
-                            2 => {
-                                a.0.description()
-                                    .unwrap_or("")
-                                    .cmp(b.0.description().unwrap_or(""))
+                    transaction_table: utils::table_view::State::new(
+                        init.transactions,
+                        init.accounts,
+                    )
+                    .sort_by(|a, b, column| match column {
+                        0 => match (a.1, b.1) {
+                            (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
+                                std::cmp::Ordering::Greater
                             }
-                            3 => a.0.amount().cmp(&b.0.amount()),
-                            4 => a.0.date().cmp(b.0.date()),
+                            (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
+                                std::cmp::Ordering::Less
+                            }
                             _ => std::cmp::Ordering::Equal,
-                        })
-                        .sortable_columns([0, 1, 2, 3, 4]),
+                        },
+                        1 => a.0.title().cmp(b.0.title()),
+                        2 => {
+                            a.0.description()
+                                .unwrap_or("")
+                                .cmp(b.0.description().unwrap_or(""))
+                        }
+                        3 => a.0.amount().cmp(&b.0.amount()),
+                        4 => a.0.date().cmp(b.0.date()),
+                        5 => a.0.source().cmp(b.0.source()),
+                        6 => a.0.destination().cmp(b.0.destination()),
+                        _ => std::cmp::Ordering::Equal,
+                    })
+                    .sortable_columns([0, 1, 2, 3, 4, 5, 6]),
                 };
                 Action::None
             }
@@ -200,8 +211,16 @@ impl Bill {
                     ],
                     widget::horizontal_rule(10),
                     utils::table_view::table_view(transaction_table)
-                        .headers(["Negative", "Title", "Description", "Amount", "Date"])
-                        .view(|(transaction, sign), _| [
+                        .headers([
+                            "Negative",
+                            "Title",
+                            "Description",
+                            "Amount",
+                            "Date",
+                            "Source",
+                            "Destination"
+                        ])
+                        .view(|(transaction, sign), accounts| [
                             widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
                             utils::link(widget::text(transaction.title().clone()))
                                 .on_press(Message::ViewTransaction(*transaction.id()))
@@ -216,6 +235,22 @@ impl Bill {
                             widget::text(utils::convert_date_time_to_date_string(
                                 *transaction.date()
                             ))
+                            .into(),
+                            widget::text(
+                                accounts
+                                    .iter()
+                                    .find(|acc| acc.id() == transaction.source())
+                                    .unwrap()
+                                    .name(),
+                            )
+                            .into(),
+                            widget::text(
+                                accounts
+                                    .iter()
+                                    .find(|acc| acc.id() == transaction.destination())
+                                    .unwrap()
+                                    .name(),
+                            )
                             .into(),
                         ])
                         .map(Message::TransactionTable),
