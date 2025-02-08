@@ -29,7 +29,6 @@ dirs = "5.0.1"
 iced.workspace = true
 fm_core.workspace = true
 time.workspace = true
-console_error_panic_hook = "0.1.7"
 serde = { version = "1.0.217", features = ["derive"] }
 
 [workspace.dependencies]
