@@ -491,8 +491,7 @@ impl App {
                         return self.switch_view_bill(id);
                     }
                     view::bill_overview::Action::NewBill => {
-                        self.current_view =
-                            View::CreateBill(view::create_bill::CreateBillView::default());
+                        return self.switch_view_create_bill(None);
                     }
                     view::bill_overview::Action::None => {}
 
@@ -514,7 +513,7 @@ impl App {
                         return self.switch_view_transaction(id);
                     }
                     view::bill::Action::Edit(id) => {
-                        return self.switch_view_bill_edit(id);
+                        return self.switch_view_create_bill(Some(id));
                     }
                     view::bill::Action::None => {}
                     view::bill::Action::Task(t) => {
@@ -753,7 +752,7 @@ impl App {
         task.map(AppMessage::ViewCategoryMessage)
     }
 
-    fn switch_view_bill_edit(&mut self, bill: fm_core::Id) -> iced::Task<AppMessage> {
+    fn switch_view_create_bill(&mut self, bill: Option<fm_core::Id>) -> iced::Task<AppMessage> {
         let (view, task) =
             view::create_bill::CreateBillView::fetch(bill, self.finance_manager.clone());
         self.current_view = View::CreateBill(view);

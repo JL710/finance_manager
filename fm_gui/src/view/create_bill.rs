@@ -48,7 +48,8 @@ pub struct CreateBillView {
     submitted: bool,
 }
 
-impl std::default::Default for CreateBillView {
+impl CreateBillView {
+    /// This can not work standalone! Only use as pore fetch helper.
     fn default() -> Self {
         Self {
             id: None,
@@ -84,9 +85,7 @@ impl std::default::Default for CreateBillView {
             submitted: false,
         }
     }
-}
 
-impl CreateBillView {
     pub fn new_with_transaction(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         transaction: fm_core::Transaction,
@@ -104,32 +103,70 @@ impl CreateBillView {
     }
 
     pub fn fetch(
-        id: fm_core::Id,
+        id: Option<fm_core::Id>,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
-            Self::default(),
+            Self {
+                id: None,
+                name_input: String::new(),
+                description_input: widget::text_editor::Content::default(),
+                value: utils::currency_input::State::default(),
+                due_date_input: utils::date_input::State::default(),
+                transactions: Vec::new(),
+                transaction_table: utils::table_view::State::new(Vec::new(), Vec::new())
+                    .sort_by(
+                        |a: &(fm_core::Transaction, fm_core::Sign),
+                         b: &(fm_core::Transaction, fm_core::Sign),
+                         column| match column {
+                            0 => match (a.1, b.1) {
+                                (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
+                                    std::cmp::Ordering::Less
+                                }
+                                (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
+                                    std::cmp::Ordering::Greater
+                                }
+                                _ => std::cmp::Ordering::Equal,
+                            },
+                            2 => a.0.title().cmp(b.0.title()),
+                            3 => a.0.amount().cmp(&b.0.amount()),
+                            4 => a.0.date().cmp(b.0.date()),
+                            5 => a.0.source().cmp(b.0.source()),
+                            6 => a.0.destination().cmp(b.0.destination()),
+                            _ => panic!(),
+                        },
+                    )
+                    .sortable_columns([0, 2, 3, 4, 5, 6]),
+                add_transaction: None,
+                submitted: false,
+            },
             iced::Task::future(async move {
                 let locked_manager = finance_manager.lock().await;
 
-                let bill = locked_manager.get_bill(&id).await.unwrap().unwrap();
+                let bill = if let Some(id) = id {
+                    Some(locked_manager.get_bill(&id).await.unwrap().unwrap())
+                } else {
+                    None
+                };
 
                 let mut transactions = Vec::new();
 
-                for (transaction_id, sign) in bill.transactions() {
-                    transactions.push((
-                        locked_manager
-                            .get_transaction(*transaction_id)
-                            .await
-                            .unwrap()
-                            .unwrap(),
-                        *sign,
-                    ));
+                if let Some(existing_bill) = &bill {
+                    for (transaction_id, sign) in existing_bill.transactions() {
+                        transactions.push((
+                            locked_manager
+                                .get_transaction(*transaction_id)
+                                .await
+                                .unwrap()
+                                .unwrap(),
+                            *sign,
+                        ));
+                    }
                 }
 
                 let accounts = locked_manager.get_accounts().await.unwrap();
 
-                Message::Initialize(Some(bill), transactions, accounts)
+                Message::Initialize(bill, transactions, accounts)
             }),
         )
     }
@@ -249,9 +286,11 @@ impl CreateBillView {
                         add_transaction::Action::Escape => {
                             self.add_transaction = None;
                         }
-                        add_transaction::Action::AddTransaction(transaction) => {
-                            self.transactions
-                                .push((*transaction, fm_core::Sign::Negative));
+                        add_transaction::Action::AddTransactions(transactions) => {
+                            for transaction in transactions {
+                                self.transactions
+                                    .push((transaction, fm_core::Sign::Negative));
+                            }
                             self.transaction_table.set_items(self.transactions.clone());
                         }
                         add_transaction::Action::Task(task) => {
@@ -387,7 +426,7 @@ mod add_transaction {
 
     pub enum Action {
         Escape,
-        AddTransaction(Box<fm_core::Transaction>),
+        AddTransactions(Vec<fm_core::Transaction>),
         Task(iced::Task<Message>),
         None,
     }
@@ -405,6 +444,7 @@ mod add_transaction {
             Vec<fm_core::Id>,
             Vec<fm_core::account::Account>,
         ),
+        AddAllTransactions,
     }
 
     #[derive(Debug)]
@@ -497,7 +537,15 @@ mod add_transaction {
                     self.ignored_transactions.push(*transaction.id());
                     self.transactions.retain(|x| x.id() != transaction.id());
                     self.table.set_items(self.transactions.clone());
-                    Action::AddTransaction(Box::new(transaction))
+                    Action::AddTransactions(vec![transaction])
+                }
+                Message::AddAllTransactions => {
+                    let mut transactions = Vec::new();
+                    std::mem::swap(&mut self.transactions, &mut transactions);
+                    self.ignored_transactions
+                        .extend(transactions.iter().map(|x| *x.id()));
+                    self.table.set_items(Vec::with_capacity(0));
+                    Action::AddTransactions(transactions)
                 }
                 Message::FetchedTransactions(transactions) => {
                     self.transactions = transactions;
@@ -531,7 +579,11 @@ mod add_transaction {
         pub fn view(&self) -> iced::Element<Message> {
             utils::spaced_column![
                 utils::heading("Add", utils::HeadingLevel::H1),
-                widget::button("Back").on_press(Message::Back),
+                utils::spal_row![
+                    widget::button("Back").on_press(Message::Back),
+                    widget::horizontal_space(),
+                    widget::button("Add All").on_press(Message::AddAllTransactions)
+                ],
                 if let Some(filter) = &self.filter {
                     iced::Element::new(
                         utils::spaced_column![
