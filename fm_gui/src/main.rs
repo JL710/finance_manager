@@ -779,7 +779,7 @@ impl App {
             settings::SelectedFinanceManager::Ram => {
                 if !matches!(
                     (*self.finance_manager).try_lock().unwrap().raw_fm(),
-                    finance_managers::FinanceManagers::Server(_)
+                    finance_managers::FinanceManagers::Ram(_)
                 ) {
                     self.finance_manager =
                         Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
@@ -791,52 +791,42 @@ impl App {
             }
             #[cfg(feature = "native")]
             settings::SelectedFinanceManager::SQLite => {
-                if !matches!(
-                    (*self.finance_manager).try_lock().unwrap().raw_fm(),
-                    finance_managers::FinanceManagers::Server(_)
+                let fm = match fm_core::managers::SqliteFinanceManager::new(
+                    new_settings.finance_manager.sqlite_path.clone(),
                 ) {
-                    let fm = match fm_core::managers::SqliteFinanceManager::new(
-                        new_settings.finance_manager.sqlite_path.clone(),
-                    ) {
-                        Ok(x) => Some(x),
-                        Err(_) => {
-                            if let View::Settings(settings_view) = &mut self.current_view {
-                                settings_view.set_unsaved();
-                            }
-                            rfd::MessageDialog::new()
-                                .set_title("Invalid SQLite Path")
-                                .set_description("The provided SQLite path is invalid.")
-                                .show();
-                            valid_settings = false;
-                            None
+                    Ok(x) => Some(x),
+                    Err(_) => {
+                        if let View::Settings(settings_view) = &mut self.current_view {
+                            settings_view.set_unsaved();
                         }
-                    };
-                    if let Some(manager) = fm {
-                        self.finance_manager =
-                            Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
-                                finance_managers::FinanceManagers::Sqlite(manager),
-                            )));
+                        rfd::MessageDialog::new()
+                            .set_title("Invalid SQLite Path")
+                            .set_description("The provided SQLite path is invalid.")
+                            .show();
+                        valid_settings = false;
+                        None
                     }
+                };
+                if let Some(manager) = fm {
+                    self.finance_manager =
+                        Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                            finance_managers::FinanceManagers::Sqlite(manager),
+                        )));
                 }
             }
             #[cfg(not(feature = "native"))]
             settings::SelectedFinanceManager::SQLite => {}
             settings::SelectedFinanceManager::Server => {
-                if !matches!(
-                    (*self.finance_manager).try_lock().unwrap().raw_fm(),
-                    finance_managers::FinanceManagers::Server(_)
-                ) {
-                    self.finance_manager =
-                        Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
-                            finance_managers::FinanceManagers::Server(
-                                fm_server::client::Client::new((
-                                    new_settings.finance_manager.server_url.clone(),
-                                    new_settings.finance_manager.server_token.clone(),
-                                ))
-                                .unwrap(),
-                            ),
-                        )));
-                }
+                self.finance_manager =
+                    Arc::new(Mutex::new(fm_core::FMController::with_finance_manager(
+                        finance_managers::FinanceManagers::Server(
+                            fm_server::client::Client::new((
+                                new_settings.finance_manager.server_url.clone(),
+                                new_settings.finance_manager.server_token.clone(),
+                            ))
+                            .unwrap(),
+                        ),
+                    )));
             }
         }
         if valid_settings {
