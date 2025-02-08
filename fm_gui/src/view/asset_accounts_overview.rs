@@ -79,7 +79,7 @@ impl AssetAccountOverview {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::Initialize(accounts) => {
@@ -89,7 +89,7 @@ impl AssetAccountOverview {
             Message::AccountView(account) => return Action::ViewAccount(account.id()),
             Message::TableView(m) => match self.account_table.perform(m) {
                 utils::table_view::Action::OuterMessage(m) => {
-                    return self.update(m, finance_manager);
+                    return self.update(m, _finance_manager);
                 }
                 utils::table_view::Action::Task(task) => {
                     return Action::Task(task.map(Message::TableView))

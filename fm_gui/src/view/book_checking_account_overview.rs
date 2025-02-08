@@ -70,7 +70,7 @@ impl BookCheckingAccountOverview {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
             Message::ViewAccount(id) => Action::ViewAccount(id),
@@ -80,7 +80,7 @@ impl BookCheckingAccountOverview {
             }
             Message::New => Action::CreateNewAccount,
             Message::AccountTable(inner) => match self.accounts_table.perform(inner) {
-                utils::table_view::Action::OuterMessage(m) => self.update(m, finance_manager),
+                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_manager),
                 utils::table_view::Action::Task(task) => {
                     Action::Task(task.map(Message::AccountTable))
                 }
