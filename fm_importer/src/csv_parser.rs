@@ -179,7 +179,7 @@ pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
                 parsed.day().unwrap().into(),
             )
             .context("Could not parse date")?,
-            time::Time::MIDNIGHT,
+            time::Time::from_hms(12, 0, 0).unwrap(),
             fm_core::get_local_timezone()?,
         ))
     }
