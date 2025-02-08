@@ -120,6 +120,7 @@ impl SettingsView {
 
         #[cfg(feature = "native")]
         {
+            let valid_path = valid_sqlite_path(&self.settings.finance_manager.sqlite_path);
             col = col.push(widget::Rule::horizontal(10));
             col = col.push(fm_settings_view(
                 widget::radio(
@@ -134,7 +135,12 @@ impl SettingsView {
                         "Sqlite Path",
                         &self.settings.finance_manager.sqlite_path
                     )
-                    .on_input(Message::ChangeSqlitePath),
+                    .on_input(Message::ChangeSqlitePath)
+                    .style(if valid_path {
+                        utils::style::text_input_success
+                    } else {
+                        utils::style::text_input_danger
+                    }),
                     widget::button("Select File").on_press(Message::StartSQLiteFileSelector),
                     widget::button("New").on_press(Message::StartSQLiteNewFileSelector),
                 ],
@@ -169,4 +175,19 @@ fn fm_settings_view<'a>(
         widget::column![widget::Space::new(0, 30), settings.into()],
     ]
     .into()
+}
+
+#[cfg(feature = "native")]
+fn valid_sqlite_path(path: &String) -> bool {
+    let path = std::path::Path::new(path);
+    if path.is_dir() {
+        return false;
+    }
+    if path.is_file() {
+        return true;
+    }
+    if let Some(parent) = path.parent() {
+        return parent.is_dir();
+    }
+    return false;
 }
