@@ -454,7 +454,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         for account_row in account_rows {
             let id = account_row?;
-            accounts.push(get_account(&connection, id)?);
+            accounts.push(get_account(&connection, id)?.unwrap());
         }
 
         Ok(accounts)
@@ -462,7 +462,7 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
         let connection = self.connect().await;
-        Ok(Some(get_account(&connection, id)?))
+        Ok(get_account(&connection, id)?)
     }
 
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
@@ -1128,12 +1128,22 @@ fn get_book_checking_account_id(connection: &rusqlite::Connection, account_id: I
     }
 }
 
-fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<account::Account> {
-    let account_result: (Option<Id>, Option<Id>) = connection.query_row(
-        "SELECT asset_account, book_checking_account FROM account WHERE id=?1",
-        (account_id,),
-        |row| Ok((row.get(0)?, row.get(1)?)),
-    )?;
+fn get_account(
+    connection: &rusqlite::Connection,
+    account_id: Id,
+) -> Result<Option<account::Account>> {
+    let account_result: (Option<Id>, Option<Id>) = match connection
+        .query_row(
+            "SELECT asset_account, book_checking_account FROM account WHERE id=?1",
+            (account_id,),
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()
+        .context("Error during id resolution")?
+    {
+        Some(x) => x,
+        None => return Ok(None),
+    };
     if let Some(id) = account_result.0 {
         let asset_account_result: (String, Option<String>, Option<String>, Option<String>, f64, i32) =
             connection.query_row(
@@ -1141,22 +1151,24 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
                 (id,),
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)),
             )?;
-        Ok(account::AssetAccount::new(
-            account_id,
-            asset_account_result.0,
-            asset_account_result.1,
-            if let Some(iban_str) = asset_account_result.2 {
-                Some(iban_str.parse()?)
-            } else {
-                None
-            },
-            asset_account_result.3,
-            Currency::from_currency_id(
-                asset_account_result.5,
-                BigDecimal::from_f64(asset_account_result.4).unwrap(),
-            )?,
-        )
-        .into())
+        Ok(Some(
+            account::AssetAccount::new(
+                account_id,
+                asset_account_result.0,
+                asset_account_result.1,
+                if let Some(iban_str) = asset_account_result.2 {
+                    Some(iban_str.parse()?)
+                } else {
+                    None
+                },
+                asset_account_result.3,
+                Currency::from_currency_id(
+                    asset_account_result.5,
+                    BigDecimal::from_f64(asset_account_result.4).unwrap(),
+                )?,
+            )
+            .into(),
+        ))
     } else if let Some(id) = account_result.1 {
         let book_checking_account_result: (String, Option<String>, Option<String>, Option<String>) =
             connection.query_row(
@@ -1164,18 +1176,20 @@ fn get_account(connection: &rusqlite::Connection, account_id: Id) -> Result<acco
                 (id,),
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )?;
-        Ok(account::BookCheckingAccount::new(
-            account_id,
-            book_checking_account_result.0,
-            book_checking_account_result.1,
-            if let Some(iban_str) = book_checking_account_result.2 {
-                Some(iban_str.parse()?)
-            } else {
-                None
-            },
-            book_checking_account_result.3,
-        )
-        .into())
+        Ok(Some(
+            account::BookCheckingAccount::new(
+                account_id,
+                book_checking_account_result.0,
+                book_checking_account_result.1,
+                if let Some(iban_str) = book_checking_account_result.2 {
+                    Some(iban_str.parse()?)
+                } else {
+                    None
+                },
+                book_checking_account_result.3,
+            )
+            .into(),
+        ))
     } else {
         anyhow::bail!("could not find the account");
     }
