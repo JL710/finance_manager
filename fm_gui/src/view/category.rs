@@ -31,7 +31,7 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub enum Category {
+pub enum View {
     NotLoaded,
     Loaded {
         category: fm_core::Category,
@@ -41,7 +41,7 @@ pub enum Category {
     },
 }
 
-impl Category {
+impl View {
     pub fn fetch(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         category_id: fm_core::Id,

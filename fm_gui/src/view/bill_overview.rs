@@ -18,11 +18,11 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub struct BillOverview {
+pub struct View {
     bill_table: utils::table_view::State<(fm_core::Bill, fm_core::Currency), ()>,
 }
 
-impl BillOverview {
+impl View {
     pub fn new(bills: Vec<(fm_core::Bill, fm_core::Currency)>) -> Self {
         Self {
             bill_table: utils::table_view::State::new(bills, ())

@@ -29,85 +29,82 @@ enum View {
     Empty,
     Tutorial(Vec<widget::markdown::Item>),
     License,
-    BudgetOverview(view::budget_overview::BudgetOverview),
-    CreateAssetAccount(view::create_asset_account::CreateAssetAccountDialog),
-    CreateBudget(view::create_budget::CreateBudgetView),
-    CreateTransaction(view::create_transaction::CreateTransactionView),
-    AssetAccounts(view::asset_accounts_overview::AssetAccountOverview),
-    Account(view::account::Account),
-    Transaction(view::transaction::Transaction),
-    Budget(view::budget::Budget),
-    CreateCategory(view::create_category::CreateCategory),
-    CategoryOverview(view::category_overview::CategoryOverview),
-    Category(view::category::Category),
-    BookCheckingAccountOverview(view::book_checking_account_overview::BookCheckingAccountOverview),
-    CreateBookCheckingAccount(view::create_book_checking_account::CreateBookCheckingAccount),
-    Settings(view::settings::SettingsView),
-    FilterTransaction(view::filter_transactions::FilterTransactionView),
-    CreateBill(view::create_bill::CreateBillView),
-    BillOverview(view::bill_overview::BillOverview),
-    Bill(view::bill::Bill),
+    BudgetOverview(view::budget_overview::View),
+    CreateAssetAccount(view::create_asset_account::View),
+    CreateBudget(view::create_budget::View),
+    CreateTransaction(view::create_transaction::View),
+    AssetAccounts(view::asset_accounts_overview::View),
+    Account(view::account::View),
+    Transaction(view::transaction::View),
+    Budget(view::budget::View),
+    CreateCategory(view::create_category::View),
+    CategoryOverview(view::category_overview::View),
+    Category(view::category::View),
+    BookCheckingAccountOverview(view::book_checking_account_overview::View),
+    CreateBookCheckingAccount(view::create_book_checking_account::View),
+    Settings(view::settings::View),
+    FilterTransaction(view::filter_transactions::View),
+    CreateBill(view::create_bill::View),
+    BillOverview(view::bill_overview::View),
+    Bill(view::bill::View),
 }
 
 impl View {
     fn account(&mut self, finance_manager: Fm, account: fm_core::Id) -> iced::Task<AppMessage> {
-        let (view, task) = view::account::Account::fetch(finance_manager, account);
+        let (view, task) = view::account::View::fetch(finance_manager, account);
         *self = Self::Account(view);
         task.map(ViewMessage::Account).map(AppMessage::ViewMessage)
     }
 
     fn asset_account_overview(&mut self, finance_manager: Fm) -> iced::Task<AppMessage> {
-        let (view, task) =
-            view::asset_accounts_overview::AssetAccountOverview::fetch(finance_manager);
+        let (view, task) = view::asset_accounts_overview::View::fetch(finance_manager);
         *self = Self::AssetAccounts(view);
         task.map(ViewMessage::AssetAccounts)
             .map(AppMessage::ViewMessage)
     }
 
     fn bill_overview(&mut self, finance_manager: Fm) -> iced::Task<AppMessage> {
-        let (view, task) = view::bill_overview::BillOverview::fetch(finance_manager);
+        let (view, task) = view::bill_overview::View::fetch(finance_manager);
         *self = Self::BillOverview(view);
         task.map(ViewMessage::BillOverview)
             .map(AppMessage::ViewMessage)
     }
 
     fn bill(&mut self, finance_manager: Fm, bill: fm_core::Id) -> iced::Task<AppMessage> {
-        let (view, task) = view::bill::Bill::fetch(bill, finance_manager);
+        let (view, task) = view::bill::View::fetch(bill, finance_manager);
         *self = Self::Bill(view);
         task.map(ViewMessage::Bill).map(AppMessage::ViewMessage)
     }
 
     fn book_checking_account_overview(&mut self, finance_manager: Fm) -> iced::Task<AppMessage> {
-        let (view, task) = view::book_checking_account_overview::BookCheckingAccountOverview::fetch(
-            finance_manager,
-        );
+        let (view, task) = view::book_checking_account_overview::View::fetch(finance_manager);
         *self = Self::BookCheckingAccountOverview(view);
         task.map(ViewMessage::BookCheckingAccountOverview)
             .map(AppMessage::ViewMessage)
     }
 
     fn budget_overview(&mut self, finance_manager: Fm) -> iced::Task<AppMessage> {
-        let (view, task) = view::budget_overview::BudgetOverview::fetch(finance_manager);
+        let (view, task) = view::budget_overview::View::fetch(finance_manager);
         *self = Self::BudgetOverview(view);
         task.map(ViewMessage::BudgetOverview)
             .map(AppMessage::ViewMessage)
     }
 
     fn budget(&mut self, finance_manager: Fm, budget: fm_core::Id) -> iced::Task<AppMessage> {
-        let (view, task) = view::budget::Budget::fetch(budget, 0, finance_manager);
+        let (view, task) = view::budget::View::fetch(budget, 0, finance_manager);
         *self = Self::Budget(view);
         task.map(ViewMessage::Budget).map(AppMessage::ViewMessage)
     }
 
     fn category_overview(&mut self, finance_manager: Fm) -> iced::Task<AppMessage> {
-        let (view, task) = view::category_overview::CategoryOverview::fetch(finance_manager);
+        let (view, task) = view::category_overview::View::fetch(finance_manager);
         *self = View::CategoryOverview(view);
         task.map(ViewMessage::CategoryOverview)
             .map(AppMessage::ViewMessage)
     }
 
     fn category(&mut self, finance_manager: Fm, category: fm_core::Id) -> iced::Task<AppMessage> {
-        let (view, task) = view::category::Category::fetch(finance_manager, category);
+        let (view, task) = view::category::View::fetch(finance_manager, category);
         *self = Self::Category(view);
         task.map(ViewMessage::Category).map(AppMessage::ViewMessage)
     }
@@ -117,14 +114,14 @@ impl View {
         finance_manager: Fm,
         bill: Option<fm_core::Id>,
     ) -> iced::Task<AppMessage> {
-        let (view, task) = view::create_bill::CreateBillView::fetch(bill, finance_manager);
+        let (view, task) = view::create_bill::View::fetch(bill, finance_manager);
         *self = Self::CreateBill(view);
         task.map(ViewMessage::CreateBill)
             .map(AppMessage::ViewMessage)
     }
 
     fn budget_edit(&mut self, finance_manager: Fm, budget: fm_core::Id) -> iced::Task<AppMessage> {
-        let (view, task) = view::create_budget::CreateBudgetView::fetch(budget, finance_manager);
+        let (view, task) = view::create_budget::View::fetch(budget, finance_manager);
         *self = Self::CreateBudget(view);
         task.map(ViewMessage::CreateBudget)
             .map(AppMessage::ViewMessage)
@@ -136,9 +133,9 @@ impl View {
         id: Option<fm_core::Id>,
     ) -> iced::Task<AppMessage> {
         let (view, task) = if let Some(id) = id {
-            view::create_transaction::CreateTransactionView::fetch(finance_manager, id)
+            view::create_transaction::View::fetch(finance_manager, id)
         } else {
-            view::create_transaction::CreateTransactionView::new(finance_manager)
+            view::create_transaction::View::new(finance_manager)
         };
         *self = Self::CreateTransaction(view);
         task.map(ViewMessage::CreateTransaction)
@@ -146,7 +143,7 @@ impl View {
     }
 
     fn transaction_filter(&mut self, finance_manager: Fm) -> iced::Task<AppMessage> {
-        let (view, task) = view::filter_transactions::FilterTransactionView::new(finance_manager);
+        let (view, task) = view::filter_transactions::View::new(finance_manager);
         *self = Self::FilterTransaction(view);
         task.map(ViewMessage::FilterTransaction)
             .map(AppMessage::ViewMessage)
@@ -157,7 +154,7 @@ impl View {
         finance_manager: Fm,
         transaction: fm_core::Id,
     ) -> iced::Task<AppMessage> {
-        let (view, task) = view::transaction::Transaction::fetch(transaction, finance_manager);
+        let (view, task) = view::transaction::View::fetch(transaction, finance_manager);
         *self = Self::Transaction(view);
         task.map(ViewMessage::Transaction)
             .map(AppMessage::ViewMessage)
@@ -168,7 +165,7 @@ impl View {
         finance_manager: Fm,
         category: fm_core::Id,
     ) -> iced::Task<AppMessage> {
-        let (view, task) = view::create_category::CreateCategory::fetch(category, finance_manager);
+        let (view, task) = view::create_category::View::fetch(category, finance_manager);
         *self = Self::CreateCategory(view);
         task.map(ViewMessage::CreateCategory)
             .map(AppMessage::ViewMessage)
@@ -179,8 +176,7 @@ impl View {
         finance_manager: Fm,
         id: fm_core::Id,
     ) -> iced::Task<AppMessage> {
-        let (view, task) =
-            view::create_asset_account::CreateAssetAccountDialog::fetch(id, finance_manager);
+        let (view, task) = view::create_asset_account::View::fetch(id, finance_manager);
         *self = Self::CreateAssetAccount(view);
         task.map(ViewMessage::CreateAssetAccount)
             .map(AppMessage::ViewMessage)
@@ -191,10 +187,7 @@ impl View {
         finance_manager: Fm,
         id: fm_core::Id,
     ) -> iced::Task<AppMessage> {
-        let (view, task) = view::create_book_checking_account::CreateBookCheckingAccount::fetch(
-            finance_manager,
-            id,
-        );
+        let (view, task) = view::create_book_checking_account::View::fetch(finance_manager, id);
         *self = Self::CreateBookCheckingAccount(view);
         task.map(ViewMessage::CreateBookCheckingAccount)
             .map(AppMessage::ViewMessage)
@@ -206,7 +199,7 @@ impl View {
         transaction: fm_core::Transaction,
     ) -> iced::Task<AppMessage> {
         let (view, task) =
-            view::create_bill::CreateBillView::new_with_transaction(finance_manager, transaction);
+            view::create_bill::View::new_with_transaction(finance_manager, transaction);
         *self = Self::CreateBill(view);
         task.map(ViewMessage::CreateBill)
             .map(AppMessage::ViewMessage)
@@ -345,9 +338,8 @@ impl App {
                             return self.current_view.budget(self.finance_manager.clone(), id);
                         }
                         view::budget_overview::Action::CreateBudget => {
-                            self.current_view = View::CreateBudget(
-                                view::create_budget::CreateBudgetView::default(),
-                            );
+                            self.current_view =
+                                View::CreateBudget(view::create_budget::View::default());
                         }
                         view::budget_overview::Action::Task(task) => {
                             return task
@@ -434,7 +426,7 @@ impl App {
                         }
                         view::asset_accounts_overview::Action::CreateAssetAccount => {
                             self.current_view = View::CreateAssetAccount(
-                                view::create_asset_account::CreateAssetAccountDialog::default(),
+                                view::create_asset_account::View::default(),
                             );
                         }
                         view::asset_accounts_overview::Action::None => {}
@@ -564,9 +556,8 @@ impl App {
                             return self.current_view.category(self.finance_manager.clone(), id);
                         }
                         view::category_overview::Action::NewCategory => {
-                            self.current_view = View::CreateCategory(
-                                view::create_category::CreateCategory::default(),
-                            );
+                            self.current_view =
+                                View::CreateCategory(view::create_category::View::default());
                         }
                         view::category_overview::Action::None => {}
                         view::category_overview::Action::Task(task) => {
@@ -606,8 +597,7 @@ impl App {
                         view::book_checking_account_overview::Action::None => {}
                         view::book_checking_account_overview::Action::CreateNewAccount => {
                             self.current_view = View::CreateBookCheckingAccount(
-                                view::create_book_checking_account::CreateBookCheckingAccount::default(
-                                ),
+                                view::create_book_checking_account::View::default(),
                             );
                         }
                         view::book_checking_account_overview::Action::Task(task) => {
@@ -757,7 +747,7 @@ impl App {
             }
 
             AppMessage::SwitchToSettingsView => {
-                let (view, task) = view::settings::SettingsView::new(self.settings.clone());
+                let (view, task) = view::settings::View::new(self.settings.clone());
                 self.current_view = View::Settings(view);
                 return task.map(ViewMessage::Settings).map(AppMessage::ViewMessage);
             }

@@ -80,7 +80,7 @@ enum Message {
 }
 
 #[derive(Debug)]
-pub struct CreateTransactionView {
+pub struct View {
     id: Option<fm_core::Id>,
     amount_input: utils::currency_input::State,
     title_input: String,
@@ -98,7 +98,7 @@ pub struct CreateTransactionView {
     submitted: bool,
 }
 
-impl CreateTransactionView {
+impl View {
     pub fn new(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<MessageContainer>) {

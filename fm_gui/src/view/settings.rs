@@ -25,12 +25,12 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
-pub struct SettingsView {
+pub struct View {
     settings: crate::settings::Settings,
     unsaved: bool,
 }
 
-impl SettingsView {
+impl View {
     pub fn new(settings: crate::settings::Settings) -> (Self, iced::Task<Message>) {
         (
             Self {

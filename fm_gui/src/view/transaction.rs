@@ -39,7 +39,7 @@ enum Message {
 
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
-pub enum Transaction {
+pub enum View {
     NotLoaded,
     Loaded {
         transaction: fm_core::Transaction,
@@ -50,7 +50,7 @@ pub enum Transaction {
     },
 }
 
-impl Transaction {
+impl View {
     pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,

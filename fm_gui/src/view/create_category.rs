@@ -19,13 +19,13 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct CreateCategory {
+pub struct View {
     id: Option<fm_core::Id>,
     name: String,
     submitted: bool,
 }
 
-impl CreateCategory {
+impl View {
     pub fn new(id: Option<fm_core::Id>, name: String) -> Self {
         Self {
             id,

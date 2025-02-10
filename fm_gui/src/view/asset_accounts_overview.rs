@@ -19,18 +19,18 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub struct AssetAccountOverview {
+pub struct View {
     account_table:
         utils::table_view::State<(fm_core::account::AssetAccount, fm_core::Currency), ()>,
 }
 
-impl std::default::Default for AssetAccountOverview {
+impl std::default::Default for View {
     fn default() -> Self {
-        AssetAccountOverview::new(Vec::new())
+        View::new(Vec::new())
     }
 }
 
-impl AssetAccountOverview {
+impl View {
     pub fn new(accounts: Vec<(fm_core::account::AssetAccount, fm_core::Currency)>) -> Self {
         Self {
             account_table: utils::table_view::State::new(accounts, ())

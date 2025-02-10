@@ -79,7 +79,7 @@ impl std::fmt::Display for Recurring {
 }
 
 #[derive(Debug)]
-pub struct CreateBudgetView {
+pub struct View {
     id: Option<fm_core::Id>,
     name_input: String,
     description_input: widget::text_editor::Content,
@@ -89,7 +89,7 @@ pub struct CreateBudgetView {
     submitted: bool,
 }
 
-impl Default for CreateBudgetView {
+impl Default for View {
     fn default() -> Self {
         Self {
             id: None,
@@ -103,7 +103,7 @@ impl Default for CreateBudgetView {
     }
 }
 
-impl CreateBudgetView {
+impl View {
     pub fn from_budget(budget: fm_core::Budget) -> Self {
         Self {
             id: Some(*budget.id()),

@@ -26,7 +26,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Default)]
-pub struct CreateBookCheckingAccount {
+pub struct View {
     id: Option<fm_core::Id>,
     name_input: String,
     note_input: widget::text_editor::Content,
@@ -35,13 +35,13 @@ pub struct CreateBookCheckingAccount {
     submitted: bool,
 }
 
-impl CreateBookCheckingAccount {
+impl View {
     pub fn fetch(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         account_id: fm_core::Id,
     ) -> (Self, iced::Task<Message>) {
         (
-            CreateBookCheckingAccount::default(),
+            View::default(),
             iced::Task::future(async move {
                 let account = finance_manager
                     .lock()

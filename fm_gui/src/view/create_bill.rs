@@ -33,7 +33,7 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub struct CreateBillView {
+pub struct View {
     id: Option<fm_core::Id>,
     name_input: String,
     description_input: widget::text_editor::Content,
@@ -48,7 +48,7 @@ pub struct CreateBillView {
     submitted: bool,
 }
 
-impl CreateBillView {
+impl View {
     /// This can not work standalone! Only use as pore fetch helper.
     fn default() -> Self {
         Self {

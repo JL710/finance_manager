@@ -30,7 +30,7 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub struct FilterTransactionView {
+pub struct View {
     accounts: Vec<fm_core::account::Account>,
     categories: Vec<fm_core::Category>,
     bills: Vec<fm_core::Bill>,
@@ -41,7 +41,7 @@ pub struct FilterTransactionView {
     filter: TransactionFilter,
 }
 
-impl FilterTransactionView {
+impl View {
     pub fn new(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {

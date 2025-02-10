@@ -18,12 +18,12 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub struct BookCheckingAccountOverview {
+pub struct View {
     accounts_table:
         utils::table_view::State<(fm_core::account::BookCheckingAccount, fm_core::Currency), ()>,
 }
 
-impl BookCheckingAccountOverview {
+impl View {
     pub fn new(accounts: Vec<(fm_core::account::BookCheckingAccount, fm_core::Currency)>) -> Self {
         Self {
             accounts_table: utils::table_view::State::new(accounts, ())

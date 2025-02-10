@@ -34,7 +34,7 @@ enum Message {
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
-pub enum Bill {
+pub enum View {
     NotLoaded,
     Loaded {
         bill: fm_core::Bill,
@@ -46,7 +46,7 @@ pub enum Bill {
     },
 }
 
-impl Bill {
+impl View {
     pub fn fetch(
         id: fm_core::Id,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,

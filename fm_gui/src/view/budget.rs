@@ -41,7 +41,7 @@ enum Message {
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
-pub enum Budget {
+pub enum View {
     NotLoaded,
     Loaded {
         budget: fm_core::Budget,
@@ -52,7 +52,7 @@ pub enum Budget {
     },
 }
 
-impl Budget {
+impl View {
     pub fn new(
         budget: fm_core::Budget,
         current_value: fm_core::Currency,

@@ -19,12 +19,12 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub struct BudgetOverview {
+pub struct View {
     budgets: Vec<(fm_core::Budget, fm_core::Currency)>,
     budget_table: utils::table_view::State<(fm_core::Budget, fm_core::Currency), ()>,
 }
 
-impl BudgetOverview {
+impl View {
     pub fn new(budgets: Vec<(fm_core::Budget, fm_core::Currency)>) -> Self {
         Self {
             budgets: budgets.clone(),
@@ -43,7 +43,7 @@ impl BudgetOverview {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> (Self, iced::Task<Message>) {
         (
-            BudgetOverview::new(Vec::new()),
+            View::new(Vec::new()),
             iced::Task::future(async move {
                 let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
                 let mut tuples = Vec::new();

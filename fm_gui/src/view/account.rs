@@ -52,7 +52,7 @@ enum Message {
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
-pub enum Account {
+pub enum View {
     NotLoaded,
     Loaded {
         account: fm_core::account::Account,
@@ -62,7 +62,7 @@ pub enum Account {
     },
 }
 
-impl Account {
+impl View {
     pub fn fetch(
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
         account_id: fm_core::Id,

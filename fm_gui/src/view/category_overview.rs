@@ -17,11 +17,11 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub struct CategoryOverview {
+pub struct View {
     category_table: utils::table_view::State<fm_core::Category, ()>,
 }
 
-impl CategoryOverview {
+impl View {
     pub fn new(categories: Vec<fm_core::Category>) -> Self {
         Self {
             category_table: utils::table_view::State::new(categories, ())

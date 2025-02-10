@@ -27,7 +27,7 @@ pub enum Message {
 }
 
 #[derive(Debug)]
-pub struct CreateAssetAccountDialog {
+pub struct View {
     id: Option<fm_core::Id>,
     name_input: String,
     note_input: widget::text_editor::Content,
@@ -37,7 +37,7 @@ pub struct CreateAssetAccountDialog {
     submitted: bool,
 }
 
-impl std::default::Default for CreateAssetAccountDialog {
+impl std::default::Default for View {
     fn default() -> Self {
         Self {
             offset_input: utils::currency_input::State::new(fm_core::Currency::from(0.0)),
@@ -51,7 +51,7 @@ impl std::default::Default for CreateAssetAccountDialog {
     }
 }
 
-impl CreateAssetAccountDialog {
+impl View {
     pub fn fetch(
         account_id: fm_core::Id,
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
