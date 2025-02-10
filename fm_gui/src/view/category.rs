@@ -27,8 +27,6 @@ pub enum Message {
         Vec<fm_core::Category>,
         Vec<fm_core::Budget>,
     ),
-    ViewTransaction(fm_core::Id),
-    ViewAccount(fm_core::Id),
     TransactionTable(utils::transaction_table::Message),
 }
 
@@ -189,8 +187,6 @@ impl Category {
                 };
                 Action::None
             }
-            Message::ViewTransaction(transaction_id) => Action::ViewTransaction(transaction_id),
-            Message::ViewAccount(account_id) => Action::ViewAccount(account_id),
             Message::TransactionTable(msg) => {
                 if let Self::Loaded {
                     transaction_table, ..

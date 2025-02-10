@@ -13,8 +13,6 @@ pub enum Action {
 pub enum Message {
     FilterComponent(Box<utils::filter_component::InnerMessage>),
     ToggleEditFilter,
-    ViewAccount(fm_core::Id),
-    ViewTransaction(fm_core::Id),
     UpdateTransactions(
         Vec<(
             fm_core::Transaction,
@@ -117,8 +115,6 @@ impl FilterTransactionView {
                     )
                 };
             }
-            Message::ViewAccount(id) => return Action::ViewAccount(id),
-            Message::ViewTransaction(id) => return Action::ViewTransaction(id),
             Message::UpdateTransactions(transactions) => {
                 self.sums = fm_core::sum_up_transactions_by_day(
                     transactions.clone().into_iter().map(|x| x.0).collect(),
