@@ -1,6 +1,7 @@
 use super::{colored_currency_display, link};
 use async_std::sync::Mutex;
 use iced::widget;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 pub enum Action {
@@ -56,6 +57,12 @@ impl std::fmt::Debug for TransactionTable {
     }
 }
 
+fn hash_categories(map: &std::collections::HashMap<fm_core::Id, fm_core::Sign>) -> u64 {
+    let mut hasher = std::hash::DefaultHasher::new();
+    map.keys().collect::<Vec<_>>().hash(&mut hasher);
+    hasher.finish()
+}
+
 impl TransactionTable {
     /// Create a table of transactions
     ///
@@ -102,7 +109,7 @@ impl TransactionTable {
                     }
                     3 => a.1.name().cmp(b.1.name()),
                     4 => a.2.name().cmp(b.2.name()),
-                    5 => a.0.categories().len().cmp(&b.0.categories().len()),
+                    5 => hash_categories(a.0.categories()).cmp(&hash_categories(b.0.categories())),
                     _ => std::cmp::Ordering::Equal,
                 });
         transaction_table.sort(1, true);
