@@ -32,6 +32,7 @@ pub enum Message {
 }
 
 pub struct TransactionTable {
+    #[allow(clippy::type_complexity)]
     transaction_table: crate::table_view::State<
         (
             fm_core::Transaction,
