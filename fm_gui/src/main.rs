@@ -21,39 +21,6 @@ macro_rules! message_match_action {
     };
 }
 
-#[derive(Debug, Clone)]
-pub enum AppMessage {
-    Ignore,
-    ToggleSidebarCollapse,
-    SwitchToBudgetOverview,
-    SwitchToCreateTransActionView,
-    SwitchToAssetAccountsView,
-    SwitchToCategoryOverview,
-    SwitchToBookCheckingAccountOverview,
-    SwitchToSettingsView,
-    SwitchToFilterTransactionView,
-    SwitchToBillOverview,
-    SwitchToLicense,
-    BudgetOverViewMessage(view::budget_overview::Message),
-    CreateAssetAccountMessage(view::create_asset_account::Message),
-    CreateBudgetViewMessage(view::create_budget::Message),
-    CreateTransactionViewMessage(view::create_transaction::MessageContainer),
-    AssetAccountsMessage(view::asset_accounts_overview::Message),
-    ViewAccountMessage(view::account::MessageContainer),
-    TransactionViewMessage(view::transaction::MessageContainer),
-    ViewBudgetMessage(view::budget::MessageContainer),
-    CreateCategoryMessage(view::create_category::Message),
-    CategoryOverviewMessage(view::category_overview::Message),
-    ViewCategoryMessage(view::category::Message),
-    BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
-    CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
-    SettingsMessage(view::settings::Message),
-    FilterTransactionMessage(view::filter_transactions::Message),
-    CreateBillMessage(view::create_bill::Message),
-    BillOverviewMessage(view::bill_overview::Message),
-    ViewBillMessage(view::bill::MessageContainer),
-}
-
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
 enum View {
@@ -78,6 +45,45 @@ enum View {
     CreateBill(view::create_bill::CreateBillView),
     BillOverview(view::bill_overview::BillOverview),
     ViewBill(view::bill::Bill),
+}
+
+#[derive(Debug, Clone)]
+enum ViewMessage {
+    None,
+    BudgetOverViewMessage(view::budget_overview::Message),
+    CreateAssetAccountMessage(view::create_asset_account::Message),
+    CreateBudgetViewMessage(view::create_budget::Message),
+    CreateTransactionViewMessage(view::create_transaction::MessageContainer),
+    AssetAccountsMessage(view::asset_accounts_overview::Message),
+    ViewAccountMessage(view::account::MessageContainer),
+    TransactionViewMessage(view::transaction::MessageContainer),
+    ViewBudgetMessage(view::budget::MessageContainer),
+    CreateCategoryMessage(view::create_category::Message),
+    CategoryOverviewMessage(view::category_overview::Message),
+    ViewCategoryMessage(view::category::Message),
+    BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
+    CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
+    SettingsMessage(view::settings::Message),
+    FilterTransactionMessage(view::filter_transactions::Message),
+    CreateBillMessage(view::create_bill::Message),
+    BillOverviewMessage(view::bill_overview::Message),
+    ViewBillMessage(view::bill::MessageContainer),
+}
+
+#[derive(Debug, Clone)]
+enum AppMessage {
+    Ignore,
+    ToggleSidebarCollapse,
+    SwitchToBudgetOverview,
+    SwitchToCreateTransActionView,
+    SwitchToAssetAccountsView,
+    SwitchToCategoryOverview,
+    SwitchToBookCheckingAccountOverview,
+    SwitchToSettingsView,
+    SwitchToFilterTransactionView,
+    SwitchToBillOverview,
+    SwitchToLicense,
+    ViewMessage(ViewMessage),
 }
 
 struct SvgCache {
@@ -167,365 +173,424 @@ impl App {
             AppMessage::SwitchToLicense => {
                 self.current_view = View::License;
             }
-            AppMessage::BudgetOverViewMessage(m) => {
-                match message_match_action!(self, m, View::BudgetOverview) {
-                    view::budget_overview::Action::None => {}
-                    view::budget_overview::Action::ViewBudget(id) => {
-                        return self.switch_view_budget(id);
-                    }
-                    view::budget_overview::Action::CreateBudget => {
-                        self.current_view = View::CreateBudgetView(
-                            view::create_budget::CreateBudgetView::default(),
-                        );
-                    }
-                    view::budget_overview::Action::Task(task) => {
-                        return task.map(AppMessage::BudgetOverViewMessage)
+            AppMessage::ViewMessage(view_message) => match view_message {
+                ViewMessage::None => {}
+                ViewMessage::BudgetOverViewMessage(m) => {
+                    match message_match_action!(self, m, View::BudgetOverview) {
+                        view::budget_overview::Action::None => {}
+                        view::budget_overview::Action::ViewBudget(id) => {
+                            return self.switch_view_budget(id);
+                        }
+                        view::budget_overview::Action::CreateBudget => {
+                            self.current_view = View::CreateBudgetView(
+                                view::create_budget::CreateBudgetView::default(),
+                            );
+                        }
+                        view::budget_overview::Action::Task(task) => {
+                            return task
+                                .map(ViewMessage::BudgetOverViewMessage)
+                                .map(AppMessage::ViewMessage)
+                        }
                     }
                 }
-            }
+                ViewMessage::CreateAssetAccountMessage(m) => {
+                    match message_match_action!(self, m, View::CreateAssetAccountDialog) {
+                        view::create_asset_account::Action::AssetAccountCreated(id) => {
+                            return self.switch_view_account(id)
+                        }
+                        view::create_asset_account::Action::None => {}
+                        view::create_asset_account::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::CreateAssetAccountMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::create_asset_account::Action::Cancel => {
+                            return self.switch_view_asset_account_overview()
+                        }
+                        view::create_asset_account::Action::CancelWithId(acc_id) => {
+                            return self.switch_view_account(acc_id);
+                        }
+                    }
+                }
+                ViewMessage::CreateBudgetViewMessage(m) => {
+                    match message_match_action!(self, m, View::CreateBudgetView) {
+                        view::create_budget::Action::BudgetCreated(id) => {
+                            return self.switch_view_budget(id);
+                        }
+                        view::create_budget::Action::None => {}
+                        view::create_budget::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::CreateBudgetViewMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::create_budget::Action::Cancel => {
+                            return self.switch_view_budget_overview();
+                        }
+                        view::create_budget::Action::CancelWithId(budget_id) => {
+                            return self.switch_view_budget(budget_id);
+                        }
+                    }
+                }
+                ViewMessage::CreateTransactionViewMessage(m) => {
+                    match message_match_action!(self, m, View::CreateTransactionView) {
+                        view::create_transaction::Action::TransactionCreated(id) => {
+                            return self.switch_view_transaction(id);
+                        }
+                        view::create_transaction::Action::None => {}
+                        view::create_transaction::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::CreateTransactionViewMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::create_transaction::Action::Cancel => {
+                            return self.switch_view_transaction_filter();
+                        }
+                        view::create_transaction::Action::CancelWithId(transaction_id) => {
+                            return self.switch_view_transaction(transaction_id);
+                        }
+                    }
+                }
+                ViewMessage::AssetAccountsMessage(m) => {
+                    match message_match_action!(self, m, View::AssetAccounts) {
+                        view::asset_accounts_overview::Action::ViewAccount(id) => {
+                            return self.switch_view_account(id);
+                        }
+                        view::asset_accounts_overview::Action::CreateAssetAccount => {
+                            self.current_view = View::CreateAssetAccountDialog(
+                                view::create_asset_account::CreateAssetAccountDialog::default(),
+                            );
+                        }
+                        view::asset_accounts_overview::Action::None => {}
+                        view::asset_accounts_overview::Action::Task(task) => {
+                            return task
+                                .map(ViewMessage::AssetAccountsMessage)
+                                .map(AppMessage::ViewMessage)
+                        }
+                    }
+                }
+                ViewMessage::ViewAccountMessage(m) => {
+                    match message_match_action!(self, m, View::ViewAccount) {
+                        view::account::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::ViewAccountMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::account::Action::None => {}
+                        view::account::Action::EditAssetAccount(acc) => {
+                            let (v, t) =
+                                view::create_asset_account::CreateAssetAccountDialog::fetch(
+                                    acc.id(),
+                                    self.finance_manager.clone(),
+                                );
+                            self.current_view = View::CreateAssetAccountDialog(v);
+                            return t
+                                .map(ViewMessage::CreateAssetAccountMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::account::Action::EditBookCheckingAccount(acc) => {
+                            let (v, t) =
+                                view::create_book_checking_account::CreateBookCheckingAccount::fetch(
+                                    self.finance_manager.clone(),
+                                    acc.id(),
+                                );
+                            self.current_view = View::CreateBookCheckingAccount(v);
+                            return t
+                                .map(ViewMessage::CreateBookCheckingAccountMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::account::Action::ViewTransaction(id) => {
+                            return self.switch_view_transaction(id);
+                        }
+                        view::account::Action::ViewAccount(id) => {
+                            return self.switch_view_account(id);
+                        }
+                        view::account::Action::AccountDeleted(acc_type) => match acc_type {
+                            view::account::AccountType::AssetAccount => {
+                                return self.switch_view_asset_account_overview();
+                            }
+                            view::account::AccountType::BookCheckingAccount => {
+                                return self.switch_view_book_checking_account_overview();
+                            }
+                        },
+                    }
+                }
+                ViewMessage::TransactionViewMessage(m) => {
+                    match message_match_action!(self, m, View::TransactionView) {
+                        view::transaction::Action::None => {}
+                        view::transaction::Action::Edit(id) => {
+                            let (v, t) = view::create_transaction::CreateTransactionView::fetch(
+                                self.finance_manager.clone(),
+                                id,
+                            );
+                            self.current_view = View::CreateTransactionView(v);
+                            return t
+                                .map(ViewMessage::CreateTransactionViewMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::transaction::Action::ViewAccount(id) => {
+                            return self.switch_view_account(id);
+                        }
+                        view::transaction::Action::Delete(task) => {
+                            return task.map(|_| AppMessage::SwitchToFilterTransactionView);
+                        }
+                        view::transaction::Action::ViewBudget(id) => {
+                            return self.switch_view_budget(id);
+                        }
+                        view::transaction::Action::NewBillWithTransaction(transaction) => {
+                            let (view, task) =
+                                view::create_bill::CreateBillView::new_with_transaction(
+                                    self.finance_manager.clone(),
+                                    transaction,
+                                );
+                            self.current_view = View::CreateBill(view);
+                            return task
+                                .map(ViewMessage::CreateBillMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::transaction::Action::ViewCategory(category) => {
+                            return self.switch_view_category(category);
+                        }
+                    }
+                }
+                ViewMessage::ViewBudgetMessage(m) => {
+                    match message_match_action!(self, m, View::ViewBudgetView) {
+                        view::budget::Action::None => {}
+                        view::budget::Action::ViewTransaction(id) => {
+                            return self.switch_view_transaction(id);
+                        }
+                        view::budget::Action::ViewAccount(id) => {
+                            return self.switch_view_account(id);
+                        }
+                        view::budget::Action::Edit(id) => {
+                            return self.switch_view_budget_edit(id);
+                        }
+                        view::budget::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::ViewBudgetMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::budget::Action::DeletedBudget => {
+                            return self.switch_view_budget_overview();
+                        }
+                    }
+                }
+                ViewMessage::CreateCategoryMessage(m) => {
+                    match message_match_action!(self, m, View::CreateCategory) {
+                        view::create_category::Action::CategoryCreated(id) => {
+                            return self.switch_view_category(id);
+                        }
+                        view::create_category::Action::None => {}
+                        view::create_category::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::CreateCategoryMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::create_category::Action::Cancel => {
+                            return self.switch_view_category_overview();
+                        }
+                        view::create_category::Action::CancelWithId(category_id) => {
+                            return self.switch_view_category(category_id);
+                        }
+                    }
+                }
+                ViewMessage::CategoryOverviewMessage(m) => {
+                    match message_match_action!(self, m, View::CategoryOverview) {
+                        view::category_overview::Action::ViewCategory(id) => {
+                            return self.switch_view_category(id);
+                        }
+                        view::category_overview::Action::NewCategory => {
+                            self.current_view = View::CreateCategory(
+                                view::create_category::CreateCategory::default(),
+                            );
+                        }
+                        view::category_overview::Action::None => {}
+                        view::category_overview::Action::Task(task) => {
+                            return task
+                                .map(ViewMessage::CategoryOverviewMessage)
+                                .map(AppMessage::ViewMessage)
+                        }
+                    }
+                }
+                ViewMessage::ViewCategoryMessage(m) => {
+                    match message_match_action!(self, m, View::ViewCategory) {
+                        view::category::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::ViewCategoryMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::category::Action::None => {}
+                        view::category::Action::EditCategory(id) => {
+                            return self.switch_view_category_edit(id);
+                        }
+                        view::category::Action::DeleteCategory(task) => {
+                            return task.map(|_| AppMessage::SwitchToCategoryOverview);
+                        }
+                        view::category::Action::ViewTransaction(id) => {
+                            return self.switch_view_transaction(id);
+                        }
+                        view::category::Action::ViewAccount(id) => {
+                            return self.switch_view_account(id);
+                        }
+                    }
+                }
+                ViewMessage::BookCheckingAccountOverviewMessage(m) => {
+                    match message_match_action!(self, m, View::BookCheckingAccountOverview) {
+                        view::book_checking_account_overview::Action::ViewAccount(id) => {
+                            return self.switch_view_account(id);
+                        }
+                        view::book_checking_account_overview::Action::None => {}
+                        view::book_checking_account_overview::Action::CreateNewAccount => {
+                            self.current_view = View::CreateBookCheckingAccount(
+                                view::create_book_checking_account::CreateBookCheckingAccount::default(
+                                ),
+                            );
+                        }
+                        view::book_checking_account_overview::Action::Task(task) => {
+                            return task
+                                .map(ViewMessage::BookCheckingAccountOverviewMessage)
+                                .map(AppMessage::ViewMessage)
+                        }
+                    }
+                }
+                ViewMessage::CreateBookCheckingAccountMessage(m) => {
+                    match message_match_action!(self, m, View::CreateBookCheckingAccount) {
+                        view::create_book_checking_account::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::CreateBookCheckingAccountMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::create_book_checking_account::Action::AccountCreated(id) => {
+                            return self.switch_view_account(id);
+                        }
+                        view::create_book_checking_account::Action::None => {}
+                        view::create_book_checking_account::Action::Cancel => {
+                            return self.switch_view_book_checking_account_overview()
+                        }
+                        view::create_book_checking_account::Action::CancelWithId(acc_id) => {
+                            return self.switch_view_account(acc_id)
+                        }
+                    }
+                }
+                ViewMessage::SettingsMessage(m) => {
+                    match message_match_action!(self, m, View::Settings) {
+                        view::settings::Action::None => {}
+                        view::settings::Action::ApplySettings(new_settings) => {
+                            return self.apply_settings(new_settings);
+                        }
+                    }
+                }
+                ViewMessage::FilterTransactionMessage(m) => {
+                    match message_match_action!(self, m, View::FilterTransaction) {
+                        view::filter_transactions::Action::None => {}
+                        view::filter_transactions::Action::ViewTransaction(id) => {
+                            return self.switch_view_transaction(id);
+                        }
+                        view::filter_transactions::Action::ViewAccount(id) => {
+                            return self.switch_view_account(id);
+                        }
+                        view::filter_transactions::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::FilterTransactionMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                    }
+                }
+                ViewMessage::CreateBillMessage(m) => {
+                    match message_match_action!(self, m, View::CreateBill) {
+                        view::create_bill::Action::BillCreated(id) => {
+                            return self.switch_view_bill(id);
+                        }
+                        view::create_bill::Action::None => {}
+                        view::create_bill::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::CreateBillMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::create_bill::Action::Cancel => {
+                            return self.switch_view_bill_overview()
+                        }
+                        view::create_bill::Action::CancelWithId(bill_id) => {
+                            return self.switch_view_bill(bill_id)
+                        }
+                    }
+                }
+                ViewMessage::BillOverviewMessage(m) => {
+                    match message_match_action!(self, m, View::BillOverview) {
+                        view::bill_overview::Action::ViewBill(id) => {
+                            return self.switch_view_bill(id);
+                        }
+                        view::bill_overview::Action::NewBill => {
+                            return self.switch_view_create_bill(None);
+                        }
+                        view::bill_overview::Action::None => {}
+
+                        view::bill_overview::Action::Task(task) => {
+                            return task
+                                .map(ViewMessage::BillOverviewMessage)
+                                .map(AppMessage::ViewMessage)
+                        }
+                    }
+                }
+                ViewMessage::ViewBillMessage(m) => {
+                    match message_match_action!(self, m, View::ViewBill) {
+                        view::bill::Action::ViewTransaction(id) => {
+                            return self.switch_view_transaction(id);
+                        }
+                        view::bill::Action::Edit(id) => {
+                            return self.switch_view_create_bill(Some(id));
+                        }
+                        view::bill::Action::None => {}
+                        view::bill::Action::Task(t) => {
+                            return t
+                                .map(ViewMessage::ViewBillMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                        view::bill::Action::Deleted => {
+                            let (view, task) = view::bill_overview::BillOverview::fetch(
+                                self.finance_manager.clone(),
+                            );
+                            self.current_view = View::BillOverview(view);
+                            return task
+                                .map(ViewMessage::BillOverviewMessage)
+                                .map(AppMessage::ViewMessage);
+                        }
+                    }
+                }
+            },
             AppMessage::SwitchToBudgetOverview => {
                 return self.switch_view_budget_overview();
             }
-            AppMessage::CreateAssetAccountMessage(m) => {
-                match message_match_action!(self, m, View::CreateAssetAccountDialog) {
-                    view::create_asset_account::Action::AssetAccountCreated(id) => {
-                        return self.switch_view_account(id)
-                    }
-                    view::create_asset_account::Action::None => {}
-                    view::create_asset_account::Action::Task(t) => {
-                        return t.map(AppMessage::CreateAssetAccountMessage);
-                    }
-                    view::create_asset_account::Action::Cancel => {
-                        return self.switch_view_asset_account_overview()
-                    }
-                    view::create_asset_account::Action::CancelWithId(acc_id) => {
-                        return self.switch_view_account(acc_id);
-                    }
-                }
-            }
-            AppMessage::CreateBudgetViewMessage(m) => {
-                match message_match_action!(self, m, View::CreateBudgetView) {
-                    view::create_budget::Action::BudgetCreated(id) => {
-                        return self.switch_view_budget(id);
-                    }
-                    view::create_budget::Action::None => {}
-                    view::create_budget::Action::Task(t) => {
-                        return t.map(AppMessage::CreateBudgetViewMessage);
-                    }
-                    view::create_budget::Action::Cancel => {
-                        return self.switch_view_budget_overview();
-                    }
-                    view::create_budget::Action::CancelWithId(budget_id) => {
-                        return self.switch_view_budget(budget_id);
-                    }
-                }
-            }
-            AppMessage::CreateTransactionViewMessage(m) => {
-                match message_match_action!(self, m, View::CreateTransactionView) {
-                    view::create_transaction::Action::TransactionCreated(id) => {
-                        return self.switch_view_transaction(id);
-                    }
-                    view::create_transaction::Action::None => {}
-                    view::create_transaction::Action::Task(t) => {
-                        return t.map(AppMessage::CreateTransactionViewMessage);
-                    }
-                    view::create_transaction::Action::Cancel => {
-                        return self.switch_view_transaction_filter();
-                    }
-                    view::create_transaction::Action::CancelWithId(transaction_id) => {
-                        return self.switch_view_transaction(transaction_id);
-                    }
-                }
-            }
+
             AppMessage::SwitchToCreateTransActionView => {
                 return self.switch_view_transaction_create();
             }
-            AppMessage::AssetAccountsMessage(m) => {
-                match message_match_action!(self, m, View::AssetAccounts) {
-                    view::asset_accounts_overview::Action::ViewAccount(id) => {
-                        return self.switch_view_account(id);
-                    }
-                    view::asset_accounts_overview::Action::CreateAssetAccount => {
-                        self.current_view = View::CreateAssetAccountDialog(
-                            view::create_asset_account::CreateAssetAccountDialog::default(),
-                        );
-                    }
-                    view::asset_accounts_overview::Action::None => {}
-                    view::asset_accounts_overview::Action::Task(task) => {
-                        return task.map(AppMessage::AssetAccountsMessage)
-                    }
-                }
-            }
+
             AppMessage::SwitchToAssetAccountsView => {
                 return self.switch_view_asset_account_overview();
             }
-            AppMessage::ViewAccountMessage(m) => {
-                match message_match_action!(self, m, View::ViewAccount) {
-                    view::account::Action::Task(t) => {
-                        return t.map(AppMessage::ViewAccountMessage);
-                    }
-                    view::account::Action::None => {}
-                    view::account::Action::EditAssetAccount(acc) => {
-                        let (v, t) = view::create_asset_account::CreateAssetAccountDialog::fetch(
-                            acc.id(),
-                            self.finance_manager.clone(),
-                        );
-                        self.current_view = View::CreateAssetAccountDialog(v);
-                        return t.map(AppMessage::CreateAssetAccountMessage);
-                    }
-                    view::account::Action::EditBookCheckingAccount(acc) => {
-                        let (v, t) =
-                            view::create_book_checking_account::CreateBookCheckingAccount::fetch(
-                                self.finance_manager.clone(),
-                                acc.id(),
-                            );
-                        self.current_view = View::CreateBookCheckingAccount(v);
-                        return t.map(AppMessage::CreateBookCheckingAccountMessage);
-                    }
-                    view::account::Action::ViewTransaction(id) => {
-                        return self.switch_view_transaction(id);
-                    }
-                    view::account::Action::ViewAccount(id) => {
-                        return self.switch_view_account(id);
-                    }
-                    view::account::Action::AccountDeleted(acc_type) => match acc_type {
-                        view::account::AccountType::AssetAccount => {
-                            return self.switch_view_asset_account_overview();
-                        }
-                        view::account::AccountType::BookCheckingAccount => {
-                            return self.switch_view_book_checking_account_overview();
-                        }
-                    },
-                }
-            }
-            AppMessage::TransactionViewMessage(m) => {
-                match message_match_action!(self, m, View::TransactionView) {
-                    view::transaction::Action::None => {}
-                    view::transaction::Action::Edit(id) => {
-                        let (v, t) = view::create_transaction::CreateTransactionView::fetch(
-                            self.finance_manager.clone(),
-                            id,
-                        );
-                        self.current_view = View::CreateTransactionView(v);
-                        return t.map(AppMessage::CreateTransactionViewMessage);
-                    }
-                    view::transaction::Action::ViewAccount(id) => {
-                        return self.switch_view_account(id);
-                    }
-                    view::transaction::Action::Delete(task) => {
-                        return task.map(|_| AppMessage::SwitchToFilterTransactionView);
-                    }
-                    view::transaction::Action::ViewBudget(id) => {
-                        return self.switch_view_budget(id);
-                    }
-                    view::transaction::Action::NewBillWithTransaction(transaction) => {
-                        let (view, task) = view::create_bill::CreateBillView::new_with_transaction(
-                            self.finance_manager.clone(),
-                            transaction,
-                        );
-                        self.current_view = View::CreateBill(view);
-                        return task.map(AppMessage::CreateBillMessage);
-                    }
-                    view::transaction::Action::ViewCategory(category) => {
-                        return self.switch_view_category(category);
-                    }
-                }
-            }
-            AppMessage::ViewBudgetMessage(m) => {
-                match message_match_action!(self, m, View::ViewBudgetView) {
-                    view::budget::Action::None => {}
-                    view::budget::Action::ViewTransaction(id) => {
-                        return self.switch_view_transaction(id);
-                    }
-                    view::budget::Action::ViewAccount(id) => {
-                        return self.switch_view_account(id);
-                    }
-                    view::budget::Action::Edit(id) => {
-                        return self.switch_view_budget_edit(id);
-                    }
-                    view::budget::Action::Task(t) => {
-                        return t.map(AppMessage::ViewBudgetMessage);
-                    }
-                    view::budget::Action::DeletedBudget => {
-                        return self.switch_view_budget_overview();
-                    }
-                }
-            }
-            AppMessage::CreateCategoryMessage(m) => {
-                match message_match_action!(self, m, View::CreateCategory) {
-                    view::create_category::Action::CategoryCreated(id) => {
-                        return self.switch_view_category(id);
-                    }
-                    view::create_category::Action::None => {}
-                    view::create_category::Action::Task(t) => {
-                        return t.map(AppMessage::CreateCategoryMessage);
-                    }
-                    view::create_category::Action::Cancel => {
-                        return self.switch_view_category_overview();
-                    }
-                    view::create_category::Action::CancelWithId(category_id) => {
-                        return self.switch_view_category(category_id);
-                    }
-                }
-            }
-            AppMessage::CategoryOverviewMessage(m) => {
-                match message_match_action!(self, m, View::CategoryOverview) {
-                    view::category_overview::Action::ViewCategory(id) => {
-                        return self.switch_view_category(id);
-                    }
-                    view::category_overview::Action::NewCategory => {
-                        self.current_view =
-                            View::CreateCategory(view::create_category::CreateCategory::default());
-                    }
-                    view::category_overview::Action::None => {}
-                    view::category_overview::Action::Task(task) => {
-                        return task.map(AppMessage::CategoryOverviewMessage)
-                    }
-                }
-            }
+
             AppMessage::SwitchToCategoryOverview => {
                 return self.switch_view_category_overview();
             }
-            AppMessage::ViewCategoryMessage(m) => {
-                match message_match_action!(self, m, View::ViewCategory) {
-                    view::category::Action::Task(t) => {
-                        return t.map(AppMessage::ViewCategoryMessage);
-                    }
-                    view::category::Action::None => {}
-                    view::category::Action::EditCategory(id) => {
-                        return self.switch_view_category_edit(id);
-                    }
-                    view::category::Action::DeleteCategory(task) => {
-                        return task.map(|_| AppMessage::SwitchToCategoryOverview);
-                    }
-                    view::category::Action::ViewTransaction(id) => {
-                        return self.switch_view_transaction(id);
-                    }
-                    view::category::Action::ViewAccount(id) => {
-                        return self.switch_view_account(id);
-                    }
-                }
-            }
-            AppMessage::BookCheckingAccountOverviewMessage(m) => {
-                match message_match_action!(self, m, View::BookCheckingAccountOverview) {
-                    view::book_checking_account_overview::Action::ViewAccount(id) => {
-                        return self.switch_view_account(id);
-                    }
-                    view::book_checking_account_overview::Action::None => {}
-                    view::book_checking_account_overview::Action::CreateNewAccount => {
-                        self.current_view = View::CreateBookCheckingAccount(
-                            view::create_book_checking_account::CreateBookCheckingAccount::default(
-                            ),
-                        );
-                    }
-                    view::book_checking_account_overview::Action::Task(task) => {
-                        return task.map(AppMessage::BookCheckingAccountOverviewMessage)
-                    }
-                }
-            }
+
             AppMessage::SwitchToBookCheckingAccountOverview => {
                 return self.switch_view_book_checking_account_overview();
             }
-            AppMessage::CreateBookCheckingAccountMessage(m) => {
-                match message_match_action!(self, m, View::CreateBookCheckingAccount) {
-                    view::create_book_checking_account::Action::Task(t) => {
-                        return t.map(AppMessage::CreateBookCheckingAccountMessage);
-                    }
-                    view::create_book_checking_account::Action::AccountCreated(id) => {
-                        return self.switch_view_account(id);
-                    }
-                    view::create_book_checking_account::Action::None => {}
-                    view::create_book_checking_account::Action::Cancel => {
-                        return self.switch_view_book_checking_account_overview()
-                    }
-                    view::create_book_checking_account::Action::CancelWithId(acc_id) => {
-                        return self.switch_view_account(acc_id)
-                    }
-                }
-            }
+
             AppMessage::SwitchToSettingsView => {
                 let (view, task) = view::settings::SettingsView::new(self.settings.clone());
                 self.current_view = View::Settings(view);
-                return task.map(AppMessage::SettingsMessage);
+                return task
+                    .map(ViewMessage::SettingsMessage)
+                    .map(AppMessage::ViewMessage);
             }
-            AppMessage::SettingsMessage(m) => {
-                match message_match_action!(self, m, View::Settings) {
-                    view::settings::Action::None => {}
-                    view::settings::Action::ApplySettings(new_settings) => {
-                        return self.apply_settings(new_settings);
-                    }
-                }
-            }
-            AppMessage::FilterTransactionMessage(m) => {
-                match message_match_action!(self, m, View::FilterTransaction) {
-                    view::filter_transactions::Action::None => {}
-                    view::filter_transactions::Action::ViewTransaction(id) => {
-                        return self.switch_view_transaction(id);
-                    }
-                    view::filter_transactions::Action::ViewAccount(id) => {
-                        return self.switch_view_account(id);
-                    }
-                    view::filter_transactions::Action::Task(t) => {
-                        return t.map(AppMessage::FilterTransactionMessage);
-                    }
-                }
-            }
-            AppMessage::CreateBillMessage(m) => {
-                match message_match_action!(self, m, View::CreateBill) {
-                    view::create_bill::Action::BillCreated(id) => {
-                        return self.switch_view_bill(id);
-                    }
-                    view::create_bill::Action::None => {}
-                    view::create_bill::Action::Task(t) => {
-                        return t.map(AppMessage::CreateBillMessage);
-                    }
-                    view::create_bill::Action::Cancel => return self.switch_view_bill_overview(),
-                    view::create_bill::Action::CancelWithId(bill_id) => {
-                        return self.switch_view_bill(bill_id)
-                    }
-                }
-            }
-            AppMessage::BillOverviewMessage(m) => {
-                match message_match_action!(self, m, View::BillOverview) {
-                    view::bill_overview::Action::ViewBill(id) => {
-                        return self.switch_view_bill(id);
-                    }
-                    view::bill_overview::Action::NewBill => {
-                        return self.switch_view_create_bill(None);
-                    }
-                    view::bill_overview::Action::None => {}
 
-                    view::bill_overview::Action::Task(task) => {
-                        return task.map(AppMessage::BillOverviewMessage)
-                    }
-                }
-            }
             AppMessage::SwitchToFilterTransactionView => {
                 self.current_view = View::Empty;
                 return self.switch_view_transaction_filter();
             }
             AppMessage::SwitchToBillOverview => {
                 return self.switch_view_bill_overview();
-            }
-            AppMessage::ViewBillMessage(m) => {
-                match message_match_action!(self, m, View::ViewBill) {
-                    view::bill::Action::ViewTransaction(id) => {
-                        return self.switch_view_transaction(id);
-                    }
-                    view::bill::Action::Edit(id) => {
-                        return self.switch_view_create_bill(Some(id));
-                    }
-                    view::bill::Action::None => {}
-                    view::bill::Action::Task(t) => {
-                        return t.map(AppMessage::ViewBillMessage);
-                    }
-                    view::bill::Action::Deleted => {
-                        let (view, task) =
-                            view::bill_overview::BillOverview::fetch(self.finance_manager.clone());
-                        self.current_view = View::BillOverview(view);
-                        return task.map(AppMessage::BillOverviewMessage);
-                    }
-                }
             }
         }
         iced::Task::none()
@@ -641,51 +706,58 @@ impl App {
             ]
             .align_x(iced::Alignment::Start),
             iced::widget::vertical_rule(5),
-            iced::widget::container(match self.current_view {
-                View::Empty => widget::container(
-                    widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
-                        "../../FM_Logo.svg"
-                    )))
-                    .width(iced::Fill)
-                    .height(iced::Fill)
-                )
-                .padding(50)
-                .center(iced::Fill)
-                .into(),
-                View::Tutorial(ref items) => tutorial(items),
-                View::License =>
-                    widget::scrollable(widget::text(include_str!("../../LICENSE"))).into(),
-                View::BudgetOverview(ref view) =>
-                    view.view().map(AppMessage::BudgetOverViewMessage),
-                View::CreateAssetAccountDialog(ref view) =>
-                    view.view().map(AppMessage::CreateAssetAccountMessage),
-                View::CreateBudgetView(ref view) =>
-                    view.view().map(AppMessage::CreateBudgetViewMessage),
-                View::CreateTransactionView(ref view) =>
-                    view.view().map(AppMessage::CreateTransactionViewMessage),
-                View::AssetAccounts(ref view) => view.view().map(AppMessage::AssetAccountsMessage),
-                View::ViewAccount(ref view) => view.view().map(AppMessage::ViewAccountMessage),
-                View::TransactionView(ref view) =>
-                    view.view().map(AppMessage::TransactionViewMessage),
-                View::ViewBudgetView(ref view) => view.view().map(AppMessage::ViewBudgetMessage),
-                View::CreateCategory(ref view) =>
-                    view.view().map(AppMessage::CreateCategoryMessage),
-                View::CategoryOverview(ref view) =>
-                    view.view().map(AppMessage::CategoryOverviewMessage),
-                View::ViewCategory(ref view) => view.view().map(AppMessage::ViewCategoryMessage),
-                View::BookCheckingAccountOverview(ref view) => view
-                    .view()
-                    .map(AppMessage::BookCheckingAccountOverviewMessage),
-                View::CreateBookCheckingAccount(ref view) => view
-                    .view()
-                    .map(AppMessage::CreateBookCheckingAccountMessage),
-                View::Settings(ref view) => view.view().map(AppMessage::SettingsMessage),
-                View::FilterTransaction(ref view) =>
-                    view.view().map(AppMessage::FilterTransactionMessage),
-                View::CreateBill(ref view) => view.view().map(AppMessage::CreateBillMessage),
-                View::BillOverview(ref view) => view.view().map(AppMessage::BillOverviewMessage),
-                View::ViewBill(ref view) => view.view().map(AppMessage::ViewBillMessage),
-            })
+            iced::widget::container(
+                match self.current_view {
+                    View::Empty => widget::container(
+                        widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
+                            "../../FM_Logo.svg"
+                        )))
+                        .width(iced::Fill)
+                        .height(iced::Fill)
+                    )
+                    .padding(50)
+                    .center(iced::Fill)
+                    .into(),
+                    View::Tutorial(ref items) => tutorial(items),
+                    View::License =>
+                        widget::scrollable(widget::text(include_str!("../../LICENSE"))).into(),
+                    View::BudgetOverview(ref view) =>
+                        view.view().map(ViewMessage::BudgetOverViewMessage),
+                    View::CreateAssetAccountDialog(ref view) =>
+                        view.view().map(ViewMessage::CreateAssetAccountMessage),
+                    View::CreateBudgetView(ref view) =>
+                        view.view().map(ViewMessage::CreateBudgetViewMessage),
+                    View::CreateTransactionView(ref view) =>
+                        view.view().map(ViewMessage::CreateTransactionViewMessage),
+                    View::AssetAccounts(ref view) =>
+                        view.view().map(ViewMessage::AssetAccountsMessage),
+                    View::ViewAccount(ref view) => view.view().map(ViewMessage::ViewAccountMessage),
+                    View::TransactionView(ref view) =>
+                        view.view().map(ViewMessage::TransactionViewMessage),
+                    View::ViewBudgetView(ref view) =>
+                        view.view().map(ViewMessage::ViewBudgetMessage),
+                    View::CreateCategory(ref view) =>
+                        view.view().map(ViewMessage::CreateCategoryMessage),
+                    View::CategoryOverview(ref view) =>
+                        view.view().map(ViewMessage::CategoryOverviewMessage),
+                    View::ViewCategory(ref view) =>
+                        view.view().map(ViewMessage::ViewCategoryMessage),
+                    View::BookCheckingAccountOverview(ref view) => view
+                        .view()
+                        .map(ViewMessage::BookCheckingAccountOverviewMessage),
+                    View::CreateBookCheckingAccount(ref view) => view
+                        .view()
+                        .map(ViewMessage::CreateBookCheckingAccountMessage),
+                    View::Settings(ref view) => view.view().map(ViewMessage::SettingsMessage),
+                    View::FilterTransaction(ref view) =>
+                        view.view().map(ViewMessage::FilterTransactionMessage),
+                    View::CreateBill(ref view) => view.view().map(ViewMessage::CreateBillMessage),
+                    View::BillOverview(ref view) =>
+                        view.view().map(ViewMessage::BillOverviewMessage),
+                    View::ViewBill(ref view) => view.view().map(ViewMessage::ViewBillMessage),
+                }
+                .map(AppMessage::ViewMessage)
+            )
             .width(iced::Fill)
             .padding(utils::style::PADDING)
         ]
@@ -695,7 +767,8 @@ impl App {
     fn switch_view_account(&mut self, account: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) = view::account::Account::fetch(self.finance_manager.clone(), account);
         self.current_view = View::ViewAccount(view);
-        task.map(AppMessage::ViewAccountMessage)
+        task.map(ViewMessage::ViewAccountMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_asset_account_overview(&mut self) -> iced::Task<AppMessage> {
@@ -703,19 +776,22 @@ impl App {
             self.finance_manager.clone(),
         );
         self.current_view = View::AssetAccounts(view);
-        task.map(AppMessage::AssetAccountsMessage)
+        task.map(ViewMessage::AssetAccountsMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_bill_overview(&mut self) -> iced::Task<AppMessage> {
         let (view, task) = view::bill_overview::BillOverview::fetch(self.finance_manager.clone());
         self.current_view = View::BillOverview(view);
-        task.map(AppMessage::BillOverviewMessage)
+        task.map(ViewMessage::BillOverviewMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_bill(&mut self, bill: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) = view::bill::Bill::fetch(bill, self.finance_manager.clone());
         self.current_view = View::ViewBill(view);
-        task.map(AppMessage::ViewBillMessage)
+        task.map(ViewMessage::ViewBillMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_book_checking_account_overview(&mut self) -> iced::Task<AppMessage> {
@@ -723,75 +799,86 @@ impl App {
             self.finance_manager.clone(),
         );
         self.current_view = View::BookCheckingAccountOverview(view);
-        task.map(AppMessage::BookCheckingAccountOverviewMessage)
+        task.map(ViewMessage::BookCheckingAccountOverviewMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_budget_overview(&mut self) -> iced::Task<AppMessage> {
         let (view, task) =
             view::budget_overview::BudgetOverview::fetch(self.finance_manager.clone());
         self.current_view = View::BudgetOverview(view);
-        task.map(AppMessage::BudgetOverViewMessage)
+        task.map(ViewMessage::BudgetOverViewMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_budget(&mut self, budget: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) = view::budget::Budget::fetch(budget, 0, self.finance_manager.clone());
         self.current_view = View::ViewBudgetView(view);
-        task.map(AppMessage::ViewBudgetMessage)
+        task.map(ViewMessage::ViewBudgetMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_category_overview(&mut self) -> iced::Task<AppMessage> {
         let (view, task) =
             view::category_overview::CategoryOverview::fetch(self.finance_manager.clone());
         self.current_view = View::CategoryOverview(view);
-        task.map(AppMessage::CategoryOverviewMessage)
+        task.map(ViewMessage::CategoryOverviewMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_category(&mut self, category: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) = view::category::Category::fetch(self.finance_manager.clone(), category);
         self.current_view = View::ViewCategory(view);
-        task.map(AppMessage::ViewCategoryMessage)
+        task.map(ViewMessage::ViewCategoryMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_create_bill(&mut self, bill: Option<fm_core::Id>) -> iced::Task<AppMessage> {
         let (view, task) =
             view::create_bill::CreateBillView::fetch(bill, self.finance_manager.clone());
         self.current_view = View::CreateBill(view);
-        task.map(AppMessage::CreateBillMessage)
+        task.map(ViewMessage::CreateBillMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_budget_edit(&mut self, budget: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) =
             view::create_budget::CreateBudgetView::fetch(budget, self.finance_manager.clone());
         self.current_view = View::CreateBudgetView(view);
-        task.map(AppMessage::CreateBudgetViewMessage)
+        task.map(ViewMessage::CreateBudgetViewMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_transaction_create(&mut self) -> iced::Task<AppMessage> {
         let (view, task) =
             view::create_transaction::CreateTransactionView::new(self.finance_manager.clone());
         self.current_view = View::CreateTransactionView(view);
-        task.map(AppMessage::CreateTransactionViewMessage)
+        task.map(ViewMessage::CreateTransactionViewMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_transaction_filter(&mut self) -> iced::Task<AppMessage> {
         let (view, task) =
             view::filter_transactions::FilterTransactionView::new(self.finance_manager.clone());
         self.current_view = View::FilterTransaction(view);
-        task.map(AppMessage::FilterTransactionMessage)
+        task.map(ViewMessage::FilterTransactionMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_transaction(&mut self, transaction: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) =
             view::transaction::Transaction::fetch(transaction, self.finance_manager.clone());
         self.current_view = View::TransactionView(view);
-        task.map(AppMessage::TransactionViewMessage)
+        task.map(ViewMessage::TransactionViewMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_category_edit(&mut self, category: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) =
             view::create_category::CreateCategory::fetch(category, self.finance_manager.clone());
         self.current_view = View::CreateCategory(view);
-        task.map(AppMessage::CreateCategoryMessage)
+        task.map(ViewMessage::CreateCategoryMessage)
+            .map(AppMessage::ViewMessage)
     }
 
     fn apply_settings(&mut self, new_settings: settings::Settings) -> iced::Task<AppMessage> {
@@ -955,7 +1042,7 @@ fn main() {
         .unwrap();
 }
 
-fn tutorial(items: &Vec<widget::markdown::Item>) -> iced::Element<AppMessage> {
+fn tutorial(items: &Vec<widget::markdown::Item>) -> iced::Element<ViewMessage> {
     widget::container(widget::scrollable(widget::column![
         utils::heading("Finance Manager", utils::HeadingLevel::H1),
         widget::markdown(
@@ -963,7 +1050,7 @@ fn tutorial(items: &Vec<widget::markdown::Item>) -> iced::Element<AppMessage> {
             utils::markdown_settings(),
             widget::markdown::Style::from_palette(iced::Theme::Nord.palette())
         )
-        .map(|_| AppMessage::Ignore)
+        .map(|_| ViewMessage::None)
     ]))
     .center_x(iced::Fill)
     .into()
