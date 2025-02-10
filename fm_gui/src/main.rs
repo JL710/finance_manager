@@ -50,24 +50,24 @@ enum View {
 #[derive(Debug, Clone)]
 enum ViewMessage {
     None,
-    BudgetOverViewMessage(view::budget_overview::Message),
-    CreateAssetAccountMessage(view::create_asset_account::Message),
-    CreateBudgetViewMessage(view::create_budget::Message),
-    CreateTransactionViewMessage(view::create_transaction::MessageContainer),
-    AssetAccountsMessage(view::asset_accounts_overview::Message),
-    ViewAccountMessage(view::account::MessageContainer),
-    TransactionViewMessage(view::transaction::MessageContainer),
-    ViewBudgetMessage(view::budget::MessageContainer),
-    CreateCategoryMessage(view::create_category::Message),
-    CategoryOverviewMessage(view::category_overview::Message),
-    ViewCategoryMessage(view::category::Message),
-    BookCheckingAccountOverviewMessage(view::book_checking_account_overview::Message),
-    CreateBookCheckingAccountMessage(view::create_book_checking_account::Message),
-    SettingsMessage(view::settings::Message),
-    FilterTransactionMessage(view::filter_transactions::Message),
-    CreateBillMessage(view::create_bill::Message),
-    BillOverviewMessage(view::bill_overview::Message),
-    ViewBillMessage(view::bill::MessageContainer),
+    BudgetOverview(view::budget_overview::Message),
+    CreateAssetAccount(view::create_asset_account::Message),
+    CreateBudget(view::create_budget::Message),
+    CreateTransaction(view::create_transaction::MessageContainer),
+    AssetAccounts(view::asset_accounts_overview::Message),
+    ViewAccount(view::account::MessageContainer),
+    Transaction(view::transaction::MessageContainer),
+    ViewBudget(view::budget::MessageContainer),
+    CreateCategory(view::create_category::Message),
+    CategoryOverview(view::category_overview::Message),
+    ViewCategory(view::category::Message),
+    BookCheckingAccountOverview(view::book_checking_account_overview::Message),
+    CreateBookCheckingAccount(view::create_book_checking_account::Message),
+    Settings(view::settings::Message),
+    FilterTransaction(view::filter_transactions::Message),
+    CreateBill(view::create_bill::Message),
+    BillOverview(view::bill_overview::Message),
+    ViewBill(view::bill::MessageContainer),
 }
 
 #[derive(Debug, Clone)]
@@ -175,7 +175,7 @@ impl App {
             }
             AppMessage::ViewMessage(view_message) => match view_message {
                 ViewMessage::None => {}
-                ViewMessage::BudgetOverViewMessage(m) => {
+                ViewMessage::BudgetOverview(m) => {
                     match message_match_action!(self, m, View::BudgetOverview) {
                         view::budget_overview::Action::None => {}
                         view::budget_overview::Action::ViewBudget(id) => {
@@ -188,12 +188,12 @@ impl App {
                         }
                         view::budget_overview::Action::Task(task) => {
                             return task
-                                .map(ViewMessage::BudgetOverViewMessage)
+                                .map(ViewMessage::BudgetOverview)
                                 .map(AppMessage::ViewMessage)
                         }
                     }
                 }
-                ViewMessage::CreateAssetAccountMessage(m) => {
+                ViewMessage::CreateAssetAccount(m) => {
                     match message_match_action!(self, m, View::CreateAssetAccountDialog) {
                         view::create_asset_account::Action::AssetAccountCreated(id) => {
                             return self.switch_view_account(id)
@@ -201,7 +201,7 @@ impl App {
                         view::create_asset_account::Action::None => {}
                         view::create_asset_account::Action::Task(t) => {
                             return t
-                                .map(ViewMessage::CreateAssetAccountMessage)
+                                .map(ViewMessage::CreateAssetAccount)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::create_asset_account::Action::Cancel => {
@@ -212,7 +212,7 @@ impl App {
                         }
                     }
                 }
-                ViewMessage::CreateBudgetViewMessage(m) => {
+                ViewMessage::CreateBudget(m) => {
                     match message_match_action!(self, m, View::CreateBudgetView) {
                         view::create_budget::Action::BudgetCreated(id) => {
                             return self.switch_view_budget(id);
@@ -220,7 +220,7 @@ impl App {
                         view::create_budget::Action::None => {}
                         view::create_budget::Action::Task(t) => {
                             return t
-                                .map(ViewMessage::CreateBudgetViewMessage)
+                                .map(ViewMessage::CreateBudget)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::create_budget::Action::Cancel => {
@@ -231,7 +231,7 @@ impl App {
                         }
                     }
                 }
-                ViewMessage::CreateTransactionViewMessage(m) => {
+                ViewMessage::CreateTransaction(m) => {
                     match message_match_action!(self, m, View::CreateTransactionView) {
                         view::create_transaction::Action::TransactionCreated(id) => {
                             return self.switch_view_transaction(id);
@@ -239,7 +239,7 @@ impl App {
                         view::create_transaction::Action::None => {}
                         view::create_transaction::Action::Task(t) => {
                             return t
-                                .map(ViewMessage::CreateTransactionViewMessage)
+                                .map(ViewMessage::CreateTransaction)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::create_transaction::Action::Cancel => {
@@ -250,7 +250,7 @@ impl App {
                         }
                     }
                 }
-                ViewMessage::AssetAccountsMessage(m) => {
+                ViewMessage::AssetAccounts(m) => {
                     match message_match_action!(self, m, View::AssetAccounts) {
                         view::asset_accounts_overview::Action::ViewAccount(id) => {
                             return self.switch_view_account(id);
@@ -263,17 +263,15 @@ impl App {
                         view::asset_accounts_overview::Action::None => {}
                         view::asset_accounts_overview::Action::Task(task) => {
                             return task
-                                .map(ViewMessage::AssetAccountsMessage)
+                                .map(ViewMessage::AssetAccounts)
                                 .map(AppMessage::ViewMessage)
                         }
                     }
                 }
-                ViewMessage::ViewAccountMessage(m) => {
+                ViewMessage::ViewAccount(m) => {
                     match message_match_action!(self, m, View::ViewAccount) {
                         view::account::Action::Task(t) => {
-                            return t
-                                .map(ViewMessage::ViewAccountMessage)
-                                .map(AppMessage::ViewMessage);
+                            return t.map(ViewMessage::ViewAccount).map(AppMessage::ViewMessage);
                         }
                         view::account::Action::None => {}
                         view::account::Action::EditAssetAccount(acc) => {
@@ -284,7 +282,7 @@ impl App {
                                 );
                             self.current_view = View::CreateAssetAccountDialog(v);
                             return t
-                                .map(ViewMessage::CreateAssetAccountMessage)
+                                .map(ViewMessage::CreateAssetAccount)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::account::Action::EditBookCheckingAccount(acc) => {
@@ -295,7 +293,7 @@ impl App {
                                 );
                             self.current_view = View::CreateBookCheckingAccount(v);
                             return t
-                                .map(ViewMessage::CreateBookCheckingAccountMessage)
+                                .map(ViewMessage::CreateBookCheckingAccount)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::account::Action::ViewTransaction(id) => {
@@ -314,7 +312,7 @@ impl App {
                         },
                     }
                 }
-                ViewMessage::TransactionViewMessage(m) => {
+                ViewMessage::Transaction(m) => {
                     match message_match_action!(self, m, View::TransactionView) {
                         view::transaction::Action::None => {}
                         view::transaction::Action::Edit(id) => {
@@ -324,7 +322,7 @@ impl App {
                             );
                             self.current_view = View::CreateTransactionView(v);
                             return t
-                                .map(ViewMessage::CreateTransactionViewMessage)
+                                .map(ViewMessage::CreateTransaction)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::transaction::Action::ViewAccount(id) => {
@@ -344,7 +342,7 @@ impl App {
                                 );
                             self.current_view = View::CreateBill(view);
                             return task
-                                .map(ViewMessage::CreateBillMessage)
+                                .map(ViewMessage::CreateBill)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::transaction::Action::ViewCategory(category) => {
@@ -352,7 +350,7 @@ impl App {
                         }
                     }
                 }
-                ViewMessage::ViewBudgetMessage(m) => {
+                ViewMessage::ViewBudget(m) => {
                     match message_match_action!(self, m, View::ViewBudgetView) {
                         view::budget::Action::None => {}
                         view::budget::Action::ViewTransaction(id) => {
@@ -365,16 +363,14 @@ impl App {
                             return self.switch_view_budget_edit(id);
                         }
                         view::budget::Action::Task(t) => {
-                            return t
-                                .map(ViewMessage::ViewBudgetMessage)
-                                .map(AppMessage::ViewMessage);
+                            return t.map(ViewMessage::ViewBudget).map(AppMessage::ViewMessage);
                         }
                         view::budget::Action::DeletedBudget => {
                             return self.switch_view_budget_overview();
                         }
                     }
                 }
-                ViewMessage::CreateCategoryMessage(m) => {
+                ViewMessage::CreateCategory(m) => {
                     match message_match_action!(self, m, View::CreateCategory) {
                         view::create_category::Action::CategoryCreated(id) => {
                             return self.switch_view_category(id);
@@ -382,7 +378,7 @@ impl App {
                         view::create_category::Action::None => {}
                         view::create_category::Action::Task(t) => {
                             return t
-                                .map(ViewMessage::CreateCategoryMessage)
+                                .map(ViewMessage::CreateCategory)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::create_category::Action::Cancel => {
@@ -393,7 +389,7 @@ impl App {
                         }
                     }
                 }
-                ViewMessage::CategoryOverviewMessage(m) => {
+                ViewMessage::CategoryOverview(m) => {
                     match message_match_action!(self, m, View::CategoryOverview) {
                         view::category_overview::Action::ViewCategory(id) => {
                             return self.switch_view_category(id);
@@ -406,16 +402,16 @@ impl App {
                         view::category_overview::Action::None => {}
                         view::category_overview::Action::Task(task) => {
                             return task
-                                .map(ViewMessage::CategoryOverviewMessage)
+                                .map(ViewMessage::CategoryOverview)
                                 .map(AppMessage::ViewMessage)
                         }
                     }
                 }
-                ViewMessage::ViewCategoryMessage(m) => {
+                ViewMessage::ViewCategory(m) => {
                     match message_match_action!(self, m, View::ViewCategory) {
                         view::category::Action::Task(t) => {
                             return t
-                                .map(ViewMessage::ViewCategoryMessage)
+                                .map(ViewMessage::ViewCategory)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::category::Action::None => {}
@@ -433,7 +429,7 @@ impl App {
                         }
                     }
                 }
-                ViewMessage::BookCheckingAccountOverviewMessage(m) => {
+                ViewMessage::BookCheckingAccountOverview(m) => {
                     match message_match_action!(self, m, View::BookCheckingAccountOverview) {
                         view::book_checking_account_overview::Action::ViewAccount(id) => {
                             return self.switch_view_account(id);
@@ -447,16 +443,16 @@ impl App {
                         }
                         view::book_checking_account_overview::Action::Task(task) => {
                             return task
-                                .map(ViewMessage::BookCheckingAccountOverviewMessage)
+                                .map(ViewMessage::BookCheckingAccountOverview)
                                 .map(AppMessage::ViewMessage)
                         }
                     }
                 }
-                ViewMessage::CreateBookCheckingAccountMessage(m) => {
+                ViewMessage::CreateBookCheckingAccount(m) => {
                     match message_match_action!(self, m, View::CreateBookCheckingAccount) {
                         view::create_book_checking_account::Action::Task(t) => {
                             return t
-                                .map(ViewMessage::CreateBookCheckingAccountMessage)
+                                .map(ViewMessage::CreateBookCheckingAccount)
                                 .map(AppMessage::ViewMessage);
                         }
                         view::create_book_checking_account::Action::AccountCreated(id) => {
@@ -471,15 +467,13 @@ impl App {
                         }
                     }
                 }
-                ViewMessage::SettingsMessage(m) => {
-                    match message_match_action!(self, m, View::Settings) {
-                        view::settings::Action::None => {}
-                        view::settings::Action::ApplySettings(new_settings) => {
-                            return self.apply_settings(new_settings);
-                        }
+                ViewMessage::Settings(m) => match message_match_action!(self, m, View::Settings) {
+                    view::settings::Action::None => {}
+                    view::settings::Action::ApplySettings(new_settings) => {
+                        return self.apply_settings(new_settings);
                     }
-                }
-                ViewMessage::FilterTransactionMessage(m) => {
+                },
+                ViewMessage::FilterTransaction(m) => {
                     match message_match_action!(self, m, View::FilterTransaction) {
                         view::filter_transactions::Action::None => {}
                         view::filter_transactions::Action::ViewTransaction(id) => {
@@ -490,21 +484,19 @@ impl App {
                         }
                         view::filter_transactions::Action::Task(t) => {
                             return t
-                                .map(ViewMessage::FilterTransactionMessage)
+                                .map(ViewMessage::FilterTransaction)
                                 .map(AppMessage::ViewMessage);
                         }
                     }
                 }
-                ViewMessage::CreateBillMessage(m) => {
+                ViewMessage::CreateBill(m) => {
                     match message_match_action!(self, m, View::CreateBill) {
                         view::create_bill::Action::BillCreated(id) => {
                             return self.switch_view_bill(id);
                         }
                         view::create_bill::Action::None => {}
                         view::create_bill::Action::Task(t) => {
-                            return t
-                                .map(ViewMessage::CreateBillMessage)
-                                .map(AppMessage::ViewMessage);
+                            return t.map(ViewMessage::CreateBill).map(AppMessage::ViewMessage);
                         }
                         view::create_bill::Action::Cancel => {
                             return self.switch_view_bill_overview()
@@ -514,7 +506,7 @@ impl App {
                         }
                     }
                 }
-                ViewMessage::BillOverviewMessage(m) => {
+                ViewMessage::BillOverview(m) => {
                     match message_match_action!(self, m, View::BillOverview) {
                         view::bill_overview::Action::ViewBill(id) => {
                             return self.switch_view_bill(id);
@@ -526,36 +518,31 @@ impl App {
 
                         view::bill_overview::Action::Task(task) => {
                             return task
-                                .map(ViewMessage::BillOverviewMessage)
+                                .map(ViewMessage::BillOverview)
                                 .map(AppMessage::ViewMessage)
                         }
                     }
                 }
-                ViewMessage::ViewBillMessage(m) => {
-                    match message_match_action!(self, m, View::ViewBill) {
-                        view::bill::Action::ViewTransaction(id) => {
-                            return self.switch_view_transaction(id);
-                        }
-                        view::bill::Action::Edit(id) => {
-                            return self.switch_view_create_bill(Some(id));
-                        }
-                        view::bill::Action::None => {}
-                        view::bill::Action::Task(t) => {
-                            return t
-                                .map(ViewMessage::ViewBillMessage)
-                                .map(AppMessage::ViewMessage);
-                        }
-                        view::bill::Action::Deleted => {
-                            let (view, task) = view::bill_overview::BillOverview::fetch(
-                                self.finance_manager.clone(),
-                            );
-                            self.current_view = View::BillOverview(view);
-                            return task
-                                .map(ViewMessage::BillOverviewMessage)
-                                .map(AppMessage::ViewMessage);
-                        }
+                ViewMessage::ViewBill(m) => match message_match_action!(self, m, View::ViewBill) {
+                    view::bill::Action::ViewTransaction(id) => {
+                        return self.switch_view_transaction(id);
                     }
-                }
+                    view::bill::Action::Edit(id) => {
+                        return self.switch_view_create_bill(Some(id));
+                    }
+                    view::bill::Action::None => {}
+                    view::bill::Action::Task(t) => {
+                        return t.map(ViewMessage::ViewBill).map(AppMessage::ViewMessage);
+                    }
+                    view::bill::Action::Deleted => {
+                        let (view, task) =
+                            view::bill_overview::BillOverview::fetch(self.finance_manager.clone());
+                        self.current_view = View::BillOverview(view);
+                        return task
+                            .map(ViewMessage::BillOverview)
+                            .map(AppMessage::ViewMessage);
+                    }
+                },
             },
             AppMessage::SwitchToBudgetOverview => {
                 return self.switch_view_budget_overview();
@@ -580,9 +567,7 @@ impl App {
             AppMessage::SwitchToSettingsView => {
                 let (view, task) = view::settings::SettingsView::new(self.settings.clone());
                 self.current_view = View::Settings(view);
-                return task
-                    .map(ViewMessage::SettingsMessage)
-                    .map(AppMessage::ViewMessage);
+                return task.map(ViewMessage::Settings).map(AppMessage::ViewMessage);
             }
 
             AppMessage::SwitchToFilterTransactionView => {
@@ -721,40 +706,30 @@ impl App {
                     View::Tutorial(ref items) => tutorial(items),
                     View::License =>
                         widget::scrollable(widget::text(include_str!("../../LICENSE"))).into(),
-                    View::BudgetOverview(ref view) =>
-                        view.view().map(ViewMessage::BudgetOverViewMessage),
+                    View::BudgetOverview(ref view) => view.view().map(ViewMessage::BudgetOverview),
                     View::CreateAssetAccountDialog(ref view) =>
-                        view.view().map(ViewMessage::CreateAssetAccountMessage),
-                    View::CreateBudgetView(ref view) =>
-                        view.view().map(ViewMessage::CreateBudgetViewMessage),
+                        view.view().map(ViewMessage::CreateAssetAccount),
+                    View::CreateBudgetView(ref view) => view.view().map(ViewMessage::CreateBudget),
                     View::CreateTransactionView(ref view) =>
-                        view.view().map(ViewMessage::CreateTransactionViewMessage),
-                    View::AssetAccounts(ref view) =>
-                        view.view().map(ViewMessage::AssetAccountsMessage),
-                    View::ViewAccount(ref view) => view.view().map(ViewMessage::ViewAccountMessage),
-                    View::TransactionView(ref view) =>
-                        view.view().map(ViewMessage::TransactionViewMessage),
-                    View::ViewBudgetView(ref view) =>
-                        view.view().map(ViewMessage::ViewBudgetMessage),
-                    View::CreateCategory(ref view) =>
-                        view.view().map(ViewMessage::CreateCategoryMessage),
+                        view.view().map(ViewMessage::CreateTransaction),
+                    View::AssetAccounts(ref view) => view.view().map(ViewMessage::AssetAccounts),
+                    View::ViewAccount(ref view) => view.view().map(ViewMessage::ViewAccount),
+                    View::TransactionView(ref view) => view.view().map(ViewMessage::Transaction),
+                    View::ViewBudgetView(ref view) => view.view().map(ViewMessage::ViewBudget),
+                    View::CreateCategory(ref view) => view.view().map(ViewMessage::CreateCategory),
                     View::CategoryOverview(ref view) =>
-                        view.view().map(ViewMessage::CategoryOverviewMessage),
-                    View::ViewCategory(ref view) =>
-                        view.view().map(ViewMessage::ViewCategoryMessage),
-                    View::BookCheckingAccountOverview(ref view) => view
-                        .view()
-                        .map(ViewMessage::BookCheckingAccountOverviewMessage),
-                    View::CreateBookCheckingAccount(ref view) => view
-                        .view()
-                        .map(ViewMessage::CreateBookCheckingAccountMessage),
-                    View::Settings(ref view) => view.view().map(ViewMessage::SettingsMessage),
+                        view.view().map(ViewMessage::CategoryOverview),
+                    View::ViewCategory(ref view) => view.view().map(ViewMessage::ViewCategory),
+                    View::BookCheckingAccountOverview(ref view) =>
+                        view.view().map(ViewMessage::BookCheckingAccountOverview),
+                    View::CreateBookCheckingAccount(ref view) =>
+                        view.view().map(ViewMessage::CreateBookCheckingAccount),
+                    View::Settings(ref view) => view.view().map(ViewMessage::Settings),
                     View::FilterTransaction(ref view) =>
-                        view.view().map(ViewMessage::FilterTransactionMessage),
-                    View::CreateBill(ref view) => view.view().map(ViewMessage::CreateBillMessage),
-                    View::BillOverview(ref view) =>
-                        view.view().map(ViewMessage::BillOverviewMessage),
-                    View::ViewBill(ref view) => view.view().map(ViewMessage::ViewBillMessage),
+                        view.view().map(ViewMessage::FilterTransaction),
+                    View::CreateBill(ref view) => view.view().map(ViewMessage::CreateBill),
+                    View::BillOverview(ref view) => view.view().map(ViewMessage::BillOverview),
+                    View::ViewBill(ref view) => view.view().map(ViewMessage::ViewBill),
                 }
                 .map(AppMessage::ViewMessage)
             )
@@ -767,7 +742,7 @@ impl App {
     fn switch_view_account(&mut self, account: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) = view::account::Account::fetch(self.finance_manager.clone(), account);
         self.current_view = View::ViewAccount(view);
-        task.map(ViewMessage::ViewAccountMessage)
+        task.map(ViewMessage::ViewAccount)
             .map(AppMessage::ViewMessage)
     }
 
@@ -776,22 +751,21 @@ impl App {
             self.finance_manager.clone(),
         );
         self.current_view = View::AssetAccounts(view);
-        task.map(ViewMessage::AssetAccountsMessage)
+        task.map(ViewMessage::AssetAccounts)
             .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_bill_overview(&mut self) -> iced::Task<AppMessage> {
         let (view, task) = view::bill_overview::BillOverview::fetch(self.finance_manager.clone());
         self.current_view = View::BillOverview(view);
-        task.map(ViewMessage::BillOverviewMessage)
+        task.map(ViewMessage::BillOverview)
             .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_bill(&mut self, bill: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) = view::bill::Bill::fetch(bill, self.finance_manager.clone());
         self.current_view = View::ViewBill(view);
-        task.map(ViewMessage::ViewBillMessage)
-            .map(AppMessage::ViewMessage)
+        task.map(ViewMessage::ViewBill).map(AppMessage::ViewMessage)
     }
 
     fn switch_view_book_checking_account_overview(&mut self) -> iced::Task<AppMessage> {
@@ -799,7 +773,7 @@ impl App {
             self.finance_manager.clone(),
         );
         self.current_view = View::BookCheckingAccountOverview(view);
-        task.map(ViewMessage::BookCheckingAccountOverviewMessage)
+        task.map(ViewMessage::BookCheckingAccountOverview)
             .map(AppMessage::ViewMessage)
     }
 
@@ -807,14 +781,14 @@ impl App {
         let (view, task) =
             view::budget_overview::BudgetOverview::fetch(self.finance_manager.clone());
         self.current_view = View::BudgetOverview(view);
-        task.map(ViewMessage::BudgetOverViewMessage)
+        task.map(ViewMessage::BudgetOverview)
             .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_budget(&mut self, budget: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) = view::budget::Budget::fetch(budget, 0, self.finance_manager.clone());
         self.current_view = View::ViewBudgetView(view);
-        task.map(ViewMessage::ViewBudgetMessage)
+        task.map(ViewMessage::ViewBudget)
             .map(AppMessage::ViewMessage)
     }
 
@@ -822,14 +796,14 @@ impl App {
         let (view, task) =
             view::category_overview::CategoryOverview::fetch(self.finance_manager.clone());
         self.current_view = View::CategoryOverview(view);
-        task.map(ViewMessage::CategoryOverviewMessage)
+        task.map(ViewMessage::CategoryOverview)
             .map(AppMessage::ViewMessage)
     }
 
     fn switch_view_category(&mut self, category: fm_core::Id) -> iced::Task<AppMessage> {
         let (view, task) = view::category::Category::fetch(self.finance_manager.clone(), category);
         self.current_view = View::ViewCategory(view);
-        task.map(ViewMessage::ViewCategoryMessage)
+        task.map(ViewMessage::ViewCategory)
             .map(AppMessage::ViewMessage)
     }
 
@@ -837,7 +811,7 @@ impl App {
         let (view, task) =
             view::create_bill::CreateBillView::fetch(bill, self.finance_manager.clone());
         self.current_view = View::CreateBill(view);
-        task.map(ViewMessage::CreateBillMessage)
+        task.map(ViewMessage::CreateBill)
             .map(AppMessage::ViewMessage)
     }
 
@@ -845,7 +819,7 @@ impl App {
         let (view, task) =
             view::create_budget::CreateBudgetView::fetch(budget, self.finance_manager.clone());
         self.current_view = View::CreateBudgetView(view);
-        task.map(ViewMessage::CreateBudgetViewMessage)
+        task.map(ViewMessage::CreateBudget)
             .map(AppMessage::ViewMessage)
     }
 
@@ -853,7 +827,7 @@ impl App {
         let (view, task) =
             view::create_transaction::CreateTransactionView::new(self.finance_manager.clone());
         self.current_view = View::CreateTransactionView(view);
-        task.map(ViewMessage::CreateTransactionViewMessage)
+        task.map(ViewMessage::CreateTransaction)
             .map(AppMessage::ViewMessage)
     }
 
@@ -861,7 +835,7 @@ impl App {
         let (view, task) =
             view::filter_transactions::FilterTransactionView::new(self.finance_manager.clone());
         self.current_view = View::FilterTransaction(view);
-        task.map(ViewMessage::FilterTransactionMessage)
+        task.map(ViewMessage::FilterTransaction)
             .map(AppMessage::ViewMessage)
     }
 
@@ -869,7 +843,7 @@ impl App {
         let (view, task) =
             view::transaction::Transaction::fetch(transaction, self.finance_manager.clone());
         self.current_view = View::TransactionView(view);
-        task.map(ViewMessage::TransactionViewMessage)
+        task.map(ViewMessage::Transaction)
             .map(AppMessage::ViewMessage)
     }
 
@@ -877,7 +851,7 @@ impl App {
         let (view, task) =
             view::create_category::CreateCategory::fetch(category, self.finance_manager.clone());
         self.current_view = View::CreateCategory(view);
-        task.map(ViewMessage::CreateCategoryMessage)
+        task.map(ViewMessage::CreateCategory)
             .map(AppMessage::ViewMessage)
     }
 
