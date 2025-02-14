@@ -534,6 +534,7 @@ enum AppMessage {
     PaneSplit(widget::pane_grid::Axis, widget::pane_grid::Pane),
     PaneMaximize(widget::pane_grid::Pane),
     PaneClicked(widget::pane_grid::Pane),
+    PaneClose(widget::pane_grid::Pane),
     PaneRestore,
     SideBarMessage(sidebar::Message),
     SwitchToFilterTransactionView,
@@ -545,6 +546,7 @@ struct SvgCache {
     fullscreen: widget::svg::Handle,
     split_horizontal: widget::svg::Handle,
     split_vertical: widget::svg::Handle,
+    cross_x: widget::svg::Handle,
 }
 
 impl Default for SvgCache {
@@ -562,6 +564,7 @@ impl Default for SvgCache {
             split_vertical: widget::svg::Handle::from_memory(include_bytes!(
                 "../assets/layout-split-vertical.svg"
             )),
+            cross_x: widget::svg::Handle::from_memory(include_bytes!("../assets/x-lg.svg")),
         }
     }
 }
@@ -716,6 +719,14 @@ impl App {
                     *self.pane_grid.get_mut(self.focused_pane).unwrap() = View::License;
                 }
             },
+            AppMessage::PaneClose(pane) => {
+                if self.pane_grid.panes.len() > 1 {
+                    self.pane_grid.close(pane.clone());
+                    if self.focused_pane == pane {
+                        self.focused_pane = self.pane_grid.panes.keys().next().unwrap().clone();
+                    }
+                }
+            }
             AppMessage::PaneDragged(event) => {
                 if let widget::pane_grid::DragEvent::Dropped { pane, target } = event {
                     self.pane_grid.drop(pane, target);
@@ -888,6 +899,12 @@ impl App {
                                             None
                                         } else {
                                             Some(AppMessage::PaneMaximize(pane))
+                                        }),
+                                    pane_grid_control_buttons(self.svg_cache.cross_x.clone())
+                                        .on_press_maybe(if self.pane_grid.panes.len() <= 1 {
+                                            None
+                                        } else {
+                                            Some(AppMessage::PaneClose(pane))
                                         }),
                                 ]))
                                 .style(move |theme: &iced::Theme| {
