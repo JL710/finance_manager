@@ -720,6 +720,7 @@ impl App {
                 if let widget::pane_grid::DragEvent::Dropped { pane, target } = event {
                     self.pane_grid.drop(pane, target);
                 }
+                self.focused_pane = self.pane_grid.panes.keys().next().unwrap().clone();
             }
             AppMessage::PaneResize(event) => {
                 self.pane_grid.resize(event.split, event.ratio);
