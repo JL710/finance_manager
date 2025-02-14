@@ -721,9 +721,9 @@ impl App {
             },
             AppMessage::PaneClose(pane) => {
                 if self.pane_grid.panes.len() > 1 {
-                    self.pane_grid.close(pane.clone());
+                    self.pane_grid.close(pane);
                     if self.focused_pane == pane {
-                        self.focused_pane = self.pane_grid.panes.keys().next().unwrap().clone();
+                        self.focused_pane = *self.pane_grid.panes.keys().next().unwrap();
                     }
                 }
             }
@@ -731,7 +731,7 @@ impl App {
                 if let widget::pane_grid::DragEvent::Dropped { pane, target } = event {
                     self.pane_grid.drop(pane, target);
                 }
-                self.focused_pane = self.pane_grid.panes.keys().next().unwrap().clone();
+                self.focused_pane = *self.pane_grid.panes.keys().next().unwrap();
             }
             AppMessage::PaneResize(event) => {
                 self.pane_grid.resize(event.split, event.ratio);
@@ -884,22 +884,16 @@ impl App {
                                             pane
                                         )
                                     ),
-                                    pane_grid_control_buttons(
+                                    pane_grid_control_buttons(if maximized {
                                         self.svg_cache.exit_fullscreen.clone()
-                                    )
-                                    .on_press_maybe(
-                                        if maximized {
-                                            Some(AppMessage::PaneRestore)
-                                        } else {
-                                            None
-                                        }
-                                    ),
-                                    pane_grid_control_buttons(self.svg_cache.fullscreen.clone())
-                                        .on_press_maybe(if maximized {
-                                            None
-                                        } else {
-                                            Some(AppMessage::PaneMaximize(pane))
-                                        }),
+                                    } else {
+                                        self.svg_cache.fullscreen.clone()
+                                    })
+                                    .on_press(if maximized {
+                                        AppMessage::PaneRestore
+                                    } else {
+                                        AppMessage::PaneMaximize(pane)
+                                    }),
                                     pane_grid_control_buttons(self.svg_cache.cross_x.clone())
                                         .on_press_maybe(if self.pane_grid.panes.len() <= 1 {
                                             None
