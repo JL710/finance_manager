@@ -34,10 +34,7 @@ serde = { version = "1.0.217", features = ["derive"] }
 [workspace.dependencies]
 iced = { version = "0.1.0", path = "../iced-dynamic", package = "iced-dynamic" } #iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", features = ["advanced"]}
 anyhow = "1.0.82"
-fm_core = { path = "../fm_core", default-features = false, features = [
-    "ram",
-    "wasm",
-] }
+fm_core = { path = "../fm_core", default-features = false, features = ["ram"] }
 async-std = "1.12.0"
 utils = { path = "./utils" }
 time = { version = "0.3.36", features = [
