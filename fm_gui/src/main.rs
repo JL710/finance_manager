@@ -1,5 +1,6 @@
 mod finance_managers;
 mod settings;
+mod sidebar;
 mod view;
 
 use async_std::sync::Mutex;
@@ -527,16 +528,6 @@ enum ViewMessage {
 #[derive(Debug, Clone)]
 enum AppMessage {
     Ignore,
-    ToggleSidebarCollapse,
-    SwitchToBudgetOverview,
-    SwitchToCreateTransActionView,
-    SwitchToAssetAccountsView,
-    SwitchToCategoryOverview,
-    SwitchToBookCheckingAccountOverview,
-    SwitchToSettingsView,
-    SwitchToFilterTransactionView,
-    SwitchToBillOverview,
-    SwitchToLicense,
     PaneViewMessage(widget::pane_grid::Pane, ViewMessage),
     PaneDragged(widget::pane_grid::DragEvent),
     PaneResize(widget::pane_grid::ResizeEvent),
@@ -544,19 +535,12 @@ enum AppMessage {
     PaneMaximize(widget::pane_grid::Pane),
     PaneClicked(widget::pane_grid::Pane),
     PaneRestore,
+    SideBarMessage(sidebar::Message),
+    SwitchToFilterTransactionView,
+    SwitchToCategoryOverview,
 }
 
 struct SvgCache {
-    bank2: widget::svg::Handle,
-    cash: widget::svg::Handle,
-    piggy_bank_fill: widget::svg::Handle,
-    bookmark_fill: widget::svg::Handle,
-    send_fill: widget::svg::Handle,
-    folder_fill: widget::svg::Handle,
-    plus_circle_fill: widget::svg::Handle,
-    gear_fill: widget::svg::Handle,
-    book_fill: widget::svg::Handle,
-    list: widget::svg::Handle,
     exit_fullscreen: widget::svg::Handle,
     fullscreen: widget::svg::Handle,
     split_horizontal: widget::svg::Handle,
@@ -566,24 +550,6 @@ struct SvgCache {
 impl Default for SvgCache {
     fn default() -> Self {
         SvgCache {
-            bank2: widget::svg::Handle::from_memory(include_bytes!("../assets/bank2.svg")),
-            cash: widget::svg::Handle::from_memory(include_bytes!("../assets/cash.svg")),
-            piggy_bank_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/piggy-bank-fill.svg"
-            )),
-            bookmark_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/bookmark-fill.svg"
-            )),
-            send_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/send-fill.svg")),
-            folder_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/folder-fill.svg"
-            )),
-            plus_circle_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/plus-circle-fill.svg"
-            )),
-            gear_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/gear-fill.svg")),
-            book_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/book-fill.svg")),
-            list: widget::svg::Handle::from_memory(include_bytes!("../assets/list.svg")),
             exit_fullscreen: widget::svg::Handle::from_memory(include_bytes!(
                 "../assets/fullscreen-exit.svg"
             )),
@@ -605,7 +571,7 @@ pub struct App {
     pane_grid: widget::pane_grid::State<View>,
     focused_pane: widget::pane_grid::Pane,
     svg_cache: SvgCache,
-    side_bar_collapsed: bool,
+    side_bar: sidebar::Sidebar,
     settings: settings::Settings,
 }
 
@@ -624,7 +590,7 @@ impl Default for App {
             focused_pane,
             finance_manager: Arc::new(Mutex::new(finance_manager)),
             svg_cache: SvgCache::default(),
-            side_bar_collapsed: false,
+            side_bar: sidebar::Sidebar::new(false),
             settings: settings::Settings::default(),
         }
     }
@@ -649,6 +615,107 @@ impl App {
     fn update(&mut self, message: AppMessage) -> iced::Task<AppMessage> {
         match message {
             AppMessage::Ignore => {}
+            AppMessage::SwitchToCategoryOverview => {
+                let pane = self.focused_pane;
+                return self
+                    .pane_grid
+                    .get_mut(self.focused_pane)
+                    .unwrap()
+                    .category_overview(self.finance_manager.clone())
+                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
+            }
+            AppMessage::SwitchToFilterTransactionView => {
+                let pane = self.focused_pane;
+                return self
+                    .pane_grid
+                    .get_mut(self.focused_pane)
+                    .unwrap()
+                    .transaction_filter(self.finance_manager.clone())
+                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
+            }
+            AppMessage::SideBarMessage(m) => match self.side_bar.update(m) {
+                sidebar::Action::None => {}
+                sidebar::Action::SwitchToBudgetOverview => {
+                    let pane = self.focused_pane;
+                    return self
+                        .pane_grid
+                        .get_mut(self.focused_pane)
+                        .unwrap()
+                        .budget_overview(self.finance_manager.clone())
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                }
+
+                sidebar::Action::CreateTransaction => {
+                    let pane = self.focused_pane;
+                    return self
+                        .pane_grid
+                        .get_mut(self.focused_pane)
+                        .unwrap()
+                        .transaction_create(self.finance_manager.clone(), None)
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                }
+
+                sidebar::Action::SwitchToAssetAccountView => {
+                    let pane = self.focused_pane;
+                    return self
+                        .pane_grid
+                        .get_mut(self.focused_pane)
+                        .unwrap()
+                        .asset_account_overview(self.finance_manager.clone())
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                }
+
+                sidebar::Action::SwitchToCategoryOverview => {
+                    let pane = self.focused_pane;
+                    return self
+                        .pane_grid
+                        .get_mut(self.focused_pane)
+                        .unwrap()
+                        .category_overview(self.finance_manager.clone())
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                }
+
+                sidebar::Action::SwitchToBookCheckingAccountOverview => {
+                    let pane = self.focused_pane;
+                    return self
+                        .pane_grid
+                        .get_mut(self.focused_pane)
+                        .unwrap()
+                        .book_checking_account_overview(self.finance_manager.clone())
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                }
+
+                sidebar::Action::SwitchToSettingsView => {
+                    let (view, task) = view::settings::View::new(self.settings.clone());
+                    *self.pane_grid.get_mut(self.focused_pane).unwrap() = View::Settings(view);
+                    let pane = self.focused_pane;
+                    return task
+                        .map(ViewMessage::Settings)
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                }
+
+                sidebar::Action::SwitchToFilterTransactionView => {
+                    let pane = self.focused_pane;
+                    return self
+                        .pane_grid
+                        .get_mut(self.focused_pane)
+                        .unwrap()
+                        .transaction_filter(self.finance_manager.clone())
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                }
+                sidebar::Action::SwitchToBillOverview => {
+                    let pane = self.focused_pane;
+                    return self
+                        .pane_grid
+                        .get_mut(self.focused_pane)
+                        .unwrap()
+                        .bill_overview(self.finance_manager.clone())
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                }
+                sidebar::Action::SwitchToLicense => {
+                    *self.pane_grid.get_mut(self.focused_pane).unwrap() = View::License;
+                }
+            },
             AppMessage::PaneDragged(event) => {
                 if let widget::pane_grid::DragEvent::Dropped { pane, target } = event {
                     self.pane_grid.drop(pane, target);
@@ -676,12 +743,7 @@ impl App {
             AppMessage::PaneClicked(pane) => {
                 self.focused_pane = pane;
             }
-            AppMessage::ToggleSidebarCollapse => {
-                self.side_bar_collapsed = !self.side_bar_collapsed;
-            }
-            AppMessage::SwitchToLicense => {
-                *self.pane_grid.get_mut(self.focused_pane).unwrap() = View::License;
-            }
+
             AppMessage::PaneViewMessage(pane, view_message) => match self.pane_grid.get_mut(pane) {
                 Some(current_view) => {
                     match view_update(self.finance_manager.clone(), current_view, view_message) {
@@ -697,198 +759,15 @@ impl App {
                 }
                 None => return iced::Task::none(),
             },
-            AppMessage::SwitchToBudgetOverview => {
-                let pane = self.focused_pane;
-                return self
-                    .pane_grid
-                    .get_mut(self.focused_pane)
-                    .unwrap()
-                    .budget_overview(self.finance_manager.clone())
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
-            }
-
-            AppMessage::SwitchToCreateTransActionView => {
-                let pane = self.focused_pane;
-                return self
-                    .pane_grid
-                    .get_mut(self.focused_pane)
-                    .unwrap()
-                    .transaction_create(self.finance_manager.clone(), None)
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
-            }
-
-            AppMessage::SwitchToAssetAccountsView => {
-                let pane = self.focused_pane;
-                return self
-                    .pane_grid
-                    .get_mut(self.focused_pane)
-                    .unwrap()
-                    .asset_account_overview(self.finance_manager.clone())
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
-            }
-
-            AppMessage::SwitchToCategoryOverview => {
-                let pane = self.focused_pane;
-                return self
-                    .pane_grid
-                    .get_mut(self.focused_pane)
-                    .unwrap()
-                    .category_overview(self.finance_manager.clone())
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
-            }
-
-            AppMessage::SwitchToBookCheckingAccountOverview => {
-                let pane = self.focused_pane;
-                return self
-                    .pane_grid
-                    .get_mut(self.focused_pane)
-                    .unwrap()
-                    .book_checking_account_overview(self.finance_manager.clone())
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
-            }
-
-            AppMessage::SwitchToSettingsView => {
-                let (view, task) = view::settings::View::new(self.settings.clone());
-                *self.pane_grid.get_mut(self.focused_pane).unwrap() = View::Settings(view);
-                let pane = self.focused_pane;
-                return task
-                    .map(ViewMessage::Settings)
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
-            }
-
-            AppMessage::SwitchToFilterTransactionView => {
-                let pane = self.focused_pane;
-                return self
-                    .pane_grid
-                    .get_mut(self.focused_pane)
-                    .unwrap()
-                    .transaction_filter(self.finance_manager.clone())
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
-            }
-            AppMessage::SwitchToBillOverview => {
-                let pane = self.focused_pane;
-                return self
-                    .pane_grid
-                    .get_mut(self.focused_pane)
-                    .unwrap()
-                    .bill_overview(self.finance_manager.clone())
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
-            }
         }
         iced::Task::none()
     }
 
     fn view(&self) -> iced::Element<AppMessage> {
-        fn icon_menu_item<'a>(
-            text: &'a str,
-            icon: &widget::svg::Handle,
-            message: AppMessage,
-            collapsed: bool,
-        ) -> iced::Element<'a, AppMessage> {
-            if collapsed {
-                widget::tooltip(
-                    widget::button(
-                        widget::Svg::new(icon.clone())
-                            .width(iced::Shrink)
-                            .style(|theme: &iced::Theme, _| widget::svg::Style {
-                                color: Some(theme.palette().primary),
-                            })
-                            .height(25),
-                    )
-                    .style(widget::button::text)
-                    .on_press(message),
-                    utils::style::container_popup_styling(widget::container(text)),
-                    widget::tooltip::Position::Right,
-                )
-                .into()
-            } else {
-                widget::button(
-                    utils::spal_row![
-                        widget::Svg::new(icon.clone()).width(iced::Shrink).style(
-                            |theme: &iced::Theme, _| widget::svg::Style {
-                                color: Some(theme.palette().primary)
-                            }
-                        ),
-                        text,
-                    ]
-                    .height(25),
-                )
-                .style(utils::style::button_sidebar)
-                .on_press(message)
-                .into()
-            }
-        }
-
         static PANE_BORDER_RADIUS: u16 = 5;
 
         iced::widget::row![
-            utils::spaced_column![
-                widget::button(
-                    widget::Svg::new(self.svg_cache.list.clone())
-                        .style(|theme: &iced::Theme, _| widget::svg::Style {
-                            color: Some(theme.palette().primary)
-                        })
-                        .width(iced::Shrink)
-                )
-                .on_press(AppMessage::ToggleSidebarCollapse)
-                .style(widget::button::text),
-                icon_menu_item(
-                    "AssetAccounts",
-                    &self.svg_cache.bank2,
-                    AppMessage::SwitchToAssetAccountsView,
-                    self.side_bar_collapsed
-                ),
-                icon_menu_item(
-                    "BookCheckingAccounts",
-                    &self.svg_cache.cash,
-                    AppMessage::SwitchToBookCheckingAccountOverview,
-                    self.side_bar_collapsed
-                ),
-                icon_menu_item(
-                    "Budgets",
-                    &self.svg_cache.piggy_bank_fill,
-                    AppMessage::SwitchToBudgetOverview,
-                    self.side_bar_collapsed
-                ),
-                icon_menu_item(
-                    "Categories",
-                    &self.svg_cache.bookmark_fill,
-                    AppMessage::SwitchToCategoryOverview,
-                    self.side_bar_collapsed
-                ),
-                icon_menu_item(
-                    "Transactions",
-                    &self.svg_cache.send_fill,
-                    AppMessage::SwitchToFilterTransactionView,
-                    self.side_bar_collapsed
-                ),
-                icon_menu_item(
-                    "Bills",
-                    &self.svg_cache.folder_fill,
-                    AppMessage::SwitchToBillOverview,
-                    self.side_bar_collapsed
-                ),
-                icon_menu_item(
-                    "Create Transaction",
-                    &self.svg_cache.plus_circle_fill,
-                    AppMessage::SwitchToCreateTransActionView,
-                    self.side_bar_collapsed
-                ),
-                widget::vertical_space(),
-                icon_menu_item(
-                    "Settings",
-                    &self.svg_cache.gear_fill,
-                    AppMessage::SwitchToSettingsView,
-                    self.side_bar_collapsed
-                ),
-                icon_menu_item(
-                    "License",
-                    &self.svg_cache.book_fill,
-                    AppMessage::SwitchToLicense,
-                    self.side_bar_collapsed
-                ),
-            ]
-            .align_x(iced::Alignment::Start),
+            self.side_bar.view().map(AppMessage::SideBarMessage),
             iced::widget::vertical_rule(5),
             iced::widget::container(
                 widget::pane_grid::PaneGrid::new(
