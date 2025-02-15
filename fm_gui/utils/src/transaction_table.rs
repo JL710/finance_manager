@@ -327,13 +327,13 @@ fn get_category_text(
     transaction: &fm_core::Transaction,
     categories: &[fm_core::Category],
 ) -> String {
-    let mut category_iter = categories.iter();
+    let mut category_iter = transaction.categories().iter().map(|x| *x.0);
     let mut category_text = String::new();
     if let Some(first) = category_iter.next() {
-        category_text.push_str(first.name());
+        category_text.push_str(categories.iter().find(|x| *x.id() == first).unwrap().name());
     }
-    for category in transaction.categories() {
-        if let Some(category) = categories.iter().find(|x| x.id() == category.0) {
+    for category in category_iter {
+        if let Some(category) = categories.iter().find(|x| *x.id() == category) {
             category_text.push_str(", ");
             category_text.push_str(category.name());
         }
