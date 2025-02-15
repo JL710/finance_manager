@@ -53,7 +53,13 @@ impl FilterComponent {
         budgets: Vec<fm_core::Budget>,
     ) -> Self {
         let mut categories = categories;
-        categories.sort();
+        categories.sort_by(|a, b| a.name().cmp(b.name()));
+        let mut accounts = accounts;
+        accounts.sort_by(|a, b| a.name().cmp(b.name()));
+        let mut bills = bills;
+        bills.sort_by(|a, b| a.name().cmp(b.name()));
+        let mut budgets = budgets;
+        budgets.sort_by(|a, b| a.name().cmp(b.name()));
         Self {
             accounts,
             categories,
