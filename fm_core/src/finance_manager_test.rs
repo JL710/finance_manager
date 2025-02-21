@@ -1,4 +1,5 @@
 use super::*;
+use time::macros::*;
 
 pub async fn create_asset_account_test<T: FinanceManager>(mut fm: T) {
     let account = fm
@@ -144,6 +145,84 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
         .is_none());
 }
 
+pub async fn test_get_transactions_timespan<T: FinanceManager>(mut fm: T) {
+    let acc1 = fm
+        .create_asset_account(
+            "asset_acc".to_string(),
+            None,
+            None,
+            None,
+            Currency::default(),
+        )
+        .await
+        .unwrap();
+    let acc2 = fm
+        .create_book_checking_account("book_checking_acc".to_string(), None, None, None)
+        .await
+        .unwrap();
+
+    let t1 = fm
+        .create_transaction(
+            Currency::default(),
+            "t1".to_string(),
+            None,
+            acc1.id(),
+            acc2.id(),
+            None,
+            time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:30)),
+            HashMap::default(),
+            HashMap::default(),
+        )
+        .await
+        .unwrap();
+    let _ = fm
+        .create_transaction(
+            Currency::default(),
+            "t2".to_string(),
+            None,
+            acc1.id(),
+            acc2.id(),
+            None,
+            time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(11:30)),
+            HashMap::default(),
+            HashMap::default(),
+        )
+        .await
+        .unwrap();
+    let t3 = fm
+        .create_transaction(
+            Currency::default(),
+            "t3".to_string(),
+            None,
+            acc1.id(),
+            acc2.id(),
+            None,
+            time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:50)),
+            HashMap::default(),
+            HashMap::default(),
+        )
+        .await
+        .unwrap();
+
+    let result = fm
+        .get_transactions_in_timespan((
+            Some(time::OffsetDateTime::new_utc(
+                date!(2024 - 01 - 01),
+                time!(10:30),
+            )),
+            Some(time::OffsetDateTime::new_utc(
+                date!(2024 - 01 - 01),
+                time!(10:50),
+            )),
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(result.len(), 2);
+    assert!(result.iter().find(|x| x.id() == t1.id()).is_some());
+    assert!(result.iter().find(|x| x.id() == t3.id()).is_some());
+}
+
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! unit_tests {
@@ -174,7 +253,18 @@ macro_rules! unit_tests {
         async fn delete_budget() {
             ($runner)(delete_budget_test).await;
         }
+
+        #[async_std::test]
+        async fn get_transactions_timespan() {
+            ($runner)(test_get_transactions_timespan).await;
+        }
+
+        #[async_std::test]
+        async fn create_transaction_category_not_exist() {
+            todo!()
+        }
     };
 }
 
+use time::macros::date;
 pub use unit_tests;

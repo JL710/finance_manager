@@ -265,7 +265,7 @@ impl TransactionFilter {
                     start <= *transaction.date()
                 } else {
                     true
-                } || if let Some(end) = timespan.1 {
+                } && if let Some(end) = timespan.1 {
                     end >= *transaction.date()
                 } else {
                     true
@@ -877,5 +877,67 @@ mod test {
             &Vec::default(),
         );
         assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn include_end_and_start_date_category_filter() {
+        let t1 = Transaction::new(
+            1,
+            Currency::default(),
+            "t1".to_string(),
+            None,
+            1,
+            2,
+            None,
+            time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:30)),
+            HashMap::default(),
+            HashMap::from([(1, Sign::Positive)]),
+        );
+        let t2 = Transaction::new(
+            2,
+            Currency::default(),
+            "t2".to_string(),
+            None,
+            1,
+            2,
+            None,
+            time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(11:30)),
+            HashMap::default(),
+            HashMap::from([(1, Sign::Positive)]),
+        );
+        let t3 = Transaction::new(
+            3,
+            Currency::default(),
+            "t3".to_string(),
+            None,
+            1,
+            2,
+            None,
+            time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:50)),
+            HashMap::default(),
+            HashMap::from([(1, Sign::Positive)]),
+        );
+
+        let filter = TransactionFilter::default().push_category(Filter {
+            negated: false,
+            id: Some(1),
+            include: true,
+            timespan: Some((
+                Some(time::OffsetDateTime::new_utc(
+                    date!(2024 - 01 - 01),
+                    time!(10:30),
+                )),
+                Some(time::OffsetDateTime::new_utc(
+                    date!(2024 - 01 - 01),
+                    time!(10:50),
+                )),
+            )),
+        });
+
+        let mut result = vec![t1.clone(), t2.clone(), t3.clone()];
+        result = filter.filter_transactions(result, &Vec::default());
+        assert_eq!(result.len(), 2);
+        assert!(result.iter().find(|x| *x.id() == 1).is_some());
+        assert!(result.iter().find(|x| *x.id() == 3).is_some());
     }
 }
