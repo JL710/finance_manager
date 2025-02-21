@@ -556,7 +556,7 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
                     (METADATA_IMPORTER_VERSION.to_string(), VERSION.to_string()),
                 ]),
                 HashMap::new(),
-            )?
+            )
             .await?;
         self.cached_transactions.push(transaction.clone());
 

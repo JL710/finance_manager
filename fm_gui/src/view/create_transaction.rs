@@ -570,7 +570,6 @@ impl View {
                         metadata,
                         categories,
                     )
-                    .unwrap()
                     .await
                     .unwrap(),
             }

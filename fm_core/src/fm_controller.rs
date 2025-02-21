@@ -241,21 +241,32 @@ where
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: HashMap<Id, Sign>,
-    ) -> Result<impl Future<Output = Result<Transaction>> + MaybeSend + '_> {
-        if amount.get_eur_num() < 0.0 {
-            anyhow::bail!("Amount must be positive")
+    ) -> impl Future<Output = Result<Transaction>> + MaybeSend + '_ {
+        async move {
+            if amount.get_eur_num() < 0.0 {
+                anyhow::bail!("Amount must be positive")
+            }
+
+            for category in &categories {
+                if self.get_category(*category.0).await.unwrap().is_none() {
+                    anyhow::bail!("Category does not exist!")
+                }
+            }
+
+            self.finance_manager
+                .create_transaction(
+                    amount,
+                    title,
+                    description,
+                    source,
+                    destination,
+                    budget,
+                    date,
+                    metadata,
+                    categories,
+                )
+                .await
         }
-        Ok(self.finance_manager.create_transaction(
-            amount,
-            title,
-            description,
-            source,
-            destination,
-            budget,
-            date,
-            metadata,
-            categories,
-        ))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -554,4 +565,45 @@ pub enum DeleteAccountError {
     RelatedTransactionsExist,
     #[error("An error occurred: {0}")]
     Other(#[from] anyhow::Error),
+}
+
+#[cfg(test)]
+mod test {
+    use managers::RamFinanceManager;
+
+    use super::*;
+    use time::macros::*;
+
+    #[async_std::test]
+    async fn create_transaction_category_does_not_exist() {
+        let mut fm = FMController::with_finance_manager(RamFinanceManager::new(()).unwrap());
+        let acc1 = fm
+            .create_asset_account(
+                "asset_acc".to_string(),
+                None,
+                None,
+                None,
+                Currency::default(),
+            )
+            .await
+            .unwrap();
+        let acc2 = fm
+            .create_book_checking_account("book_checking_acc".to_string(), None, None, None)
+            .await
+            .unwrap();
+        assert!(fm
+            .create_transaction(
+                Currency::default(),
+                "test".to_string(),
+                None,
+                acc1.id(),
+                acc2.id(),
+                None,
+                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:50)),
+                HashMap::default(),
+                HashMap::from([(1, Sign::Positive)]),
+            )
+            .await
+            .is_err())
+    }
 }
