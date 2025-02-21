@@ -145,7 +145,7 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
         .is_none());
 }
 
-pub async fn test_get_transactions_timespan<T: FinanceManager>(mut fm: T) {
+pub async fn get_transactions_timespan_test<T: FinanceManager>(mut fm: T) {
     let acc1 = fm
         .create_asset_account(
             "asset_acc".to_string(),
@@ -256,12 +256,7 @@ macro_rules! unit_tests {
 
         #[async_std::test]
         async fn get_transactions_timespan() {
-            ($runner)(test_get_transactions_timespan).await;
-        }
-
-        #[async_std::test]
-        async fn create_transaction_category_not_exist() {
-            todo!()
+            ($runner)(get_transactions_timespan_test).await;
         }
     };
 }
