@@ -9,3 +9,4 @@ iced.workspace = true
 time.workspace = true
 anyhow.workspace = true
 async-std.workspace = true
+rfd.workspace = true
