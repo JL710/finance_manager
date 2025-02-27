@@ -36,7 +36,6 @@ pub struct MessageContainer(Message);
 
 #[derive(Debug, Clone)]
 enum Message {
-    None,
     Edit,
     ChangeTransactionTimespan(utils::timespan_input::Action),
     SetTransactions(
@@ -71,47 +70,44 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            utils::failing_task(
-                async move {
-                    let locked_manager = finance_manager.lock().await;
-                    let account = locked_manager
-                        .get_account(account_id)
-                        .await?
-                        .context("Account could not be found")?;
-                    let account_sum = locked_manager
-                        .get_account_sum(&account, time::OffsetDateTime::now_utc())
-                        .await?;
-                    let transactions = locked_manager
-                        .get_transactions_of_account(*account.id(), (None, None))
-                        .await?;
-                    let accounts = locked_manager.get_accounts_hash_map().await?;
-                    let mut transaction_tuples = Vec::with_capacity(transactions.len());
-                    for transaction in transactions {
-                        let source = accounts
-                            .get(transaction.source())
-                            .context(format!("Could not find account {}", transaction.source()))?
-                            .clone();
-                        let destination = accounts
-                            .get(transaction.destination())
-                            .context(format!(
-                                "Could not find account {}",
-                                transaction.destination()
-                            ))?
-                            .clone();
-                        transaction_tuples.push((transaction, source, destination));
-                    }
-                    let categories = locked_manager.get_categories().await?;
-                    let budgets = locked_manager.get_budgets().await?;
-                    Ok(Message::Initialize(Box::new(Init {
-                        account,
-                        value: account_sum,
-                        transactions: transaction_tuples,
-                        categories,
-                        budgets,
-                    })))
-                },
-                Message::None,
-            )
+            utils::failing_task(async move {
+                let locked_manager = finance_manager.lock().await;
+                let account = locked_manager
+                    .get_account(account_id)
+                    .await?
+                    .context("Account could not be found")?;
+                let account_sum = locked_manager
+                    .get_account_sum(&account, time::OffsetDateTime::now_utc())
+                    .await?;
+                let transactions = locked_manager
+                    .get_transactions_of_account(*account.id(), (None, None))
+                    .await?;
+                let accounts = locked_manager.get_accounts_hash_map().await?;
+                let mut transaction_tuples = Vec::with_capacity(transactions.len());
+                for transaction in transactions {
+                    let source = accounts
+                        .get(transaction.source())
+                        .context(format!("Could not find account {}", transaction.source()))?
+                        .clone();
+                    let destination = accounts
+                        .get(transaction.destination())
+                        .context(format!(
+                            "Could not find account {}",
+                            transaction.destination()
+                        ))?
+                        .clone();
+                    transaction_tuples.push((transaction, source, destination));
+                }
+                let categories = locked_manager.get_categories().await?;
+                let budgets = locked_manager.get_budgets().await?;
+                Ok(Message::Initialize(Box::new(Init {
+                    account,
+                    value: account_sum,
+                    transactions: transaction_tuples,
+                    categories,
+                    budgets,
+                })))
+            })
             .map(MessageContainer),
         )
     }
@@ -122,7 +118,6 @@ impl View {
         finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message.0 {
-            Message::None => Action::None,
             Message::Initialize(init) => {
                 let account_id = *init.account.id();
                 *self = Self::Loaded {
@@ -174,42 +169,39 @@ impl View {
                     return Action::None;
                 };
                 Action::Task(
-                    utils::failing_task(
-                        async move {
-                            let locked_manager = finance_manager.lock().await;
-                            let transactions = locked_manager
-                                .get_transactions_of_account(account_id, timespan)
-                                .await
+                    utils::failing_task(async move {
+                        let locked_manager = finance_manager.lock().await;
+                        let transactions = locked_manager
+                            .get_transactions_of_account(account_id, timespan)
+                            .await
+                            .context(format!(
+                                "Error while fetching transactions of account {}.",
+                                account_id
+                            ))?;
+                        let accounts = locked_manager
+                            .get_accounts_hash_map()
+                            .await
+                            .context("Error while fetching accounts")?;
+                        let mut transaction_tuples = Vec::with_capacity(transactions.len());
+                        for transaction in transactions {
+                            let source = accounts
+                                .get(transaction.source())
                                 .context(format!(
-                                    "Error while fetching transactions of account {}.",
-                                    account_id
-                                ))?;
-                            let accounts = locked_manager
-                                .get_accounts_hash_map()
-                                .await
-                                .context("Error while fetching accounts")?;
-                            let mut transaction_tuples = Vec::with_capacity(transactions.len());
-                            for transaction in transactions {
-                                let source = accounts
-                                    .get(transaction.source())
-                                    .context(format!(
-                                        "Could not find account {}",
-                                        transaction.source()
-                                    ))?
-                                    .clone();
-                                let destination = accounts
-                                    .get(transaction.destination())
-                                    .context(format!(
-                                        "Could not find account {}",
-                                        transaction.destination()
-                                    ))?
-                                    .clone();
-                                transaction_tuples.push((transaction, source, destination));
-                            }
-                            Ok(Message::SetTransactions(transaction_tuples))
-                        },
-                        Message::None,
-                    )
+                                    "Could not find account {}",
+                                    transaction.source()
+                                ))?
+                                .clone();
+                            let destination = accounts
+                                .get(transaction.destination())
+                                .context(format!(
+                                    "Could not find account {}",
+                                    transaction.destination()
+                                ))?
+                                .clone();
+                            transaction_tuples.push((transaction, source, destination));
+                        }
+                        Ok(Message::SetTransactions(transaction_tuples))
+                    })
                     .map(MessageContainer),
                 )
             }

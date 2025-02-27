@@ -270,19 +270,18 @@ pub async fn error_popup(description: &str) {
         .await;
 }
 
-pub async fn async_popup_wrapper<T>(fut: impl Future<Output = Result<T>>, default: T) -> T {
+pub async fn async_popup_wrapper<T>(fut: impl Future<Output = Result<T>>) -> Option<T> {
     match fut.await {
         Err(error) => {
             error_popup(&error_chain_string(error)).await;
-            default
+            None
         }
-        Ok(x) => x,
+        Ok(x) => Some(x),
     }
 }
 
 pub fn failing_task<T: Send + 'static>(
     fut: impl Future<Output = Result<T>> + Send + 'static,
-    default: T,
 ) -> iced::Task<T> {
-    iced::Task::future(async { async_popup_wrapper(fut, default).await })
+    iced::Task::future(async { async_popup_wrapper(fut).await }).and_then(iced::Task::done)
 }
