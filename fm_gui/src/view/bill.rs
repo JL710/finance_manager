@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -53,28 +54,39 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
-                let bill = locked_manager.get_bill(&id).await.unwrap().unwrap();
+                let bill = locked_manager
+                    .get_bill(&id)
+                    .await
+                    .context(format!("Error while fetching bill {}", id))?
+                    .context(format!("Could not find bill {}", id))?;
 
-                let bill_sum = locked_manager.get_bill_sum(&bill).await.unwrap();
+                let bill_sum = locked_manager.get_bill_sum(&bill).await.context(format!(
+                    "Failed to fetch sum of bill {} {}",
+                    bill.id(),
+                    bill.name()
+                ))?;
 
                 let mut transactions = Vec::new();
                 for (transaction_id, sign) in bill.transactions() {
                     let transaction = locked_manager
                         .get_transaction(*transaction_id)
                         .await
-                        .unwrap()
-                        .unwrap();
+                        .context(format!("Failed to fetch transaction {}", transaction_id))?
+                        .context(format!("Could not find transaction {}", transaction_id))?;
                     transactions.push((transaction, *sign));
                 }
-                let accounts = locked_manager.get_accounts().await.unwrap();
-                Message::Initialize(Box::new(Init {
+                let accounts = locked_manager
+                    .get_accounts()
+                    .await
+                    .context("Failed to fetch accounts")?;
+                Ok(Message::Initialize(Box::new(Init {
                     bill,
                     bill_sum,
                     transactions,
                     accounts,
-                }))
+                })))
             })
             .map(MessageContainer),
         )
@@ -130,27 +142,34 @@ impl View {
             }
             Message::Delete => {
                 if let Self::Loaded { bill, .. } = self {
-                    if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
-                        .set_title("Delete Bill")
-                        .set_description("Are you sure you want to delete this bill?")
-                        .set_buttons(rfd::MessageButtons::YesNo)
-                        .show()
-                    {
-                        return Action::None;
-                    }
-
                     let bill_id = *bill.id();
+
                     Action::Task(
-                        iced::Task::future(async move {
-                            finance_manager
-                                .lock()
+                        iced::Task::future(async {
+                            rfd::AsyncMessageDialog::new()
+                                .set_title("Delete Bill")
+                                .set_description("Are you sure you want to delete this bill?")
+                                .set_buttons(rfd::MessageButtons::YesNo)
+                                .show()
                                 .await
-                                .delete_bill(bill_id)
-                                .await
-                                .unwrap();
-                            Message::Deleted
                         })
-                        .map(MessageContainer),
+                        .then(move |result| {
+                            if let rfd::MessageDialogResult::Yes = result {
+                                let manager = finance_manager.clone();
+                                utils::failing_task(async move {
+                                    manager
+                                        .lock()
+                                        .await
+                                        .delete_bill(bill_id)
+                                        .await
+                                        .context("Error while deleting bill")?;
+                                    Ok(Message::Deleted)
+                                })
+                                .map(MessageContainer)
+                            } else {
+                                iced::Task::none()
+                            }
+                        }),
                     )
                 } else {
                     Action::None
