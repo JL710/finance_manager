@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -45,8 +46,13 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            iced::Task::future(async move {
-                let bills = finance_manager.lock().await.get_bills().await.unwrap();
+            utils::failing_task(async move {
+                let bills = finance_manager
+                    .lock()
+                    .await
+                    .get_bills()
+                    .await
+                    .context("failed to fetch bills")?;
                 let mut bill_tuples = Vec::new();
                 for bill in bills {
                     let sum = finance_manager
@@ -54,10 +60,14 @@ impl View {
                         .await
                         .get_bill_sum(&bill)
                         .await
-                        .unwrap();
+                        .context(format!(
+                            "failed to get sum of bill {} {}",
+                            bill.id(),
+                            bill.name()
+                        ))?;
                     bill_tuples.push((bill, sum));
                 }
-                Message::Initialize(bill_tuples)
+                Ok(Message::Initialize(bill_tuples))
             }),
         )
     }
