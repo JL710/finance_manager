@@ -1,5 +1,6 @@
 use iced::widget;
 
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -44,22 +45,40 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             View::new(Vec::new()),
-            iced::Task::future(async move {
-                let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
+            utils::failing_task(async move {
+                let budgets = finance_manager
+                    .lock()
+                    .await
+                    .get_budgets()
+                    .await
+                    .context("Failed to fetch budgets")?;
                 let mut tuples = Vec::new();
 
                 for budget in budgets {
                     let current_value = finance_manager
                         .lock()
                         .await
-                        .get_budget_value(&budget, 0, fm_core::get_local_timezone().unwrap())
-                        .unwrap()
+                        .get_budget_value(
+                            &budget,
+                            0,
+                            fm_core::get_local_timezone()
+                                .context("Error while trying to get local timezone")?,
+                        )
+                        .context(format!(
+                            "Error while trying to fetch value of budget {} {}",
+                            budget.id(),
+                            budget.name()
+                        ))?
                         .await
-                        .unwrap();
+                        .context(format!(
+                            "Error while fetching budget value for budget {} {}",
+                            budget.id(),
+                            budget.name()
+                        ))?;
                     tuples.push((budget, current_value));
                 }
 
-                Message::Initialize(tuples)
+                Ok(Message::Initialize(tuples))
             }),
         )
     }
