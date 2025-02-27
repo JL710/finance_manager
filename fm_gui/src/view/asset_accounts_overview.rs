@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -12,6 +13,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    None,
     CreateAssetAccount,
     AccountView(fm_core::account::AssetAccount),
     Initialize(Vec<(fm_core::account::AssetAccount, fm_core::Currency)>),
@@ -48,31 +50,38 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            iced::Task::future(async move {
-                let accounts = finance_manager
-                    .lock()
-                    .await
-                    .get_accounts()
-                    .await
-                    .unwrap()
-                    .iter()
-                    .filter_map(|x| match &x {
-                        fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>();
-                let mut tuples = Vec::new();
-                for account in accounts {
-                    let amount = finance_manager
-                        .lock()
+            utils::failing_task(
+                async move {
+                    let locked_manager = finance_manager.lock().await;
+                    let accounts = locked_manager
+                        .get_accounts()
                         .await
-                        .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
-                        .await
-                        .unwrap();
-                    tuples.push((account, amount));
-                }
-                Message::Initialize(tuples)
-            }),
+                        .context("Error while fetching accounts")?
+                        .iter()
+                        .filter_map(|x| match &x {
+                            fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>();
+                    let mut tuples = Vec::new();
+                    for account in accounts {
+                        let amount = locked_manager
+                            .get_account_sum(
+                                &account.clone().into(),
+                                time::OffsetDateTime::now_utc(),
+                            )
+                            .await
+                            .context(format!(
+                                "Error fetching account sum for {} {}",
+                                account.id(),
+                                account.name()
+                            ))?;
+                        tuples.push((account, amount));
+                    }
+                    Ok(Message::Initialize(tuples))
+                },
+                Message::None,
+            ),
         )
     }
 
@@ -82,6 +91,7 @@ impl View {
         _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
     ) -> Action {
         match message {
+            Message::None => {}
             Message::Initialize(accounts) => {
                 self.account_table.set_items(accounts);
             }
