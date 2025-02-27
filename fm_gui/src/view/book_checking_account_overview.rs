@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -41,12 +42,12 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
                 let accounts = locked_manager
                     .get_accounts()
                     .await
-                    .unwrap()
+                    .context("failed to fetch accounts")?
                     .iter()
                     .filter_map(|x| match x {
                         fm_core::account::Account::BookCheckingAccount(x) => Some(x.clone()),
@@ -58,11 +59,15 @@ impl View {
                     let sum = locked_manager
                         .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
                         .await
-                        .unwrap();
+                        .context(format!(
+                            "Failed to fetch account sum of account {} {}",
+                            account.id(),
+                            account.name()
+                        ))?;
                     accounts_with_sums.push((account, sum));
                 }
 
-                Message::Initialize(accounts_with_sums)
+                Ok(Message::Initialize(accounts_with_sums))
             }),
         )
     }
