@@ -2,6 +2,7 @@ use fm_core;
 
 use iced::widget;
 
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -42,18 +43,18 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             View::default(),
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let account = finance_manager
                     .lock()
                     .await
                     .get_account(account_id)
                     .await
-                    .unwrap()
-                    .unwrap();
+                    .context(format!("Error while fetching account {}", account_id))?
+                    .context(format!("Could not find account {}", account_id))?;
                 if let fm_core::account::Account::BookCheckingAccount(acc) = account {
-                    Message::Initialize(acc)
+                    Ok(Message::Initialize(acc))
                 } else {
-                    panic!("Wrong account type")
+                    anyhow::bail!("Wrong account type");
                 }
             }),
         )
@@ -103,23 +104,26 @@ impl View {
                     Some(self.bic_input.clone())
                 };
                 let id = self.id;
-                return Action::Task(iced::Task::future(async move {
+                return Action::Task(utils::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_manager
                             .lock()
                             .await
                             .update_book_checking_account(some_id, name, note, iban, bic)
                             .await
-                            .unwrap()
+                            .context(format!(
+                                "Error while updating book_checking_account {}",
+                                some_id
+                            ))?
                     } else {
                         finance_manager
                             .lock()
                             .await
                             .create_book_checking_account(name, note, iban, bic)
                             .await
-                            .unwrap()
+                            .context("Error while creating book_checking_account")?
                     };
-                    Message::AccountCreated(account.id())
+                    Ok(Message::AccountCreated(account.id()))
                 }));
             }
             Message::Cancel => {
