@@ -176,7 +176,7 @@ impl View {
                                     utils::error_chain_string(
                                         error.context("Error while creating create budget view from existing budget")
                                     )
-                                )
+                                ).await
                             }).discard());
                         }
                     }
