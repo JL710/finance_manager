@@ -142,7 +142,7 @@ impl View {
                             .await
                             .create_asset_account(name, note, iban, bic, offset)
                             .await
-                            .context(format!("Error while creating account"))?
+                            .context("Error while creating account")?
                     };
                     Ok(Message::AssetAccountCreated(account.id()))
                 }));
