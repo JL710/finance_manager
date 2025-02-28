@@ -2,6 +2,7 @@ use fm_core;
 
 use iced::widget;
 
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -58,20 +59,20 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let account = if let fm_core::account::Account::AssetAccount(acc) = finance_manager
                     .lock()
                     .await
                     .get_account(account_id)
                     .await
-                    .unwrap()
-                    .unwrap()
+                    .context(format!("Error while fetching account {}", account_id))?
+                    .context(format!("Could not find account {}", account_id))?
                 {
                     acc
                 } else {
-                    panic!("Account is not an asset account")
+                    anyhow::bail!("Error Account is not an asset account");
                 };
-                Message::Initialize(account)
+                Ok(Message::Initialize(account))
             }),
         )
     }
@@ -127,23 +128,23 @@ impl View {
                 };
                 let offset = self.offset_input.currency().unwrap();
                 let id = self.id;
-                return Action::Task(iced::Task::future(async move {
+                return Action::Task(utils::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_manager
                             .lock()
                             .await
                             .update_asset_account(some_id, name, note, iban, bic, offset)
                             .await
-                            .unwrap()
+                            .context(format!("Error while updating account {}", some_id))?
                     } else {
                         finance_manager
                             .lock()
                             .await
                             .create_asset_account(name, note, iban, bic, offset)
                             .await
-                            .unwrap()
+                            .context(format!("Error while creating account"))?
                     };
-                    Message::AssetAccountCreated(account.id())
+                    Ok(Message::AssetAccountCreated(account.id()))
                 }));
             }
         }
