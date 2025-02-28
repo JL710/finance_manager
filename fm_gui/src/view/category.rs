@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -48,32 +49,59 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::NotLoaded,
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
                 let transactions = locked_manager
                     .get_transactions_of_category(category_id, (None, None))
                     .await
-                    .unwrap();
-                let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
+                    .context(format!(
+                        "Error while fetching transactions of category {}",
+                        category_id
+                    ))?;
+                let accounts = locked_manager
+                    .get_accounts_hash_map()
+                    .await
+                    .context("Error while fetching accounts")?;
                 let mut transaction_tuples = Vec::new();
                 for transaction in transactions {
-                    let from_account = accounts.get(transaction.source()).unwrap().clone();
-                    let to_account = accounts.get(transaction.destination()).unwrap().clone();
+                    let from_account = accounts
+                        .get(transaction.source())
+                        .context("Could not find source account")?
+                        .clone();
+                    let to_account = accounts
+                        .get(transaction.destination())
+                        .context("Could not find destination account")?
+                        .clone();
                     transaction_tuples.push((transaction, from_account, to_account));
                 }
                 let values = locked_manager
                     .get_relative_category_values(category_id, (None, None))
                     .await
-                    .unwrap();
+                    .context(format!(
+                        "Error while fetching value of category {}",
+                        category_id
+                    ))?;
                 let category = locked_manager
                     .get_category(category_id)
                     .await
-                    .unwrap()
-                    .unwrap();
+                    .context(format!("Error while fetching category {}", category_id))?
+                    .context(format!("Category {} not found", category_id))?;
 
-                let categories = locked_manager.get_categories().await.unwrap();
-                let budgets = locked_manager.get_budgets().await.unwrap();
-                Message::Set(category, values, transaction_tuples, categories, budgets)
+                let categories = locked_manager
+                    .get_categories()
+                    .await
+                    .context("Error while fetching categories")?;
+                let budgets = locked_manager
+                    .get_budgets()
+                    .await
+                    .context("Error while fetching budgets")?;
+                Ok(Message::Set(
+                    category,
+                    values,
+                    transaction_tuples,
+                    categories,
+                    budgets,
+                ))
             }),
         )
     }
@@ -99,13 +127,14 @@ impl View {
                     }
 
                     let category_id = *category.id();
-                    Action::DeleteCategory(iced::Task::future(async move {
+                    Action::DeleteCategory(utils::failing_task(async move {
                         finance_manager
                             .lock()
                             .await
                             .delete_category(category_id)
                             .await
-                            .unwrap();
+                            .context(format!("failed to delete category {}", category_id))?;
+                        Ok(())
                     }))
                 } else {
                     Action::None
@@ -131,33 +160,58 @@ impl View {
                     let id = *category.id();
                     let timespan = timespan_input.timespan();
 
-                    Action::Task(iced::Task::future(async move {
+                    Action::Task(utils::failing_task(async move {
                         let locked_manager = finance_manager.lock().await;
                         let transactions = locked_manager
                             .get_transactions_of_category(id, timespan)
                             .await
-                            .unwrap();
-                        let accounts = locked_manager.get_accounts_hash_map().await.unwrap();
+                            .context(format!("Error while fetching transactions of category {} for timespan {:?}", id, timespan))?;
+                        let accounts = locked_manager
+                            .get_accounts_hash_map()
+                            .await
+                            .context("Error while fetching accounts")?;
                         let mut transaction_tuples = Vec::new();
                         for transaction in transactions {
-                            let from_account = accounts.get(transaction.source()).unwrap().clone();
-                            let to_account =
-                                accounts.get(transaction.destination()).unwrap().clone();
+                            let from_account = accounts
+                                .get(transaction.source())
+                                .context(format!(
+                                    "Could not find source account of transaction {}",
+                                    transaction.source()
+                                ))?
+                                .clone();
+                            let to_account = accounts
+                                .get(transaction.destination())
+                                .context(format!(
+                                    "Could not find destination account of transaction {}",
+                                    transaction.destination()
+                                ))?
+                                .clone();
                             transaction_tuples.push((transaction, from_account, to_account));
                         }
                         let values = locked_manager
                             .get_relative_category_values(id, timespan)
                             .await
-                            .unwrap();
-                        let categories = locked_manager.get_categories().await.unwrap();
-                        let budgets = locked_manager.get_budgets().await.unwrap();
-                        Message::Set(
+                            .context(format!(
+                                "Error while fetching values of category {} {} for timespan {:?}",
+                                id,
+                                cloned_category.name(),
+                                timespan
+                            ))?;
+                        let categories = locked_manager
+                            .get_categories()
+                            .await
+                            .context("Error while fetching categories")?;
+                        let budgets = locked_manager
+                            .get_budgets()
+                            .await
+                            .context("Error while fetching budgets")?;
+                        Ok(Message::Set(
                             cloned_category,
                             values,
                             transaction_tuples,
                             categories,
                             budgets,
-                        )
+                        ))
                     }))
                 } else {
                     Action::None
