@@ -13,7 +13,7 @@ use fm_core::FinanceManager;
 macro_rules! message_match_action {
     ($view:expr, $finance_manager:expr, $m:expr, $v:path) => {
         match $view {
-            $v(ref mut view) => view.update($m, $finance_manager.clone()),
+            &mut $v(ref mut view) => view.update($m, $finance_manager.clone()),
             _ => {
                 tracing::debug!("message not handled");
                 return ViewAction::None;
@@ -761,7 +761,7 @@ impl App {
                     match view_update(self.finance_manager.clone(), current_view, view_message) {
                         ViewAction::AppTask(task) => return task,
                         ViewAction::ViewTask(task) => {
-                            return task.map(move |m| AppMessage::PaneViewMessage(pane, m))
+                            return task.map(move |m| AppMessage::PaneViewMessage(pane, m));
                         }
                         ViewAction::ApplySettings(new_settings) => {
                             return self.apply_settings(new_settings, Some(pane));
@@ -788,63 +788,55 @@ impl App {
                         widget::pane_grid::Content::new(
                             widget::container(
                                 match current_view {
-                                    View::Markdown(ref heading, ref items) => {
-                                        markdown(heading, items)
-                                    }
+                                    View::Markdown(heading, items) => markdown(heading, items),
                                     View::License => widget::scrollable(widget::text(
                                         include_str!("../../LICENSE"),
                                     ))
                                     .into(),
-                                    View::BudgetOverview(ref view) => {
+                                    View::BudgetOverview(view) => {
                                         view.view().map(ViewMessage::BudgetOverview)
                                     }
-                                    View::CreateAssetAccount(ref view) => {
+                                    View::CreateAssetAccount(view) => {
                                         view.view().map(ViewMessage::CreateAssetAccount)
                                     }
-                                    View::CreateBudget(ref view) => {
+                                    View::CreateBudget(view) => {
                                         view.view().map(ViewMessage::CreateBudget)
                                     }
-                                    View::CreateTransaction(ref view) => {
+                                    View::CreateTransaction(view) => {
                                         view.view().map(ViewMessage::CreateTransaction)
                                     }
-                                    View::AssetAccounts(ref view) => {
+                                    View::AssetAccounts(view) => {
                                         view.view().map(ViewMessage::AssetAccounts)
                                     }
-                                    View::Account(ref view) => {
-                                        view.view().map(ViewMessage::Account)
-                                    }
-                                    View::Transaction(ref view) => {
+                                    View::Account(view) => view.view().map(ViewMessage::Account),
+                                    View::Transaction(view) => {
                                         view.view().map(ViewMessage::Transaction)
                                     }
-                                    View::Budget(ref view) => view.view().map(ViewMessage::Budget),
-                                    View::CreateCategory(ref view) => {
+                                    View::Budget(view) => view.view().map(ViewMessage::Budget),
+                                    View::CreateCategory(view) => {
                                         view.view().map(ViewMessage::CreateCategory)
                                     }
-                                    View::CategoryOverview(ref view) => {
+                                    View::CategoryOverview(view) => {
                                         view.view().map(ViewMessage::CategoryOverview)
                                     }
-                                    View::Category(ref view) => {
-                                        view.view().map(ViewMessage::Category)
-                                    }
-                                    View::BookCheckingAccountOverview(ref view) => {
+                                    View::Category(view) => view.view().map(ViewMessage::Category),
+                                    View::BookCheckingAccountOverview(view) => {
                                         view.view().map(ViewMessage::BookCheckingAccountOverview)
                                     }
-                                    View::CreateBookCheckingAccount(ref view) => {
+                                    View::CreateBookCheckingAccount(view) => {
                                         view.view().map(ViewMessage::CreateBookCheckingAccount)
                                     }
-                                    View::Settings(ref view) => {
-                                        view.view().map(ViewMessage::Settings)
-                                    }
-                                    View::FilterTransaction(ref view) => {
+                                    View::Settings(view) => view.view().map(ViewMessage::Settings),
+                                    View::FilterTransaction(view) => {
                                         view.view().map(ViewMessage::FilterTransaction)
                                     }
-                                    View::CreateBill(ref view) => {
+                                    View::CreateBill(view) => {
                                         view.view().map(ViewMessage::CreateBill)
                                     }
-                                    View::BillOverview(ref view) => {
+                                    View::BillOverview(view) => {
                                         view.view().map(ViewMessage::BillOverview)
                                     }
-                                    View::Bill(ref view) => view.view().map(ViewMessage::Bill),
+                                    View::Bill(view) => view.view().map(ViewMessage::Bill),
                                 }
                                 .map(move |m| AppMessage::PaneViewMessage(pane, m)),
                             )
@@ -1020,7 +1012,7 @@ fn main() {
     let args = Args::parse();
 
     // tracing / logging
-    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
+    use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
     if args.verbose || args.debug {
         let stdout_log = tracing_subscriber::fmt::layer().compact();
         tracing_subscriber::registry()
