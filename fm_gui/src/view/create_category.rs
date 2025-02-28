@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -40,15 +41,15 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(None, String::new()),
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let category = finance_manager
                     .lock()
                     .await
                     .get_category(id)
                     .await
-                    .unwrap()
-                    .unwrap();
-                Message::Initialize(category)
+                    .context(format!("Error while fetching category {}", id))?
+                    .context(format!("Could not find category {}", id))?;
+                Ok(Message::Initialize(category))
             }),
         )
     }
@@ -80,16 +81,24 @@ impl View {
                 self.submitted = true;
                 let id = self.id;
                 let name = self.name.clone();
-                Action::Task(iced::Task::future(async move {
+                Action::Task(utils::failing_task(async move {
                     let mut locked_manager = finance_manager.lock().await;
                     if let Some(id) = id {
-                        Message::CategoryCreated(
-                            *locked_manager.update_category(id, name).await.unwrap().id(),
-                        )
+                        Ok(Message::CategoryCreated(
+                            *locked_manager
+                                .update_category(id, name)
+                                .await
+                                .context(format!("Error while updating category {}", id))?
+                                .id(),
+                        ))
                     } else {
-                        Message::CategoryCreated(
-                            *locked_manager.create_category(name).await.unwrap().id(),
-                        )
+                        Ok(Message::CategoryCreated(
+                            *locked_manager
+                                .create_category(name)
+                                .await
+                                .context("Error while creating category")?
+                                .id(),
+                        ))
                     }
                 }))
             }
