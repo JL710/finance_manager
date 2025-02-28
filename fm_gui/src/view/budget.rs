@@ -142,12 +142,7 @@ impl View {
                     let id = *budget.id();
                     Action::Task(
                         utils::failing_task(async move {
-                            finance_manager
-                                .lock()
-                                .await
-                                .delete_budget(id)
-                                .await
-                                .context(format!("Error while deleting budget {}", id))?;
+                            finance_manager.lock().await.delete_budget(id).await?;
                             Ok(Message::Deleted)
                         })
                         .map(MessageContainer),
@@ -284,12 +279,7 @@ impl View {
                 offset,
                 fm_core::get_local_timezone().context("Error while getting local timezone")?,
             )?
-            .await
-            .context(format!(
-                "Error while fetching transactions of budget {} {}",
-                budget.id(),
-                budget.name()
-            ))?;
+            .await?;
         let current_value = locked_manager
             .get_budget_value(
                 &budget,

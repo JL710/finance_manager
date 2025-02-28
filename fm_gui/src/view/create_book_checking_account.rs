@@ -48,8 +48,7 @@ impl View {
                     .lock()
                     .await
                     .get_account(account_id)
-                    .await
-                    .context(format!("Error while fetching account {}", account_id))?
+                    .await?
                     .context(format!("Could not find account {}", account_id))?;
                 if let fm_core::account::Account::BookCheckingAccount(acc) = account {
                     Ok(Message::Initialize(acc))
@@ -110,18 +109,13 @@ impl View {
                             .lock()
                             .await
                             .update_book_checking_account(some_id, name, note, iban, bic)
-                            .await
-                            .context(format!(
-                                "Error while updating book_checking_account {}",
-                                some_id
-                            ))?
+                            .await?
                     } else {
                         finance_manager
                             .lock()
                             .await
                             .create_book_checking_account(name, note, iban, bic)
-                            .await
-                            .context("Error while creating book_checking_account")?
+                            .await?
                     };
                     Ok(Message::AccountCreated(account.id()))
                 }));

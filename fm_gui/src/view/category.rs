@@ -53,11 +53,7 @@ impl View {
                 let locked_manager = finance_manager.lock().await;
                 let transactions = locked_manager
                     .get_transactions_of_category(category_id, (None, None))
-                    .await
-                    .context(format!(
-                        "Error while fetching transactions of category {}",
-                        category_id
-                    ))?;
+                    .await?;
                 let accounts = locked_manager
                     .get_accounts_hash_map()
                     .await
@@ -76,21 +72,13 @@ impl View {
                 }
                 let values = locked_manager
                     .get_relative_category_values(category_id, (None, None))
-                    .await
-                    .context(format!(
-                        "Error while fetching value of category {}",
-                        category_id
-                    ))?;
+                    .await?;
                 let category = locked_manager
                     .get_category(category_id)
-                    .await
-                    .context(format!("Error while fetching category {}", category_id))?
+                    .await?
                     .context(format!("Category {} not found", category_id))?;
 
-                let categories = locked_manager
-                    .get_categories()
-                    .await
-                    .context("Error while fetching categories")?;
+                let categories = locked_manager.get_categories().await?;
                 let budgets = locked_manager.get_budgets().await?;
                 Ok(Message::Set(
                     category,
@@ -129,8 +117,7 @@ impl View {
                             .lock()
                             .await
                             .delete_category(category_id)
-                            .await
-                            .context(format!("failed to delete category {}", category_id))?;
+                            .await?;
                         Ok(())
                     }))
                 } else {
@@ -161,8 +148,7 @@ impl View {
                         let locked_manager = finance_manager.lock().await;
                         let transactions = locked_manager
                             .get_transactions_of_category(id, timespan)
-                            .await
-                            .context(format!("Error while fetching transactions of category {} for timespan {:?}", id, timespan))?;
+                            .await?;
                         let accounts = locked_manager
                             .get_accounts_hash_map()
                             .await
@@ -187,17 +173,8 @@ impl View {
                         }
                         let values = locked_manager
                             .get_relative_category_values(id, timespan)
-                            .await
-                            .context(format!(
-                                "Error while fetching values of category {} {} for timespan {:?}",
-                                id,
-                                cloned_category.name(),
-                                timespan
-                            ))?;
-                        let categories = locked_manager
-                            .get_categories()
-                            .await
-                            .context("Error while fetching categories")?;
+                            .await?;
+                        let categories = locked_manager.get_categories().await?;
                         let budgets = locked_manager.get_budgets().await?;
                         Ok(Message::Set(
                             cloned_category,

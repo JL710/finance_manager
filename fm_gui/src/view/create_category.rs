@@ -46,8 +46,7 @@ impl View {
                     .lock()
                     .await
                     .get_category(id)
-                    .await
-                    .context(format!("Error while fetching category {}", id))?
+                    .await?
                     .context(format!("Could not find category {}", id))?;
                 Ok(Message::Initialize(category))
             }),
@@ -85,19 +84,11 @@ impl View {
                     let mut locked_manager = finance_manager.lock().await;
                     if let Some(id) = id {
                         Ok(Message::CategoryCreated(
-                            *locked_manager
-                                .update_category(id, name)
-                                .await
-                                .context(format!("Error while updating category {}", id))?
-                                .id(),
+                            *locked_manager.update_category(id, name).await?.id(),
                         ))
                     } else {
                         Ok(Message::CategoryCreated(
-                            *locked_manager
-                                .create_category(name)
-                                .await
-                                .context("Error while creating category")?
-                                .id(),
+                            *locked_manager.create_category(name).await?.id(),
                         ))
                     }
                 }))

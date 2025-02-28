@@ -144,8 +144,7 @@ impl View {
                     .lock()
                     .await
                     .get_budget(id)
-                    .await
-                    .context(format!("Error while fetching budget {}", id))?
+                    .await?
                     .context(format!("Could not find budget {}", id))?;
                 Ok(Message::Initialize(Some(budget)))
             }),
@@ -200,41 +199,43 @@ impl View {
                 let recurring_inputs = self.recurring_inputs.clone();
                 return Action::Task(utils::failing_task(async move {
                     let budget = match option_id {
-                        Some(id) => finance_manager
-                            .lock()
-                            .await
-                            .update_budget(
-                                id,
-                                name_input,
-                                if description_input.is_empty() {
-                                    None
-                                } else {
-                                    Some(description_input)
-                                },
-                                fm_core::Currency::from(value_input.parse::<f64>()?),
-                                recurring_inputs.try_into().context(
-                                    "Error while converting recurring input into timespan",
-                                )?,
-                            )
-                            .await
-                            .context(format!("Error while updating budget {}", id))?,
-                        None => finance_manager
-                            .lock()
-                            .await
-                            .create_budget(
-                                name_input,
-                                if description_input.is_empty() {
-                                    None
-                                } else {
-                                    Some(description_input)
-                                },
-                                fm_core::Currency::from(value_input.parse::<f64>()?),
-                                recurring_inputs.try_into().context(
-                                    "Error while converting recurring input into timespan",
-                                )?,
-                            )
-                            .await
-                            .context("Error while creating budget")?,
+                        Some(id) => {
+                            finance_manager
+                                .lock()
+                                .await
+                                .update_budget(
+                                    id,
+                                    name_input,
+                                    if description_input.is_empty() {
+                                        None
+                                    } else {
+                                        Some(description_input)
+                                    },
+                                    fm_core::Currency::from(value_input.parse::<f64>()?),
+                                    recurring_inputs.try_into().context(
+                                        "Error while converting recurring input into timespan",
+                                    )?,
+                                )
+                                .await?
+                        }
+                        None => {
+                            finance_manager
+                                .lock()
+                                .await
+                                .create_budget(
+                                    name_input,
+                                    if description_input.is_empty() {
+                                        None
+                                    } else {
+                                        Some(description_input)
+                                    },
+                                    fm_core::Currency::from(value_input.parse::<f64>()?),
+                                    recurring_inputs.try_into().context(
+                                        "Error while converting recurring input into timespan",
+                                    )?,
+                                )
+                                .await?
+                        }
                     };
                     Ok(Message::BudgetCreated(*budget.id()))
                 }));

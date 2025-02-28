@@ -124,12 +124,7 @@ impl View {
             utils::failing_task(async move {
                 let budgets = finance_manager.lock().await.get_budgets().await?;
                 let accounts = finance_manager.lock().await.get_accounts().await?;
-                let categories = finance_manager
-                    .lock()
-                    .await
-                    .get_categories()
-                    .await
-                    .context("Error while fetching categories")?;
+                let categories = finance_manager.lock().await.get_categories().await?;
                 Ok(Message::Initialize(Box::new((
                     budgets, accounts, categories,
                 ))))
@@ -149,44 +144,26 @@ impl View {
 
                 let transaction = locked_manager
                     .get_transaction(transaction_id)
-                    .await
-                    .context(format!(
-                        "Error while fetching transaction {}",
-                        transaction_id
-                    ))?
+                    .await?
                     .context(format!("Could not find transaction {}", transaction_id))?;
                 let source = locked_manager
                     .get_account(*transaction.source())
-                    .await
-                    .context(format!(
-                        "Error while fetching account {}",
-                        transaction.source()
-                    ))?
+                    .await?
                     .context(format!("Could not find account {}", transaction.source()))?;
                 let destination = locked_manager
                     .get_account(*transaction.destination())
-                    .await
-                    .context(format!(
-                        "Error while fetching account {}",
-                        transaction.destination()
-                    ))?
+                    .await?
                     .context(format!(
                         "Could not find account {}",
                         transaction.destination()
                     ))?;
                 let budget = match transaction.budget() {
-                    Some(x) => locked_manager
-                        .get_budget(x.0)
-                        .await
-                        .context(format!("Error while fetching budget {}", x.0))?,
+                    Some(x) => locked_manager.get_budget(x.0).await?,
                     None => None,
                 };
                 let budgets = locked_manager.get_budgets().await?;
                 let accounts = locked_manager.get_accounts().await?;
-                let available_categories = locked_manager
-                    .get_categories()
-                    .await
-                    .context("Error while fetching categories")?;
+                let available_categories = locked_manager.get_categories().await?;
 
                 Ok(Message::InitializeFromExisting(Box::new(InitExisting {
                     transaction,
@@ -547,8 +524,7 @@ impl View {
                     .lock()
                     .await
                     .create_book_checking_account(name, None, None, None)
-                    .await
-                    .context("Error while creating book checking account")?
+                    .await?
                     .id(),
             };
 
@@ -558,46 +534,47 @@ impl View {
                     .lock()
                     .await
                     .create_book_checking_account(name, None, None, None)
-                    .await
-                    .context("Error while creating book checking account")?
+                    .await?
                     .id(),
             };
 
             Ok(match option_id {
-                Some(id) => finance_manager
-                    .lock()
-                    .await
-                    .update_transaction(
-                        id,
-                        amount,
-                        title,
-                        description,
-                        source_id,
-                        destination_id,
-                        budget,
-                        date,
-                        metadata,
-                        categories,
-                    )
-                    .context(format!("Could not update transaction {}", id))?
-                    .await
-                    .context(format!("Error while updating transaction {}", id))?,
-                _ => finance_manager
-                    .lock()
-                    .await
-                    .create_transaction(
-                        amount,
-                        title,
-                        description,
-                        source_id,
-                        destination_id,
-                        budget,
-                        date,
-                        metadata,
-                        categories,
-                    )
-                    .await
-                    .context("Error while creating transaction")?,
+                Some(id) => {
+                    finance_manager
+                        .lock()
+                        .await
+                        .update_transaction(
+                            id,
+                            amount,
+                            title,
+                            description,
+                            source_id,
+                            destination_id,
+                            budget,
+                            date,
+                            metadata,
+                            categories,
+                        )
+                        .context(format!("Could not update transaction {}", id))?
+                        .await?
+                }
+                _ => {
+                    finance_manager
+                        .lock()
+                        .await
+                        .create_transaction(
+                            amount,
+                            title,
+                            description,
+                            source_id,
+                            destination_id,
+                            budget,
+                            date,
+                            metadata,
+                            categories,
+                        )
+                        .await?
+                }
             })
         })
     }

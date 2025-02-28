@@ -62,39 +62,24 @@ impl View {
                 let locked_manager = finance_manager.lock().await;
                 let transaction = locked_manager
                     .get_transaction(id)
-                    .await
-                    .context(format!("Error while fetching transaction {}", id))?
+                    .await?
                     .context(format!("Could not find transaction {}", id))?;
                 let source = locked_manager
                     .get_account(*transaction.source())
-                    .await
-                    .context(format!(
-                        "Error while fetching account {}",
-                        transaction.source()
-                    ))?
+                    .await?
                     .context(format!("Could not find account {}", transaction.source()))?;
                 let destination = locked_manager
                     .get_account(*transaction.destination())
-                    .await
-                    .context(format!(
-                        "Error while fetching account {}",
-                        transaction.destination()
-                    ))?
+                    .await?
                     .context(format!(
                         "Could not find account {}",
                         transaction.destination()
                     ))?;
                 let budget = match transaction.budget() {
-                    Some(budget_id) => locked_manager
-                        .get_budget(budget_id.0)
-                        .await
-                        .context(format!("Error while fetching budget {}", budget_id.0))?,
+                    Some(budget_id) => locked_manager.get_budget(budget_id.0).await?,
                     None => None,
                 };
-                let categories = locked_manager
-                    .get_categories()
-                    .await
-                    .context("Error while fetching categories")?;
+                let categories = locked_manager.get_categories().await?;
                 Ok(MessageContainer(Message::Initialize(Box::new(Init {
                     transaction,
                     source,
@@ -149,12 +134,7 @@ impl View {
                 if let Self::Loaded { transaction, .. } = self {
                     let id = *transaction.id();
                     Action::Delete(utils::failing_task(async move {
-                        finance_manager
-                            .lock()
-                            .await
-                            .delete_transaction(id)
-                            .await
-                            .context(format!("Error while deleting transaction {}", id))?;
+                        finance_manager.lock().await.delete_transaction(id).await?;
                         Ok(())
                     }))
                 } else {

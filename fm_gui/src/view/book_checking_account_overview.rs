@@ -1,4 +1,3 @@
-use anyhow::Context;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -57,12 +56,7 @@ impl View {
                 for account in accounts {
                     let sum = locked_manager
                         .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
-                        .await
-                        .context(format!(
-                            "Failed to fetch account sum of account {} {}",
-                            account.id(),
-                            account.name()
-                        ))?;
+                        .await?;
                     accounts_with_sums.push((account, sum));
                 }
 

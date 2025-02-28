@@ -58,18 +58,8 @@ impl View {
                             0,
                             fm_core::get_local_timezone()
                                 .context("Error while trying to get local timezone")?,
-                        )
-                        .context(format!(
-                            "Error while trying to fetch value of budget {} {}",
-                            budget.id(),
-                            budget.name()
-                        ))?
-                        .await
-                        .context(format!(
-                            "Error while fetching budget value for budget {} {}",
-                            budget.id(),
-                            budget.name()
-                        ))?;
+                        )?
+                        .await?;
                     tuples.push((budget, current_value));
                 }
 

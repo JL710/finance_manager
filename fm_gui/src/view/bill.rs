@@ -67,8 +67,7 @@ impl View {
                 for (transaction_id, sign) in bill.transactions() {
                     let transaction = locked_manager
                         .get_transaction(*transaction_id)
-                        .await
-                        .context(format!("Failed to fetch transaction {}", transaction_id))?
+                        .await?
                         .context(format!("Could not find transaction {}", transaction_id))?;
                     transactions.push((transaction, *sign));
                 }
@@ -149,12 +148,7 @@ impl View {
                             if let rfd::MessageDialogResult::Yes = result {
                                 let manager = finance_manager.clone();
                                 utils::failing_task(async move {
-                                    manager
-                                        .lock()
-                                        .await
-                                        .delete_bill(bill_id)
-                                        .await
-                                        .context("Error while deleting bill")?;
+                                    manager.lock().await.delete_bill(bill_id).await?;
                                     Ok(Message::Deleted)
                                 })
                                 .map(MessageContainer)

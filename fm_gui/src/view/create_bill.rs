@@ -166,11 +166,7 @@ impl View {
                         transactions.push((
                             locked_manager
                                 .get_transaction(*transaction_id)
-                                .await
-                                .context(format!(
-                                    "Error while fetching transaction {}",
-                                    transaction_id
-                                ))?
+                                .await?
                                 .context("Could not find transaction")?,
                             *sign,
                         ));
@@ -251,20 +247,16 @@ impl View {
                         finance_manager
                             .lock()
                             .await
-                            .update_bill(id, name, description, value, transactions, due_date)
-                            .context("Failed to update bill")?
-                            .await
-                            .context("Error while updating bill")?;
+                            .update_bill(id, name, description, value, transactions, due_date)?
+                            .await?;
                         Ok(Message::BillCreated(id))
                     }));
                 } else {
                     return Action::Task(utils::failing_task(async move {
                         let mut locked_manager = finance_manager.lock().await;
                         let bill = locked_manager
-                            .create_bill(name, description, value, transactions, due_date)
-                            .context("Failed to create bill")?
-                            .await
-                            .context("Error while creating bill")?;
+                            .create_bill(name, description, value, transactions, due_date)?
+                            .await?;
                         Ok(Message::BillCreated(*bill.id()))
                     }));
                 }
@@ -431,7 +423,6 @@ impl View {
 }
 
 mod add_transaction {
-    use anyhow::Context;
     use async_std::sync::Mutex;
     use std::sync::Arc;
 
@@ -501,10 +492,7 @@ mod add_transaction {
                 utils::failing_task(async move {
                     let locked_manager = finance_manager.lock().await;
                     let accounts = locked_manager.get_accounts().await?;
-                    let categories = locked_manager
-                        .get_categories()
-                        .await
-                        .context("Error while fetching categories")?;
+                    let categories = locked_manager.get_categories().await?;
                     let bills = locked_manager.get_bills().await?;
                     let budgets = locked_manager.get_budgets().await?;
                     Ok(Message::Init(
@@ -539,10 +527,7 @@ mod add_transaction {
                                     Ok(Message::FetchedTransactions(
                                         locked_manager
                                             .get_filtered_transactions(submitted_filter.clone())
-                                            .await
-                                            .context(
-                                                "Error while fetching transactions by filtered",
-                                            )?,
+                                            .await?,
                                     ))
                                 }));
                             }

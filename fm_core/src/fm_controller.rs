@@ -92,13 +92,21 @@ where
             }
             ids.push(transaction.0);
         }
-        Ok(self
-            .finance_manager
-            .create_bill(name, description, value, transactions, due_date))
+        Ok(async move {
+            self.finance_manager
+                .create_bill(name, description, value, transactions, due_date)
+                .await
+                .context("Error while creating bill")
+        })
     }
 
     pub fn delete_bill(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
-        self.finance_manager.delete_bill(id)
+        async move {
+            self.finance_manager
+                .delete_bill(id)
+                .await
+                .context(format!("Error while deleting bill with id {}", id))
+        }
     }
 
     pub fn update_bill(
@@ -117,36 +125,40 @@ where
             }
             ids.push(transaction.0);
         }
-        Ok(self
-            .finance_manager
-            .update_bill(id, name, description, value, transactions, due_date))
+        Ok(async move {
+            self.finance_manager
+                .update_bill(id, name, description, value, transactions, due_date)
+                .await
+                .context(format!("Error while updating bill with id {}", id))
+        })
     }
 
     pub fn get_filtered_transactions(
         &self,
         filter: transaction_filter::TransactionFilter,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
-        self.finance_manager.get_filtered_transactions(filter)
+        let fut = self.finance_manager.get_filtered_transactions(filter);
+        async move {
+            fut.await
+                .context("Error while getting transactions with applied filter")
+        }
     }
 
-    pub fn create_asset_account(
+    pub async fn create_asset_account(
         &mut self,
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend + '_ {
-        self.finance_manager.create_asset_account(
-            name,
-            note,
-            iban,
-            make_iban_bic_unified(bic),
-            offset,
-        )
+    ) -> Result<account::AssetAccount> {
+        self.finance_manager
+            .create_asset_account(name, note, iban, make_iban_bic_unified(bic), offset)
+            .await
+            .context("Error while creating asset account")
     }
 
-    pub fn update_asset_account(
+    pub async fn update_asset_account(
         &mut self,
         id: Id,
         name: String,
@@ -154,15 +166,11 @@ where
         iban: Option<AccountId>,
         bic: Option<String>,
         offset: Currency,
-    ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend + '_ {
-        self.finance_manager.update_asset_account(
-            id,
-            name,
-            note,
-            iban,
-            make_iban_bic_unified(bic),
-            offset,
-        )
+    ) -> Result<account::AssetAccount> {
+        self.finance_manager
+            .update_asset_account(id, name, note, iban, make_iban_bic_unified(bic), offset)
+            .await
+            .context(format!("Error while updating asset account {}", id))
     }
 
     /// Deletes an account.
@@ -195,7 +203,7 @@ where
         self.finance_manager
             .delete_account(id)
             .await
-            .context("underlying delete account finance manager call failed")?;
+            .context("underlying delete account call on finance manager failed")?;
 
         Ok(())
     }
@@ -211,7 +219,11 @@ where
         &self,
         id: Id,
     ) -> impl Future<Output = Result<Option<account::Account>>> + MaybeSend + '_ {
-        self.finance_manager.get_account(id)
+        let fut = self.finance_manager.get_account(id);
+        async move {
+            fut.await
+                .context(format!("Error while deleting account with id {}", id))
+        }
     }
 
     pub fn get_account_sum<'a>(
@@ -222,7 +234,7 @@ where
         let future = self.finance_manager.get_account_sum(account, date);
 
         async move {
-            let sum = future.await?;
+            let sum = future.await.context("Error while getting account sum")?;
             if let account::Account::AssetAccount(asset_account) = account {
                 Ok(sum + asset_account.offset().clone())
             } else {
@@ -235,7 +247,11 @@ where
         &self,
         id: Id,
     ) -> impl Future<Output = Result<Option<Transaction>>> + MaybeSend + '_ {
-        self.finance_manager.get_transaction(id)
+        let fut = self.finance_manager.get_transaction(id);
+        async move {
+            fut.await
+                .context(format!("Error while getting transaction with id {}", id))
+        }
     }
 
     pub fn get_transactions_of_account(
@@ -261,29 +277,33 @@ where
         categories: HashMap<Id, Sign>,
     ) -> impl Future<Output = Result<Transaction>> + MaybeSend + '_ {
         async move {
-            if amount.get_eur_num() < 0.0 {
-                anyhow::bail!("Amount must be positive")
-            }
-
-            for category in &categories {
-                if self.get_category(*category.0).await.unwrap().is_none() {
-                    anyhow::bail!("Category does not exist!")
+            (|| async {
+                if amount.get_eur_num() < 0.0 {
+                    anyhow::bail!("Amount must be positive")
                 }
-            }
 
-            self.finance_manager
-                .create_transaction(
-                    amount,
-                    title,
-                    description,
-                    source,
-                    destination,
-                    budget,
-                    date,
-                    metadata,
-                    categories,
-                )
-                .await
+                for category in &categories {
+                    if self.get_category(*category.0).await.unwrap().is_none() {
+                        anyhow::bail!("Category does not exist!")
+                    }
+                }
+
+                self.finance_manager
+                    .create_transaction(
+                        amount,
+                        title,
+                        description,
+                        source,
+                        destination,
+                        budget,
+                        date,
+                        metadata,
+                        categories,
+                    )
+                    .await
+            })()
+            .await
+            .context("Error while creating transaction")
         }
     }
 
@@ -304,18 +324,23 @@ where
         if amount.get_eur_num() < 0.0 {
             anyhow::bail!("Amount must be positive")
         }
-        Ok(self.finance_manager.update_transaction(
-            id,
-            amount,
-            title,
-            description,
-            source,
-            destination,
-            budget,
-            date,
-            metadata,
-            categories,
-        ))
+        Ok(async move {
+            self.finance_manager
+                .update_transaction(
+                    id,
+                    amount,
+                    title,
+                    description,
+                    source,
+                    destination,
+                    budget,
+                    date,
+                    metadata,
+                    categories,
+                )
+                .await
+                .context(format!("Error while updating transaction with id {}", id))
+        })
     }
 
     pub fn create_book_checking_account(
@@ -325,12 +350,16 @@ where
         iban: Option<AccountId>,
         bic: Option<String>,
     ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend + '_ {
-        self.finance_manager.create_book_checking_account(
+        let fut = self.finance_manager.create_book_checking_account(
             name,
             notes,
             iban,
             make_iban_bic_unified(bic),
-        )
+        );
+        async move {
+            fut.await
+                .context("Error while creating book checking account")
+        }
     }
 
     pub fn update_book_checking_account(
@@ -341,13 +370,19 @@ where
         iban: Option<AccountId>,
         bic: Option<String>,
     ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend + '_ {
-        self.finance_manager.update_book_checking_account(
+        let fut = self.finance_manager.update_book_checking_account(
             id,
             name,
             note,
             iban,
             make_iban_bic_unified(bic),
-        )
+        );
+        async move {
+            fut.await.context(format!(
+                "Error while updating book checking account with id {}",
+                id
+            ))
+        }
     }
 
     pub fn create_budget(
@@ -357,12 +392,18 @@ where
         total_value: Currency,
         timespan: Recurring,
     ) -> impl Future<Output = Result<Budget>> + MaybeSend + '_ {
-        self.finance_manager
-            .create_budget(name, description, total_value, timespan)
+        let fut = self
+            .finance_manager
+            .create_budget(name, description, total_value, timespan);
+        async move { fut.await.context("Error while creating budget") }
     }
 
     pub fn delete_budget(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
-        self.finance_manager.delete_budget(id)
+        let fut = self.finance_manager.delete_budget(id);
+        async move {
+            fut.await
+                .context(format!("Error while deleting budget with id {}", id))
+        }
     }
 
     pub fn update_budget(
@@ -373,8 +414,13 @@ where
         total_value: Currency,
         timespan: Recurring,
     ) -> impl Future<Output = Result<Budget>> + MaybeSend + '_ {
-        self.finance_manager
-            .update_budget(id, name, description, total_value, timespan)
+        let fut = self
+            .finance_manager
+            .update_budget(id, name, description, total_value, timespan);
+        async move {
+            fut.await
+                .context(format!("Error while updating budget with id {}", id))
+        }
     }
 
     pub fn get_budgets(&self) -> impl Future<Output = Result<Vec<Budget>>> + MaybeSend + '_ {
@@ -386,41 +432,54 @@ where
         &self,
         id: Id,
     ) -> impl Future<Output = Result<Option<Budget>>> + MaybeSend + '_ {
-        self.finance_manager.get_budget(id)
+        let fut = self.finance_manager.get_budget(id);
+        async move {
+            fut.await
+                .context(format!("Error while getting budget with id {}", id))
+        }
     }
 
     pub async fn delete_transaction(&mut self, id: Id) -> Result<()> {
-        for bill in self.get_bills().await? {
-            if bill.transactions().iter().any(|(x, _)| *x == id) {
-                self.update_bill(
-                    *bill.id(),
-                    bill.name().clone(),
-                    bill.description().to_owned(),
-                    bill.value().to_owned(),
-                    bill.transactions().to_owned(),
-                    bill.due_date().to_owned(),
-                )?
-                .await?;
+        (|| async move {
+            for bill in self.get_bills().await? {
+                if bill.transactions().iter().any(|(x, _)| *x == id) {
+                    self.update_bill(
+                        *bill.id(),
+                        bill.name().clone(),
+                        bill.description().to_owned(),
+                        bill.value().to_owned(),
+                        bill.transactions().to_owned(),
+                        bill.due_date().to_owned(),
+                    )?
+                    .await?;
+                }
             }
-        }
-        self.finance_manager
-            .delete_transaction(id)
-            .await
-            .context("underlying finance manager error")
+            self.finance_manager
+                .delete_transaction(id)
+                .await
+                .context("underlying finance manager error")
+        })()
+        .await
+        .context(format!("Error while deleting transaction with id {}", id))
     }
 
     pub fn get_transactions_in_timespan(
         &self,
         timespan: Timespan,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
-        self.finance_manager.get_transactions_in_timespan(timespan)
+        let fut = self.finance_manager.get_transactions_in_timespan(timespan);
+        async {
+            fut.await
+                .context("Error while getting transactions filtered by timespan")
+        }
     }
 
     pub fn get_transactions(
         &self,
         ids: Vec<Id>,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
-        self.finance_manager.get_transactions(ids)
+        let fut = self.finance_manager.get_transactions(ids);
+        async { fut.await.context("Error while getting transactions") }
     }
 
     pub fn get_transactions_of_budget(
@@ -428,8 +487,15 @@ where
         id: Id,
         timespan: Timespan,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
-        self.finance_manager
-            .get_transactions_of_budget(id, timespan)
+        let fut = self
+            .finance_manager
+            .get_transactions_of_budget(id, timespan);
+        async move {
+            fut.await.context(format!(
+                "Error while getting transactions of budget with id {}",
+                id
+            ))
+        }
     }
 
     /// Gets the transactions of the budget at the current timespan if the offset is 0.
@@ -446,7 +512,14 @@ where
             offset,
             time::OffsetDateTime::now_utc().to_offset(timezone),
         )?;
-        Ok(self.get_transactions_of_budget(*budget.id(), timespan))
+        let fut = self.get_transactions_of_budget(*budget.id(), timespan);
+        Ok(async move {
+            fut.await.context(format!(
+                "Error while getting transactions of budget with {} {}",
+                budget.id(),
+                budget.name()
+            ))
+        })
     }
 
     /// Gets the value of the budget at the current timespan if the offset is 0.
@@ -459,8 +532,12 @@ where
         timezone: time::UtcOffset,
     ) -> Result<impl Future<Output = Result<Currency>> + MaybeSend + 'a> {
         let transactions_future = self.get_budget_transactions(budget, offset, timezone)?;
-        Ok(async {
-            let transactions = transactions_future.await?;
+        Ok(async move {
+            let transactions = transactions_future.await.context(format!(
+                "Error while getting value of budget {} {}",
+                budget.id(),
+                budget.name()
+            ))?;
             let mut sum = Currency::default();
             for transaction in transactions {
                 let sign = transaction.budget().unwrap().1;
@@ -488,21 +565,27 @@ where
     }
 
     pub fn get_categories(&self) -> impl Future<Output = Result<Vec<Category>>> + MaybeSend + '_ {
-        self.finance_manager.get_categories()
+        let fut = self.finance_manager.get_categories();
+        async { fut.await.context("Error while getting categories") }
     }
 
     pub fn get_category(
         &self,
         id: Id,
     ) -> impl Future<Output = Result<Option<Category>>> + MaybeSend + '_ {
-        self.finance_manager.get_category(id)
+        let fut = self.finance_manager.get_category(id);
+        async move {
+            fut.await
+                .context(format!("Error while getting category with id {}", id))
+        }
     }
 
     pub fn create_category(
         &mut self,
         name: String,
     ) -> impl Future<Output = Result<Category>> + MaybeSend + '_ {
-        self.finance_manager.create_category(name)
+        let fut = self.finance_manager.create_category(name);
+        async { fut.await.context("Error while creating category") }
     }
 
     pub fn update_category(
@@ -510,11 +593,19 @@ where
         id: Id,
         name: String,
     ) -> impl Future<Output = Result<Category>> + MaybeSend + '_ {
-        self.finance_manager.update_category(id, name)
+        let fut = self.finance_manager.update_category(id, name);
+        async move {
+            fut.await
+                .context(format!("Error while updating category with id {}", id))
+        }
     }
 
     pub fn delete_category(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
-        self.finance_manager.delete_category(id)
+        let fut = self.finance_manager.delete_category(id);
+        async move {
+            fut.await
+                .context(format!("Error while deleting category with id {}", id))
+        }
     }
 
     pub fn get_transactions_of_category(
@@ -522,8 +613,15 @@ where
         id: Id,
         timespan: Timespan,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend + '_ {
-        self.finance_manager
-            .get_transactions_of_category(id, timespan)
+        let fut = self
+            .finance_manager
+            .get_transactions_of_category(id, timespan);
+        async move {
+            fut.await.context(format!(
+                "Error while getting transactions of category with id {} in timespan {:?}",
+                id, timespan
+            ))
+        }
     }
 
     /// Gets the values of the category over time.
@@ -537,7 +635,10 @@ where
         let transactions_future = self.get_transactions_of_category(id, timespan);
         async move {
             Ok(sum_up_transactions_by_day(
-                transactions_future.await?,
+                transactions_future.await.context(format!(
+                    "Error while getting transactions of category with id {} in timespan {:?}",
+                    id, timespan
+                ))?,
                 |transaction| {
                     *transaction
                         .categories()
@@ -556,21 +657,31 @@ where
         id: Id,
         categories: HashMap<Id, Sign>,
     ) -> Result<Transaction> {
-        let transaction = self.finance_manager.get_transaction(id).await?.unwrap();
-        self.finance_manager
-            .update_transaction(
-                *transaction.id(),
-                transaction.amount().clone(),
-                transaction.title().to_owned(),
-                transaction.description().map(|x| x.to_owned()),
-                *transaction.source(),
-                *transaction.destination(),
-                transaction.budget().map(|x| x.to_owned()),
-                *transaction.date(),
-                transaction.metadata().clone(),
-                categories,
-            )
+        let transaction = self
+            .get_transaction(id)
             .await
+            .context(format!(
+                "Error while updating categories for transaction with id {}",
+                id
+            ))?
+            .unwrap();
+        self.update_transaction(
+            *transaction.id(),
+            transaction.amount().clone(),
+            transaction.title().to_owned(),
+            transaction.description().map(|x| x.to_owned()),
+            *transaction.source(),
+            *transaction.destination(),
+            transaction.budget().map(|x| x.to_owned()),
+            *transaction.date(),
+            transaction.metadata().clone(),
+            categories,
+        )?
+        .await
+        .context(format!(
+            "Error while updating categories for transaction with id {}",
+            id
+        ))
     }
 }
 

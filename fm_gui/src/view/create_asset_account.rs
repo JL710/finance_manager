@@ -64,8 +64,7 @@ impl View {
                     .lock()
                     .await
                     .get_account(account_id)
-                    .await
-                    .context(format!("Error while fetching account {}", account_id))?
+                    .await?
                     .context(format!("Could not find account {}", account_id))?
                 {
                     acc
@@ -134,15 +133,13 @@ impl View {
                             .lock()
                             .await
                             .update_asset_account(some_id, name, note, iban, bic, offset)
-                            .await
-                            .context(format!("Error while updating account {}", some_id))?
+                            .await?
                     } else {
                         finance_manager
                             .lock()
                             .await
                             .create_asset_account(name, note, iban, bic, offset)
-                            .await
-                            .context("Error while creating account")?
+                            .await?
                     };
                     Ok(Message::AssetAccountCreated(account.id()))
                 }));
