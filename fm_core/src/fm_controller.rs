@@ -50,7 +50,8 @@ where
     }
 
     pub fn get_bills(&self) -> impl Future<Output = Result<Vec<Bill>>> + MaybeSend + '_ {
-        self.finance_manager.get_bills()
+        let fut = self.finance_manager.get_bills();
+        async { fut.await.context("Error while getting bills") }
     }
 
     pub fn get_bill<'a>(

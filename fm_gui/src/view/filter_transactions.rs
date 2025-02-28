@@ -69,10 +69,7 @@ impl View {
                     .get_categories()
                     .await
                     .context("Error while fetching categories")?;
-                let bills = locked_manager
-                    .get_bills()
-                    .await
-                    .context("Error while fetching bills")?;
+                let bills = locked_manager.get_bills().await?;
                 let budgets = locked_manager.get_budgets().await?;
                 Ok(Message::Initialize {
                     accounts,

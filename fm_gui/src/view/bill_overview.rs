@@ -47,12 +47,7 @@ impl View {
         (
             Self::new(Vec::new()),
             utils::failing_task(async move {
-                let bills = finance_manager
-                    .lock()
-                    .await
-                    .get_bills()
-                    .await
-                    .context("failed to fetch bills")?;
+                let bills = finance_manager.lock().await.get_bills().await?;
                 let mut bill_tuples = Vec::new();
                 for bill in bills {
                     let sum = finance_manager
