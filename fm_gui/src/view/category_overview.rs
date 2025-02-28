@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -35,10 +36,13 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
-                let categories = locked_manager.get_categories().await.unwrap();
-                Message::Initialize(categories)
+                let categories = locked_manager
+                    .get_categories()
+                    .await
+                    .context("Failed while fetching categories")?;
+                Ok(Message::Initialize(categories))
             }),
         )
     }
