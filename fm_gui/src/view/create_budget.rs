@@ -1,7 +1,7 @@
 use fm_core;
 use iced::widget;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use async_std::sync::Mutex;
 use std::sync::Arc;
@@ -104,8 +104,8 @@ impl Default for View {
 }
 
 impl View {
-    pub fn from_budget(budget: fm_core::Budget) -> Self {
-        Self {
+    pub fn from_budget(budget: fm_core::Budget) -> Result<Self> {
+        Ok(Self {
             id: Some(*budget.id()),
             name_input: budget.name().to_string(),
             description_input: widget::text_editor::Content::with_text(
@@ -115,9 +115,8 @@ impl View {
             recurring_inputs: match budget.timespan() {
                 fm_core::Recurring::Days(start, days) => Recurring::Days(
                     start
-                        .to_offset(fm_core::get_local_timezone().unwrap())
-                        .format(&time::format_description::parse("[day].[month].[year]").unwrap())
-                        .unwrap(),
+                        .to_offset(fm_core::get_local_timezone()?)
+                        .format(&time::format_description::parse("[day].[month].[year]")?)?,
                     days.to_string(),
                 ),
                 fm_core::Recurring::DayInMonth(day) => Recurring::DayInMonth(day.to_string()),
@@ -131,7 +130,7 @@ impl View {
                 fm_core::Recurring::Yearly(_, _) => Some("Yearly".to_string()),
             },
             submitted: false,
-        }
+        })
     }
 
     pub fn fetch(
@@ -140,15 +139,15 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let budget = finance_manager
                     .lock()
                     .await
                     .get_budget(id)
                     .await
-                    .unwrap()
-                    .unwrap();
-                Message::Initialize(Some(budget))
+                    .context(format!("Error while fetching budget {}", id))?
+                    .context(format!("Could not find budget {}", id))?;
+                Ok(Message::Initialize(Some(budget)))
             }),
         )
     }
@@ -169,7 +168,18 @@ impl View {
             Message::BudgetCreated(id) => return Action::BudgetCreated(id),
             Message::Initialize(budget) => {
                 if let Some(budget) = budget {
-                    *self = Self::from_budget(budget);
+                    match Self::from_budget(budget) {
+                        Ok(new) => *self = new,
+                        Err(error) => {
+                            return Action::Task(iced::Task::future(async {
+                                utils::error_popup(
+                                    utils::error_chain_string(
+                                        error.context("Error while creating create budget view from existing budget")
+                                    )
+                                )
+                            }).discard());
+                        }
+                    }
                 }
             }
             Message::NameInput(name) => {
@@ -188,7 +198,7 @@ impl View {
                 let description_input = self.description_input.text();
                 let value_input = self.value_input.clone();
                 let recurring_inputs = self.recurring_inputs.clone();
-                return Action::Task(iced::Task::future(async move {
+                return Action::Task(utils::failing_task(async move {
                     let budget = match option_id {
                         Some(id) => finance_manager
                             .lock()
@@ -201,11 +211,13 @@ impl View {
                                 } else {
                                     Some(description_input)
                                 },
-                                fm_core::Currency::from(value_input.parse::<f64>().unwrap()),
-                                recurring_inputs.try_into().unwrap(),
+                                fm_core::Currency::from(value_input.parse::<f64>()?),
+                                recurring_inputs.try_into().context(
+                                    "Error while converting recurring input into timespan",
+                                )?,
                             )
                             .await
-                            .unwrap(),
+                            .context(format!("Error while updating budget {}", id))?,
                         None => finance_manager
                             .lock()
                             .await
@@ -216,13 +228,15 @@ impl View {
                                 } else {
                                     Some(description_input)
                                 },
-                                fm_core::Currency::from(value_input.parse::<f64>().unwrap()),
-                                recurring_inputs.try_into().unwrap(),
+                                fm_core::Currency::from(value_input.parse::<f64>()?),
+                                recurring_inputs.try_into().context(
+                                    "Error while converting recurring input into timespan",
+                                )?,
                             )
                             .await
-                            .unwrap(),
+                            .context("Error while creating budget")?,
                     };
-                    Message::BudgetCreated(*budget.id())
+                    Ok(Message::BudgetCreated(*budget.id()))
                 }));
             }
             Message::RecurringPickList(recurring) => {
