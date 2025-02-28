@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -92,12 +93,19 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
 
-                let accounts = locked_manager.get_accounts().await.unwrap();
+                let accounts = locked_manager
+                    .get_accounts()
+                    .await
+                    .context("Error while fetching accounts")?;
 
-                Message::Initialize(None, vec![(transaction, fm_core::Sign::Negative)], accounts)
+                Ok(Message::Initialize(
+                    None,
+                    vec![(transaction, fm_core::Sign::Negative)],
+                    accounts,
+                ))
             }),
         )
     }
@@ -140,11 +148,17 @@ impl View {
                 add_transaction: None,
                 submitted: false,
             },
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
 
                 let bill = if let Some(id) = id {
-                    Some(locked_manager.get_bill(&id).await.unwrap().unwrap())
+                    Some(
+                        locked_manager
+                            .get_bill(&id)
+                            .await
+                            .context(format!("Could not get {}", id))?
+                            .context("Could not find bill")?,
+                    )
                 } else {
                     None
                 };
@@ -157,16 +171,22 @@ impl View {
                             locked_manager
                                 .get_transaction(*transaction_id)
                                 .await
-                                .unwrap()
-                                .unwrap(),
+                                .context(format!(
+                                    "Error while fetching transaction {}",
+                                    transaction_id
+                                ))?
+                                .context("Could not find transaction")?,
                             *sign,
                         ));
                     }
                 }
 
-                let accounts = locked_manager.get_accounts().await.unwrap();
+                let accounts = locked_manager
+                    .get_accounts()
+                    .await
+                    .context("Error while fetching accounts")?;
 
-                Message::Initialize(bill, transactions, accounts)
+                Ok(Message::Initialize(bill, transactions, accounts))
             }),
         )
     }
@@ -234,26 +254,25 @@ impl View {
                     transactions.insert(*transaction.0.id(), transaction.1);
                 }
                 if let Some(id) = id_option {
-                    return Action::Task(iced::Task::future(async move {
+                    return Action::Task(utils::failing_task(async move {
                         finance_manager
                             .lock()
                             .await
                             .update_bill(id, name, description, value, transactions, due_date)
-                            .unwrap()
+                            .context("Failed to update bill")?
                             .await
-                            .unwrap();
-                        Message::BillCreated(id)
+                            .context("Error while updating bill")?;
+                        Ok(Message::BillCreated(id))
                     }));
                 } else {
-                    return Action::Task(iced::Task::future(async move {
+                    return Action::Task(utils::failing_task(async move {
                         let mut locked_manager = finance_manager.lock().await;
                         let bill = locked_manager
                             .create_bill(name, description, value, transactions, due_date)
-                            .unwrap()
+                            .context("Failed to create bill")?
                             .await
-                            .unwrap();
-                        drop(locked_manager);
-                        Message::BillCreated(*bill.id())
+                            .context("Error while creating bill")?;
+                        Ok(Message::BillCreated(*bill.id()))
                     }));
                 }
             }
@@ -305,7 +324,7 @@ impl View {
                     return self.update(m, finance_manager);
                 }
                 utils::table_view::Action::Task(task) => {
-                    return Action::Task(task.map(Message::TransactionTable))
+                    return Action::Task(task.map(Message::TransactionTable));
                 }
                 _ => {}
             },
@@ -419,6 +438,7 @@ impl View {
 }
 
 mod add_transaction {
+    use anyhow::Context;
     use async_std::sync::Mutex;
     use std::sync::Arc;
 
@@ -485,13 +505,25 @@ mod add_transaction {
         ) -> (Self, iced::Task<Message>) {
             (
                 Self::new(None, Vec::new(), Vec::new(), Vec::new()),
-                iced::Task::future(async move {
+                utils::failing_task(async move {
                     let locked_manager = finance_manager.lock().await;
-                    let accounts = locked_manager.get_accounts().await.unwrap();
-                    let categories = locked_manager.get_categories().await.unwrap();
-                    let bills = locked_manager.get_bills().await.unwrap();
-                    let budgets = locked_manager.get_budgets().await.unwrap();
-                    Message::Init(
+                    let accounts = locked_manager
+                        .get_accounts()
+                        .await
+                        .context("Error while fetching accounts")?;
+                    let categories = locked_manager
+                        .get_categories()
+                        .await
+                        .context("Error while fetching categories")?;
+                    let bills = locked_manager
+                        .get_bills()
+                        .await
+                        .context("Error while fetching bills")?;
+                    let budgets = locked_manager
+                        .get_budgets()
+                        .await
+                        .context("Error while fetching budgets")?;
+                    Ok(Message::Init(
                         Some(utils::filter_component::FilterComponent::new(
                             accounts.clone(),
                             categories,
@@ -501,7 +533,7 @@ mod add_transaction {
                         Vec::new(),
                         ignored_transactions,
                         accounts,
-                    )
+                    ))
                 }),
             )
         }
@@ -518,14 +550,16 @@ mod add_transaction {
                         match filter.update(m) {
                             utils::filter_component::Action::Submit(submitted_filter) => {
                                 self.filter = None;
-                                return Action::Task(iced::Task::future(async move {
+                                return Action::Task(utils::failing_task(async move {
                                     let locked_manager = finance_manager.lock().await;
-                                    Message::FetchedTransactions(
+                                    Ok(Message::FetchedTransactions(
                                         locked_manager
                                             .get_filtered_transactions(submitted_filter.clone())
                                             .await
-                                            .unwrap(),
-                                    )
+                                            .context(
+                                                "Error while fetching transactions by filtered",
+                                            )?,
+                                    ))
                                 }));
                             }
                             utils::filter_component::Action::None => {}
