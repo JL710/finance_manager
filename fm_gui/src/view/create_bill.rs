@@ -152,8 +152,7 @@ impl View {
                     Some(
                         locked_manager
                             .get_bill(&id)
-                            .await
-                            .context(format!("Could not get {}", id))?
+                            .await?
                             .context("Could not find bill")?,
                     )
                 } else {

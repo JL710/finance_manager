@@ -58,8 +58,7 @@ impl View {
                 let locked_manager = finance_manager.lock().await;
                 let bill = locked_manager
                     .get_bill(&id)
-                    .await
-                    .context(format!("Error while fetching bill {}", id))?
+                    .await?
                     .context(format!("Could not find bill {}", id))?;
 
                 let bill_sum = locked_manager.get_bill_sum(&bill).await?;

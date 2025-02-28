@@ -70,7 +70,11 @@ where
         &'a self,
         id: &'a Id,
     ) -> impl Future<Output = Result<Option<Bill>>> + MaybeSend + 'a {
-        self.finance_manager.get_bill(id)
+        let fut = self.finance_manager.get_bill(id);
+        async move {
+            fut.await
+                .context(format!("Error while getting bill {}", id))
+        }
     }
 
     pub fn create_bill(
