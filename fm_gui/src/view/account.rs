@@ -238,10 +238,10 @@ impl View {
                     if let Self::Loaded { account, .. } = self {
                         match account {
                             fm_core::account::Account::AssetAccount(_) => {
-                                return Action::AccountDeleted(AccountType::AssetAccount)
+                                return Action::AccountDeleted(AccountType::AssetAccount);
                             }
                             fm_core::account::Account::BookCheckingAccount(_) => {
-                                return Action::AccountDeleted(AccountType::BookCheckingAccount)
+                                return Action::AccountDeleted(AccountType::BookCheckingAccount);
                             }
                         }
                     }

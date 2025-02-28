@@ -189,7 +189,7 @@ impl View {
                         utils::table_view::Action::Task(task) => {
                             return Action::Task(
                                 task.map(Message::TransactionTable).map(MessageContainer),
-                            )
+                            );
                         }
                     }
                 }

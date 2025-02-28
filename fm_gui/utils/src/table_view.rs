@@ -30,8 +30,16 @@ pub struct State<T, C> {
 
 impl<T, C> std::fmt::Debug for State<T, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{ items length: {:?}, context, page_size: {:?}, page: {:?}, sort_column: {:?}, sort_reverse: {:?}, sortable: {:?} }}",
-         self.items.len(), self.page_size, self.page, self.sort_column, self.sort_reverse, self.sortable)
+        write!(
+            f,
+            "{{ items length: {:?}, context, page_size: {:?}, page: {:?}, sort_column: {:?}, sort_reverse: {:?}, sortable: {:?} }}",
+            self.items.len(),
+            self.page_size,
+            self.page,
+            self.sort_column,
+            self.sort_reverse,
+            self.sortable
+        )
     }
 }
 

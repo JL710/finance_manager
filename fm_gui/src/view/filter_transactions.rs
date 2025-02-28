@@ -126,13 +126,13 @@ impl View {
                 match self.transaction_table.update(msg, finance_manager) {
                     utils::transaction_table::Action::None => return Action::None,
                     utils::transaction_table::Action::ViewTransaction(id) => {
-                        return Action::ViewTransaction(id)
+                        return Action::ViewTransaction(id);
                     }
                     utils::transaction_table::Action::ViewAccount(id) => {
-                        return Action::ViewAccount(id)
+                        return Action::ViewAccount(id);
                     }
                     utils::transaction_table::Action::Task(task) => {
-                        return Action::Task(task.map(Message::TransactionTable))
+                        return Action::Task(task.map(Message::TransactionTable));
                     }
                 }
             }

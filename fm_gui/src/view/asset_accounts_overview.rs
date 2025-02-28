@@ -94,7 +94,7 @@ impl View {
                     return self.update(m, _finance_manager);
                 }
                 utils::table_view::Action::Task(task) => {
-                    return Action::Task(task.map(Message::TableView))
+                    return Action::Task(task.map(Message::TableView));
                 }
                 _ => {}
             },

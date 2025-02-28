@@ -115,7 +115,7 @@ impl View {
                                 error,
                             )))
                             .discard(),
-                        )
+                        );
                     }
                     Ok(new) => *self = new,
                 }
