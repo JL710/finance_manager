@@ -62,11 +62,7 @@ impl View {
                     .context(format!("Error while fetching bill {}", id))?
                     .context(format!("Could not find bill {}", id))?;
 
-                let bill_sum = locked_manager.get_bill_sum(&bill).await.context(format!(
-                    "Failed to fetch sum of bill {} {}",
-                    bill.id(),
-                    bill.name()
-                ))?;
+                let bill_sum = locked_manager.get_bill_sum(&bill).await?;
 
                 let mut transactions = Vec::new();
                 for (transaction_id, sign) in bill.transactions() {

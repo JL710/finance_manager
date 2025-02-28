@@ -37,15 +37,27 @@ where
             self.get_transactions(bill.transactions.keys().cloned().collect::<Vec<_>>());
 
         async move {
-            let mut sum = Currency::default();
-            let transactions = transactions_future.await.unwrap();
-            for transaction in transactions {
-                match bill.transactions.get(transaction.id()).unwrap() {
-                    Sign::Positive => sum += transaction.amount(),
-                    Sign::Negative => sum -= transaction.amount(),
+            (async || {
+                let mut sum = Currency::default();
+                let transactions = transactions_future.await?;
+                for transaction in transactions {
+                    match bill
+                        .transactions
+                        .get(transaction.id())
+                        .context(format!("Could not find transaction {}", transaction.id()))?
+                    {
+                        Sign::Positive => sum += transaction.amount(),
+                        Sign::Negative => sum -= transaction.amount(),
+                    }
                 }
-            }
-            Ok(sum)
+                Ok::<_, anyhow::Error>(sum)
+            })()
+            .await
+            .context(format!(
+                "Error while getting bill sum {} {}",
+                bill.id(),
+                bill.name()
+            ))
         }
     }
 

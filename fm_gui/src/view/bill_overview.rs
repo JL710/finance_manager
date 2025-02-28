@@ -1,4 +1,3 @@
-use anyhow::Context;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -50,16 +49,7 @@ impl View {
                 let bills = finance_manager.lock().await.get_bills().await?;
                 let mut bill_tuples = Vec::new();
                 for bill in bills {
-                    let sum = finance_manager
-                        .lock()
-                        .await
-                        .get_bill_sum(&bill)
-                        .await
-                        .context(format!(
-                            "failed to get sum of bill {} {}",
-                            bill.id(),
-                            bill.name()
-                        ))?;
+                    let sum = finance_manager.lock().await.get_bill_sum(&bill).await?;
                     bill_tuples.push((bill, sum));
                 }
                 Ok(Message::Initialize(bill_tuples))
