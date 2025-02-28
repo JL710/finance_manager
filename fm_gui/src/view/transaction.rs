@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -57,31 +58,50 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
-                let transaction = locked_manager.get_transaction(id).await.unwrap().unwrap();
+                let transaction = locked_manager
+                    .get_transaction(id)
+                    .await
+                    .context(format!("Error while fetching transaction {}", id))?
+                    .context(format!("Could not find transaction {}", id))?;
                 let source = locked_manager
                     .get_account(*transaction.source())
                     .await
-                    .unwrap()
-                    .unwrap();
+                    .context(format!(
+                        "Error while fetching account {}",
+                        transaction.source()
+                    ))?
+                    .context(format!("Could not find account {}", transaction.source()))?;
                 let destination = locked_manager
                     .get_account(*transaction.destination())
                     .await
-                    .unwrap()
-                    .unwrap();
+                    .context(format!(
+                        "Error while fetching account {}",
+                        transaction.destination()
+                    ))?
+                    .context(format!(
+                        "Could not find account {}",
+                        transaction.destination()
+                    ))?;
                 let budget = match transaction.budget() {
-                    Some(budget_id) => locked_manager.get_budget(budget_id.0).await.unwrap(),
+                    Some(budget_id) => locked_manager
+                        .get_budget(budget_id.0)
+                        .await
+                        .context(format!("Error while fetching budget {}", budget_id.0))?,
                     None => None,
                 };
-                let categories = locked_manager.get_categories().await.unwrap();
-                MessageContainer(Message::Initialize(Box::new(Init {
+                let categories = locked_manager
+                    .get_categories()
+                    .await
+                    .context("Error while fetching categories")?;
+                Ok(MessageContainer(Message::Initialize(Box::new(Init {
                     transaction,
                     source,
                     destination,
                     budget,
                     categories,
-                })))
+                }))))
             }),
         )
     }
@@ -128,13 +148,14 @@ impl View {
                 }
                 if let Self::Loaded { transaction, .. } = self {
                     let id = *transaction.id();
-                    Action::Delete(iced::Task::future(async move {
+                    Action::Delete(utils::failing_task(async move {
                         finance_manager
                             .lock()
                             .await
                             .delete_transaction(id)
                             .await
-                            .unwrap();
+                            .context(format!("Error while deleting transaction {}", id))?;
+                        Ok(())
                     }))
                 } else {
                     Action::None
