@@ -1,3 +1,4 @@
+use anyhow::Context;
 use async_std::sync::Mutex;
 use fm_core::transaction_filter::TransactionFilter;
 use std::sync::Arc;
@@ -61,18 +62,30 @@ impl View {
                 sums: Vec::new(),
                 filter: TransactionFilter::default(),
             },
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
-                let accounts = locked_manager.get_accounts().await.unwrap();
-                let categories = locked_manager.get_categories().await.unwrap();
-                let bills = locked_manager.get_bills().await.unwrap();
-                let budgets = locked_manager.get_budgets().await.unwrap();
-                Message::Initialize {
+                let accounts = locked_manager
+                    .get_accounts()
+                    .await
+                    .context("Error while fetching accounts")?;
+                let categories = locked_manager
+                    .get_categories()
+                    .await
+                    .context("Error while fetching categories")?;
+                let bills = locked_manager
+                    .get_bills()
+                    .await
+                    .context("Error while fetching bills")?;
+                let budgets = locked_manager
+                    .get_budgets()
+                    .await
+                    .context("Error while fetching budgets")?;
+                Ok(Message::Initialize {
                     accounts,
                     categories,
                     bills,
                     budgets,
-                }
+                })
             }),
         )
     }
@@ -142,29 +155,38 @@ impl View {
                         utils::filter_component::Action::Submit(new_filter) => {
                             self.filter = new_filter.clone();
                             self.change_filter = None;
-                            return Action::Task(iced::Task::future(async move {
+                            return Action::Task(utils::failing_task(async move {
                                 let locked_manager = finance_manager.lock().await;
                                 let transactions = locked_manager
                                     .get_filtered_transactions(new_filter.clone())
                                     .await
-                                    .unwrap();
-                                let accounts = locked_manager.get_accounts().await.unwrap();
+                                    .context("Error while fetching transactions by filter")?;
+                                let accounts = locked_manager
+                                    .get_accounts()
+                                    .await
+                                    .context("Error while fetching accounts")?;
 
                                 let mut tuples = Vec::new();
                                 for transaction in transactions {
                                     let source = accounts
                                         .iter()
                                         .find(|x| x.id() == transaction.source())
-                                        .unwrap()
+                                        .context(format!(
+                                            "Could not find account {}",
+                                            transaction.source()
+                                        ))?
                                         .clone();
                                     let destination = accounts
                                         .iter()
                                         .find(|x| x.id() == transaction.destination())
-                                        .unwrap()
+                                        .context(format!(
+                                            "Could not find account {}",
+                                            transaction.destination()
+                                        ))?
                                         .clone();
                                     tuples.push((transaction, source, destination));
                                 }
-                                Message::UpdateTransactions(tuples)
+                                Ok(Message::UpdateTransactions(tuples))
                             }));
                         }
                         utils::filter_component::Action::None => {}
