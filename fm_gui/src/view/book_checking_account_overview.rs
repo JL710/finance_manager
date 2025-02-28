@@ -46,8 +46,7 @@ impl View {
                 let locked_manager = finance_manager.lock().await;
                 let accounts = locked_manager
                     .get_accounts()
-                    .await
-                    .context("failed to fetch accounts")?
+                    .await?
                     .iter()
                     .filter_map(|x| match x {
                         fm_core::account::Account::BookCheckingAccount(x) => Some(x.clone()),

@@ -77,10 +77,7 @@ impl View {
                         .context(format!("Could not find transaction {}", transaction_id))?;
                     transactions.push((transaction, *sign));
                 }
-                let accounts = locked_manager
-                    .get_accounts()
-                    .await
-                    .context("Failed to fetch accounts")?;
+                let accounts = locked_manager.get_accounts().await?;
                 Ok(Message::Initialize(Box::new(Init {
                     bill,
                     bill_sum,

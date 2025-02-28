@@ -96,10 +96,7 @@ impl View {
             utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
 
-                let accounts = locked_manager
-                    .get_accounts()
-                    .await
-                    .context("Error while fetching accounts")?;
+                let accounts = locked_manager.get_accounts().await?;
 
                 Ok(Message::Initialize(
                     None,
@@ -181,10 +178,7 @@ impl View {
                     }
                 }
 
-                let accounts = locked_manager
-                    .get_accounts()
-                    .await
-                    .context("Error while fetching accounts")?;
+                let accounts = locked_manager.get_accounts().await?;
 
                 Ok(Message::Initialize(bill, transactions, accounts))
             }),
@@ -507,10 +501,7 @@ mod add_transaction {
                 Self::new(None, Vec::new(), Vec::new(), Vec::new()),
                 utils::failing_task(async move {
                     let locked_manager = finance_manager.lock().await;
-                    let accounts = locked_manager
-                        .get_accounts()
-                        .await
-                        .context("Error while fetching accounts")?;
+                    let accounts = locked_manager.get_accounts().await?;
                     let categories = locked_manager
                         .get_categories()
                         .await

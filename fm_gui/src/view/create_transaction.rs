@@ -123,12 +123,7 @@ impl View {
             },
             utils::failing_task(async move {
                 let budgets = finance_manager.lock().await.get_budgets().await?;
-                let accounts = finance_manager
-                    .lock()
-                    .await
-                    .get_accounts()
-                    .await
-                    .context("Error while fetching accounts")?;
+                let accounts = finance_manager.lock().await.get_accounts().await?;
                 let categories = finance_manager
                     .lock()
                     .await
@@ -187,10 +182,7 @@ impl View {
                     None => None,
                 };
                 let budgets = locked_manager.get_budgets().await?;
-                let accounts = locked_manager
-                    .get_accounts()
-                    .await
-                    .context("Error while fetching accounts")?;
+                let accounts = locked_manager.get_accounts().await?;
                 let available_categories = locked_manager
                     .get_categories()
                     .await

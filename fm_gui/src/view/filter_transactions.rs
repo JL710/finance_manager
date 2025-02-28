@@ -64,10 +64,7 @@ impl View {
             },
             utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
-                let accounts = locked_manager
-                    .get_accounts()
-                    .await
-                    .context("Error while fetching accounts")?;
+                let accounts = locked_manager.get_accounts().await?;
                 let categories = locked_manager
                     .get_categories()
                     .await
@@ -158,10 +155,7 @@ impl View {
                                     .get_filtered_transactions(new_filter.clone())
                                     .await
                                     .context("Error while fetching transactions by filter")?;
-                                let accounts = locked_manager
-                                    .get_accounts()
-                                    .await
-                                    .context("Error while fetching accounts")?;
+                                let accounts = locked_manager.get_accounts().await?;
 
                                 let mut tuples = Vec::new();
                                 for transaction in transactions {

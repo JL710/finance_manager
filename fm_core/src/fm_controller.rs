@@ -186,7 +186,8 @@ where
     pub fn get_accounts(
         &self,
     ) -> impl Future<Output = Result<Vec<account::Account>>> + MaybeSend + '_ {
-        self.finance_manager.get_accounts()
+        let fut = self.finance_manager.get_accounts();
+        async { fut.await.context("Error while getting accounts") }
     }
 
     pub fn get_account(
