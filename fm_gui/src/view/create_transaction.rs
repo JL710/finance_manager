@@ -2,6 +2,7 @@ use fm_core;
 
 use iced::widget;
 
+use anyhow::Context;
 use async_std::sync::Mutex;
 use std::sync::Arc;
 
@@ -120,11 +121,28 @@ impl View {
                 available_categories: Vec::new(),
                 submitted: false,
             },
-            iced::Task::future(async move {
-                let budgets = finance_manager.lock().await.get_budgets().await.unwrap();
-                let accounts = finance_manager.lock().await.get_accounts().await.unwrap();
-                let categories = finance_manager.lock().await.get_categories().await.unwrap();
-                Message::Initialize(Box::new((budgets, accounts, categories)))
+            utils::failing_task(async move {
+                let budgets = finance_manager
+                    .lock()
+                    .await
+                    .get_budgets()
+                    .await
+                    .context("Error while fetching budgets")?;
+                let accounts = finance_manager
+                    .lock()
+                    .await
+                    .get_accounts()
+                    .await
+                    .context("Error while fetching accounts")?;
+                let categories = finance_manager
+                    .lock()
+                    .await
+                    .get_categories()
+                    .await
+                    .context("Error while fetching categories")?;
+                Ok(Message::Initialize(Box::new((
+                    budgets, accounts, categories,
+                ))))
             })
             .map(MessageContainer),
         )
@@ -136,33 +154,57 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::new(finance_manager.clone()).0,
-            iced::Task::future(async move {
+            utils::failing_task(async move {
                 let locked_manager = finance_manager.lock().await;
 
                 let transaction = locked_manager
                     .get_transaction(transaction_id)
                     .await
-                    .unwrap()
-                    .unwrap();
+                    .context(format!(
+                        "Error while fetching transaction {}",
+                        transaction_id
+                    ))?
+                    .context(format!("Could not find transaction {}", transaction_id))?;
                 let source = locked_manager
                     .get_account(*transaction.source())
                     .await
-                    .unwrap()
-                    .unwrap();
+                    .context(format!(
+                        "Error while fetching account {}",
+                        transaction.source()
+                    ))?
+                    .context(format!("Could not find account {}", transaction.source()))?;
                 let destination = locked_manager
                     .get_account(*transaction.destination())
                     .await
-                    .unwrap()
-                    .unwrap();
+                    .context(format!(
+                        "Error while fetching account {}",
+                        transaction.destination()
+                    ))?
+                    .context(format!(
+                        "Could not find account {}",
+                        transaction.destination()
+                    ))?;
                 let budget = match transaction.budget() {
-                    Some(x) => locked_manager.get_budget(x.0).await.unwrap(),
+                    Some(x) => locked_manager
+                        .get_budget(x.0)
+                        .await
+                        .context(format!("Error while fetching budget {}", x.0))?,
                     None => None,
                 };
-                let budgets = locked_manager.get_budgets().await.unwrap();
-                let accounts = locked_manager.get_accounts().await.unwrap();
-                let available_categories = locked_manager.get_categories().await.unwrap();
+                let budgets = locked_manager
+                    .get_budgets()
+                    .await
+                    .context("Error while fetching budgets")?;
+                let accounts = locked_manager
+                    .get_accounts()
+                    .await
+                    .context("Error while fetching accounts")?;
+                let available_categories = locked_manager
+                    .get_categories()
+                    .await
+                    .context("Error while fetching categories")?;
 
-                Message::InitializeFromExisting(Box::new(InitExisting {
+                Ok(Message::InitializeFromExisting(Box::new(InitExisting {
                     transaction,
                     source,
                     destination,
@@ -170,7 +212,7 @@ impl View {
                     budgets,
                     accounts,
                     available_categories,
-                }))
+                })))
             })
             .map(MessageContainer),
         )
@@ -514,7 +556,7 @@ impl View {
         for (id, sign) in &self.selected_categories {
             categories.insert(*id, *sign);
         }
-        iced::Task::future(async move {
+        utils::failing_task(async move {
             let source_id = match source {
                 SelectedAccount::Account(acc) => *acc.id(),
                 SelectedAccount::New(name) => finance_manager
@@ -522,7 +564,7 @@ impl View {
                     .await
                     .create_book_checking_account(name, None, None, None)
                     .await
-                    .unwrap()
+                    .context("Error while creating book checking account")?
                     .id(),
             };
 
@@ -533,11 +575,11 @@ impl View {
                     .await
                     .create_book_checking_account(name, None, None, None)
                     .await
-                    .unwrap()
+                    .context("Error while creating book checking account")?
                     .id(),
             };
 
-            match option_id {
+            Ok(match option_id {
                 Some(id) => finance_manager
                     .lock()
                     .await
@@ -553,9 +595,9 @@ impl View {
                         metadata,
                         categories,
                     )
-                    .unwrap()
+                    .context(format!("Could not update transaction {}", id))?
                     .await
-                    .unwrap(),
+                    .context(format!("Error while updating transaction {}", id))?,
                 _ => finance_manager
                     .lock()
                     .await
@@ -571,8 +613,8 @@ impl View {
                         categories,
                     )
                     .await
-                    .unwrap(),
-            }
+                    .context("Error while creating transaction")?,
+            })
         })
     }
 }
