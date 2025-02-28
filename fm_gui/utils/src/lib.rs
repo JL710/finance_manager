@@ -32,7 +32,7 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
     spal_row![widget::text(name), input].into()
 }
 
-pub fn parse_to_datetime(date: &str) -> anyhow::Result<time::OffsetDateTime> {
+pub fn parse_to_datetime(date: &str, h: u8, m: u8, s: u8) -> anyhow::Result<time::OffsetDateTime> {
     let mut splits = date
         .replace("/", ".")
         .split(".")
@@ -53,7 +53,7 @@ pub fn parse_to_datetime(date: &str) -> anyhow::Result<time::OffsetDateTime> {
             format!("{}.{}.{}", splits[0], splits[1], splits[2]).as_str(),
             &time::format_description::parse("[day].[month].[year]")?,
         )?,
-        time::Time::from_hms(12, 0, 0).unwrap(),
+        time::Time::from_hms(h, m, s).unwrap(),
         fm_core::get_local_timezone()?,
     ))
 }

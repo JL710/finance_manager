@@ -21,7 +21,14 @@ impl State {
     }
 
     pub fn timespan(&self) -> fm_core::Timespan {
-        (self.start.date(), self.end.date())
+        (
+            self.start
+                .date()
+                .map(|x| x.replace_time(time::Time::from_hms(0, 0, 0).unwrap())),
+            self.end
+                .date()
+                .map(|x| x.replace_time(time::Time::from_hms(23, 59, 59).unwrap())),
+        )
     }
 
     pub fn perform(&mut self, action: Action) {

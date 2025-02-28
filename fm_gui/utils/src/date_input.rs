@@ -28,8 +28,10 @@ impl State {
     }
 
     /// Will return the user input as datetime if possible or default datetime if given.
+    ///
+    /// The time will be set o 12:00.
     pub fn date(&self) -> Option<fm_core::DateTime> {
-        super::parse_to_datetime(&self.value).map_or(self.default_value, Some)
+        super::parse_to_datetime(&self.value, 12, 0, 0).map_or(self.default_value, Some)
     }
 
     pub fn raw_input(&self) -> &str {
