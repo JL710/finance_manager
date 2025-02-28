@@ -46,12 +46,7 @@ impl View {
         (
             View::new(Vec::new()),
             utils::failing_task(async move {
-                let budgets = finance_manager
-                    .lock()
-                    .await
-                    .get_budgets()
-                    .await
-                    .context("Failed to fetch budgets")?;
+                let budgets = finance_manager.lock().await.get_budgets().await?;
                 let mut tuples = Vec::new();
 
                 for budget in budgets {

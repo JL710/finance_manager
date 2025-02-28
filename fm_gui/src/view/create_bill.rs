@@ -519,10 +519,7 @@ mod add_transaction {
                         .get_bills()
                         .await
                         .context("Error while fetching bills")?;
-                    let budgets = locked_manager
-                        .get_budgets()
-                        .await
-                        .context("Error while fetching budgets")?;
+                    let budgets = locked_manager.get_budgets().await?;
                     Ok(Message::Init(
                         Some(utils::filter_component::FilterComponent::new(
                             accounts.clone(),

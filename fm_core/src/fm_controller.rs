@@ -360,7 +360,8 @@ where
     }
 
     pub fn get_budgets(&self) -> impl Future<Output = Result<Vec<Budget>>> + MaybeSend + '_ {
-        self.finance_manager.get_budgets()
+        let fut = self.finance_manager.get_budgets();
+        async { fut.await.context("Error while getting budgets") }
     }
 
     pub fn get_budget(
@@ -591,8 +592,8 @@ mod test {
             .create_book_checking_account("book_checking_acc".to_string(), None, None, None)
             .await
             .unwrap();
-        assert!(fm
-            .create_transaction(
+        assert!(
+            fm.create_transaction(
                 Currency::default(),
                 "test".to_string(),
                 None,
@@ -604,6 +605,7 @@ mod test {
                 HashMap::from([(1, Sign::Positive)]),
             )
             .await
-            .is_err())
+            .is_err()
+        )
     }
 }

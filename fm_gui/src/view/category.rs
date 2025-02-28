@@ -91,10 +91,7 @@ impl View {
                     .get_categories()
                     .await
                     .context("Error while fetching categories")?;
-                let budgets = locked_manager
-                    .get_budgets()
-                    .await
-                    .context("Error while fetching budgets")?;
+                let budgets = locked_manager.get_budgets().await?;
                 Ok(Message::Set(
                     category,
                     values,
@@ -201,10 +198,7 @@ impl View {
                             .get_categories()
                             .await
                             .context("Error while fetching categories")?;
-                        let budgets = locked_manager
-                            .get_budgets()
-                            .await
-                            .context("Error while fetching budgets")?;
+                        let budgets = locked_manager.get_budgets().await?;
                         Ok(Message::Set(
                             cloned_category,
                             values,
