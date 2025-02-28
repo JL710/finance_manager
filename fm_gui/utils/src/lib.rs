@@ -260,7 +260,7 @@ pub fn error_chain_string(error: anyhow::Error) -> String {
     message
 }
 
-pub async fn error_popup(description: &str) {
+pub async fn error_popup(description: String) {
     rfd::AsyncMessageDialog::new()
         .set_buttons(rfd::MessageButtons::Ok)
         .set_title("An Error has occurred")
@@ -273,7 +273,7 @@ pub async fn error_popup(description: &str) {
 pub async fn async_popup_wrapper<T>(fut: impl Future<Output = Result<T>>) -> Option<T> {
     match fut.await {
         Err(error) => {
-            error_popup(&error_chain_string(error)).await;
+            error_popup(error_chain_string(error)).await;
             None
         }
         Ok(x) => Some(x),

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
@@ -67,7 +67,7 @@ impl View {
         let timespan = fm_core::calculate_budget_timespan(
             &budget,
             offset,
-            fm_core::DateTime::now_utc().to_offset(fm_core::get_local_timezone().unwrap()),
+            fm_core::DateTime::now_utc().to_offset(fm_core::get_local_timezone()?),
         )?;
         Ok(Self::Loaded {
             budget: budget.clone(),
@@ -90,10 +90,8 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            iced::Task::perform(Self::initial_message(finance_manager, id, offset), |x| {
-                x.unwrap()
-            })
-            .map(MessageContainer),
+            utils::failing_task(Self::initial_message(finance_manager, id, offset))
+                .map(MessageContainer),
         )
     }
 
@@ -104,14 +102,23 @@ impl View {
     ) -> Action {
         match message.0 {
             Message::Initialize(init) => {
-                *self = Self::new(
+                match Self::new(
                     init.budget,
                     init.value,
                     init.transactions,
                     init.categories,
                     init.offset,
-                )
-                .unwrap();
+                ) {
+                    Err(error) => {
+                        return Action::Task(
+                            iced::Task::future(utils::error_popup(utils::error_chain_string(
+                                error,
+                            )))
+                            .discard(),
+                        )
+                    }
+                    Ok(new) => *self = new,
+                }
                 Action::None
             }
             Message::Edit => {
@@ -134,14 +141,14 @@ impl View {
 
                     let id = *budget.id();
                     Action::Task(
-                        iced::Task::future(async move {
+                        utils::failing_task(async move {
                             finance_manager
                                 .lock()
                                 .await
                                 .delete_budget(id)
                                 .await
-                                .unwrap();
-                            Message::Deleted
+                                .context(format!("Error while deleting budget {}", id))?;
+                            Ok(Message::Deleted)
                         })
                         .map(MessageContainer),
                     )
@@ -155,20 +162,28 @@ impl View {
             }
             Message::IncreaseOffset => {
                 if let Self::Loaded { budget, offset, .. } = self {
-                    Action::Task(iced::Task::perform(
-                        Self::initial_message(finance_manager, *budget.id(), *offset + 1),
-                        |x| MessageContainer(x.unwrap()),
-                    ))
+                    Action::Task(
+                        utils::failing_task(Self::initial_message(
+                            finance_manager,
+                            *budget.id(),
+                            *offset + 1,
+                        ))
+                        .map(MessageContainer),
+                    )
                 } else {
                     Action::None
                 }
             }
             Message::DecreaseOffset => {
                 if let Self::Loaded { budget, offset, .. } = self {
-                    Action::Task(iced::Task::perform(
-                        Self::initial_message(finance_manager, *budget.id(), *offset - 1),
-                        |x| MessageContainer(x.unwrap()),
-                    ))
+                    Action::Task(
+                        utils::failing_task(Self::initial_message(
+                            finance_manager,
+                            *budget.id(),
+                            *offset - 1,
+                        ))
+                        .map(MessageContainer),
+                    )
                 } else {
                     Action::None
                 }
@@ -259,13 +274,28 @@ impl View {
         offset: i32,
     ) -> Result<Message> {
         let locked_manager = finance_manager.lock().await;
-        let budget = locked_manager.get_budget(id).await?.unwrap();
+        let budget = locked_manager
+            .get_budget(id)
+            .await?
+            .context(format!("Could not find budget {}", id))?;
         let transactions = locked_manager
-            .get_budget_transactions(&budget, offset, fm_core::get_local_timezone().unwrap())?
+            .get_budget_transactions(
+                &budget,
+                offset,
+                fm_core::get_local_timezone().context("Error while getting local timezone")?,
+            )?
             .await
-            .unwrap();
+            .context(format!(
+                "Error while fetching transactions of budget {} {}",
+                budget.id(),
+                budget.name()
+            ))?;
         let current_value = locked_manager
-            .get_budget_value(&budget, offset, fm_core::get_local_timezone().unwrap())?
+            .get_budget_value(
+                &budget,
+                offset,
+                fm_core::get_local_timezone().context("Error while getting local timezone")?,
+            )?
             .await?;
 
         let mut transaction_tuples = Vec::new();
@@ -273,11 +303,17 @@ impl View {
             let source = locked_manager
                 .get_account(*transaction.source())
                 .await?
-                .unwrap();
+                .context(format!(
+                    "Error while fetching account {}",
+                    transaction.source()
+                ))?;
             let destination = locked_manager
                 .get_account(*transaction.destination())
                 .await?
-                .unwrap();
+                .context(format!(
+                    "Error while fetching account {}",
+                    transaction.destination()
+                ))?;
             transaction_tuples.push((transaction, source, destination));
         }
 
