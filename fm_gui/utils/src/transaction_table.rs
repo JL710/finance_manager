@@ -327,16 +327,20 @@ fn get_category_text(
     transaction: &fm_core::Transaction,
     categories: &[fm_core::Category],
 ) -> String {
-    let mut category_iter = transaction.categories().iter().map(|x| *x.0);
+    let mut category_names = transaction
+        .categories()
+        .iter()
+        .map(|x| categories.iter().find(|c| c.id() == x.0).unwrap().name())
+        .collect::<Vec<_>>();
+    category_names.sort();
+    let mut category_iter = category_names.into_iter();
     let mut category_text = String::new();
     if let Some(first) = category_iter.next() {
-        category_text.push_str(categories.iter().find(|x| *x.id() == first).unwrap().name());
+        category_text.push_str(first);
     }
     for category in category_iter {
-        if let Some(category) = categories.iter().find(|x| *x.id() == category) {
-            category_text.push_str(", ");
-            category_text.push_str(category.name());
-        }
+        category_text.push_str(", ");
+        category_text.push_str(category);
     }
     category_text
 }
