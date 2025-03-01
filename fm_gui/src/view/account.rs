@@ -2,6 +2,7 @@ use anyhow::Context;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
+use utils::date_time::timespan_input;
 
 pub enum AccountType {
     AssetAccount,
@@ -37,7 +38,7 @@ pub struct MessageContainer(Message);
 #[derive(Debug, Clone)]
 enum Message {
     Edit,
-    ChangeTransactionTimespan(utils::timespan_input::Action),
+    ChangeTransactionTimespan(timespan_input::Action),
     SetTransactions(
         Vec<(
             fm_core::Transaction,
@@ -59,7 +60,7 @@ pub enum View {
         account: fm_core::account::Account,
         current_value: fm_core::Currency,
         transaction_table: utils::TransactionTable,
-        timespan_input: utils::timespan_input::State,
+        timespan_input: timespan_input::State,
     },
 }
 
@@ -129,7 +130,7 @@ impl View {
                         init.budgets,
                         move |transaction| Some(*transaction.destination() == account_id),
                     ),
-                    timespan_input: utils::timespan_input::State::default(),
+                    timespan_input: timespan_input::State::default(),
                 };
                 Action::None
             }
@@ -316,7 +317,7 @@ fn asset_account_view<'a>(
     account: &'a fm_core::account::AssetAccount,
     transaction_table: &'a utils::TransactionTable,
     current_value: &fm_core::Currency,
-    timespan_input: &'a utils::timespan_input::State,
+    timespan_input: &'a timespan_input::State,
 ) -> iced::Element<'a, Message> {
     super::view(
         "Asset Account",
@@ -346,7 +347,7 @@ fn asset_account_view<'a>(
                 ]
             ],
             widget::horizontal_rule(10),
-            utils::timespan_input::timespan_input(timespan_input)
+            timespan_input::timespan_input(timespan_input)
                 .view()
                 .map(Message::ChangeTransactionTimespan),
             transaction_table.view().map(Message::TransactionTable),
@@ -359,7 +360,7 @@ fn book_checking_account_view<'a>(
     account: &'a fm_core::account::BookCheckingAccount,
     transaction_table: &'a utils::TransactionTable,
     current_value: &fm_core::Currency,
-    timespan_input: &'a utils::timespan_input::State,
+    timespan_input: &'a timespan_input::State,
 ) -> iced::Element<'a, Message> {
     super::view(
         "Book Checking Account",
@@ -388,7 +389,7 @@ fn book_checking_account_view<'a>(
                 ]
             ],
             widget::horizontal_rule(10),
-            utils::timespan_input::timespan_input(timespan_input)
+            timespan_input::timespan_input(timespan_input)
                 .view()
                 .map(Message::ChangeTransactionTimespan),
             transaction_table.view().map(Message::TransactionTable),

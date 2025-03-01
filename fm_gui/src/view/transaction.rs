@@ -165,7 +165,7 @@ impl View {
                     .on_press(Message::ViewAccount(*destination.id())),
                 widget::text!(
                     "Date: {}",
-                    utils::convert_date_time_to_date_string(*transaction.date())
+                    utils::date_time::convert_date_time_to_date_string(*transaction.date())
                 ),
             ];
 

@@ -2,21 +2,21 @@ use iced::widget;
 
 #[derive(Debug, Clone)]
 pub enum Action {
-    ChangeStart(crate::date_input::Action),
-    ChangeEnd(crate::date_input::Action),
+    ChangeStart(super::date_input::Action),
+    ChangeEnd(super::date_input::Action),
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct State {
-    start: crate::date_input::State,
-    end: crate::date_input::State,
+    start: super::date_input::State,
+    end: super::date_input::State,
 }
 
 impl State {
     pub fn new(timespan: Option<fm_core::Timespan>) -> Self {
         Self {
-            start: crate::date_input::State::new(if let Some(t) = timespan { t.0 } else { None }),
-            end: crate::date_input::State::new(if let Some(t) = timespan { t.1 } else { None }),
+            start: super::date_input::State::new(if let Some(t) = timespan { t.0 } else { None }),
+            end: super::date_input::State::new(if let Some(t) = timespan { t.1 } else { None }),
         }
     }
 
@@ -54,11 +54,11 @@ impl<'a> TimespanInput<'a> {
 
     pub fn view(self) -> iced::Element<'a, Action> {
         widget::row![
-            crate::date_input::date_input(&self.state.start, "Start", false)
+            super::date_input::date_input(&self.state.start, "Start", false)
                 .view()
                 .map(Action::ChangeStart),
             widget::text(" - "),
-            crate::date_input::date_input(&self.state.end, "End", false)
+            super::date_input::date_input(&self.state.end, "End", false)
                 .view()
                 .map(Action::ChangeEnd),
         ]

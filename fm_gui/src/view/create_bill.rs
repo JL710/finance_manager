@@ -3,6 +3,7 @@ use async_std::sync::Mutex;
 use std::sync::Arc;
 
 use iced::widget;
+use utils::date_time::date_input;
 
 pub enum Action {
     None,
@@ -14,7 +15,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    DueDateChanged(utils::date_input::Action),
+    DueDateChanged(date_input::Action),
     NameInputChanged(String),
     ValueChanged(utils::currency_input::Action),
     DescriptionInputChanged(widget::text_editor::Action),
@@ -39,7 +40,7 @@ pub struct View {
     name_input: String,
     description_input: widget::text_editor::Content,
     value: utils::currency_input::State,
-    due_date_input: utils::date_input::State,
+    due_date_input: date_input::State,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
     transaction_table: utils::table_view::State<
         (fm_core::Transaction, fm_core::Sign),
@@ -57,7 +58,7 @@ impl View {
             name_input: String::new(),
             description_input: widget::text_editor::Content::default(),
             value: utils::currency_input::State::default(),
-            due_date_input: utils::date_input::State::default(),
+            due_date_input: date_input::State::default(),
             transactions: Vec::new(),
             transaction_table: utils::table_view::State::new(Vec::new(), Vec::new())
                 .sort_by(
@@ -117,7 +118,7 @@ impl View {
                 name_input: String::new(),
                 description_input: widget::text_editor::Content::default(),
                 value: utils::currency_input::State::default(),
-                due_date_input: utils::date_input::State::default(),
+                due_date_input: date_input::State::default(),
                 transactions: Vec::new(),
                 transaction_table: utils::table_view::State::new(Vec::new(), Vec::new())
                     .sort_by(
@@ -204,7 +205,8 @@ impl View {
                         &bill.description().clone().unwrap_or_default(),
                     );
                     self.value = utils::currency_input::State::new(bill.value().clone());
-                    self.due_date_input = utils::date_input::State::new(*bill.due_date());
+                    self.due_date_input =
+                        utils::date_time::date_input::State::new(*bill.due_date());
                 }
                 self.transactions = transactions.clone();
                 self.transaction_table.set_items(transactions);
@@ -343,7 +345,7 @@ impl View {
                 .width(iced::Length::Fill),
                 utils::spal_row![
                     "Due Date: ",
-                    utils::date_input::date_input(&self.due_date_input, "", false)
+                    date_input::date_input(&self.due_date_input, "", false)
                         .view()
                         .map(Message::DueDateChanged),
                 ]
@@ -378,7 +380,7 @@ impl View {
                                         transaction.amount()
                                     }),
                                 ),
-                                widget::text(utils::convert_date_time_to_date_string(
+                                widget::text(utils::date_time::convert_date_time_to_date_string(
                                     *transaction.date(),
                                 ))
                                 .into(),
@@ -603,8 +605,10 @@ mod add_transaction {
                                 utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
                                 widget::text(x.title().clone()).into(),
                                 widget::text(x.amount().to_num_string()).into(),
-                                widget::text(utils::convert_date_time_to_date_string(*x.date()))
-                                    .into(),
+                                widget::text(utils::date_time::convert_date_time_to_date_string(
+                                    *x.date(),
+                                ))
+                                .into(),
                                 widget::text(
                                     accounts
                                         .iter()

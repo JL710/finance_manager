@@ -2,6 +2,7 @@ use anyhow::Context;
 use async_std::sync::Mutex;
 use iced::widget;
 use std::sync::Arc;
+use utils::date_time::timespan_input;
 
 pub enum Action {
     None,
@@ -16,7 +17,7 @@ pub enum Action {
 pub enum Message {
     Delete,
     Edit,
-    ChangedTimespan(utils::timespan_input::Action),
+    ChangedTimespan(timespan_input::Action),
     Set(
         fm_core::Category,
         Vec<(fm_core::DateTime, fm_core::Currency)>,
@@ -38,7 +39,7 @@ pub enum View {
         category: fm_core::Category,
         transaction_table: Box<utils::TransactionTable>,
         values: Vec<(fm_core::DateTime, fm_core::Currency)>,
-        timespan_input: utils::timespan_input::State,
+        timespan_input: timespan_input::State,
     },
 }
 
@@ -207,7 +208,7 @@ impl View {
                     timespan_input: if let Self::Loaded { timespan_input, .. } = &self {
                         timespan_input.clone()
                     } else {
-                        utils::timespan_input::State::default()
+                        timespan_input::State::default()
                     },
                 };
                 Action::None
@@ -265,7 +266,7 @@ impl View {
                             utils::button::delete(Some(Message::Delete))
                         ]
                     ],
-                    utils::timespan_input::timespan_input(timespan_input)
+                    timespan_input::timespan_input(timespan_input)
                         .view()
                         .map(Message::ChangedTimespan),
                     transaction_table.view().map(Message::TransactionTable),

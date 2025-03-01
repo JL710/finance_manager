@@ -90,11 +90,10 @@ impl View {
                             .into(),
                         widget::text!("{}€", bill.0.value().to_num_string()).into(),
                         utils::colored_currency_display(&bill.1),
-                        widget::text(
-                            bill.0
-                                .due_date()
-                                .map_or(String::new(), utils::convert_date_time_to_date_string)
-                        )
+                        widget::text(bill.0.due_date().map_or(
+                            String::new(),
+                            utils::date_time::convert_date_time_to_date_string
+                        ))
                         .into(),
                         widget::text(bill.0.transactions().len()).into()
                     ])

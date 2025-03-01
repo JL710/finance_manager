@@ -222,8 +222,8 @@ impl View {
                     widget::text!("Offset: {}", offset),
                     widget::text!(
                         "Time Span: {} - {}",
-                        utils::convert_date_time_to_date_string(time_span.0.unwrap()),
-                        utils::convert_date_time_to_date_string(time_span.1.unwrap())
+                        utils::date_time::convert_date_time_to_date_string(time_span.0.unwrap()),
+                        utils::date_time::convert_date_time_to_date_string(time_span.1.unwrap())
                     ),
                     widget::button(">").on_press(Message::IncreaseOffset),
                 ]
