@@ -71,6 +71,6 @@ impl<'a> TimeInput<'a> {
     }
 }
 
-pub fn time_input<'a>(state: &'a State, required: bool) -> TimeInput<'a> {
+pub fn time_input(state: &State, required: bool) -> TimeInput<'_> {
     TimeInput::new(state, required)
 }

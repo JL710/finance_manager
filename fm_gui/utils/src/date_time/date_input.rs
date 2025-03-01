@@ -65,7 +65,7 @@ impl<'a> DateInput<'a> {
         DateInput {
             state,
             required,
-            placeholder: placeholder,
+            placeholder,
         }
     }
 

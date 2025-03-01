@@ -35,7 +35,7 @@ fn parse_time_str(time_str: &str) -> Result<time::Time> {
     if splits.len() != 2 {
         anyhow::bail!("Error incorrect amount of time parameters");
     }
-    return time::Time::from_hms(
+    time::Time::from_hms(
         splits[0]
             .parse()
             .context("Error while converting hour to int")?,
@@ -44,7 +44,7 @@ fn parse_time_str(time_str: &str) -> Result<time::Time> {
             .context("Error while converting minute to int")?,
         0,
     )
-    .context("Error while converting input to time");
+    .context("Error while converting input to time")
 }
 
 pub fn parse_date_time_str(date_time_str: &str) -> Result<time::OffsetDateTime> {

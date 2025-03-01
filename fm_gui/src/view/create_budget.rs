@@ -284,6 +284,7 @@ mod recurring_input {
     use utils::date_time::date_time_input;
 
     #[derive(Debug, Clone)]
+    #[allow(clippy::enum_variant_names)]
     pub enum Action {
         DateInput(date_time_input::Action),
         FirstTextInput(String),
@@ -396,7 +397,7 @@ mod recurring_input {
         }
     }
 
-    pub fn recurring_input<'a>(state: &'a State) -> iced::Element<'a, Action> {
+    pub fn recurring_input(state: &State) -> iced::Element<'_, Action> {
         match state {
             State::Days(date, days) => utils::spal_row![
                 date_time_input::date_time_input(date, true)

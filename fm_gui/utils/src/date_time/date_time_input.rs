@@ -25,11 +25,7 @@ impl State {
     pub fn new(default: Option<time::OffsetDateTime>) -> Self {
         Self {
             date_input: date_input::State::new(default),
-            time_input: time_input::State::new(if let Some(default) = default {
-                Some(default.time())
-            } else {
-                None
-            }),
+            time_input: time_input::State::new(default.map(|default| default.time())),
         }
     }
 
@@ -80,6 +76,6 @@ impl<'a> DateTimeInput<'a> {
     }
 }
 
-pub fn date_time_input<'a>(state: &'a State, required: bool) -> DateTimeInput<'a> {
+pub fn date_time_input(state: &State, required: bool) -> DateTimeInput<'_> {
     DateTimeInput::new(state, required)
 }
