@@ -3,7 +3,7 @@ use async_std::sync::Mutex;
 use std::sync::Arc;
 
 use iced::widget;
-use utils::date_time::date_input;
+use utils::date_time::date_time_input;
 
 pub enum Action {
     None,
@@ -15,7 +15,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    DueDateChanged(date_input::Action),
+    DueDateChanged(date_time_input::Action),
     NameInputChanged(String),
     ValueChanged(utils::currency_input::Action),
     DescriptionInputChanged(widget::text_editor::Action),
@@ -40,7 +40,7 @@ pub struct View {
     name_input: String,
     description_input: widget::text_editor::Content,
     value: utils::currency_input::State,
-    due_date_input: date_input::State,
+    due_date_input: date_time_input::State,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
     transaction_table: utils::table_view::State<
         (fm_core::Transaction, fm_core::Sign),
@@ -58,7 +58,7 @@ impl View {
             name_input: String::new(),
             description_input: widget::text_editor::Content::default(),
             value: utils::currency_input::State::default(),
-            due_date_input: date_input::State::default(),
+            due_date_input: date_time_input::State::default(),
             transactions: Vec::new(),
             transaction_table: utils::table_view::State::new(Vec::new(), Vec::new())
                 .sort_by(
@@ -118,7 +118,7 @@ impl View {
                 name_input: String::new(),
                 description_input: widget::text_editor::Content::default(),
                 value: utils::currency_input::State::default(),
-                due_date_input: date_input::State::default(),
+                due_date_input: date_time_input::State::default(),
                 transactions: Vec::new(),
                 transaction_table: utils::table_view::State::new(Vec::new(), Vec::new())
                     .sort_by(
@@ -206,7 +206,7 @@ impl View {
                     );
                     self.value = utils::currency_input::State::new(bill.value().clone());
                     self.due_date_input =
-                        utils::date_time::date_input::State::new(*bill.due_date());
+                        utils::date_time::date_time_input::State::new(*bill.due_date());
                 }
                 self.transactions = transactions.clone();
                 self.transaction_table.set_items(transactions);
@@ -237,7 +237,7 @@ impl View {
                 } else {
                     Some(self.description_input.text())
                 };
-                let due_date = self.due_date_input.date();
+                let due_date = self.due_date_input.datetime();
                 let value = self.value.currency().unwrap();
                 let mut transactions =
                     std::collections::HashMap::with_capacity(self.transactions.len());
@@ -345,7 +345,7 @@ impl View {
                 .width(iced::Length::Fill),
                 utils::spal_row![
                     "Due Date: ",
-                    date_input::date_input(&self.due_date_input, "", false)
+                    date_time_input::date_time_input(&self.due_date_input, false)
                         .view()
                         .map(Message::DueDateChanged),
                 ]
