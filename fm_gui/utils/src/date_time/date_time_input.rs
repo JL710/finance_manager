@@ -28,7 +28,7 @@ impl State {
             time_input: time_input::State::new(if let Some(default) = default {
                 Some(default.time())
             } else {
-                Some(time::Time::from_hms(12, 0, 0).unwrap())
+                None
             }),
         }
     }
