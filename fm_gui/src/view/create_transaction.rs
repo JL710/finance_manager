@@ -1,7 +1,7 @@
 use fm_core;
 
 use iced::widget;
-use utils::date_time::date_input;
+use utils::date_time::date_time_input;
 
 use anyhow::Context;
 use async_std::sync::Mutex;
@@ -58,7 +58,7 @@ enum Message {
     AmountInput(utils::currency_input::Action),
     TitleInput(String),
     DescriptionInput(widget::text_editor::Action),
-    DateInput(date_input::Action),
+    DateInput(date_time_input::Action),
     SourceInput(String),
     SourceSelected(SelectedAccount),
     DestinationInput(String),
@@ -93,7 +93,7 @@ pub struct View {
     destination_state: widget::combo_box::State<SelectedAccount>,
     budget_state: widget::combo_box::State<fm_core::Budget>,
     budget_input: Option<(fm_core::Budget, fm_core::Sign)>,
-    date_input: date_input::State,
+    date_input: date_time_input::State,
     metadata: std::collections::HashMap<String, String>,
     available_categories: Vec<fm_core::Category>,
     selected_categories: Vec<(fm_core::Id, fm_core::Sign)>,
@@ -116,7 +116,7 @@ impl View {
                 destination_state: widget::combo_box::State::new(Vec::new()),
                 budget_state: widget::combo_box::State::new(Vec::new()),
                 budget_input: None,
-                date_input: date_input::State::default(),
+                date_input: date_time_input::State::default(),
                 metadata: std::collections::HashMap::new(),
                 selected_categories: Vec::new(),
                 available_categories: Vec::new(),
@@ -301,7 +301,8 @@ impl View {
                     .budget
                     .map(|x| (x, init_existing.transaction.budget().unwrap().1));
                 self.budget_state = widget::combo_box::State::new(init_existing.budgets);
-                self.date_input = date_input::State::new(Some(*init_existing.transaction.date()));
+                self.date_input =
+                    date_time_input::State::new(Some(*init_existing.transaction.date()));
                 self.metadata
                     .clone_from(init_existing.transaction.metadata());
                 self.available_categories = init_existing.available_categories;
@@ -394,7 +395,7 @@ impl View {
                 ],
                 utils::spal_row![
                     "Date: ",
-                    date_input::date_input(&self.date_input, "", true)
+                    date_time_input::date_time_input(&self.date_input, true)
                         .view()
                         .map(Message::DateInput)
                 ]
@@ -470,7 +471,7 @@ impl View {
             return false;
         }
         // check if date is empty
-        if self.date_input.date().is_none() {
+        if self.date_input.datetime().is_none() {
             return false;
         }
         // check if source and destination are empty
@@ -510,7 +511,7 @@ impl View {
             .budget_input
             .as_ref()
             .map(|budget| (*budget.0.id(), budget.1));
-        let date = self.date_input.date().unwrap();
+        let date = self.date_input.datetime().unwrap();
         let metadata = self.metadata.clone();
         let mut categories =
             std::collections::HashMap::with_capacity(self.selected_categories.len());
