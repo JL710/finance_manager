@@ -46,7 +46,7 @@ impl TryFrom<Recurring> for fm_core::Recurring {
                     anyhow::bail!("Days cannot be more than 31");
                 }
                 Ok(fm_core::Recurring::Days(
-                    utils::date_time::parse_to_datetime(&start, 0, 0, 0)?,
+                    utils::date_time::parse_date_to_datetime(&start, 0, 0, 0)?,
                     days,
                 ))
             }

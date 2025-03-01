@@ -380,7 +380,7 @@ impl View {
                                         transaction.amount()
                                     }),
                                 ),
-                                widget::text(utils::date_time::convert_date_time_to_date_string(
+                                widget::text(utils::date_time::date_time_to_date_string(
                                     *transaction.date(),
                                 ))
                                 .into(),
@@ -605,10 +605,8 @@ mod add_transaction {
                                 utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
                                 widget::text(x.title().clone()).into(),
                                 widget::text(x.amount().to_num_string()).into(),
-                                widget::text(utils::date_time::convert_date_time_to_date_string(
-                                    *x.date(),
-                                ))
-                                .into(),
+                                widget::text(utils::date_time::date_time_to_date_string(*x.date()))
+                                    .into(),
                                 widget::text(
                                     accounts
                                         .iter()

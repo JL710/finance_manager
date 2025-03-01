@@ -8,7 +8,7 @@ impl State {
     pub fn new(value: Option<fm_core::DateTime>) -> Self {
         Self {
             value: if let Some(date) = value {
-                super::convert_date_time_to_date_string(date)
+                super::date_time_to_date_string(date)
             } else {
                 String::new()
             },
@@ -31,7 +31,7 @@ impl State {
     ///
     /// The time will be set o 12:00.
     pub fn date(&self) -> Option<fm_core::DateTime> {
-        super::parse_to_datetime(&self.value, 12, 0, 0).map_or(self.default_value, Some)
+        super::parse_date_to_datetime(&self.value, 12, 0, 0).map_or(self.default_value, Some)
     }
 
     pub fn raw_input(&self) -> &str {

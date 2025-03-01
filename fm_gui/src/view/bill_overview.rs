@@ -92,7 +92,7 @@ impl View {
                         utils::colored_currency_display(&bill.1),
                         widget::text(bill.0.due_date().map_or(
                             String::new(),
-                            utils::date_time::convert_date_time_to_date_string
+                            utils::date_time::date_time_to_date_string
                         ))
                         .into(),
                         widget::text(bill.0.transactions().len()).into()

@@ -259,7 +259,7 @@ impl TransactionTable {
                         link(widget::text(transaction.title().clone()))
                             .on_press(Message::ViewTransaction(*transaction.id()))
                             .into(),
-                        widget::text(super::date_time::convert_date_time_to_date_string(
+                        widget::text(super::date_time::date_time_to_date_string(
                             *transaction.date(),
                         ))
                         .into(),

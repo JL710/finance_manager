@@ -209,7 +209,7 @@ impl View {
                                 "Due Date: {}",
                                 bill.due_date().map_or(
                                     String::new(),
-                                    utils::date_time::convert_date_time_to_date_string
+                                    utils::date_time::date_time_to_date_string
                                 )
                             ),
                             utils::spal_row!["Sum: ", utils::colored_currency_display(bill_sum),]
@@ -243,7 +243,7 @@ impl View {
                             )
                             .into(),
                             widget::text!("{}€", transaction.amount().to_num_string()).into(),
-                            widget::text(utils::date_time::convert_date_time_to_date_string(
+                            widget::text(utils::date_time::date_time_to_date_string(
                                 *transaction.date()
                             ))
                             .into(),
