@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::date_time::timespan_input;
+use crate::date_time::date_span_input;
 use fm_core::transaction_filter::Filter;
 use iced::widget;
 
@@ -13,7 +13,7 @@ pub enum Action {
 #[derive(Debug, Clone)]
 pub enum InnerMessage {
     Submit,
-    ChangeDefaultTimespan(timespan_input::Action),
+    ChangeDefaultTimespan(date_span_input::Action),
     NewAccountFilter,
     NewBillFilter,
     NewCategoryFilter,
@@ -22,10 +22,10 @@ pub enum InnerMessage {
     DeleteBill(Filter<fm_core::Bill>),
     DeleteCategory(Filter<fm_core::Id>),
     DeleteBudget(Filter<fm_core::Id>),
-    EditBillTimespan(Filter<fm_core::Bill>, timespan_input::Action),
-    EditCategoryTimespan(Filter<fm_core::Id>, timespan_input::Action),
-    EditAccountTimespan(Filter<fm_core::Id>, timespan_input::Action),
-    EditBudgetTimespan(Filter<fm_core::Id>, timespan_input::Action),
+    EditBillTimespan(Filter<fm_core::Bill>, date_span_input::Action),
+    EditCategoryTimespan(Filter<fm_core::Id>, date_span_input::Action),
+    EditAccountTimespan(Filter<fm_core::Id>, date_span_input::Action),
+    EditBudgetTimespan(Filter<fm_core::Id>, date_span_input::Action),
     ChangeAccount(Filter<fm_core::Id>, Filter<fm_core::Id>),
     ChangeBill(Filter<fm_core::Bill>, Filter<fm_core::Bill>),
     ChangeCategory(Filter<fm_core::Id>, Filter<fm_core::Id>),
@@ -38,12 +38,12 @@ pub struct FilterComponent {
     categories: Vec<fm_core::Category>,
     bills: Vec<fm_core::Bill>,
     budgets: Vec<fm_core::Budget>,
-    default_transaction_input: timespan_input::State,
+    default_transaction_input: date_span_input::State,
     filter: fm_core::transaction_filter::TransactionFilter,
-    bill_timespan_inputs: HashMap<Filter<fm_core::Bill>, timespan_input::State>,
-    account_timespan_inputs: HashMap<Filter<fm_core::Id>, timespan_input::State>,
-    category_timespan_inputs: HashMap<Filter<fm_core::Id>, timespan_input::State>,
-    budget_timespan_inputs: HashMap<Filter<fm_core::Id>, timespan_input::State>,
+    bill_timespan_inputs: HashMap<Filter<fm_core::Bill>, date_span_input::State>,
+    account_timespan_inputs: HashMap<Filter<fm_core::Id>, date_span_input::State>,
+    category_timespan_inputs: HashMap<Filter<fm_core::Id>, date_span_input::State>,
+    budget_timespan_inputs: HashMap<Filter<fm_core::Id>, date_span_input::State>,
 }
 
 impl FilterComponent {
@@ -67,7 +67,7 @@ impl FilterComponent {
             bills,
             budgets,
             filter: fm_core::transaction_filter::TransactionFilter::default(),
-            default_transaction_input: timespan_input::State::default(),
+            default_transaction_input: date_span_input::State::default(),
             bill_timespan_inputs: HashMap::default(),
             account_timespan_inputs: HashMap::default(),
             category_timespan_inputs: HashMap::default(),
@@ -79,16 +79,16 @@ impl FilterComponent {
         self.filter = new_filter;
 
         self.default_transaction_input =
-            timespan_input::State::new(Some(*self.filter.get_default_timespan()));
+            date_span_input::State::new(Some(*self.filter.get_default_timespan()));
 
         fn set_inputs<I: Clone + std::fmt::Debug + Eq + std::hash::Hash>(
-            inputs: &mut HashMap<Filter<I>, timespan_input::State>,
+            inputs: &mut HashMap<Filter<I>, date_span_input::State>,
             filters: &Vec<Filter<I>>,
         ) {
             inputs.clear();
             for filter in filters {
                 if filter.timespan.is_some() {
-                    inputs.insert(filter.clone(), timespan_input::State::new(filter.timespan));
+                    inputs.insert(filter.clone(), date_span_input::State::new(filter.timespan));
                 }
             }
         }
@@ -233,7 +233,7 @@ impl FilterComponent {
                 self.filter.edit_account(old, new.clone());
                 if new.timespan.is_some() {
                     self.account_timespan_inputs
-                        .insert(new.clone(), timespan_input::State::new(new.timespan));
+                        .insert(new.clone(), date_span_input::State::new(new.timespan));
                 }
             }
             InnerMessage::ChangeBill(old, new) => {
@@ -241,7 +241,7 @@ impl FilterComponent {
                 self.filter.edit_bill(old, new.clone());
                 if new.timespan.is_some() {
                     self.bill_timespan_inputs
-                        .insert(new.clone(), timespan_input::State::new(new.timespan));
+                        .insert(new.clone(), date_span_input::State::new(new.timespan));
                 }
             }
             InnerMessage::ChangeCategory(old, new) => {
@@ -249,7 +249,7 @@ impl FilterComponent {
                 self.filter.edit_category(old, new.clone());
                 if new.timespan.is_some() {
                     self.category_timespan_inputs
-                        .insert(new.clone(), timespan_input::State::new(new.timespan));
+                        .insert(new.clone(), date_span_input::State::new(new.timespan));
                 }
             }
             InnerMessage::ChangeBudget(old, new) => {
@@ -257,7 +257,7 @@ impl FilterComponent {
                 self.filter.edit_budget(old, new.clone());
                 if new.timespan.is_some() {
                     self.budget_timespan_inputs
-                        .insert(new.clone(), timespan_input::State::new(new.timespan));
+                        .insert(new.clone(), date_span_input::State::new(new.timespan));
                 }
             }
         }
@@ -269,7 +269,7 @@ impl FilterComponent {
             // default timespan
             super::spal_row![
                 widget::text("Default Timespan: "),
-                timespan_input::timespan_input(&self.default_transaction_input)
+                date_span_input::date_span_input(&self.default_transaction_input)
                     .view()
                     .map(InnerMessage::ChangeDefaultTimespan),
             ],
@@ -367,13 +367,13 @@ fn generate_filter_column<
     I: Clone + std::fmt::Debug + PartialEq + Eq + std::hash::Hash,
 >(
     filters: &'a Vec<Filter<I>>,
-    timespan_input_states: &'a HashMap<Filter<I>, timespan_input::State>,
+    timespan_input_states: &'a HashMap<Filter<I>, date_span_input::State>,
     options: &'a [O],
     picklist_item_from_option: impl Fn(&O) -> T,
     id_from_picklist_item: fn(&T) -> I,
     id_from_option: fn(&O) -> I,
     change_message: fn(Filter<I>, Filter<I>) -> InnerMessage,
-    change_timespan: fn(Filter<I>, timespan_input::Action) -> InnerMessage,
+    change_timespan: fn(Filter<I>, date_span_input::Action) -> InnerMessage,
     delete_message: impl Fn(Filter<I>) -> InnerMessage,
 ) -> iced::Element<'a, InnerMessage> {
     let mut column = widget::Column::new().width(iced::Fill);
@@ -474,7 +474,7 @@ fn generate_filter_column<
             )
             .push_maybe(if filter.timespan.is_some() {
                 Some(
-                    timespan_input::timespan_input(timespan_input_states.get(filter).unwrap())
+                    date_span_input::date_span_input(timespan_input_states.get(filter).unwrap())
                         .view()
                         .map(move |x| (change_timespan)(filter.clone(), x)),
                 )

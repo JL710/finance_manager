@@ -43,6 +43,10 @@ pub struct TimeInput<'a> {
 }
 
 impl<'a> TimeInput<'a> {
+    pub fn new(state: &'a State, required: bool) -> Self {
+        Self { state, required }
+    }
+
     pub fn required(mut self, required: bool) -> Self {
         self.required = required;
         self
@@ -68,5 +72,5 @@ impl<'a> TimeInput<'a> {
 }
 
 pub fn time_input<'a>(state: &'a State, required: bool) -> TimeInput<'a> {
-    TimeInput { state, required }
+    TimeInput::new(state, required)
 }

@@ -43,13 +43,13 @@ impl State {
     }
 }
 
-pub struct TimespanInput<'a> {
+pub struct DateSpanInput<'a> {
     state: &'a State,
 }
 
-impl<'a> TimespanInput<'a> {
+impl<'a> DateSpanInput<'a> {
     pub fn new(state: &'a State) -> Self {
-        TimespanInput { state }
+        DateSpanInput { state }
     }
 
     pub fn view(self) -> iced::Element<'a, Action> {
@@ -68,12 +68,12 @@ impl<'a> TimespanInput<'a> {
     }
 }
 
-pub fn timespan_input(state: &State) -> TimespanInput<'_> {
-    TimespanInput { state }
+pub fn date_span_input(state: &State) -> DateSpanInput<'_> {
+    DateSpanInput { state }
 }
 
-impl<'a> From<TimespanInput<'a>> for iced::Element<'a, Action> {
-    fn from(value: TimespanInput<'a>) -> Self {
+impl<'a> From<DateSpanInput<'a>> for iced::Element<'a, Action> {
+    fn from(value: DateSpanInput<'a>) -> Self {
         value.view()
     }
 }

@@ -56,6 +56,10 @@ pub struct DateTimeInput<'a> {
 }
 
 impl<'a> DateTimeInput<'a> {
+    pub fn new(state: &'a State, required: bool) -> Self {
+        Self { state, required }
+    }
+
     pub fn view(self) -> iced::Element<'a, Action> {
         crate::spal_row![
             date_input::date_input(
@@ -77,5 +81,5 @@ impl<'a> DateTimeInput<'a> {
 }
 
 pub fn date_time_input<'a>(state: &'a State, required: bool) -> DateTimeInput<'a> {
-    DateTimeInput { state, required }
+    DateTimeInput::new(state, required)
 }

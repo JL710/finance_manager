@@ -1,7 +1,7 @@
 pub mod date_input;
+pub mod date_span_input;
 pub mod date_time_input;
 pub mod time_input;
-pub mod timespan_input;
 
 use anyhow::{Context, Result};
 

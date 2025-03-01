@@ -61,6 +61,14 @@ pub struct DateInput<'a> {
 }
 
 impl<'a> DateInput<'a> {
+    pub fn new(state: &'a State, placeholder: String, required: bool) -> Self {
+        DateInput {
+            state,
+            required,
+            placeholder: placeholder,
+        }
+    }
+
     pub fn view(self) -> iced::Element<'a, Action> {
         iced::widget::text_input(&self.placeholder, self.state.raw_input())
             .on_input(Action::InputChanged)
@@ -81,11 +89,7 @@ impl<'a> DateInput<'a> {
 }
 
 pub fn date_input<'a>(state: &'a State, placeholder: &'a str, required: bool) -> DateInput<'a> {
-    DateInput {
-        state,
-        required,
-        placeholder: placeholder.to_owned(),
-    }
+    DateInput::new(state, placeholder.to_owned(), required)
 }
 
 impl<'a> From<DateInput<'a>> for iced::Element<'a, Action> {
