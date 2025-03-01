@@ -4,6 +4,7 @@ use iced::widget;
 use anyhow::{Context, Result};
 
 use async_std::sync::Mutex;
+use recurring_input::recurring_input;
 use std::sync::Arc;
 
 pub enum Action {
@@ -20,62 +21,11 @@ pub enum Message {
     DescriptionInput(widget::text_editor::Action),
     ValueInput(String),
     RecurringPickList(String),
-    RecurringFirstInput(String),
-    RecurringSecondInput(String),
+    RecurringInput(recurring_input::Action),
     Submit,
     BudgetCreated(fm_core::Id),
     Initialize(Option<fm_core::Budget>),
     Cancel,
-}
-
-#[derive(Debug, Clone)]
-enum Recurring {
-    Days(String, String),   // start time and days
-    DayInMonth(String),     // i.e. 3. of each month
-    Yearly(String, String), // month and day
-}
-
-impl TryFrom<Recurring> for fm_core::Recurring {
-    type Error = anyhow::Error;
-
-    fn try_from(value: Recurring) -> Result<Self> {
-        match value {
-            Recurring::Days(start, days) => {
-                let days = days.parse()?;
-                if days > 31 {
-                    anyhow::bail!("Days cannot be more than 31");
-                }
-                Ok(fm_core::Recurring::Days(
-                    utils::date_time::parse_date_str(&start, 0, 0, 0)?,
-                    days,
-                ))
-            }
-            Recurring::DayInMonth(day) => Ok(fm_core::Recurring::DayInMonth(day.parse()?)),
-            Recurring::Yearly(month, day) => {
-                let month = month.parse()?;
-                if month > 12 {
-                    anyhow::bail!("Month cannot be more than 12");
-                }
-                let day = day.parse()?;
-                if day > 31 {
-                    anyhow::bail!("Day cannot be more than 31");
-                }
-                Ok(fm_core::Recurring::Yearly(month, day))
-            }
-        }
-    }
-}
-
-impl std::fmt::Display for Recurring {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Recurring::Days(start, days) => {
-                write!(f, "Every {} days starting from {}", days, start)
-            }
-            Recurring::DayInMonth(day) => write!(f, "Every month on the {}th", day),
-            Recurring::Yearly(month, day) => write!(f, "Every year on the {}th of {}", day, month),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -84,7 +34,7 @@ pub struct View {
     name_input: String,
     description_input: widget::text_editor::Content,
     value_input: String,
-    recurring_inputs: Recurring,
+    recurring_input: recurring_input::State,
     recurring_state: Option<String>,
     submitted: bool,
 }
@@ -96,7 +46,10 @@ impl Default for View {
             name_input: String::new(),
             description_input: widget::text_editor::Content::default(),
             value_input: String::new(),
-            recurring_inputs: Recurring::Days(String::new(), String::new()),
+            recurring_input: recurring_input::State::Days(
+                utils::date_time::date_time_input::State::default(),
+                String::new(),
+            ),
             recurring_state: None,
             submitted: false,
         }
@@ -112,18 +65,7 @@ impl View {
                 budget.description().unwrap_or_default(),
             ),
             value_input: budget.total_value().to_num_string(),
-            recurring_inputs: match budget.timespan() {
-                fm_core::Recurring::Days(start, days) => Recurring::Days(
-                    start
-                        .to_offset(fm_core::get_local_timezone()?)
-                        .format(&time::format_description::parse("[day].[month].[year]")?)?,
-                    days.to_string(),
-                ),
-                fm_core::Recurring::DayInMonth(day) => Recurring::DayInMonth(day.to_string()),
-                fm_core::Recurring::Yearly(month, day) => {
-                    Recurring::Yearly(month.to_string(), day.to_string())
-                }
-            },
+            recurring_input: recurring_input::State::from(budget.timespan().clone()),
             recurring_state: match budget.timespan() {
                 fm_core::Recurring::Days(_, _) => Some("Days".to_string()),
                 fm_core::Recurring::DayInMonth(_) => Some("Day in month".to_string()),
@@ -196,7 +138,7 @@ impl View {
                 let name_input = self.name_input.clone();
                 let description_input = self.description_input.text();
                 let value_input = self.value_input.clone();
-                let recurring_inputs = self.recurring_inputs.clone();
+                let recurring_inputs = (&self.recurring_input).try_into();
                 return Action::Task(utils::failing_task(async move {
                     let budget = match option_id {
                         Some(id) => {
@@ -212,7 +154,7 @@ impl View {
                                         Some(description_input)
                                     },
                                     fm_core::Currency::from(value_input.parse::<f64>()?),
-                                    recurring_inputs.try_into().context(
+                                    recurring_inputs.context(
                                         "Error while converting recurring input into timespan",
                                     )?,
                                 )
@@ -230,7 +172,7 @@ impl View {
                                         Some(description_input)
                                     },
                                     fm_core::Currency::from(value_input.parse::<f64>()?),
-                                    recurring_inputs.try_into().context(
+                                    recurring_inputs.context(
                                         "Error while converting recurring input into timespan",
                                     )?,
                                 )
@@ -244,37 +186,22 @@ impl View {
                 self.recurring_state = Some(recurring.clone());
                 match recurring.as_str() {
                     "Days" => {
-                        self.recurring_inputs = Recurring::Days(String::new(), String::new());
+                        self.recurring_input = recurring_input::State::Days(
+                            utils::date_time::date_time_input::State::default(),
+                            String::new(),
+                        );
                     }
                     "Day in month" => {
-                        self.recurring_inputs = Recurring::DayInMonth(String::new());
+                        self.recurring_input = recurring_input::State::DayInMonth(String::new());
                     }
                     "Yearly" => {
-                        self.recurring_inputs = Recurring::Yearly(String::new(), String::new());
+                        self.recurring_input =
+                            recurring_input::State::Yearly(String::new(), String::new());
                     }
                     _ => {}
                 }
             }
-            Message::RecurringFirstInput(content) => match &mut self.recurring_inputs {
-                Recurring::Days(start, _) => {
-                    *start = content;
-                }
-                Recurring::DayInMonth(day) => {
-                    *day = content;
-                }
-                Recurring::Yearly(month, _) => {
-                    *month = content;
-                }
-            },
-            Message::RecurringSecondInput(content) => match &mut self.recurring_inputs {
-                Recurring::Days(_, days) => {
-                    *days = content;
-                }
-                Recurring::DayInMonth(_) => {}
-                Recurring::Yearly(_, day) => {
-                    *day = content;
-                }
-            },
+            Message::RecurringInput(action) => self.recurring_input.perform(action),
         }
         Action::None
     }
@@ -308,51 +235,30 @@ impl View {
     }
 
     fn generate_recurring_view(&self) -> iced::Element<'_, Message> {
-        let mut row = widget::row![widget::PickList::new(
-            vec!["Days", "Day in month", "Yearly"],
-            self.recurring_state.as_deref(),
-            |x| Message::RecurringPickList(x.to_string()),
-        ),];
-        match &self.recurring_inputs {
-            Recurring::Days(start, days) => {
-                row = row.push(
-                    widget::text_input("Start Date day.month.year", start)
-                        .on_input(Message::RecurringFirstInput),
-                );
-                row = row
-                    .push(widget::text_input("Days", days).on_input(Message::RecurringSecondInput));
-            }
-            Recurring::DayInMonth(day) => {
-                row = row.push(
-                    widget::text_input("Day in Month", day).on_input(Message::RecurringFirstInput),
-                );
-            }
-            Recurring::Yearly(month, day) => {
-                row = row.push(
-                    widget::text_input("Month", month).on_input(Message::RecurringFirstInput),
-                );
-                row = row
-                    .push(widget::text_input("Day", day).on_input(Message::RecurringSecondInput));
-            }
-        }
-
-        let input_correct =
-            TryInto::<fm_core::Recurring>::try_into(self.recurring_inputs.clone()).is_ok();
+        let input_correct = TryInto::<fm_core::Recurring>::try_into(&self.recurring_input).is_ok();
 
         widget::column![
             widget::Text::new("Recurring"),
-            widget::container(row)
-                .style(move |theme: &iced::Theme| {
-                    let mut style = widget::container::Style::default();
-                    style.border.width = 1.0;
-                    if !input_correct {
-                        style.border.color = theme.palette().danger;
-                    } else {
-                        style.border.color = theme.palette().success;
-                    }
-                    style
-                })
-                .padding(3),
+            widget::container(utils::spal_row![
+                widget::text(self.recurring_input.to_string()),
+                widget::PickList::new(
+                    vec!["Days", "Day in month", "Yearly"],
+                    self.recurring_state.as_deref(),
+                    |x| Message::RecurringPickList(x.to_string()),
+                ),
+                recurring_input(&self.recurring_input).map(Message::RecurringInput)
+            ])
+            .style(move |theme: &iced::Theme| {
+                let mut style = widget::container::Style::default();
+                style.border.width = 1.0;
+                if !input_correct {
+                    style.border.color = theme.palette().danger;
+                } else {
+                    style.border.color = theme.palette().success;
+                }
+                style
+            })
+            .padding(3),
         ]
         .into()
     }
@@ -365,9 +271,148 @@ impl View {
             return false;
         }
         // check if the recurring inputs are valid
-        if TryInto::<fm_core::Recurring>::try_into(self.recurring_inputs.clone()).is_err() {
+        if TryInto::<fm_core::Recurring>::try_into(&self.recurring_input).is_err() {
             return false;
         }
         true
+    }
+}
+
+mod recurring_input {
+    use anyhow::Context;
+    use iced::widget;
+    use utils::date_time::date_time_input;
+
+    #[derive(Debug, Clone)]
+    pub enum Action {
+        DateInput(date_time_input::Action),
+        FirstTextInput(String),
+        SecondTextInput(String),
+    }
+
+    #[derive(Debug)]
+    pub enum State {
+        /// start time and days
+        Days(date_time_input::State, String),
+        /// i.e. 3. of each month
+        DayInMonth(String),
+        /// month and day
+        Yearly(String, String),
+    }
+
+    impl State {
+        pub fn perform(&mut self, action: Action) {
+            match self {
+                Self::DayInMonth(day) => {
+                    if let Action::FirstTextInput(new_day) = action {
+                        *day = new_day;
+                    }
+                }
+                Self::Yearly(month, day) => {
+                    if let Action::FirstTextInput(new_month) = action {
+                        *month = new_month;
+                    } else if let Action::SecondTextInput(new_day) = action {
+                        *day = new_day;
+                    }
+                }
+                Self::Days(day, days) => {
+                    if let Action::DateInput(action) = action {
+                        day.perform(action);
+                    } else if let Action::SecondTextInput(new_days) = action {
+                        *days = new_days;
+                    }
+                }
+            }
+        }
+    }
+
+    impl std::fmt::Display for State {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                State::Days(start, days) => {
+                    write!(
+                        f,
+                        "Every {} days starting from {}",
+                        days,
+                        start.datetime().map_or("ERROR".to_owned(), |x| {
+                            utils::date_time::to_date_time_string(x)
+                        })
+                    )
+                }
+                State::DayInMonth(day) => write!(f, "Every month on the {}th", day),
+                State::Yearly(month, day) => write!(f, "Every year on the {}th of {}", day, month),
+            }
+        }
+    }
+
+    impl From<fm_core::Recurring> for State {
+        fn from(value: fm_core::Recurring) -> Self {
+            match value {
+                fm_core::Recurring::DayInMonth(day) => State::DayInMonth(day.to_string()),
+                fm_core::Recurring::Days(start, days) => {
+                    State::Days(date_time_input::State::new(Some(start)), days.to_string())
+                }
+                fm_core::Recurring::Yearly(month, day) => {
+                    State::Yearly(month.to_string(), day.to_string())
+                }
+            }
+        }
+    }
+
+    impl TryFrom<&State> for fm_core::Recurring {
+        type Error = anyhow::Error;
+
+        fn try_from(value: &State) -> Result<Self, Self::Error> {
+            match value {
+                State::Days(start, days) => {
+                    let days = days.parse()?;
+                    if days > 500 {
+                        anyhow::bail!("Days cannot be more than 31");
+                    }
+                    Ok(fm_core::Recurring::Days(
+                        start.datetime().context("Could not parse date time")?,
+                        days,
+                    ))
+                }
+                State::DayInMonth(day) => {
+                    let day = day.parse()?;
+                    if day > 31 {
+                        anyhow::bail!("Days cannot be more than 31");
+                    }
+                    Ok(fm_core::Recurring::DayInMonth(day))
+                }
+                State::Yearly(month, day) => {
+                    let month = month.parse()?;
+                    if month > 12 {
+                        anyhow::bail!("Month cannot be more than 12");
+                    }
+                    let day = day.parse()?;
+                    if day > 31 {
+                        anyhow::bail!("Day cannot be more than 31");
+                    }
+                    Ok(fm_core::Recurring::Yearly(month, day))
+                }
+            }
+        }
+    }
+
+    pub fn recurring_input<'a>(state: &'a State) -> iced::Element<'a, Action> {
+        match state {
+            State::Days(date, days) => utils::spal_row![
+                date_time_input::date_time_input(date, true)
+                    .view()
+                    .map(Action::DateInput),
+                widget::text_input("Days", days).on_input(Action::SecondTextInput)
+            ]
+            .into(),
+            State::DayInMonth(day) => widget::text_input("Day", day)
+                .on_input(Action::FirstTextInput)
+                .into(),
+            State::Yearly(month, day) => utils::spal_row![
+                widget::text_input("Month", month).on_input(Action::FirstTextInput),
+                widget::text_input("Day", day).on_input(Action::SecondTextInput)
+            ]
+            .into(),
+        }
     }
 }
