@@ -436,18 +436,23 @@ mod add_transaction {
     }
 
     #[derive(Debug, Clone)]
+    pub struct Init {
+        accounts: Vec<fm_core::account::Account>,
+        budgets: Vec<fm_core::Budget>,
+        bills: Vec<fm_core::Bill>,
+        categories: Vec<fm_core::Category>,
+        transactions: Vec<fm_core::Transaction>,
+        ignored_transactions: Vec<fm_core::Id>,
+    }
+
+    #[derive(Debug, Clone)]
     pub enum Message {
         Back,
         FilterComponent(utils::filter_component::InnerMessage),
         AddTransaction(fm_core::Transaction),
         FetchedTransactions(Vec<fm_core::Transaction>),
         Table(utils::table_view::InnerMessage<Message>),
-        Init(
-            Option<utils::filter_component::FilterComponent>,
-            Vec<fm_core::Transaction>,
-            Vec<fm_core::Id>,
-            Vec<fm_core::account::Account>,
-        ),
+        Init(Init),
         AddAllTransactions,
     }
 
@@ -495,17 +500,14 @@ mod add_transaction {
                     let categories = locked_manager.get_categories().await?;
                     let bills = locked_manager.get_bills().await?;
                     let budgets = locked_manager.get_budgets().await?;
-                    Ok(Message::Init(
-                        Some(utils::filter_component::FilterComponent::new(
-                            accounts.clone(),
-                            categories,
-                            bills,
-                            budgets,
-                        )),
-                        Vec::new(),
-                        ignored_transactions,
+                    Ok(Message::Init(Init {
+                        transactions: Vec::new(),
                         accounts,
-                    ))
+                        categories,
+                        bills,
+                        budgets,
+                        ignored_transactions,
+                    }))
                 }),
             )
         }
@@ -568,12 +570,17 @@ mod add_transaction {
                     utils::table_view::Action::Task(task) => Action::Task(task.map(Message::Table)),
                     _ => Action::None,
                 },
-                Message::Init(filter, transactions, ignored_transactions, accounts) => {
-                    self.filter = filter;
-                    self.transactions = transactions.clone();
-                    self.table.set_items(transactions);
-                    self.table.set_context(accounts);
-                    self.ignored_transactions = ignored_transactions;
+                Message::Init(init) => {
+                    self.transactions = init.transactions.clone();
+                    self.table.set_items(init.transactions);
+                    self.table.set_context(init.accounts.clone());
+                    self.ignored_transactions = init.ignored_transactions;
+                    self.filter = Some(utils::filter_component::FilterComponent::new(
+                        init.accounts,
+                        init.categories,
+                        init.bills,
+                        init.budgets,
+                    ));
                     Action::None
                 }
             }

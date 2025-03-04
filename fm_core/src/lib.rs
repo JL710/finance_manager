@@ -124,6 +124,12 @@ pub struct Category {
     name: String,
 }
 
+impl std::fmt::Display for Category {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 impl Category {
     pub fn new(id: Id, name: String) -> Self {
         Self { id, name }
@@ -211,6 +217,12 @@ pub struct Bill {
     value: Currency,
     transactions: HashMap<Id, Sign>,
     due_date: Option<DateTime>,
+}
+
+impl std::fmt::Display for Bill {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 impl Eq for Bill {}

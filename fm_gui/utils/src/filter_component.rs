@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::date_time::date_span_input;
 use fm_core::transaction_filter::Filter;
 use iced::widget;
@@ -18,32 +16,26 @@ pub enum InnerMessage {
     NewBillFilter,
     NewCategoryFilter,
     NewBudgetFilter,
-    DeleteAccount(Filter<fm_core::Id>),
-    DeleteBill(Filter<fm_core::Bill>),
-    DeleteCategory(Filter<fm_core::Id>),
-    DeleteBudget(Filter<fm_core::Id>),
-    EditBillTimespan(Filter<fm_core::Bill>, date_span_input::Action),
-    EditCategoryTimespan(Filter<fm_core::Id>, date_span_input::Action),
-    EditAccountTimespan(Filter<fm_core::Id>, date_span_input::Action),
-    EditBudgetTimespan(Filter<fm_core::Id>, date_span_input::Action),
-    ChangeAccount(Filter<fm_core::Id>, Filter<fm_core::Id>),
-    ChangeBill(Filter<fm_core::Bill>, Filter<fm_core::Bill>),
-    ChangeCategory(Filter<fm_core::Id>, Filter<fm_core::Id>),
-    ChangeBudget(Filter<fm_core::Id>, Filter<fm_core::Id>),
+    AccountEntryMessage(
+        usize,
+        filter_entry::MessageContainer<fm_core::account::Account>,
+    ),
+    BillEntryMessage(usize, filter_entry::MessageContainer<fm_core::Bill>),
+    CategoryEntryMessage(usize, filter_entry::MessageContainer<fm_core::Category>),
+    BudgetEntryMessage(usize, filter_entry::MessageContainer<fm_core::Budget>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct FilterComponent {
     accounts: Vec<fm_core::account::Account>,
     categories: Vec<fm_core::Category>,
     bills: Vec<fm_core::Bill>,
     budgets: Vec<fm_core::Budget>,
     default_transaction_input: date_span_input::State,
-    filter: fm_core::transaction_filter::TransactionFilter,
-    bill_timespan_inputs: HashMap<Filter<fm_core::Bill>, date_span_input::State>,
-    account_timespan_inputs: HashMap<Filter<fm_core::Id>, date_span_input::State>,
-    category_timespan_inputs: HashMap<Filter<fm_core::Id>, date_span_input::State>,
-    budget_timespan_inputs: HashMap<Filter<fm_core::Id>, date_span_input::State>,
+    bill_filter_entries: Vec<filter_entry::FilterEntry<fm_core::Bill, fm_core::Bill>>,
+    account_filter_entries: Vec<filter_entry::FilterEntry<fm_core::account::Account, fm_core::Id>>,
+    category_filter_entries: Vec<filter_entry::FilterEntry<fm_core::Category, fm_core::Id>>,
+    budget_filter_entries: Vec<filter_entry::FilterEntry<fm_core::Budget, fm_core::Id>>,
 }
 
 impl FilterComponent {
@@ -66,51 +58,63 @@ impl FilterComponent {
             categories,
             bills,
             budgets,
-            filter: fm_core::transaction_filter::TransactionFilter::default(),
             default_transaction_input: date_span_input::State::default(),
-            bill_timespan_inputs: HashMap::default(),
-            account_timespan_inputs: HashMap::default(),
-            category_timespan_inputs: HashMap::default(),
-            budget_timespan_inputs: HashMap::default(),
+            bill_filter_entries: Vec::default(),
+            account_filter_entries: Vec::default(),
+            category_filter_entries: Vec::default(),
+            budget_filter_entries: Vec::default(),
         }
     }
 
     pub fn set_filter(&mut self, new_filter: fm_core::transaction_filter::TransactionFilter) {
-        self.filter = new_filter;
-
         self.default_transaction_input =
-            date_span_input::State::new(Some(*self.filter.get_default_timespan()));
+            date_span_input::State::new(Some(*new_filter.get_default_timespan()));
 
-        fn set_inputs<I: Clone + std::fmt::Debug + Eq + std::hash::Hash>(
-            inputs: &mut HashMap<Filter<I>, date_span_input::State>,
-            filters: &Vec<Filter<I>>,
+        fn set_inputs<
+            T: Clone + std::fmt::Debug + std::fmt::Display + 'static,
+            ID: Clone + std::fmt::Debug + Eq,
+        >(
+            inputs: &mut Vec<filter_entry::FilterEntry<T, ID>>,
+            filters: Vec<Filter<ID>>,
+            options: Vec<T>,
+            t_to_id: impl Fn(&T) -> ID + Clone + 'static,
         ) {
             inputs.clear();
             for filter in filters {
-                if filter.timespan.is_some() {
-                    inputs.insert(filter.clone(), date_span_input::State::new(filter.timespan));
-                }
+                inputs.push(filter_entry::FilterEntry::new(
+                    filter,
+                    options.clone(),
+                    t_to_id.clone(),
+                ))
             }
         }
 
         set_inputs(
-            &mut self.account_timespan_inputs,
-            self.filter.get_account_filters(),
+            &mut self.account_filter_entries,
+            new_filter.get_account_filters().clone(),
+            self.accounts.clone(),
+            |acc| *acc.id(),
         );
 
         set_inputs(
-            &mut self.category_timespan_inputs,
-            self.filter.get_category_filters(),
+            &mut self.category_filter_entries,
+            new_filter.get_category_filters().clone(),
+            self.categories.clone(),
+            |category| *category.id(),
         );
 
         set_inputs(
-            &mut self.budget_timespan_inputs,
-            self.filter.get_budget_filters(),
+            &mut self.budget_filter_entries,
+            new_filter.get_budget_filters().clone(),
+            self.budgets.clone(),
+            |budget| *budget.id(),
         );
 
         set_inputs(
-            &mut self.bill_timespan_inputs,
-            self.filter.get_bill_filters(),
+            &mut self.bill_filter_entries,
+            new_filter.get_bill_filters().clone(),
+            self.bills.clone(),
+            |bill| bill.clone(),
         );
     }
 
@@ -125,139 +129,125 @@ impl FilterComponent {
     pub fn update(&mut self, message: InnerMessage) -> Action {
         match message {
             InnerMessage::Submit => {
-                return Action::Submit(self.filter.clone());
+                let mut filter = fm_core::transaction_filter::TransactionFilter::default();
+                filter.set_default_timespan(self.default_transaction_input.timespan());
+                for bill_entry in &self.bill_filter_entries {
+                    filter.add_bill(bill_entry.get_filter().clone());
+                }
+                for acc_entry in &self.account_filter_entries {
+                    filter.add_account(acc_entry.get_filter().clone());
+                }
+                for category_entry in &self.category_filter_entries {
+                    filter.add_category(category_entry.get_filter().clone());
+                }
+                for budget_entry in &self.budget_filter_entries {
+                    filter.add_budget(budget_entry.get_filter().clone());
+                }
+                return Action::Submit(filter);
             }
             InnerMessage::ChangeDefaultTimespan(action) => {
                 self.default_transaction_input.perform(action);
-                self.filter
-                    .set_default_timespan(self.default_transaction_input.timespan());
             }
             InnerMessage::NewAccountFilter => {
                 if !self.accounts.is_empty() {
-                    self.filter.add_account(Filter {
-                        negated: false,
-                        id: Some(*self.accounts.first().unwrap().id()),
-                        include: true,
-                        timespan: None,
-                    });
+                    self.account_filter_entries
+                        .push(filter_entry::FilterEntry::new(
+                            Filter {
+                                negated: false,
+                                id: Some(*self.accounts[0].id()),
+                                include: true,
+                                timespan: None,
+                            },
+                            self.accounts.clone(),
+                            |x| *x.id(),
+                        ));
                 }
             }
             InnerMessage::NewBillFilter => {
                 if let Some(bill) = self.bills.first() {
-                    self.filter.add_bill(Filter {
-                        negated: false,
-                        id: Some(bill.clone()),
-                        include: true,
-                        timespan: None,
-                    });
+                    self.bill_filter_entries
+                        .push(filter_entry::FilterEntry::new(
+                            Filter {
+                                negated: false,
+                                id: Some(bill.clone()),
+                                include: true,
+                                timespan: None,
+                            },
+                            self.bills.clone(),
+                            |x| x.clone(),
+                        ));
                 }
             }
             InnerMessage::NewCategoryFilter => {
                 if !self.categories.is_empty() {
-                    self.filter.add_category(Filter {
-                        negated: false,
-                        id: Some(*self.categories.first().unwrap().id()),
-                        include: true,
-                        timespan: None,
-                    });
+                    self.category_filter_entries
+                        .push(filter_entry::FilterEntry::new(
+                            Filter {
+                                negated: false,
+                                id: Some(*self.categories[0].id()),
+                                include: true,
+                                timespan: None,
+                            },
+                            self.categories.clone(),
+                            |x| *x.id(),
+                        ));
                 }
             }
             InnerMessage::NewBudgetFilter => {
                 if !self.budgets.is_empty() {
-                    self.filter.add_budget(Filter {
-                        negated: false,
-                        id: Some(*self.budgets.first().unwrap().id()),
-                        include: true,
-                        timespan: None,
-                    });
+                    self.budget_filter_entries
+                        .push(filter_entry::FilterEntry::new(
+                            Filter {
+                                negated: false,
+                                id: Some(*self.budgets[0].id()),
+                                include: true,
+                                timespan: None,
+                            },
+                            self.budgets.clone(),
+                            |x| *x.id(),
+                        ));
                 }
             }
-            InnerMessage::DeleteAccount(filter) => {
-                self.account_timespan_inputs.remove(&filter);
-                self.filter.delete_account(filter);
-            }
-            InnerMessage::DeleteBill(filter) => {
-                self.bill_timespan_inputs.remove(&filter);
-                self.filter.delete_bill(filter);
-            }
-            InnerMessage::DeleteCategory(filter) => {
-                self.category_timespan_inputs.remove(&filter);
-                self.filter.delete_category(filter);
-            }
-            InnerMessage::DeleteBudget(filter) => {
-                self.budget_timespan_inputs.remove(&filter);
-                self.filter.delete_category(filter);
-            }
-            InnerMessage::EditAccountTimespan(filter, action) => {
-                let mut state = self
-                    .account_timespan_inputs
-                    .remove(&filter)
+            InnerMessage::AccountEntryMessage(index, m) => {
+                match self
+                    .account_filter_entries
+                    .get_mut(index)
                     .unwrap()
-                    .clone();
-                state.perform(action);
-                let mut new_filter = filter.clone();
-                new_filter.timespan = Some(state.timespan());
-                self.filter.edit_account(filter, new_filter.clone());
-                self.account_timespan_inputs.insert(new_filter, state);
+                    .update(m)
+                {
+                    filter_entry::Action::Delete => {
+                        self.account_filter_entries.remove(index).get_filter();
+                    }
+                    filter_entry::Action::None => {}
+                }
             }
-            InnerMessage::EditBillTimespan(filter, action) => {
-                let mut state = self.bill_timespan_inputs.remove(&filter).unwrap().clone();
-                state.perform(action);
-                let mut new_filter = filter.clone();
-                new_filter.timespan = Some(state.timespan());
-                self.filter.edit_bill(filter, new_filter.clone());
-                self.bill_timespan_inputs.insert(new_filter, state);
+            InnerMessage::BillEntryMessage(index, m) => {
+                match self.bill_filter_entries.get_mut(index).unwrap().update(m) {
+                    filter_entry::Action::Delete => {
+                        self.bill_filter_entries.remove(index).get_filter();
+                    }
+                    filter_entry::Action::None => {}
+                }
             }
-            InnerMessage::EditCategoryTimespan(filter, action) => {
-                let mut state = self
-                    .category_timespan_inputs
-                    .remove(&filter)
+            InnerMessage::BudgetEntryMessage(index, m) => {
+                match self.budget_filter_entries.get_mut(index).unwrap().update(m) {
+                    filter_entry::Action::Delete => {
+                        self.budget_filter_entries.remove(index).get_filter();
+                    }
+                    filter_entry::Action::None => {}
+                }
+            }
+            InnerMessage::CategoryEntryMessage(index, m) => {
+                match self
+                    .category_filter_entries
+                    .get_mut(index)
                     .unwrap()
-                    .clone();
-                state.perform(action);
-                let mut new_filter = filter.clone();
-                new_filter.timespan = Some(state.timespan());
-                self.filter.edit_category(filter, new_filter.clone());
-                self.category_timespan_inputs.insert(new_filter, state);
-            }
-            InnerMessage::EditBudgetTimespan(filter, action) => {
-                let mut state = self.budget_timespan_inputs.remove(&filter).unwrap().clone();
-                state.perform(action);
-                let mut new_filter = filter.clone();
-                new_filter.timespan = Some(state.timespan());
-                self.filter.edit_budget(filter, new_filter.clone());
-                self.budget_timespan_inputs.insert(new_filter, state);
-            }
-            InnerMessage::ChangeAccount(old, new) => {
-                self.account_timespan_inputs.remove(&old);
-                self.filter.edit_account(old, new.clone());
-                if new.timespan.is_some() {
-                    self.account_timespan_inputs
-                        .insert(new.clone(), date_span_input::State::new(new.timespan));
-                }
-            }
-            InnerMessage::ChangeBill(old, new) => {
-                self.bill_timespan_inputs.remove(&old);
-                self.filter.edit_bill(old, new.clone());
-                if new.timespan.is_some() {
-                    self.bill_timespan_inputs
-                        .insert(new.clone(), date_span_input::State::new(new.timespan));
-                }
-            }
-            InnerMessage::ChangeCategory(old, new) => {
-                self.category_timespan_inputs.remove(&old);
-                self.filter.edit_category(old, new.clone());
-                if new.timespan.is_some() {
-                    self.category_timespan_inputs
-                        .insert(new.clone(), date_span_input::State::new(new.timespan));
-                }
-            }
-            InnerMessage::ChangeBudget(old, new) => {
-                self.budget_timespan_inputs.remove(&old);
-                self.filter.edit_budget(old, new.clone());
-                if new.timespan.is_some() {
-                    self.budget_timespan_inputs
-                        .insert(new.clone(), date_span_input::State::new(new.timespan));
+                    .update(m)
+                {
+                    filter_entry::Action::Delete => {
+                        self.category_filter_entries.remove(index).get_filter();
+                    }
+                    filter_entry::Action::None => {}
                 }
             }
         }
@@ -281,15 +271,8 @@ impl FilterComponent {
             ]
             .align_y(iced::Alignment::Center),
             widget::container(widget::scrollable(generate_filter_column(
-                self.filter.get_account_filters(),
-                &self.account_timespan_inputs,
-                &self.accounts,
-                |x| DisplayedAccount { account: x.clone() },
-                |x| *x.account.id(),
-                |x| *x.id(),
-                InnerMessage::ChangeAccount,
-                InnerMessage::EditAccountTimespan,
-                InnerMessage::DeleteAccount
+                &self.account_filter_entries,
+                InnerMessage::AccountEntryMessage
             )))
             .max_height(150),
             // category filters
@@ -300,15 +283,8 @@ impl FilterComponent {
             ]
             .align_y(iced::Alignment::Center),
             widget::container(widget::scrollable(generate_filter_column(
-                self.filter.get_category_filters(),
-                &self.category_timespan_inputs,
-                &self.categories,
-                |x| DisplayedCategory(x.clone()),
-                |x| *x.0.id(),
-                |x| *x.id(),
-                InnerMessage::ChangeCategory,
-                InnerMessage::EditCategoryTimespan,
-                InnerMessage::DeleteCategory
+                &self.category_filter_entries,
+                InnerMessage::CategoryEntryMessage
             )))
             .max_height(150),
             // bill filters
@@ -319,15 +295,8 @@ impl FilterComponent {
             ]
             .align_y(iced::Alignment::Center),
             widget::container(widget::scrollable(generate_filter_column(
-                self.filter.get_bill_filters(),
-                &self.bill_timespan_inputs,
-                &self.bills,
-                |x| DisplayedBill(x.clone()),
-                |x| x.0.clone(),
-                |x| x.clone(),
-                InnerMessage::ChangeBill,
-                InnerMessage::EditBillTimespan,
-                InnerMessage::DeleteBill
+                &self.bill_filter_entries,
+                InnerMessage::BillEntryMessage
             )))
             .max_height(150),
             // budget filters
@@ -338,15 +307,8 @@ impl FilterComponent {
             ]
             .align_y(iced::Alignment::Center),
             widget::container(widget::scrollable(generate_filter_column(
-                self.filter.get_budget_filters(),
-                &self.budget_timespan_inputs,
-                &self.budgets,
-                |x| DisplayedBudget(x.clone()),
-                |x| *x.0.id(),
-                |x| *x.id(),
-                InnerMessage::ChangeBudget,
-                InnerMessage::EditBudgetTimespan,
-                InnerMessage::DeleteBudget
+                &self.budget_filter_entries,
+                InnerMessage::BudgetEntryMessage
             )))
             .max_height(150),
             // submit footer
@@ -359,198 +321,160 @@ impl FilterComponent {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn generate_filter_column<
-    'a,
-    O: Clone,
-    T: ToString + PartialEq + Clone + 'a,
-    I: Clone + std::fmt::Debug + PartialEq + Eq + std::hash::Hash,
+    T: Clone + std::fmt::Debug + std::fmt::Display + 'static,
+    ID: Clone + std::fmt::Debug + PartialEq + Eq,
 >(
-    filters: &'a Vec<Filter<I>>,
-    timespan_input_states: &'a HashMap<Filter<I>, date_span_input::State>,
-    options: &'a [O],
-    picklist_item_from_option: impl Fn(&O) -> T,
-    id_from_picklist_item: fn(&T) -> I,
-    id_from_option: fn(&O) -> I,
-    change_message: fn(Filter<I>, Filter<I>) -> InnerMessage,
-    change_timespan: fn(Filter<I>, date_span_input::Action) -> InnerMessage,
-    delete_message: impl Fn(Filter<I>) -> InnerMessage,
-) -> iced::Element<'a, InnerMessage> {
-    let mut column = widget::Column::new().width(iced::Fill);
+    entries: &[filter_entry::FilterEntry<T, ID>],
+    f: fn(usize, filter_entry::MessageContainer<T>) -> InnerMessage,
+) -> iced::Element<'_, InnerMessage> {
+    let mut col = crate::spaced_column!();
+    for (index, entry) in entries.iter().enumerate() {
+        col = col.push(entry.view().map(move |m| (f)(index, m)));
+    }
+    col.into()
+}
 
-    for filter in filters {
-        column = column.push(
-            widget::row![
-                widget::checkbox("Negate", filter.negated).on_toggle(move |x| {
-                    (change_message)(
-                        filter.clone(),
-                        Filter {
-                            negated: x,
-                            id: filter.id.clone(),
-                            include: filter.include,
-                            timespan: filter.timespan,
-                        },
-                    )
-                }),
-                widget::checkbox("Specific", filter.id.is_some()).on_toggle(move |x| {
-                    if !x || options.is_empty() {
-                        (change_message)(
-                            filter.clone(),
-                            Filter {
-                                negated: filter.negated,
-                                id: None,
-                                include: filter.include,
-                                timespan: filter.timespan,
-                            },
-                        )
+mod filter_entry {
+    use crate::date_time::date_span_input;
+    use fm_core::transaction_filter::Filter;
+    use iced::widget;
+
+    #[derive(Debug, Clone)]
+    pub struct MessageContainer<T>(Message<T>);
+
+    #[derive(Debug, Clone)]
+    enum Message<T> {
+        Delete,
+        Negate(bool),
+        Exclude(bool),
+        Specific(bool),
+        CustomTimespan(bool),
+        TimespanInput(date_span_input::Action),
+        SpecificSelected(T),
+    }
+
+    pub enum Action {
+        Delete,
+        None,
+    }
+
+    pub struct FilterEntry<T: Clone, ID: Clone + std::fmt::Debug> {
+        filter: Filter<ID>,
+        options: Vec<T>,
+        timespan_input: date_span_input::State,
+        specific_combobox: widget::combo_box::State<T>,
+        specific_combobox_selected: Option<T>,
+        t_to_id: Box<dyn Fn(&T) -> ID>,
+    }
+
+    impl<T: Clone + std::fmt::Debug, ID: Clone + std::fmt::Debug> std::fmt::Debug
+        for FilterEntry<T, ID>
+    {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "FilterEntry<{:?} {:?} {:?} {:?} {:?}>",
+                self.filter,
+                self.options,
+                self.timespan_input,
+                self.specific_combobox,
+                self.specific_combobox_selected
+            )
+        }
+    }
+
+    impl<T: Clone + std::fmt::Display + 'static, ID: Clone + std::fmt::Debug + PartialEq + Eq>
+        FilterEntry<T, ID>
+    {
+        pub fn new(
+            filter: Filter<ID>,
+            options: Vec<T>,
+            t_to_id: impl Fn(&T) -> ID + 'static,
+        ) -> Self {
+            Self {
+                specific_combobox: widget::combo_box::State::new(options.clone()),
+                specific_combobox_selected: if let Some(id) = &filter.id {
+                    options.iter().find(|x| &(t_to_id)(x) == id).cloned()
+                } else {
+                    None
+                },
+                options,
+                timespan_input: date_span_input::State::new(filter.timespan),
+                filter,
+                t_to_id: Box::new(t_to_id),
+            }
+        }
+
+        pub fn get_filter(&self) -> &Filter<ID> {
+            &self.filter
+        }
+
+        pub fn update(&mut self, message: MessageContainer<T>) -> Action {
+            let message = message.0;
+            match message {
+                Message::Delete => return Action::Delete,
+                Message::Negate(new_value) => self.filter.negated = new_value,
+                Message::Exclude(new_value) => self.filter.include = !new_value,
+                Message::Specific(specific) => {
+                    if !specific || self.options.is_empty() {
+                        self.filter.id = None;
                     } else {
-                        (change_message)(
-                            filter.clone(),
-                            Filter {
-                                negated: filter.negated,
-                                id: Some((id_from_option)(&options[0])),
-                                include: filter.include,
-                                timespan: filter.timespan,
-                            },
-                        )
+                        self.filter.id = Some((self.t_to_id)(&self.options[0]));
+                        self.specific_combobox_selected = Some(self.options[0].clone());
                     }
-                }),
-            ]
-            .push_maybe(if filter.id.is_some() {
-                Some(widget::pick_list(
-                    options
-                        .iter()
-                        .map(&(picklist_item_from_option))
-                        .collect::<Vec<_>>(),
-                    Some((picklist_item_from_option)(
-                        &options
-                            .iter()
-                            .find(|x| Some((id_from_option)(x)) == filter.id)
-                            .unwrap()
-                            .clone(),
-                    )),
-                    move |x| {
-                        (change_message)(
-                            filter.clone(),
-                            Filter {
-                                negated: filter.negated,
-                                id: Some((id_from_picklist_item)(&x)),
-                                include: filter.include,
-                                timespan: filter.timespan,
-                            },
-                        )
-                    },
-                ))
-            } else {
-                None
-            })
-            .push(
-                widget::checkbox("Exclude", !filter.include).on_toggle(move |x| {
-                    (change_message)(
-                        filter.clone(),
-                        Filter {
-                            negated: filter.negated,
-                            id: filter.id.clone(),
-                            include: !x,
-                            timespan: filter.timespan,
-                        },
-                    )
-                }),
-            )
-            .push(
-                widget::checkbox("Custom Timespan", filter.timespan.is_some()).on_toggle(
-                    move |x| {
-                        (change_message)(
-                            filter.clone(),
-                            Filter {
-                                negated: filter.negated,
-                                id: filter.id.clone(),
-                                include: filter.include,
-                                timespan: if x { Some((None, None)) } else { None },
-                            },
-                        )
-                    },
-                ),
-            )
-            .push_maybe(if filter.timespan.is_some() {
-                Some(
-                    date_span_input::date_span_input(timespan_input_states.get(filter).unwrap())
-                        .view()
-                        .map(move |x| (change_timespan)(filter.clone(), x)),
+                }
+                Message::CustomTimespan(new_value) => {
+                    self.filter.timespan = if new_value { Some((None, None)) } else { None };
+                }
+                Message::TimespanInput(action) => self.timespan_input.perform(action),
+                Message::SpecificSelected(new_specific) => {
+                    self.filter.id = Some((self.t_to_id)(&new_specific));
+                    self.specific_combobox_selected = Some(new_specific);
+                }
+            }
+            Action::None
+        }
+
+        pub fn view(&self) -> iced::Element<MessageContainer<T>> {
+            iced::Element::new(
+                widget::row![
+                    widget::checkbox("Negate", self.filter.negated).on_toggle(Message::Negate),
+                    widget::checkbox("Specific", self.filter.id.is_some())
+                        .on_toggle(Message::Specific),
+                ]
+                .push_maybe(if self.filter.id.is_some() {
+                    Some(widget::ComboBox::new(
+                        &self.specific_combobox,
+                        "",
+                        self.specific_combobox_selected.as_ref(),
+                        Message::SpecificSelected,
+                    ))
+                } else {
+                    None
+                })
+                .push(widget::checkbox("Exclude", !self.filter.include).on_toggle(Message::Exclude))
+                .push(
+                    widget::checkbox("Custom Timespan", self.filter.timespan.is_some())
+                        .on_toggle(Message::CustomTimespan),
                 )
-            } else {
-                None
-            })
-            .push(widget::row![
-                widget::horizontal_space(),
-                super::button::delete(Some((delete_message)(filter.clone())))
-            ])
-            .align_y(iced::Alignment::Center)
-            .spacing(30),
-        );
-    }
-
-    column.into()
-}
-
-#[derive(Debug, Clone)]
-struct DisplayedAccount {
-    account: fm_core::account::Account,
-}
-
-impl std::fmt::Display for DisplayedAccount {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.account.name())
-    }
-}
-
-impl PartialEq for DisplayedAccount {
-    fn eq(&self, other: &Self) -> bool {
-        self.account.id() == other.account.id()
-    }
-}
-
-#[derive(Debug, Clone)]
-struct DisplayedCategory(fm_core::Category);
-
-impl std::fmt::Display for DisplayedCategory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.name())
-    }
-}
-
-impl PartialEq for DisplayedCategory {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.id() == other.0.id()
-    }
-}
-
-#[derive(Debug, Clone)]
-struct DisplayedBill(fm_core::Bill);
-
-impl std::fmt::Display for DisplayedBill {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.name())
-    }
-}
-
-impl PartialEq for DisplayedBill {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.id() == other.0.id()
-    }
-}
-
-#[derive(Debug, Clone)]
-struct DisplayedBudget(fm_core::Budget);
-
-impl std::fmt::Display for DisplayedBudget {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0.name())
-    }
-}
-
-impl PartialEq for DisplayedBudget {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.id() == other.0.id()
+                .push_maybe(if self.filter.timespan.is_some() {
+                    Some(
+                        date_span_input::date_span_input(&self.timespan_input)
+                            .view()
+                            .map(Message::TimespanInput),
+                    )
+                } else {
+                    None
+                })
+                .push(widget::row![
+                    widget::horizontal_space(),
+                    crate::button::delete(Some(Message::Delete))
+                ])
+                .align_y(iced::Alignment::Center)
+                .spacing(crate::style::ROW_SPACING),
+            )
+            .map(MessageContainer)
+        }
     }
 }
