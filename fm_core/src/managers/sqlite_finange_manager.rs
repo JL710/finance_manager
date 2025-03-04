@@ -1310,9 +1310,7 @@ fn get_transactions_of_bill(
 
 #[cfg(test)]
 mod test {
-    async fn test_runner<FT: std::future::Future<Output = ()>>(
-        test: impl Fn(super::SqliteFinanceManager) -> FT,
-    ) {
+    async fn test_runner(test: impl AsyncFn(super::SqliteFinanceManager)) {
         test(super::SqliteFinanceManager::new_in_memory().unwrap()).await
     }
 

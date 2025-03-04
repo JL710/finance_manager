@@ -17,9 +17,7 @@ mod test {
         };
     }
 
-    async fn test_runner<FT: std::future::Future<Output = ()>>(
-        test: impl Fn(crate::client::Client) -> FT,
-    ) {
+    async fn test_runner(test: impl AsyncFn(crate::client::Client)) {
         run_in_tokio_context(async {
             let listener = TcpListener::bind("127.0.0.1:0").await.unwrap(); // Bind to any free port
             let server_address = listener.local_addr().unwrap().to_string();

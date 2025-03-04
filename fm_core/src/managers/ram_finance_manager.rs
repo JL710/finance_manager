@@ -1,6 +1,6 @@
 use crate::{
-    account, AccountId, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recurring,
-    Sign, Timespan, Transaction,
+    AccountId, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recurring, Sign,
+    Timespan, Transaction, account,
 };
 use anyhow::Result;
 use std::collections::HashMap;
@@ -509,9 +509,7 @@ impl FinanceManager for RamFinanceManager {
 
 #[cfg(test)]
 mod test {
-    async fn test_runner<FT: std::future::Future<Output = ()>>(
-        test: impl Fn(super::RamFinanceManager) -> FT,
-    ) {
+    async fn test_runner(test: impl AsyncFn(super::RamFinanceManager)) {
         test(super::RamFinanceManager::default()).await
     }
 
