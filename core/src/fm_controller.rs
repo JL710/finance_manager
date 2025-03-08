@@ -47,11 +47,11 @@ where
                 for transaction in transactions {
                     match bill
                         .transactions
-                        .get(transaction.id())
-                        .context(format!("Could not find transaction {}", transaction.id()))?
+                        .get(&transaction.id)
+                        .context(format!("Could not find transaction {}", transaction.id))?
                     {
-                        Sign::Positive => sum += transaction.amount(),
-                        Sign::Negative => sum -= transaction.amount(),
+                        Sign::Positive => sum += transaction.amount,
+                        Sign::Negative => sum -= transaction.amount,
                     }
                 }
                 Ok::<_, anyhow::Error>(sum)
@@ -205,7 +205,7 @@ where
 
         // delete transactions
         for transaction in transactions {
-            self.delete_transaction(*transaction.id())
+            self.delete_transaction(transaction.id)
                 .await
                 .context("could not delete transaction")?;
         }
@@ -559,10 +559,10 @@ where
             ))?;
         let mut sum = Currency::default();
         for transaction in transactions {
-            let sign = transaction.budget().unwrap().1;
+            let sign = transaction.budget.unwrap().1;
             match sign {
-                Sign::Positive => sum += transaction.amount(),
-                Sign::Negative => sum -= transaction.amount(),
+                Sign::Positive => sum += transaction.amount,
+                Sign::Negative => sum -= transaction.amount,
             }
         }
         Ok(sum)
@@ -660,7 +660,7 @@ where
                 ))?,
             |transaction| {
                 *transaction
-                    .categories()
+                    .categories
                     .clone()
                     .iter()
                     .find(|(x, _)| **x == id)
@@ -684,15 +684,15 @@ where
             ))?
             .unwrap();
         self.update_transaction(
-            *transaction.id(),
-            transaction.amount().clone(),
-            transaction.title().to_owned(),
-            transaction.description().map(|x| x.to_owned()),
-            *transaction.source(),
-            *transaction.destination(),
-            transaction.budget().map(|x| x.to_owned()),
-            *transaction.date(),
-            transaction.metadata().clone(),
+            transaction.id,
+            transaction.amount,
+            transaction.title,
+            transaction.description,
+            transaction.source,
+            transaction.destination,
+            transaction.budget,
+            transaction.date,
+            transaction.metadata,
             categories,
         )
         .await

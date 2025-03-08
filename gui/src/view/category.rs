@@ -59,11 +59,11 @@ impl View {
                 let mut transaction_tuples = Vec::new();
                 for transaction in transactions {
                     let from_account = accounts
-                        .get(transaction.source())
+                        .get(&transaction.source)
                         .context("Could not find source account")?
                         .clone();
                     let to_account = accounts
-                        .get(transaction.destination())
+                        .get(&transaction.destination)
                         .context("Could not find destination account")?
                         .clone();
                     transaction_tuples.push((transaction, from_account, to_account));
@@ -149,17 +149,17 @@ impl View {
                         let mut transaction_tuples = Vec::new();
                         for transaction in transactions {
                             let from_account = accounts
-                                .get(transaction.source())
+                                .get(&transaction.source)
                                 .context(format!(
                                     "Could not find source account of transaction {}",
-                                    transaction.source()
+                                    transaction.source
                                 ))?
                                 .clone();
                             let to_account = accounts
-                                .get(transaction.destination())
+                                .get(&transaction.destination)
                                 .context(format!(
                                     "Could not find destination account of transaction {}",
-                                    transaction.destination()
+                                    transaction.destination
                                 ))?
                                 .clone();
                             transaction_tuples.push((transaction, from_account, to_account));
@@ -191,7 +191,7 @@ impl View {
                         budgets,
                         move |transaction| {
                             transaction
-                                .categories()
+                                .categories
                                 .get(&category_id)
                                 .map(|sign| *sign == fm_core::Sign::Positive)
                         },

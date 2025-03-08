@@ -61,17 +61,17 @@ impl View {
                     .await?
                     .context(format!("Could not find transaction {}", id))?;
                 let source = finance_controller
-                    .get_account(*transaction.source())
+                    .get_account(transaction.source)
                     .await?
-                    .context(format!("Could not find account {}", transaction.source()))?;
+                    .context(format!("Could not find account {}", transaction.source))?;
                 let destination = finance_controller
-                    .get_account(*transaction.destination())
+                    .get_account(transaction.destination)
                     .await?
                     .context(format!(
                         "Could not find account {}",
-                        transaction.destination()
+                        transaction.destination
                     ))?;
-                let budget = match transaction.budget() {
+                let budget = match transaction.budget {
                     Some(budget_id) => finance_controller.get_budget(budget_id.0).await?,
                     None => None,
                 };
@@ -112,7 +112,7 @@ impl View {
             }
             Message::Edit => {
                 if let Self::Loaded { transaction, .. } = self {
-                    Action::Edit(*transaction.id())
+                    Action::Edit(transaction.id)
                 } else {
                     Action::None
                 }
@@ -128,7 +128,7 @@ impl View {
                     _ => return Action::None,
                 }
                 if let Self::Loaded { transaction, .. } = self {
-                    let id = *transaction.id();
+                    let id = transaction.id;
                     Action::Delete(utils::failing_task(async move {
                         finance_controller.delete_transaction(id).await?;
                         Ok(())
@@ -153,15 +153,15 @@ impl View {
         } = self
         {
             let mut column = widget::column![
-                widget::row![widget::text!("Value: {}", transaction.amount())],
-                widget::text!("Name: {}", transaction.title()),
+                widget::row![widget::text!("Value: {}", transaction.amount)],
+                widget::text!("Name: {}", transaction.title),
                 utils::link(widget::text!("Source: {}", source))
                     .on_press(Message::ViewAccount(*source.id())),
                 utils::link(widget::text!("Destination: {}", destination))
                     .on_press(Message::ViewAccount(*destination.id())),
                 widget::text!(
                     "Date: {}",
-                    utils::date_time::to_date_time_string(*transaction.date())
+                    utils::date_time::to_date_time_string(transaction.date)
                 ),
             ];
 
@@ -172,13 +172,13 @@ impl View {
                     widget::checkbox(
                         "Negative",
                         transaction
-                            .budget()
+                            .budget
                             .is_some_and(|x| x.1 == fm_core::Sign::Negative)
                     )
                 ]);
             }
 
-            if let Some(content) = transaction.description() {
+            if let Some(content) = &transaction.description {
                 column = column.push(utils::spaced_row![
                     widget::text("Description: "),
                     widget::container(widget::text(content.to_string()))
@@ -188,7 +188,7 @@ impl View {
             }
 
             let mut category_column = utils::spaced_column!();
-            for category in transaction.categories() {
+            for category in &transaction.categories {
                 category_column = category_column.push(utils::spal_row![
                     widget::checkbox("", true,),
                     widget::button(

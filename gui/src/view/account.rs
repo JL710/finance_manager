@@ -85,14 +85,14 @@ impl View {
                 let mut transaction_tuples = Vec::with_capacity(transactions.len());
                 for transaction in transactions {
                     let source = accounts
-                        .get(transaction.source())
-                        .context(format!("Could not find account {}", transaction.source()))?
+                        .get(&transaction.source)
+                        .context(format!("Could not find account {}", transaction.source))?
                         .clone();
                     let destination = accounts
-                        .get(transaction.destination())
+                        .get(&transaction.destination)
                         .context(format!(
                             "Could not find account {}",
-                            transaction.destination()
+                            transaction.destination
                         ))?
                         .clone();
                     transaction_tuples.push((transaction, source, destination));
@@ -126,7 +126,7 @@ impl View {
                         init.transactions,
                         init.categories,
                         init.budgets,
-                        move |transaction| Some(*transaction.destination() == account_id),
+                        move |transaction| Some(transaction.destination == account_id),
                     ),
                     timespan_input: date_span_input::State::default(),
                 };
@@ -183,17 +183,14 @@ impl View {
                         let mut transaction_tuples = Vec::with_capacity(transactions.len());
                         for transaction in transactions {
                             let source = accounts
-                                .get(transaction.source())
-                                .context(format!(
-                                    "Could not find account {}",
-                                    transaction.source()
-                                ))?
+                                .get(&transaction.source)
+                                .context(format!("Could not find account {}", transaction.source))?
                                 .clone();
                             let destination = accounts
-                                .get(transaction.destination())
+                                .get(&transaction.destination)
                                 .context(format!(
                                     "Could not find account {}",
-                                    transaction.destination()
+                                    &transaction.destination
                                 ))?
                                 .clone();
                             transaction_tuples.push((transaction, source, destination));

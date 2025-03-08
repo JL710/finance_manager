@@ -169,7 +169,7 @@ impl FinanceManager for RamFinanceManager {
 
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
         for transaction in &self.transactions {
-            if *transaction.id() == id {
+            if transaction.id == id {
                 return Ok(Some(transaction.clone()));
             }
         }
@@ -189,12 +189,12 @@ impl FinanceManager for RamFinanceManager {
                     return false;
                 }
                 if let Some(begin) = timespan.0 {
-                    if transaction.date() < &begin {
+                    if transaction.date < begin {
                         return false;
                     }
                 }
                 if let Some(end) = timespan.1 {
-                    if transaction.date() > &end {
+                    if transaction.date > end {
                         return false;
                     }
                 }
@@ -232,18 +232,7 @@ impl FinanceManager for RamFinanceManager {
 
     async fn delete_budget(&mut self, id: Id) -> Result<()> {
         for transaction in &mut self.transactions {
-            *transaction = Transaction::new(
-                *transaction.id(),
-                transaction.amount(),
-                transaction.title().to_owned(),
-                transaction.description().map(|x| x.to_owned()),
-                *transaction.source(),
-                *transaction.destination(),
-                None,
-                *transaction.date(),
-                transaction.metadata().clone(),
-                transaction.categories().clone(),
-            )
+            transaction.budget = None;
         }
         self.budgets.remove(&id);
         Ok(())
@@ -322,7 +311,7 @@ impl FinanceManager for RamFinanceManager {
             categories,
         );
         for transaction in &mut self.transactions {
-            if *transaction.id() == id {
+            if transaction.id == id {
                 *transaction = new_transaction.clone();
                 return Ok(new_transaction);
             }
@@ -333,7 +322,7 @@ impl FinanceManager for RamFinanceManager {
     async fn delete_transaction(&mut self, id: Id) -> Result<()> {
         let mut found_index = -1;
         for (index, transaction) in self.transactions.iter().enumerate() {
-            if *transaction.id() == id {
+            if transaction.id == id {
                 found_index = index as isize;
                 break;
             }
@@ -354,7 +343,7 @@ impl FinanceManager for RamFinanceManager {
             .transactions
             .iter()
             .filter(|transaction| {
-                if let Some(budget_id) = transaction.budget() {
+                if let Some(budget_id) = transaction.budget {
                     if budget_id.0 != id {
                         return false;
                     }
@@ -362,12 +351,12 @@ impl FinanceManager for RamFinanceManager {
                     return false;
                 }
                 if let Some(begin) = timespan.0 {
-                    if transaction.date() < &begin {
+                    if transaction.date < begin {
                         return false;
                     }
                 }
                 if let Some(end) = timespan.1 {
-                    if transaction.date() > &end {
+                    if transaction.date > end {
                         return false;
                     }
                 }
@@ -401,11 +390,11 @@ impl FinanceManager for RamFinanceManager {
         let mut transactions = self.transactions.clone();
 
         if let Some(begin) = timespan.0 {
-            transactions.retain(|transaction| transaction.date() >= &begin);
+            transactions.retain(|transaction| transaction.date >= begin);
         }
 
         if let Some(end) = timespan.1 {
-            transactions.retain(|transaction| transaction.date() <= &end);
+            transactions.retain(|transaction| transaction.date <= end);
         }
 
         Ok(transactions)
@@ -462,20 +451,7 @@ impl FinanceManager for RamFinanceManager {
 
         // remove from transactions
         for transaction in &mut self.transactions {
-            let mut categories = transaction.categories().clone();
-            categories.retain(|x, _| *x != id);
-            *transaction = Transaction::new(
-                *transaction.id(),
-                transaction.amount().clone(),
-                transaction.title().clone(),
-                transaction.description().map(|x| x.to_owned()),
-                *transaction.source(),
-                *transaction.destination(),
-                transaction.budget().copied(),
-                *transaction.date(),
-                transaction.metadata().clone(),
-                categories,
-            );
+            transaction.categories.retain(|x, _| *x != id);
         }
 
         Ok(())
@@ -488,7 +464,7 @@ impl FinanceManager for RamFinanceManager {
     ) -> Result<Vec<Transaction>> {
         let mut transactions = self.transactions.clone();
         transactions.retain(|x| {
-            x.categories()
+            x.categories
                 .iter()
                 .map(|x| *x.0)
                 .collect::<Vec<Id>>()
@@ -496,11 +472,11 @@ impl FinanceManager for RamFinanceManager {
         });
 
         if let Some(begin) = timespan.0 {
-            transactions.retain(|transaction| transaction.date() >= &begin);
+            transactions.retain(|transaction| transaction.date >= begin);
         }
 
         if let Some(end) = timespan.1 {
-            transactions.retain(|transaction| transaction.date() <= &end);
+            transactions.retain(|transaction| transaction.date <= end);
         }
 
         Ok(transactions)

@@ -87,28 +87,30 @@ impl TransactionTable {
             crate::table_view::State::new(transactions, (categories.clone(), budgets))
                 .sortable_columns([0, 1, 2, 3, 4, 5])
                 .sort_by(move |a, b, column_index| match column_index {
-                    0 => a.0.title().cmp(b.0.title()),
-                    1 => a.0.date().cmp(b.0.date()),
+                    0 => a.0.title.cmp(&b.0.title),
+                    1 => a.0.date.cmp(&b.0.date),
                     2 => {
-                        let a = (amount_positive)(a.0.clone()).map_or(a.0.amount(), |positive| {
-                            if positive {
-                                a.0.amount()
-                            } else {
-                                a.0.amount().negative()
-                            }
-                        });
-                        let b = (amount_positive)(b.0.clone()).map_or(b.0.amount(), |positive| {
-                            if positive {
-                                b.0.amount()
-                            } else {
-                                b.0.amount().negative()
-                            }
-                        });
+                        let a =
+                            (amount_positive)(a.0.clone()).map_or(a.0.amount.clone(), |positive| {
+                                if positive {
+                                    a.0.amount.clone()
+                                } else {
+                                    a.0.amount.negative()
+                                }
+                            });
+                        let b =
+                            (amount_positive)(b.0.clone()).map_or(b.0.amount.clone(), |positive| {
+                                if positive {
+                                    b.0.amount.clone()
+                                } else {
+                                    b.0.amount.negative()
+                                }
+                            });
                         a.cmp(&b)
                     }
                     3 => a.1.name().cmp(b.1.name()),
                     4 => a.2.name().cmp(b.2.name()),
-                    5 => hash_categories(a.0.categories()).cmp(&hash_categories(b.0.categories())),
+                    5 => hash_categories(&a.0.categories).cmp(&hash_categories(&b.0.categories)),
                     _ => std::cmp::Ordering::Equal,
                 });
         transaction_table.sort(1, true);
@@ -163,11 +165,11 @@ impl TransactionTable {
                     .transaction_table
                     .items()
                     .iter()
-                    .find(|x| *x.0.id() == transaction_id)
+                    .find(|x| x.0.id == transaction_id)
                     .unwrap()
                     .0;
-                let transaction_id = *transaction.id();
-                let mut categories = transaction.categories().clone();
+                let transaction_id = transaction.id;
+                let mut categories = transaction.categories.clone();
                 categories.remove(&category_id);
 
                 Action::Task(iced::Task::future(async move {
@@ -187,11 +189,11 @@ impl TransactionTable {
                     .transaction_table
                     .items()
                     .iter()
-                    .find(|x| *x.0.id() == transaction_id)
+                    .find(|x| x.0.id == transaction_id)
                     .unwrap()
                     .0;
-                let transaction_id = *transaction.id();
-                let mut categories = transaction.categories().clone();
+                let transaction_id = transaction.id;
+                let mut categories = transaction.categories.clone();
                 categories.insert(category_id, sign);
 
                 Action::Task(iced::Task::future(async move {
@@ -203,12 +205,11 @@ impl TransactionTable {
                 }))
             }
             Message::TransactionCategoryUpdated(transaction) => {
-                let transaction_id = *transaction.id();
                 let index = self
                     .transaction_table
                     .items()
                     .iter()
-                    .position(|x| *x.0.id() == transaction_id)
+                    .position(|x| x.0.id == transaction.id)
                     .unwrap();
                 self.transaction_table.edit_items(move |transactions| {
                     transactions[index].0 = transaction.clone();
@@ -250,16 +251,14 @@ impl TransactionTable {
                 ),
                       context| {
                     [
-                        link(widget::text(transaction.title().clone()))
-                            .on_press(Message::ViewTransaction(*transaction.id()))
+                        link(widget::text(transaction.title.clone()))
+                            .on_press(Message::ViewTransaction(transaction.id))
                             .into(),
-                        widget::text(super::date_time::to_date_string(*transaction.date())).into(),
+                        widget::text(super::date_time::to_date_string(transaction.date)).into(),
                         match (self.amount_positive)(transaction.clone()) {
-                            Some(true) => colored_currency_display(&transaction.amount()),
-                            Some(false) => {
-                                colored_currency_display(&transaction.amount().negative())
-                            }
-                            None => widget::text(transaction.amount().to_string()).into(),
+                            Some(true) => colored_currency_display(&transaction.amount),
+                            Some(false) => colored_currency_display(&transaction.amount.negative()),
+                            None => widget::text(transaction.amount.to_string()).into(),
                         },
                         link(widget::text(source.to_string().clone()))
                             .on_press(Message::ViewAccount(*source.id()))
@@ -271,12 +270,12 @@ impl TransactionTable {
                             widget::button(
                                 widget::Svg::new(self.edit_svg.clone()).width(iced::Shrink)
                             )
-                            .on_press(Message::OpenCategoryPopup(*transaction.id()))
+                            .on_press(Message::OpenCategoryPopup(transaction.id))
                             .style(widget::button::secondary),
                             widget::text(get_category_text(transaction, &context.0)),
                         ]
                         .into(),
-                        if let Some(budget) = transaction.budget() {
+                        if let Some(budget) = transaction.budget {
                             widget::text(
                                 context
                                     .1
@@ -301,7 +300,7 @@ impl TransactionTable {
                     self.transaction_table
                         .items()
                         .iter()
-                        .find(|x| *x.0.id() == id)
+                        .find(|x| x.0.id == id)
                         .unwrap()
                         .0
                         .clone(),
@@ -321,7 +320,7 @@ fn get_category_text(
     categories: &[fm_core::Category],
 ) -> String {
     let mut category_names = transaction
-        .categories()
+        .categories
         .iter()
         .map(|x| categories.iter().find(|c| c.id() == x.0).unwrap().name())
         .collect::<Vec<_>>();
@@ -342,25 +341,24 @@ fn category_popup(
     transaction: fm_core::Transaction,
     categories: Vec<fm_core::Category>,
 ) -> iced::Element<'static, Message> {
-    let transaction_id = *transaction.id();
     let mut column = super::spaced_column![];
     for category in categories {
         let category_id = *category.id();
-        let transaction_category = transaction.categories().get(&category_id).copied();
+        let transaction_category = transaction.categories.get(&category_id).copied();
         column = column.push(super::spal_row![
             widget::checkbox(
                 category.name(),
-                transaction.categories().contains_key(category.id())
+                transaction.categories.contains_key(category.id())
             )
             .on_toggle(move |value| if value {
                 Message::SetCategory {
-                    transaction_id,
+                    transaction_id: transaction.id,
                     category_id,
                     sign: fm_core::Sign::Positive,
                 }
             } else {
                 Message::RemoveCategory {
-                    transaction_id,
+                    transaction_id: transaction.id,
                     category_id,
                 }
             }),
@@ -374,7 +372,7 @@ fn category_popup(
             )
             .on_toggle_maybe(transaction_category.map(|sign| {
                 move |_| Message::SetCategory {
-                    transaction_id,
+                    transaction_id: transaction.id,
                     category_id,
                     sign: sign.invert(),
                 }

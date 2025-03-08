@@ -74,7 +74,7 @@ impl View {
                 transactions,
                 categories,
                 vec![budget],
-                |transaction| Some(transaction.budget().unwrap().1 == fm_core::Sign::Positive),
+                |transaction| Some(transaction.budget.unwrap().1 == fm_core::Sign::Positive),
             ),
             offset,
             time_span: timespan,
@@ -288,18 +288,18 @@ impl View {
         let mut transaction_tuples = Vec::new();
         for transaction in transactions {
             let source = finance_controller
-                .get_account(*transaction.source())
+                .get_account(transaction.source)
                 .await?
                 .context(format!(
                     "Error while fetching account {}",
-                    transaction.source()
+                    transaction.source
                 ))?;
             let destination = finance_controller
-                .get_account(*transaction.destination())
+                .get_account(transaction.destination)
                 .await?
                 .context(format!(
                     "Error while fetching account {}",
-                    transaction.destination()
+                    transaction.destination
                 ))?;
             transaction_tuples.push((transaction, source, destination));
         }

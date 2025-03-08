@@ -150,18 +150,18 @@ impl View {
                                 for transaction in transactions {
                                     let source = accounts
                                         .iter()
-                                        .find(|x| x.id() == transaction.source())
+                                        .find(|x| *x.id() == transaction.source)
                                         .context(format!(
                                             "Could not find account {}",
-                                            transaction.source()
+                                            transaction.source
                                         ))?
                                         .clone();
                                     let destination = accounts
                                         .iter()
-                                        .find(|x| x.id() == transaction.destination())
+                                        .find(|x| *x.id() == transaction.destination)
                                         .context(format!(
                                             "Could not find account {}",
-                                            transaction.destination()
+                                            transaction.destination
                                         ))?
                                         .clone();
                                     tuples.push((transaction, source, destination));

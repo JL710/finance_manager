@@ -61,10 +61,10 @@ pub trait FinanceManager: Send + Clone + Sized {
 
             let mut sum = Currency::default();
             for transaction in transactions {
-                if transaction.source() == account.id() {
-                    sum -= transaction.amount();
-                } else if transaction.destination() == account.id() {
-                    sum += transaction.amount();
+                if transaction.source == *account.id() {
+                    sum -= transaction.amount;
+                } else if transaction.destination == *account.id() {
+                    sum += transaction.amount;
                 }
             }
             Ok(sum)
@@ -263,7 +263,7 @@ pub trait FinanceManager: Send + Clone + Sized {
                 transactions_future.await?,
                 |transaction| {
                     *transaction
-                        .categories()
+                        .categories
                         .clone()
                         .iter()
                         .find(|(x, _)| **x == id)

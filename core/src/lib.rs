@@ -287,24 +287,24 @@ pub fn sum_up_transactions_by_day(
     mut transactions: Vec<Transaction>,
     sign_f: impl Fn(&Transaction) -> Sign,
 ) -> Vec<(DateTime, Currency)> {
-    transactions.sort_by(|a, b| a.date().cmp(b.date()));
+    transactions.sort_by(|a, b| a.date.cmp(&b.date));
 
     let mut values: Vec<(DateTime, Currency)> = Vec::new();
 
     for transaction in transactions {
         let sign = (sign_f)(&transaction);
         let mut amount = match sign {
-            Sign::Positive => transaction.amount(),
-            Sign::Negative => transaction.amount().negative(),
+            Sign::Positive => transaction.amount,
+            Sign::Negative => transaction.amount.negative(),
         };
-        let date_with_offset = (*transaction.date()).replace_time(time::Time::MIDNIGHT);
+        let date_with_offset = transaction.date.replace_time(time::Time::MIDNIGHT);
         // if it is not the first value only add it
         if !values.is_empty() {
             amount += values.last().unwrap().1.clone();
             let entry = values.last().unwrap().clone();
             // if it is the same day as the last entry, update the last entry
             if entry.0.to_offset(time::UtcOffset::UTC).date()
-                == transaction.date().to_offset(time::UtcOffset::UTC).date()
+                == transaction.date.to_offset(time::UtcOffset::UTC).date()
             {
                 let i = values.len() - 1;
                 values[i] = (date_with_offset, amount);

@@ -169,14 +169,14 @@ impl TransactionFilter {
                 .filter(|category| {
                     if let Some(category_id) = category.id {
                         (transaction
-                            .categories()
+                            .categories
                             .iter()
                             .filter(|x| *x.0 == category_id)
                             .count()
                             >= 1)
                             != category.negated
                     } else {
-                        transaction.categories().is_empty() == category.negated
+                        transaction.categories.is_empty() == category.negated
                     }
                 })
                 .map(|x| (x.include, x.timespan));
@@ -185,11 +185,11 @@ impl TransactionFilter {
                 .iter()
                 .filter(|bill_filter| {
                     if let Some(id) = &bill_filter.id {
-                        id.transactions().contains_key(transaction.id()) != bill_filter.negated
+                        id.transactions().contains_key(&transaction.id) != bill_filter.negated
                     } else {
                         let mut transaction_in_a_bill = false;
                         for bill in bills {
-                            if bill.transactions().contains_key(transaction.id()) {
+                            if bill.transactions().contains_key(&transaction.id) {
                                 transaction_in_a_bill = true;
                                 break;
                             }
@@ -203,9 +203,9 @@ impl TransactionFilter {
                 .iter()
                 .filter(|budget_filter| {
                     if let Some(id) = budget_filter.id {
-                        (transaction.budget().map(|x| x.0) == Some(id)) != budget_filter.negated
+                        (transaction.budget.map(|x| x.0) == Some(id)) != budget_filter.negated
                     } else {
-                        transaction.budget().is_some() != budget_filter.negated
+                        transaction.budget.is_some() != budget_filter.negated
                     }
                 })
                 .map(|x| (x.include, x.timespan));
@@ -222,11 +222,11 @@ impl TransactionFilter {
             {
                 // check if it is in the timespan
                 let in_timespan = if let Some(start) = timespan.0 {
-                    start <= *transaction.date()
+                    start <= transaction.date
                 } else {
                     true
                 } && if let Some(end) = timespan.1 {
-                    end >= *transaction.date()
+                    end >= transaction.date
                 } else {
                     true
                 };
@@ -362,8 +362,8 @@ mod test {
         });
         let result = filter.filter_transactions(transactions, &vec![bill]);
         assert_eq!(result.len(), 2);
-        result.iter().find(|x| *x.id() == 2).unwrap();
-        result.iter().find(|x| *x.id() == 3).unwrap();
+        result.iter().find(|x| x.id == 2).unwrap();
+        result.iter().find(|x| x.id == 3).unwrap();
     }
 
     #[test]
@@ -386,7 +386,7 @@ mod test {
             &vec![generate_test_bill_1(), generate_test_bill_2()],
         );
         assert_eq!(result.len(), 1);
-        assert_eq!(*result[0].id(), 2);
+        assert_eq!(result[0].id, 2);
     }
 
     #[test]
@@ -400,8 +400,8 @@ mod test {
             })
             .filter_transactions(generate_test_transactions_1(), &Vec::new());
         assert_eq!(result.len(), 2);
-        result.iter().find(|x| *x.id() == 1).unwrap();
-        result.iter().find(|x| *x.id() == 4).unwrap();
+        result.iter().find(|x| x.id == 1).unwrap();
+        result.iter().find(|x| x.id == 4).unwrap();
     }
 
     #[test]
@@ -421,7 +421,7 @@ mod test {
             })
             .filter_transactions(generate_test_transactions_1(), &Vec::new());
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].id(), &4);
+        assert_eq!(result[0].id, 4);
     }
 
     #[test]
@@ -442,8 +442,8 @@ mod test {
             })
             .filter_transactions(transactions, &Vec::new());
         assert_eq!(result.len(), 2);
-        result.iter().find(|x| *x.id() == 2).unwrap();
-        result.iter().find(|x| *x.id() == 3).unwrap();
+        result.iter().find(|x| x.id == 2).unwrap();
+        result.iter().find(|x| x.id == 3).unwrap();
     }
 
     #[test]
@@ -470,8 +470,8 @@ mod test {
             })
             .filter_transactions(transactions, &Vec::new());
         assert_eq!(result.len(), 2);
-        assert!(result.iter().find(|x| x.id() == &1).is_some());
-        assert!(result.iter().find(|x| x.id() == &4).is_some());
+        assert!(result.iter().find(|x| x.id == 1).is_some());
+        assert!(result.iter().find(|x| x.id == 4).is_some());
     }
 
     #[test]
@@ -498,8 +498,8 @@ mod test {
             })
             .filter_transactions(transactions, &Vec::new());
         assert_eq!(result.len(), 2);
-        result.iter().find(|x| *x.id() == 1).unwrap();
-        result.iter().find(|x| *x.id() == 2).unwrap();
+        result.iter().find(|x| x.id == 1).unwrap();
+        result.iter().find(|x| x.id == 2).unwrap();
     }
 
     #[test]
@@ -532,7 +532,7 @@ mod test {
             })
             .filter_transactions(transactions, &Vec::new());
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].id(), &2);
+        assert_eq!(result[0].id, 2);
     }
 
     #[test]
@@ -652,7 +652,7 @@ mod test {
 
         let result = filter.filter_transactions(transactions, &Vec::default());
         assert_eq!(result.len(), 1);
-        assert_eq!(*result[0].id(), 2);
+        assert_eq!(result[0].id, 2);
     }
 
     #[test]
@@ -683,7 +683,7 @@ mod test {
 
         let result = filter.filter_transactions(transactions, &Vec::default());
         assert_eq!(result.len(), 1);
-        assert_eq!(*result[0].id(), 1);
+        assert_eq!(result[0].id, 1);
     }
 
     #[test]
@@ -709,7 +709,7 @@ mod test {
             &Vec::new(),
         );
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].id(), &1);
+        assert_eq!(result[0].id, 1);
     }
 
     #[test]
@@ -735,7 +735,7 @@ mod test {
             &Vec::new(),
         );
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].id(), &2);
+        assert_eq!(result[0].id, 2);
     }
 
     #[test]
@@ -764,7 +764,7 @@ mod test {
             ],
         );
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].id(), &2);
+        assert_eq!(result[0].id, 2);
     }
 
     #[test]
@@ -793,7 +793,7 @@ mod test {
             ],
         );
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].id(), &1);
+        assert_eq!(result[0].id, 1);
     }
 
     #[test]
@@ -897,7 +897,7 @@ mod test {
         let mut result = vec![t1.clone(), t2.clone(), t3.clone()];
         result = filter.filter_transactions(result, &Vec::default());
         assert_eq!(result.len(), 2);
-        assert!(result.iter().find(|x| *x.id() == 1).is_some());
-        assert!(result.iter().find(|x| *x.id() == 3).is_some());
+        assert!(result.iter().find(|x| x.id == 1).is_some());
+        assert!(result.iter().find(|x| x.id == 3).is_some());
     }
 }

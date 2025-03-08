@@ -433,8 +433,8 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
 
         for transaction in &self.cached_transactions {
             // check for importer specific fields
-            if let Some(parser_content) = transaction.metadata().get(METADATA_RAW_CONTENT) {
-                if let Some(import_format) = transaction.metadata().get(METADATA_IMPORT_FORMAT) {
+            if let Some(parser_content) = transaction.metadata.get(METADATA_RAW_CONTENT) {
+                if let Some(import_format) = transaction.metadata.get(METADATA_IMPORT_FORMAT) {
                     if *parser_content == transaction_entry.raw_data
                         && *import_format == format_name
                     {
@@ -443,23 +443,19 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
                 }
             }
 
-            let source_acc = match accounts
-                .iter()
-                .find(|a| a.id() == transaction.id())
-                .cloned()
-            {
+            let source_acc = match accounts.iter().find(|a| *a.id() == transaction.id).cloned() {
                 Some(acc) => acc,
                 None => continue,
             };
 
-            let destination_acc = match accounts.iter().find(|a| a.id() == transaction.id()) {
+            let destination_acc = match accounts.iter().find(|a| *a.id() == transaction.id) {
                 Some(acc) => acc,
                 None => continue,
             };
 
             // check for general fields
-            if transaction.amount() == transaction_entry.value
-            && transaction.date().replace_offset(time::UtcOffset::UTC).date() == transaction_entry.date.replace_offset(time::UtcOffset::UTC).date()
+            if transaction.amount == transaction_entry.value
+            && transaction.date.replace_offset(time::UtcOffset::UTC).date() == transaction_entry.date.replace_offset(time::UtcOffset::UTC).date()
             // check if source iban is equal
             && if let Some(source_iban) = source_acc.iban() {
                 source_iban == transaction_entry.source_entry.iban()
@@ -499,7 +495,7 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
         if !possible_transactions.is_empty() {
             return Ok(Some(action::Action::TransactionExists(
                 action::ObjectExists::new(possible_transactions, transaction_entry.clone(), |t| {
-                    *t.id()
+                    t.id
                 }),
             )));
         }

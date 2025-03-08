@@ -142,17 +142,17 @@ impl View {
                     .await?
                     .context(format!("Could not find transaction {}", transaction_id))?;
                 let source = finance_controller
-                    .get_account(*transaction.source())
+                    .get_account(transaction.source)
                     .await?
-                    .context(format!("Could not find account {}", transaction.source()))?;
+                    .context(format!("Could not find account {}", transaction.source))?;
                 let destination = finance_controller
-                    .get_account(*transaction.destination())
+                    .get_account(transaction.destination)
                     .await?
                     .context(format!(
                         "Could not find account {}",
-                        transaction.destination()
+                        transaction.destination
                     ))?;
-                let budget = match transaction.budget() {
+                let budget = match transaction.budget {
                     Some(x) => finance_controller.get_budget(x.0).await?,
                     None => None,
                 };
@@ -185,7 +185,7 @@ impl View {
                 self.submitted = true;
                 return Action::Task(
                     self.submit_command(finance_controller)
-                        .map(|x| Message::TransactionCreated(*x.id()))
+                        .map(|x| Message::TransactionCreated(x.id))
                         .map(MessageContainer),
                 );
             }
@@ -267,13 +267,13 @@ impl View {
             }
             Message::InitializeFromExisting(init) => {
                 let init_existing = *init;
-                self.id = Some(*init_existing.transaction.id());
+                self.id = Some(init_existing.transaction.id);
                 self.amount_input =
-                    utils::currency_input::State::new(init_existing.transaction.amount());
+                    utils::currency_input::State::new(init_existing.transaction.amount);
                 self.title_input
-                    .clone_from(init_existing.transaction.title());
+                    .clone_from(&init_existing.transaction.title);
                 self.description_input = widget::text_editor::Content::with_text(
-                    init_existing.transaction.description().unwrap_or_default(),
+                    &init_existing.transaction.description.unwrap_or_default(),
                 );
                 self.source_input = Some(SelectedAccount::Account(init_existing.source));
                 self.source_state = widget::combo_box::State::new(
@@ -293,17 +293,16 @@ impl View {
                 );
                 self.budget_input = init_existing
                     .budget
-                    .map(|x| (x, init_existing.transaction.budget().unwrap().1));
+                    .map(|x| (x, init_existing.transaction.budget.unwrap().1));
                 self.budget_state = widget::combo_box::State::new(init_existing.budgets);
-                self.date_input =
-                    date_time_input::State::new(Some(*init_existing.transaction.date()));
+                self.date_input = date_time_input::State::new(Some(init_existing.transaction.date));
                 self.metadata
-                    .clone_from(init_existing.transaction.metadata());
+                    .clone_from(&init_existing.transaction.metadata);
                 self.available_categories = init_existing.available_categories;
                 self.available_categories.sort();
                 self.selected_categories = init_existing
                     .transaction
-                    .categories()
+                    .categories
                     .iter()
                     .map(|(k, v)| (*k, *v))
                     .collect::<Vec<_>>();

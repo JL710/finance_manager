@@ -496,15 +496,15 @@ impl FinanceManager for SqliteFinanceManager {
             .collect();
         let transaction: Transaction = result.try_into()?;
         Ok(Some(Transaction::new(
-            *transaction.id(),
-            transaction.amount(),
-            transaction.title().to_owned(),
-            transaction.description().map(|x| x.to_string()),
-            *transaction.source(),
-            *transaction.destination(),
-            transaction.budget().copied(),
-            *transaction.date(),
-            transaction.metadata().clone(),
+            transaction.id,
+            transaction.amount,
+            transaction.title,
+            transaction.description,
+            transaction.source,
+            transaction.destination,
+            transaction.budget,
+            transaction.date,
+            transaction.metadata,
             categories,
         )))
     }
@@ -562,20 +562,20 @@ impl FinanceManager for SqliteFinanceManager {
 
         for row in result {
             let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_transaction(&connection, *transaction.id())?
+            let categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (*x.0.id(), x.1))
                 .collect();
             transactions.push(Transaction::new(
-                *transaction.id(),
-                transaction.amount(),
-                transaction.title().to_owned(),
-                transaction.description().map(|x| x.to_string()),
-                *transaction.source(),
-                *transaction.destination(),
-                transaction.budget().copied(),
-                *transaction.date(),
-                transaction.metadata().clone(),
+                transaction.id,
+                transaction.amount,
+                transaction.title,
+                transaction.description,
+                transaction.source,
+                transaction.destination,
+                transaction.budget,
+                transaction.date,
+                transaction.metadata,
                 categories,
             ));
         }
@@ -845,20 +845,20 @@ impl FinanceManager for SqliteFinanceManager {
 
         for row in result {
             let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_transaction(&connection, *transaction.id())?
+            let categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (*x.0.id(), x.1))
                 .collect();
             transactions.push(Transaction::new(
-                *transaction.id(),
-                transaction.amount(),
-                transaction.title().to_owned(),
-                transaction.description().map(|x| x.to_string()),
-                *transaction.source(),
-                *transaction.destination(),
-                transaction.budget().copied(),
-                *transaction.date(),
-                transaction.metadata().clone(),
+                transaction.id,
+                transaction.amount,
+                transaction.title,
+                transaction.description,
+                transaction.source,
+                transaction.destination,
+                transaction.budget,
+                transaction.date,
+                transaction.metadata,
                 categories,
             ));
         }
@@ -955,20 +955,20 @@ impl FinanceManager for SqliteFinanceManager {
 
         for row in result {
             let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_transaction(&connection, *transaction.id())?
+            let categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (*x.0.id(), x.1))
                 .collect();
             transactions.push(Transaction::new(
-                *transaction.id(),
-                transaction.amount(),
-                transaction.title().to_owned(),
-                transaction.description().map(|x| x.to_string()),
-                *transaction.source(),
-                *transaction.destination(),
-                transaction.budget().copied(),
-                *transaction.date(),
-                transaction.metadata().clone(),
+                transaction.id,
+                transaction.amount,
+                transaction.title,
+                transaction.description,
+                transaction.source,
+                transaction.destination,
+                transaction.budget,
+                transaction.date,
+                transaction.metadata,
                 categories,
             ));
         }
@@ -1082,20 +1082,20 @@ impl FinanceManager for SqliteFinanceManager {
 
         for row in result {
             let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_transaction(&connection, *transaction.id())?
+            let categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (*x.0.id(), x.1))
                 .collect();
             transactions.push(Transaction::new(
-                *transaction.id(),
-                transaction.amount(),
-                transaction.title().to_owned(),
-                transaction.description().map(|x| x.to_string()),
-                *transaction.source(),
-                *transaction.destination(),
-                transaction.budget().copied(),
-                *transaction.date(),
-                transaction.metadata().clone(),
+                transaction.id,
+                transaction.amount,
+                transaction.title,
+                transaction.description,
+                transaction.source,
+                transaction.destination,
+                transaction.budget,
+                transaction.date,
+                transaction.metadata,
                 categories,
             ));
         }

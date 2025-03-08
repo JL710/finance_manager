@@ -72,11 +72,11 @@ impl View {
                             }
                             _ => std::cmp::Ordering::Equal,
                         },
-                        2 => a.0.title().cmp(b.0.title()),
-                        3 => a.0.amount().cmp(&b.0.amount()),
-                        4 => a.0.date().cmp(b.0.date()),
-                        5 => a.0.source().cmp(b.0.source()),
-                        6 => a.0.destination().cmp(b.0.destination()),
+                        2 => a.0.title.cmp(&b.0.title),
+                        3 => a.0.amount.cmp(&b.0.amount),
+                        4 => a.0.date.cmp(&b.0.date),
+                        5 => a.0.source.cmp(&b.0.source),
+                        6 => a.0.destination.cmp(&b.0.destination),
                         _ => panic!(),
                     },
                 )
@@ -130,11 +130,11 @@ impl View {
                                 }
                                 _ => std::cmp::Ordering::Equal,
                             },
-                            2 => a.0.title().cmp(b.0.title()),
-                            3 => a.0.amount().cmp(&b.0.amount()),
-                            4 => a.0.date().cmp(b.0.date()),
-                            5 => a.0.source().cmp(b.0.source()),
-                            6 => a.0.destination().cmp(b.0.destination()),
+                            2 => a.0.title.cmp(&b.0.title),
+                            3 => a.0.amount.cmp(&b.0.amount),
+                            4 => a.0.date.cmp(&b.0.date),
+                            5 => a.0.source.cmp(&b.0.source),
+                            6 => a.0.destination.cmp(&b.0.destination),
                             _ => panic!(),
                         },
                     )
@@ -236,7 +236,7 @@ impl View {
                 let mut transactions =
                     std::collections::HashMap::with_capacity(self.transactions.len());
                 for transaction in &self.transactions {
-                    transactions.insert(*transaction.0.id(), transaction.1);
+                    transactions.insert(transaction.0.id, transaction.1);
                 }
                 if let Some(id) = id_option {
                     return Action::Task(utils::failing_task(async move {
@@ -259,7 +259,7 @@ impl View {
                     self.add_transaction = None;
                     return Action::None;
                 }
-                let ignored_transactions = self.transactions.iter().map(|x| *x.0.id()).collect();
+                let ignored_transactions = self.transactions.iter().map(|x| x.0.id).collect();
                 let (view, task) = add_transaction::AddTransaction::fetch(
                     finance_controller,
                     ignored_transactions,
@@ -270,13 +270,13 @@ impl View {
             Message::ChangeTransactionSign(transaction_id, sign) => {
                 self.transactions // FIXME: should the transactions only be stored in the transaction table state?
                     .iter_mut()
-                    .find(|(x, _)| x.id() == &transaction_id)
+                    .find(|(x, _)| x.id == transaction_id)
                     .unwrap()
                     .1 = sign;
                 self.transaction_table.set_items(self.transactions.clone());
             }
             Message::RemoveTransaction(transaction_id) => {
-                self.transactions.retain(|x| *x.0.id() != transaction_id);
+                self.transactions.retain(|x| x.0.id != transaction_id);
                 self.transaction_table.set_items(self.transactions.clone());
             }
             Message::AddTransaction(m) => {
@@ -348,12 +348,11 @@ impl View {
                     utils::table_view::table_view(&self.transaction_table)
                         .headers(["", "", "Title", "Amount", "Date", "Source", "Destination"])
                         .view(|(transaction, sign), accounts| {
-                            let transaction_id = *transaction.id();
                             [
                                 widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
                                     .on_toggle(move |x| {
                                         Message::ChangeTransactionSign(
-                                            transaction_id,
+                                            transaction.id,
                                             if x {
                                                 fm_core::Sign::Positive
                                             } else {
@@ -363,22 +362,22 @@ impl View {
                                     })
                                     .into(),
                                 utils::button::delete(Some(Message::RemoveTransaction(
-                                    transaction_id,
+                                    transaction.id,
                                 ))),
-                                widget::text(transaction.title().clone()).into(),
+                                widget::text(transaction.title.clone()).into(),
                                 utils::colored_currency_display(
                                     &(if *sign == fm_core::Sign::Negative {
-                                        transaction.amount().negative()
+                                        transaction.amount.negative()
                                     } else {
-                                        transaction.amount()
+                                        transaction.amount.clone()
                                     }),
                                 ),
-                                widget::text(utils::date_time::to_date_string(*transaction.date()))
+                                widget::text(utils::date_time::to_date_string(transaction.date))
                                     .into(),
                                 widget::text(
                                     accounts
                                         .iter()
-                                        .find(|acc| acc.id() == transaction.source())
+                                        .find(|acc| *acc.id() == transaction.source)
                                         .unwrap()
                                         .name(),
                                 )
@@ -386,7 +385,7 @@ impl View {
                                 widget::text(
                                     accounts
                                         .iter()
-                                        .find(|acc| acc.id() == transaction.destination())
+                                        .find(|acc| *acc.id() == transaction.destination)
                                         .unwrap()
                                         .name(),
                                 )
@@ -467,11 +466,11 @@ mod add_transaction {
                 ignored_transactions,
                 table: utils::table_view::State::new(transactions, accounts)
                     .sort_by(|a, b, column| match column {
-                        1 => a.title().cmp(b.title()),
-                        2 => a.amount().cmp(&b.amount()),
-                        3 => a.date().cmp(b.date()),
-                        4 => a.source().cmp(b.source()),
-                        5 => a.destination().cmp(b.destination()),
+                        1 => a.title.cmp(&b.title),
+                        2 => a.amount.cmp(&b.amount),
+                        3 => a.date.cmp(&b.date),
+                        4 => a.source.cmp(&b.source),
+                        5 => a.destination.cmp(&b.destination),
                         _ => panic!(),
                     })
                     .sortable_columns([1, 2, 3, 4, 5]),
@@ -527,8 +526,8 @@ mod add_transaction {
                     Action::None
                 }
                 Message::AddTransaction(transaction) => {
-                    self.ignored_transactions.push(*transaction.id());
-                    self.transactions.retain(|x| x.id() != transaction.id());
+                    self.ignored_transactions.push(transaction.id);
+                    self.transactions.retain(|x| x.id != transaction.id);
                     self.table.set_items(self.transactions.clone());
                     Action::AddTransactions(vec![transaction])
                 }
@@ -536,7 +535,7 @@ mod add_transaction {
                     let mut transactions = Vec::new();
                     std::mem::swap(&mut self.transactions, &mut transactions);
                     self.ignored_transactions
-                        .extend(transactions.iter().map(|x| *x.id()));
+                        .extend(transactions.iter().map(|x| x.id));
                     self.table.set_items(Vec::with_capacity(0));
                     Action::AddTransactions(transactions)
                 }
@@ -544,7 +543,7 @@ mod add_transaction {
                     self.transactions = transactions;
                     self.transactions.retain(|x| {
                         for id in &self.ignored_transactions {
-                            if x.id() == id {
+                            if x.id == *id {
                                 return false;
                             }
                         }
@@ -598,13 +597,13 @@ mod add_transaction {
                         .view(|x, accounts| {
                             [
                                 utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
-                                widget::text(x.title().clone()).into(),
-                                widget::text(x.amount().to_num_string()).into(),
-                                widget::text(utils::date_time::to_date_string(*x.date())).into(),
+                                widget::text(x.title.clone()).into(),
+                                widget::text(x.amount.to_num_string()).into(),
+                                widget::text(utils::date_time::to_date_string(x.date)).into(),
                                 widget::text(
                                     accounts
                                         .iter()
-                                        .find(|acc| acc.id() == x.source())
+                                        .find(|acc| *acc.id() == x.source)
                                         .unwrap()
                                         .name(),
                                 )
@@ -612,7 +611,7 @@ mod add_transaction {
                                 widget::text(
                                     accounts
                                         .iter()
-                                        .find(|acc| acc.id() == x.destination())
+                                        .find(|acc| *acc.id() == x.destination)
                                         .unwrap()
                                         .name(),
                                 )

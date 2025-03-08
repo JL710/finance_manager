@@ -33,22 +33,22 @@ async fn do_action(
             Action::None => {}
             Action::TransactionCreated(transaction) => {
                 let source = finance_controller
-                    .get_account(*transaction.source())
+                    .get_account(transaction.source)
                     .await
                     .unwrap()
                     .unwrap();
                 let destination = finance_controller
-                    .get_account(*transaction.destination())
+                    .get_account(transaction.destination)
                     .await
                     .unwrap()
                     .unwrap();
                 println!(
                     "Title: {}\nDescription: {}\nValue: {}\nDate: {}\n\nSource: \n{}\n\nDestination: \n{}\n",
-                    transaction.title(),
-                    transaction.description().unwrap_or(""),
-                    transaction.amount(),
+                    transaction.title,
+                    transaction.description.unwrap_or_default(),
+                    transaction.amount,
                     transaction
-                        .date()
+                        .date
                         .to_offset(fm_core::get_local_timezone().unwrap())
                         .format(&time::format_description::parse("[day].[month].[year]")?)?,
                     format_account(&source),
@@ -61,19 +61,19 @@ async fn do_action(
                     &mut transaction_exists,
                     |transaction, fm| async move {
                         let source = fm
-                            .get_account(*transaction.source())
+                            .get_account(transaction.source)
                             .await?
                             .unwrap();
                         let destination = fm
-                            .get_account(*transaction.destination())
+                            .get_account(transaction.destination)
                             .await?
                             .unwrap();
                         Ok(format!(
                             "Title: {}\nDescription: {}\nValue: {}\nDate: {}\n\nSource: {}\n\nDestination: {}\n",
-                            transaction.title(),
-                            transaction.description().unwrap_or(""),
-                            transaction.amount(),
-                            transaction.date().to_offset(fm_core::get_local_timezone().unwrap()).format(&time::format_description::parse("[day].[month].[year]")?)?,
+                            transaction.title,
+                            transaction.description.unwrap_or_default(),
+                            transaction.amount,
+                            transaction.date.to_offset(fm_core::get_local_timezone().unwrap()).format(&time::format_description::parse("[day].[month].[year]")?)?,
                             format_account(&source),
                             format_account(&destination)
                         ))

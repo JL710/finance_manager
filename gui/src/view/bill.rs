@@ -111,16 +111,17 @@ impl View {
                             }
                             _ => std::cmp::Ordering::Equal,
                         },
-                        1 => a.0.title().cmp(b.0.title()),
+                        1 => a.0.title.cmp(&b.0.title),
                         2 => {
-                            a.0.description()
-                                .unwrap_or("")
-                                .cmp(b.0.description().unwrap_or(""))
+                            a.0.description
+                                .clone()
+                                .unwrap_or_default()
+                                .cmp(&b.0.description.clone().unwrap_or_default())
                         }
-                        3 => a.0.amount().cmp(&b.0.amount()),
-                        4 => a.0.date().cmp(b.0.date()),
-                        5 => a.0.source().cmp(b.0.source()),
-                        6 => a.0.destination().cmp(b.0.destination()),
+                        3 => a.0.amount.cmp(&b.0.amount),
+                        4 => a.0.date.cmp(&b.0.date),
+                        5 => a.0.source.cmp(&b.0.source),
+                        6 => a.0.destination.cmp(&b.0.destination),
                         _ => std::cmp::Ordering::Equal,
                     })
                     .sortable_columns([0, 1, 2, 3, 4, 5, 6]),
@@ -227,22 +228,17 @@ impl View {
                         ])
                         .view(|(transaction, sign), accounts| [
                             widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
-                            utils::link(widget::text(transaction.title().clone()))
-                                .on_press(Message::ViewTransaction(*transaction.id()))
+                            utils::link(widget::text(transaction.title.clone()))
+                                .on_press(Message::ViewTransaction(transaction.id))
                                 .into(),
-                            widget::text(
-                                transaction
-                                    .description()
-                                    .map_or(String::new(), |x| x.to_string())
-                            )
-                            .into(),
-                            widget::text!("{}€", transaction.amount().to_num_string()).into(),
-                            widget::text(utils::date_time::to_date_string(*transaction.date()))
+                            widget::text(transaction.description.clone().unwrap_or(String::new()))
                                 .into(),
+                            widget::text!("{}€", transaction.amount.to_num_string()).into(),
+                            widget::text(utils::date_time::to_date_string(transaction.date)).into(),
                             widget::text(
                                 accounts
                                     .iter()
-                                    .find(|acc| acc.id() == transaction.source())
+                                    .find(|acc| *acc.id() == transaction.source)
                                     .unwrap()
                                     .name(),
                             )
@@ -250,7 +246,7 @@ impl View {
                             widget::text(
                                 accounts
                                     .iter()
-                                    .find(|acc| acc.id() == transaction.destination())
+                                    .find(|acc| *acc.id() == transaction.destination)
                                     .unwrap()
                                     .name(),
                             )

@@ -88,11 +88,11 @@ pub async fn delete_category_test<T: FinanceManager>(mut fm: T) {
 
     // check if category is removed from transactions
     assert!(
-        fm.get_transaction(*transaction.id())
+        fm.get_transaction(transaction.id)
             .await
             .unwrap()
             .unwrap()
-            .categories()
+            .categories
             .is_empty()
     );
 }
@@ -138,11 +138,11 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
     assert!(fm.get_budget(*budget1.id()).await.unwrap().is_none());
 
     assert!(
-        fm.get_transaction(*transaction1.id())
+        fm.get_transaction(transaction1.id)
             .await
             .unwrap()
             .unwrap()
-            .budget()
+            .budget
             .is_none()
     );
 }
@@ -221,8 +221,8 @@ pub async fn get_transactions_timespan_test<T: FinanceManager>(mut fm: T) {
         .unwrap();
 
     assert_eq!(result.len(), 2);
-    assert!(result.iter().any(|x| x.id() == t1.id()));
-    assert!(result.iter().any(|x| x.id() == t3.id()));
+    assert!(result.iter().any(|x| x.id == t1.id));
+    assert!(result.iter().any(|x| x.id == t3.id));
 }
 
 #[macro_export]
