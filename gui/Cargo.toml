@@ -16,7 +16,7 @@ members = ["utils"]
 utils.workspace = true
 anyhow.workspace = true
 uuid = { version = "1.8.0", features = ["v4"] }
-fm_server = { path = "../fm_server", features = [
+fm_server = { path = "../server", features = [
     "client",
 ], default-features = false }
 async-std.workspace = true
@@ -34,7 +34,7 @@ serde = { version = "1.0.217", features = ["derive"] }
 [workspace.dependencies]
 iced = { version = "0.1.0", path = "../iced-dynamic", package = "iced-dynamic" } #iced = { git = "https://github.com/iced-rs/iced.git", version = "0.13.0-dev", features = ["advanced"]}
 anyhow = "1.0.82"
-fm_core = { path = "../fm_core", default-features = false, features = ["ram"] }
+fm_core = { path = "../core", default-features = false, features = ["ram"] }
 async-std = "1.12.0"
 utils = { path = "./utils" }
 time = { version = "0.3.36", features = [

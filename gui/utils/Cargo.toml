@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-fm_core = { path = "../../fm_core", default-features = false }
+fm_core = { path = "../../core", default-features = false }
 iced.workspace = true
 time.workspace = true
 anyhow.workspace = true
