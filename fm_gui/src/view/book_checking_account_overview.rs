@@ -1,6 +1,4 @@
-use async_std::sync::Mutex;
 use iced::widget;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -37,13 +35,12 @@ impl View {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-                let accounts = locked_manager
+                let accounts = finance_controller
                     .get_accounts()
                     .await?
                     .iter()
@@ -54,7 +51,7 @@ impl View {
                     .collect::<Vec<fm_core::account::BookCheckingAccount>>();
                 let mut accounts_with_sums = Vec::new();
                 for account in accounts {
-                    let sum = locked_manager
+                    let sum = finance_controller
                         .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
                         .await?;
                     accounts_with_sums.push((account, sum));
@@ -68,7 +65,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        _finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::ViewAccount(id) => Action::ViewAccount(id),
@@ -78,7 +75,7 @@ impl View {
             }
             Message::New => Action::CreateNewAccount,
             Message::AccountTable(inner) => match self.accounts_table.perform(inner) {
-                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_manager),
+                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_controller),
                 utils::table_view::Action::Task(task) => {
                     Action::Task(task.map(Message::AccountTable))
                 }

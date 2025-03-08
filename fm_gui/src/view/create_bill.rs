@@ -1,6 +1,4 @@
 use anyhow::Context;
-use async_std::sync::Mutex;
-use std::sync::Arc;
 
 use iced::widget;
 use utils::date_time::date_time_input;
@@ -89,15 +87,13 @@ impl View {
     }
 
     pub fn new_with_transaction(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         transaction: fm_core::Transaction,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-
-                let accounts = locked_manager.get_accounts().await?;
+                let accounts = finance_controller.get_accounts().await?;
 
                 Ok(Message::Initialize(
                     None,
@@ -110,7 +106,7 @@ impl View {
 
     pub fn fetch(
         id: Option<fm_core::Id>,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self {
@@ -147,11 +143,9 @@ impl View {
                 submitted: false,
             },
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-
                 let bill = if let Some(id) = id {
                     Some(
-                        locked_manager
+                        finance_controller
                             .get_bill(&id)
                             .await?
                             .context("Could not find bill")?,
@@ -165,7 +159,7 @@ impl View {
                 if let Some(existing_bill) = &bill {
                     for (transaction_id, sign) in existing_bill.transactions() {
                         transactions.push((
-                            locked_manager
+                            finance_controller
                                 .get_transaction(*transaction_id)
                                 .await?
                                 .context("Could not find transaction")?,
@@ -174,7 +168,7 @@ impl View {
                     }
                 }
 
-                let accounts = locked_manager.get_accounts().await?;
+                let accounts = finance_controller.get_accounts().await?;
 
                 Ok(Message::Initialize(bill, transactions, accounts))
             }),
@@ -184,7 +178,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::Cancel => {
@@ -246,18 +240,15 @@ impl View {
                 }
                 if let Some(id) = id_option {
                     return Action::Task(utils::failing_task(async move {
-                        finance_manager
-                            .lock()
-                            .await
-                            .update_bill(id, name, description, value, transactions, due_date)?
+                        finance_controller
+                            .update_bill(id, name, description, value, transactions, due_date)
                             .await?;
                         Ok(Message::BillCreated(id))
                     }));
                 } else {
                     return Action::Task(utils::failing_task(async move {
-                        let mut locked_manager = finance_manager.lock().await;
-                        let bill = locked_manager
-                            .create_bill(name, description, value, transactions, due_date)?
+                        let bill = finance_controller
+                            .create_bill(name, description, value, transactions, due_date)
                             .await?;
                         Ok(Message::BillCreated(*bill.id()))
                     }));
@@ -269,8 +260,10 @@ impl View {
                     return Action::None;
                 }
                 let ignored_transactions = self.transactions.iter().map(|x| *x.0.id()).collect();
-                let (view, task) =
-                    add_transaction::AddTransaction::fetch(finance_manager, ignored_transactions);
+                let (view, task) = add_transaction::AddTransaction::fetch(
+                    finance_controller,
+                    ignored_transactions,
+                );
                 self.add_transaction = Some(view);
                 return Action::Task(task.map(Message::AddTransaction));
             }
@@ -288,7 +281,7 @@ impl View {
             }
             Message::AddTransaction(m) => {
                 if let Some(add_transaction) = &mut self.add_transaction {
-                    match add_transaction.update(m, finance_manager) {
+                    match add_transaction.update(m, finance_controller) {
                         add_transaction::Action::Escape => {
                             self.add_transaction = None;
                         }
@@ -308,7 +301,7 @@ impl View {
             }
             Message::TransactionTable(inner) => match self.transaction_table.perform(inner) {
                 utils::table_view::Action::OuterMessage(m) => {
-                    return self.update(m, finance_manager);
+                    return self.update(m, finance_controller);
                 }
                 utils::table_view::Action::Task(task) => {
                     return Action::Task(task.map(Message::TransactionTable));
@@ -423,9 +416,6 @@ impl View {
 }
 
 mod add_transaction {
-    use async_std::sync::Mutex;
-    use std::sync::Arc;
-
     use iced::widget;
 
     pub enum Action {
@@ -489,17 +479,16 @@ mod add_transaction {
         }
 
         pub fn fetch(
-            finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+            finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
             ignored_transactions: Vec<fm_core::Id>,
         ) -> (Self, iced::Task<Message>) {
             (
                 Self::new(None, Vec::new(), Vec::new(), Vec::new()),
                 utils::failing_task(async move {
-                    let locked_manager = finance_manager.lock().await;
-                    let accounts = locked_manager.get_accounts().await?;
-                    let categories = locked_manager.get_categories().await?;
-                    let bills = locked_manager.get_bills().await?;
-                    let budgets = locked_manager.get_budgets().await?;
+                    let accounts = finance_controller.get_accounts().await?;
+                    let categories = finance_controller.get_categories().await?;
+                    let bills = finance_controller.get_bills().await?;
+                    let budgets = finance_controller.get_budgets().await?;
                     Ok(Message::Init(Init {
                         transactions: Vec::new(),
                         accounts,
@@ -515,7 +504,7 @@ mod add_transaction {
         pub fn update(
             &mut self,
             message: Message,
-            finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+            finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         ) -> Action {
             match message {
                 Message::Back => Action::Escape,
@@ -525,9 +514,8 @@ mod add_transaction {
                             utils::filter_component::Action::Submit(submitted_filter) => {
                                 self.filter = None;
                                 return Action::Task(utils::failing_task(async move {
-                                    let locked_manager = finance_manager.lock().await;
                                     Ok(Message::FetchedTransactions(
-                                        locked_manager
+                                        finance_controller
                                             .get_filtered_transactions(submitted_filter.clone())
                                             .await?,
                                     ))
@@ -566,7 +554,9 @@ mod add_transaction {
                     Action::None
                 }
                 Message::Table(inner) => match self.table.perform(inner) {
-                    utils::table_view::Action::OuterMessage(m) => self.update(m, finance_manager),
+                    utils::table_view::Action::OuterMessage(m) => {
+                        self.update(m, finance_controller)
+                    }
                     utils::table_view::Action::Task(task) => Action::Task(task.map(Message::Table)),
                     _ => Action::None,
                 },

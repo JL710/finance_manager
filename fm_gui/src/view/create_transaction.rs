@@ -1,11 +1,7 @@
+use anyhow::Context;
 use fm_core;
-
 use iced::widget;
 use utils::date_time::date_time_input;
-
-use anyhow::Context;
-use async_std::sync::Mutex;
-use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq)]
 enum SelectedAccount {
@@ -102,7 +98,7 @@ pub struct View {
 
 impl View {
     pub fn new(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self {
@@ -123,9 +119,9 @@ impl View {
                 submitted: false,
             },
             utils::failing_task(async move {
-                let budgets = finance_manager.lock().await.get_budgets().await?;
-                let accounts = finance_manager.lock().await.get_accounts().await?;
-                let categories = finance_manager.lock().await.get_categories().await?;
+                let budgets = finance_controller.get_budgets().await?;
+                let accounts = finance_controller.get_accounts().await?;
+                let categories = finance_controller.get_categories().await?;
                 Ok(Message::Initialize(Box::new((
                     budgets, accounts, categories,
                 ))))
@@ -135,23 +131,21 @@ impl View {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         transaction_id: fm_core::Id,
     ) -> (Self, iced::Task<MessageContainer>) {
         (
-            Self::new(finance_manager.clone()).0,
+            Self::new(finance_controller.clone()).0,
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-
-                let transaction = locked_manager
+                let transaction = finance_controller
                     .get_transaction(transaction_id)
                     .await?
                     .context(format!("Could not find transaction {}", transaction_id))?;
-                let source = locked_manager
+                let source = finance_controller
                     .get_account(*transaction.source())
                     .await?
                     .context(format!("Could not find account {}", transaction.source()))?;
-                let destination = locked_manager
+                let destination = finance_controller
                     .get_account(*transaction.destination())
                     .await?
                     .context(format!(
@@ -159,12 +153,12 @@ impl View {
                         transaction.destination()
                     ))?;
                 let budget = match transaction.budget() {
-                    Some(x) => locked_manager.get_budget(x.0).await?,
+                    Some(x) => finance_controller.get_budget(x.0).await?,
                     None => None,
                 };
-                let budgets = locked_manager.get_budgets().await?;
-                let accounts = locked_manager.get_accounts().await?;
-                let available_categories = locked_manager.get_categories().await?;
+                let budgets = finance_controller.get_budgets().await?;
+                let accounts = finance_controller.get_accounts().await?;
+                let available_categories = finance_controller.get_categories().await?;
 
                 Ok(Message::InitializeFromExisting(Box::new(InitExisting {
                     transaction,
@@ -183,14 +177,14 @@ impl View {
     pub fn update(
         &mut self,
         message: MessageContainer,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message.0 {
             Message::TransactionCreated(id) => return Action::TransactionCreated(id),
             Message::Submit => {
                 self.submitted = true;
                 return Action::Task(
-                    self.submit_command(finance_manager)
+                    self.submit_command(finance_controller)
                         .map(|x| Message::TransactionCreated(*x.id()))
                         .map(MessageContainer),
                 );
@@ -495,7 +489,7 @@ impl View {
 
     fn submit_command(
         &self,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> iced::Task<fm_core::Transaction> {
         let option_id = self.id;
         let amount = self.amount_input.currency().unwrap();
@@ -521,9 +515,7 @@ impl View {
         utils::failing_task(async move {
             let source_id = match source {
                 SelectedAccount::Account(acc) => *acc.id(),
-                SelectedAccount::New(name) => finance_manager
-                    .lock()
-                    .await
+                SelectedAccount::New(name) => finance_controller
                     .create_book_checking_account(name, None, None, None)
                     .await?
                     .id(),
@@ -531,9 +523,7 @@ impl View {
 
             let destination_id = match destination {
                 SelectedAccount::Account(acc) => *acc.id(),
-                SelectedAccount::New(name) => finance_manager
-                    .lock()
-                    .await
+                SelectedAccount::New(name) => finance_controller
                     .create_book_checking_account(name, None, None, None)
                     .await?
                     .id(),
@@ -541,9 +531,7 @@ impl View {
 
             Ok(match option_id {
                 Some(id) => {
-                    finance_manager
-                        .lock()
-                        .await
+                    finance_controller
                         .update_transaction(
                             id,
                             amount,
@@ -556,13 +544,10 @@ impl View {
                             metadata,
                             categories,
                         )
-                        .context(format!("Could not update transaction {}", id))?
                         .await?
                 }
                 _ => {
-                    finance_manager
-                        .lock()
-                        .await
+                    finance_controller
                         .create_transaction(
                             amount,
                             title,

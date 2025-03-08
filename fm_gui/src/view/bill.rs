@@ -1,7 +1,4 @@
 use anyhow::Context;
-use async_std::sync::Mutex;
-use std::sync::Arc;
-
 use iced::widget;
 
 pub enum Action {
@@ -50,28 +47,27 @@ pub enum View {
 impl View {
     pub fn fetch(
         id: fm_core::Id,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-                let bill = locked_manager
+                let bill = finance_controller
                     .get_bill(&id)
                     .await?
                     .context(format!("Could not find bill {}", id))?;
 
-                let bill_sum = locked_manager.get_bill_sum(&bill).await?;
+                let bill_sum = finance_controller.get_bill_sum(&bill).await?;
 
                 let mut transactions = Vec::new();
                 for (transaction_id, sign) in bill.transactions() {
-                    let transaction = locked_manager
+                    let transaction = finance_controller
                         .get_transaction(*transaction_id)
                         .await?
                         .context(format!("Could not find transaction {}", transaction_id))?;
                     transactions.push((transaction, *sign));
                 }
-                let accounts = locked_manager.get_accounts().await?;
+                let accounts = finance_controller.get_accounts().await?;
                 Ok(Message::Initialize(Box::new(Init {
                     bill,
                     bill_sum,
@@ -86,7 +82,7 @@ impl View {
     pub fn update(
         &mut self,
         message: MessageContainer,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message.0 {
             Message::ViewTransaction(transaction_id) => Action::ViewTransaction(transaction_id),
@@ -146,9 +142,9 @@ impl View {
                         })
                         .then(move |result| {
                             if let rfd::MessageDialogResult::Yes = result {
-                                let manager = finance_manager.clone();
+                                let manager = finance_controller.clone();
                                 utils::failing_task(async move {
-                                    manager.lock().await.delete_bill(bill_id).await?;
+                                    manager.delete_bill(bill_id).await?;
                                     Ok(Message::Deleted)
                                 })
                                 .map(MessageContainer)
@@ -170,7 +166,7 @@ impl View {
                     match transaction_table.perform(inner) {
                         utils::table_view::Action::None => {}
                         utils::table_view::Action::OuterMessage(m) => {
-                            return self.update(MessageContainer(m), finance_manager);
+                            return self.update(MessageContainer(m), finance_controller);
                         }
                         utils::table_view::Action::Task(task) => {
                             return Action::Task(

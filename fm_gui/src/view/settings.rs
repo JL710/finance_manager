@@ -1,9 +1,5 @@
 use crate::finance_managers::FinanceManagers;
-
 use iced::widget;
-
-use async_std::sync::Mutex;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -48,7 +44,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<FinanceManagers>>>,
+        _finance_controller: fm_core::FMController<FinanceManagers>,
     ) -> Action {
         match message {
             Message::ChangeAPIUrl(url) => {

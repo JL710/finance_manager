@@ -1,7 +1,5 @@
 use anyhow::Context;
-use async_std::sync::Mutex;
 use fm_core::transaction_filter::TransactionFilter;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -44,7 +42,7 @@ pub struct View {
 
 impl View {
     pub fn new(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self {
@@ -63,11 +61,10 @@ impl View {
                 filter: TransactionFilter::default(),
             },
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-                let accounts = locked_manager.get_accounts().await?;
-                let categories = locked_manager.get_categories().await?;
-                let bills = locked_manager.get_bills().await?;
-                let budgets = locked_manager.get_budgets().await?;
+                let accounts = finance_controller.get_accounts().await?;
+                let categories = finance_controller.get_categories().await?;
+                let bills = finance_controller.get_bills().await?;
+                let budgets = finance_controller.get_budgets().await?;
                 Ok(Message::Initialize {
                     accounts,
                     categories,
@@ -81,7 +78,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::Initialize {
@@ -124,7 +121,7 @@ impl View {
                 self.transaction_table.change_transactions(transactions);
             }
             Message::TransactionTable(msg) => {
-                match self.transaction_table.update(msg, finance_manager) {
+                match self.transaction_table.update(msg, finance_controller) {
                     utils::transaction_table::Action::None => return Action::None,
                     utils::transaction_table::Action::ViewTransaction(id) => {
                         return Action::ViewTransaction(id);
@@ -144,11 +141,10 @@ impl View {
                             self.filter = new_filter.clone();
                             self.change_filter = None;
                             return Action::Task(utils::failing_task(async move {
-                                let locked_manager = finance_manager.lock().await;
-                                let transactions = locked_manager
+                                let transactions = finance_controller
                                     .get_filtered_transactions(new_filter.clone())
                                     .await?;
-                                let accounts = locked_manager.get_accounts().await?;
+                                let accounts = finance_controller.get_accounts().await?;
 
                                 let mut tuples = Vec::new();
                                 for transaction in transactions {

@@ -1,8 +1,6 @@
 use super::{colored_currency_display, link};
-use async_std::sync::Mutex;
 use iced::widget;
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
 
 pub enum Action {
     ViewTransaction(fm_core::Id),
@@ -140,7 +138,7 @@ impl TransactionTable {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::ViewTransaction(id) => Action::ViewTransaction(id),
@@ -173,9 +171,7 @@ impl TransactionTable {
                 categories.remove(&category_id);
 
                 Action::Task(iced::Task::future(async move {
-                    let new_transaction = finance_manager
-                        .lock()
-                        .await
+                    let new_transaction = finance_controller
                         .update_transaction_categories(transaction_id, categories)
                         .await
                         .unwrap();
@@ -199,9 +195,7 @@ impl TransactionTable {
                 categories.insert(category_id, sign);
 
                 Action::Task(iced::Task::future(async move {
-                    let new_transaction = finance_manager
-                        .lock()
-                        .await
+                    let new_transaction = finance_controller
                         .update_transaction_categories(transaction_id, categories)
                         .await
                         .unwrap();
@@ -224,7 +218,7 @@ impl TransactionTable {
             Message::TransactionTable(inner) => {
                 match self.transaction_table.perform(inner) {
                     crate::table_view::Action::OuterMessage(m) => {
-                        return self.update(m, finance_manager);
+                        return self.update(m, finance_controller);
                     }
                     crate::table_view::Action::None => {}
                     crate::table_view::Action::Task(task) => {

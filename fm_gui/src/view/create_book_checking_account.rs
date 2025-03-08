@@ -3,8 +3,6 @@ use fm_core;
 use iced::widget;
 
 use anyhow::Context;
-use async_std::sync::Mutex;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -38,15 +36,13 @@ pub struct View {
 
 impl View {
     pub fn fetch(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         account_id: fm_core::Id,
     ) -> (Self, iced::Task<Message>) {
         (
             View::default(),
             utils::failing_task(async move {
-                let account = finance_manager
-                    .lock()
-                    .await
+                let account = finance_controller
                     .get_account(account_id)
                     .await?
                     .context(format!("Could not find account {}", account_id))?;
@@ -62,7 +58,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::AccountCreated(id) => return Action::AccountCreated(id),
@@ -105,15 +101,11 @@ impl View {
                 let id = self.id;
                 return Action::Task(utils::failing_task(async move {
                     let account = if let Some(some_id) = id {
-                        finance_manager
-                            .lock()
-                            .await
+                        finance_controller
                             .update_book_checking_account(some_id, name, note, iban, bic)
                             .await?
                     } else {
-                        finance_manager
-                            .lock()
-                            .await
+                        finance_controller
                             .create_book_checking_account(name, note, iban, bic)
                             .await?
                     };

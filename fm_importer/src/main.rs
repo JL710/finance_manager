@@ -1,8 +1,5 @@
 use clap::Parser;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Layer};
-
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
@@ -44,10 +41,9 @@ async fn main() {
             .init();
     }
 
-    let finance_manager = Arc::new(Mutex::new(
+    let finance_controller =
         fm_core::FMController::<fm_server::client::Client>::new((args.url, args.api_token))
-            .unwrap(),
-    ));
+            .unwrap();
     match args.format.as_str() {
         "CSV_CAMT_V2" => {
             let data = std::fs::read(&args.source).unwrap();
@@ -55,10 +51,10 @@ async fn main() {
             let data = std::io::BufReader::new(as_utf8.as_bytes());
             let parser = fm_importer::csv_parser::csv_camt_v2_parser(data).unwrap();
             fm_importer::terminal_importer::run_in_terminal(
-                fm_importer::Importer::new(parser, finance_manager.clone())
+                fm_importer::Importer::new(parser, finance_controller.clone())
                     .await
                     .unwrap(),
-                finance_manager,
+                finance_controller,
             )
             .await
             .unwrap();

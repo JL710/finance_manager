@@ -1,6 +1,4 @@
-use async_std::sync::Mutex;
 use iced::widget;
-use std::sync::Arc;
 
 pub enum Action {
     ViewBill(fm_core::Id),
@@ -41,15 +39,15 @@ impl View {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
             utils::failing_task(async move {
-                let bills = finance_manager.lock().await.get_bills().await?;
+                let bills = finance_controller.get_bills().await?;
                 let mut bill_tuples = Vec::new();
                 for bill in bills {
-                    let sum = finance_manager.lock().await.get_bill_sum(&bill).await?;
+                    let sum = finance_controller.get_bill_sum(&bill).await?;
                     bill_tuples.push((bill, sum));
                 }
                 Ok(Message::Initialize(bill_tuples))
@@ -60,7 +58,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        _finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::Initialize(bills) => {
@@ -70,7 +68,7 @@ impl View {
             Message::ViewBill(bill_id) => Action::ViewBill(bill_id),
             Message::NewBill => Action::NewBill,
             Message::BillTable(inner) => match self.bill_table.perform(inner) {
-                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_manager),
+                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_controller),
                 utils::table_view::Action::Task(task) => Action::Task(task.map(Message::BillTable)),
                 _ => Action::None,
             },

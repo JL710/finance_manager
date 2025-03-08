@@ -1,5 +1,5 @@
-use axum::{response::Json, routing::get, routing::post, Router};
-use serde_json::{json, Value};
+use axum::{Router, response::Json, routing::get, routing::post};
+use serde_json::{Value, json};
 
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -13,7 +13,7 @@ use fm_core::FinanceManager;
 
 #[derive(Clone)]
 struct State {
-    finance_manager: Arc<
+    finance_controller: Arc<
         Mutex<
             fm_core::FMController<fm_core::managers::sqlite_finange_manager::SqliteFinanceManager>,
         >,
@@ -132,7 +132,7 @@ pub async fn run_with_listener(
     token: String,
 ) {
     let state = State {
-        finance_manager: Arc::new(Mutex::new(if let Some(db_path) = db {
+        finance_controller: Arc::new(Mutex::new(if let Some(db_path) = db {
             fm_core::FMController::new(db_path).unwrap()
         } else {
             fm_core::FMController::with_finance_manager(
@@ -219,7 +219,7 @@ async fn status() -> String {
 
 async fn get_budgets(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
     let budgets = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_budgets()
@@ -233,7 +233,7 @@ async fn get_transactions_of_budget(
     axum::extract::Json(data): axum::extract::Json<(fm_core::Id, fm_core::Timespan)>,
 ) -> Json<Value> {
     let transactions = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_transactions_of_budget(data.0, data.1)
@@ -244,7 +244,7 @@ async fn get_transactions_of_budget(
 
 async fn get_accounts(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
     let accounts = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_accounts()
@@ -265,7 +265,7 @@ async fn create_asset_account(
     )>,
 ) -> Json<Value> {
     let account = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .create_asset_account(
@@ -288,10 +288,12 @@ async fn get_account_sum(
     )>,
 ) -> Json<Value> {
     let sum = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .raw_fm()
+        .lock()
+        .await
         .get_account_sum(&account_data.0, account_data.1)
         .await
         .unwrap();
@@ -303,7 +305,7 @@ async fn get_account(
     axum::extract::Json(id): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     let account = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_account(id)
@@ -317,7 +319,7 @@ async fn get_transactions_of_account(
     axum::extract::Json(data): axum::extract::Json<(fm_core::Id, fm_core::Timespan)>,
 ) -> Json<Value> {
     let transactions = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_transactions_of_account(data.0, data.1)
@@ -336,7 +338,7 @@ async fn create_budget(
     )>,
 ) -> Json<Value> {
     let budget = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .create_budget(data.0, data.1, data.2, data.3)
@@ -350,7 +352,7 @@ async fn delete_budget(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .delete_budget(data)
@@ -375,7 +377,7 @@ async fn create_transaction(
     )>,
 ) -> Json<Value> {
     let transaction = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .create_transaction(
@@ -397,7 +399,7 @@ async fn create_book_checking_account(
     )>,
 ) -> Json<Value> {
     let account = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .create_book_checking_account(data.0, data.1, data.2, data.3)
@@ -411,7 +413,7 @@ async fn get_transaction(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     let transaction = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_transaction(data)
@@ -433,7 +435,7 @@ async fn update_asset_account(
     )>,
 ) -> Json<Value> {
     let account = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .update_asset_account(data.0, data.1, data.2, data.3, data.4, data.5)
@@ -447,7 +449,7 @@ async fn get_budget(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     let budget = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_budget(data)
@@ -473,13 +475,12 @@ async fn update_transaction(
     )>,
 ) -> Json<Value> {
     let transaction = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .update_transaction(
             data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7, data.8, data.9,
         )
-        .unwrap()
         .await
         .unwrap();
     json!(transaction).into()
@@ -490,7 +491,7 @@ async fn delete_transaction(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .delete_transaction(data)
@@ -510,7 +511,7 @@ async fn update_budget(
     )>,
 ) -> Json<Value> {
     let budget = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .update_budget(data.0, data.1, data.2, data.3, data.4)
@@ -524,7 +525,7 @@ async fn get_transactions_in_timespan(
     axum::extract::Json(data): axum::extract::Json<fm_core::Timespan>,
 ) -> Json<Value> {
     let transactions = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_transactions_in_timespan(data)
@@ -538,7 +539,7 @@ async fn get_transactions(
     axum::extract::Json(data): axum::extract::Json<Vec<fm_core::Id>>,
 ) -> Json<Value> {
     let transactions = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_transactions(data)
@@ -549,7 +550,7 @@ async fn get_transactions(
 
 async fn get_categories(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
     let categories = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_categories()
@@ -563,7 +564,7 @@ async fn get_category(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     let category = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_category(data)
@@ -577,7 +578,7 @@ async fn create_category(
     axum::extract::Json(data): axum::extract::Json<String>,
 ) -> Json<Value> {
     let category = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .create_category(data)
@@ -591,7 +592,7 @@ async fn update_category(
     axum::extract::Json(data): axum::extract::Json<(fm_core::Id, String)>,
 ) -> Json<Value> {
     let category = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .update_category(data.0, data.1)
@@ -605,7 +606,7 @@ async fn delete_category(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .delete_category(data)
@@ -619,7 +620,7 @@ async fn get_transactions_of_category(
     axum::extract::Json(data): axum::extract::Json<(fm_core::Id, fm_core::Timespan)>,
 ) -> Json<Value> {
     let transactions = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_transactions_of_category(data.0, data.1)
@@ -640,7 +641,7 @@ async fn update_book_checking_account(
     )>,
 ) -> Json<Value> {
     let account = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .update_book_checking_account(data.0, data.1, data.2, data.3, data.4)
@@ -654,7 +655,7 @@ async fn get_filtered_transactions(
     axum::extract::Json(data): axum::extract::Json<fm_core::transaction_filter::TransactionFilter>,
 ) -> Json<Value> {
     let transactions = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_filtered_transactions(data)
@@ -675,11 +676,10 @@ async fn create_bill(
     )>,
 ) -> Json<Value> {
     let bill = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .create_bill(data.0, data.1, data.2, data.3, data.4)
-        .unwrap()
         .await
         .unwrap();
     json!(bill).into()
@@ -690,7 +690,7 @@ async fn delete_bill(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .delete_bill(data)
@@ -712,11 +712,10 @@ async fn update_bill(
     )>,
 ) -> Json<Value> {
     state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .update_bill(data.0, data.1, data.2, data.3, data.4, data.5)
-        .unwrap()
         .await
         .unwrap();
     json!(()).into()
@@ -724,7 +723,7 @@ async fn update_bill(
 
 async fn get_bills(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
     let bills = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_bills()
@@ -738,7 +737,7 @@ async fn get_bill(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     let bill = state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .get_bill(&data)
@@ -752,7 +751,7 @@ async fn delete_account(
     axum::extract::Json(data): axum::extract::Json<fm_core::Id>,
 ) -> Json<Value> {
     state
-        .finance_manager
+        .finance_controller
         .lock()
         .await
         .delete_account(data, false)

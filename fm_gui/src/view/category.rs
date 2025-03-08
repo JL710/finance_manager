@@ -1,7 +1,5 @@
 use anyhow::Context;
-use async_std::sync::Mutex;
 use iced::widget;
-use std::sync::Arc;
 use utils::date_time::date_span_input;
 
 pub enum Action {
@@ -45,17 +43,16 @@ pub enum View {
 
 impl View {
     pub fn fetch(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         category_id: fm_core::Id,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::NotLoaded,
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-                let transactions = locked_manager
+                let transactions = finance_controller
                     .get_transactions_of_category(category_id, (None, None))
                     .await?;
-                let accounts = locked_manager
+                let accounts = finance_controller
                     .get_accounts_hash_map()
                     .await
                     .context("Error while fetching accounts")?;
@@ -71,16 +68,16 @@ impl View {
                         .clone();
                     transaction_tuples.push((transaction, from_account, to_account));
                 }
-                let values = locked_manager
+                let values = finance_controller
                     .get_relative_category_values(category_id, (None, None))
                     .await?;
-                let category = locked_manager
+                let category = finance_controller
                     .get_category(category_id)
                     .await?
                     .context(format!("Category {} not found", category_id))?;
 
-                let categories = locked_manager.get_categories().await?;
-                let budgets = locked_manager.get_budgets().await?;
+                let categories = finance_controller.get_categories().await?;
+                let budgets = finance_controller.get_budgets().await?;
                 Ok(Message::Set(
                     category,
                     values,
@@ -95,7 +92,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::Delete => {
@@ -114,11 +111,7 @@ impl View {
 
                     let category_id = *category.id();
                     Action::DeleteCategory(utils::failing_task(async move {
-                        finance_manager
-                            .lock()
-                            .await
-                            .delete_category(category_id)
-                            .await?;
+                        finance_controller.delete_category(category_id).await?;
                         Ok(())
                     }))
                 } else {
@@ -146,11 +139,10 @@ impl View {
                     let timespan = timespan_input.timespan();
 
                     Action::Task(utils::failing_task(async move {
-                        let locked_manager = finance_manager.lock().await;
-                        let transactions = locked_manager
+                        let transactions = finance_controller
                             .get_transactions_of_category(id, timespan)
                             .await?;
-                        let accounts = locked_manager
+                        let accounts = finance_controller
                             .get_accounts_hash_map()
                             .await
                             .context("Error while fetching accounts")?;
@@ -172,11 +164,11 @@ impl View {
                                 .clone();
                             transaction_tuples.push((transaction, from_account, to_account));
                         }
-                        let values = locked_manager
+                        let values = finance_controller
                             .get_relative_category_values(id, timespan)
                             .await?;
-                        let categories = locked_manager.get_categories().await?;
-                        let budgets = locked_manager.get_budgets().await?;
+                        let categories = finance_controller.get_categories().await?;
+                        let budgets = finance_controller.get_budgets().await?;
                         Ok(Message::Set(
                             cloned_category,
                             values,
@@ -218,7 +210,7 @@ impl View {
                     transaction_table, ..
                 } = self
                 {
-                    match transaction_table.update(msg, finance_manager) {
+                    match transaction_table.update(msg, finance_controller) {
                         utils::transaction_table::Action::None => Action::None,
                         utils::transaction_table::Action::ViewTransaction(id) => {
                             Action::ViewTransaction(id)

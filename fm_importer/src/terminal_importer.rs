@@ -7,13 +7,13 @@ use tokio::sync::Mutex;
 
 pub async fn run_in_terminal(
     importer: super::Importer<impl fm_core::FinanceManager, impl super::Parser>,
-    finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+    finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
 ) -> Result<()> {
     let importer = Arc::new(Mutex::new(importer));
     loop {
         let next_action = importer.lock().await.next().await.unwrap();
         if let Some(action) = next_action {
-            do_action(importer.clone(), action, finance_manager.clone()).await?;
+            do_action(importer.clone(), action, finance_controller.clone()).await?;
         } else {
             break;
         }
@@ -24,7 +24,7 @@ pub async fn run_in_terminal(
 async fn do_action(
     importer: Arc<Mutex<super::Importer<impl fm_core::FinanceManager, impl super::Parser>>>,
     action: Action,
-    finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+    finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
 ) -> Result<()> {
     let mut actions = Vec::with_capacity(3);
     actions.push(action);
@@ -32,16 +32,12 @@ async fn do_action(
         match action {
             Action::None => {}
             Action::TransactionCreated(transaction) => {
-                let source = finance_manager
-                    .lock()
-                    .await
+                let source = finance_controller
                     .get_account(*transaction.source())
                     .await
                     .unwrap()
                     .unwrap();
-                let destination = finance_manager
-                    .lock()
-                    .await
+                let destination = finance_controller
                     .get_account(*transaction.destination())
                     .await
                     .unwrap()
@@ -51,7 +47,10 @@ async fn do_action(
                     transaction.title(),
                     transaction.description().unwrap_or(""),
                     transaction.amount(),
-                    transaction.date().to_offset(fm_core::get_local_timezone().unwrap()).format(&time::format_description::parse("[day].[month].[year]")?)?,
+                    transaction
+                        .date()
+                        .to_offset(fm_core::get_local_timezone().unwrap())
+                        .format(&time::format_description::parse("[day].[month].[year]")?)?,
                     format_account(&source),
                     format_account(&destination)
                 );
@@ -62,14 +61,10 @@ async fn do_action(
                     &mut transaction_exists,
                     |transaction, fm| async move {
                         let source = fm
-                            .lock()
-                            .await
                             .get_account(*transaction.source())
                             .await?
                             .unwrap();
                         let destination = fm
-                            .lock()
-                            .await
                             .get_account(*transaction.destination())
                             .await?
                             .unwrap();
@@ -84,7 +79,7 @@ async fn do_action(
                         ))
                     },
                     "The following transaction could already exists. What do you want to do?",
-                    finance_manager.clone(),
+                    finance_controller.clone(),
                 )
                 .await?;
                 actions.push(
@@ -101,7 +96,7 @@ async fn do_action(
                     &mut destination_account_exists,
                     |acc, _| async move { Ok(format_account(&acc)) },
                     "The following Account could already exist. What do you want to do?",
-                    finance_manager.clone(),
+                    finance_controller.clone(),
                 )
                 .await?;
                 actions.push(
@@ -118,7 +113,7 @@ async fn do_action(
                     &mut source_account_exists,
                     |acc, _| async move { Ok(format_account(&acc)) },
                     "The following Account could already exist. What do you want to do?",
-                    finance_manager.clone(),
+                    finance_controller.clone(),
                 )
                 .await?;
                 actions.push(
@@ -137,9 +132,9 @@ async fn do_action(
 
 async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static>(
     object_exists: &mut super::action::ObjectExists<T>,
-    t_to_string: impl Fn(T, Arc<Mutex<fm_core::FMController<FM>>>) -> F,
+    t_to_string: impl Fn(T, fm_core::FMController<FM>) -> F,
     prompt: &str,
-    finance_manager: Arc<Mutex<fm_core::FMController<FM>>>,
+    finance_controller: fm_core::FMController<FM>,
 ) -> Result<()>
 where
     F: std::future::Future<Output = Result<String>>,
@@ -154,7 +149,7 @@ where
         println!(
             "{}: \n{}",
             i,
-            (t_to_string)(item.clone(), finance_manager.clone())
+            (t_to_string)(item.clone(), finance_controller.clone())
                 .await
                 .unwrap()
         );
@@ -192,7 +187,10 @@ fn format_transaction_entry(entry: &super::TransactionEntry) -> Result<String> {
         entry.destination_entry.iban(),
         entry.destination_entry.bic().unwrap_or_default(),
         entry.destination_entry.name().clone().unwrap_or_default(),
-        entry.date.to_offset(fm_core::get_local_timezone().unwrap()).format(&time::format_description::parse("[day].[month].[year]")?)?
+        entry
+            .date
+            .to_offset(fm_core::get_local_timezone().unwrap())
+            .format(&time::format_description::parse("[day].[month].[year]")?)?
     ))
 }
 

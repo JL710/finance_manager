@@ -3,9 +3,7 @@ use iced::widget;
 
 use anyhow::{Context, Result};
 
-use async_std::sync::Mutex;
 use recurring_input::recurring_input;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -77,14 +75,12 @@ impl View {
 
     pub fn fetch(
         id: fm_core::Id,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
             utils::failing_task(async move {
-                let budget = finance_manager
-                    .lock()
-                    .await
+                let budget = finance_controller
                     .get_budget(id)
                     .await?
                     .context(format!("Could not find budget {}", id))?;
@@ -96,7 +92,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::Cancel => {
@@ -142,9 +138,7 @@ impl View {
                 return Action::Task(utils::failing_task(async move {
                     let budget = match option_id {
                         Some(id) => {
-                            finance_manager
-                                .lock()
-                                .await
+                            finance_controller
                                 .update_budget(
                                     id,
                                     name_input,
@@ -161,9 +155,7 @@ impl View {
                                 .await?
                         }
                         None => {
-                            finance_manager
-                                .lock()
-                                .await
+                            finance_controller
                                 .create_budget(
                                     name_input,
                                     if description_input.is_empty() {

@@ -1,10 +1,6 @@
-use fm_core;
-
-use iced::widget;
-
 use anyhow::Context;
-use async_std::sync::Mutex;
-use std::sync::Arc;
+use fm_core;
+use iced::widget;
 
 pub enum Action {
     None,
@@ -55,17 +51,16 @@ impl std::default::Default for View {
 impl View {
     pub fn fetch(
         account_id: fm_core::Id,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
             utils::failing_task(async move {
-                let account = if let fm_core::account::Account::AssetAccount(acc) = finance_manager
-                    .lock()
-                    .await
-                    .get_account(account_id)
-                    .await?
-                    .context(format!("Could not find account {}", account_id))?
+                let account = if let fm_core::account::Account::AssetAccount(acc) =
+                    finance_controller
+                        .get_account(account_id)
+                        .await?
+                        .context(format!("Could not find account {}", account_id))?
                 {
                     acc
                 } else {
@@ -79,7 +74,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::Cancel => {
@@ -129,15 +124,11 @@ impl View {
                 let id = self.id;
                 return Action::Task(utils::failing_task(async move {
                     let account = if let Some(some_id) = id {
-                        finance_manager
-                            .lock()
-                            .await
+                        finance_controller
                             .update_asset_account(some_id, name, note, iban, bic, offset)
                             .await?
                     } else {
-                        finance_manager
-                            .lock()
-                            .await
+                        finance_controller
                             .create_asset_account(name, note, iban, bic, offset)
                             .await?
                     };

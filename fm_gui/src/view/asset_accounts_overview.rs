@@ -1,6 +1,4 @@
-use async_std::sync::Mutex;
 use iced::widget;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -44,13 +42,12 @@ impl View {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-                let accounts = locked_manager
+                let accounts = finance_controller
                     .get_accounts()
                     .await?
                     .iter()
@@ -61,7 +58,7 @@ impl View {
                     .collect::<Vec<_>>();
                 let mut tuples = Vec::new();
                 for account in accounts {
-                    let amount = locked_manager
+                    let amount = finance_controller
                         .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
                         .await?;
                     tuples.push((account, amount));
@@ -74,7 +71,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        _finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::Initialize(accounts) => {
@@ -84,7 +81,7 @@ impl View {
             Message::AccountView(account) => return Action::ViewAccount(account.id()),
             Message::TableView(m) => match self.account_table.perform(m) {
                 utils::table_view::Action::OuterMessage(m) => {
-                    return self.update(m, _finance_manager);
+                    return self.update(m, _finance_controller);
                 }
                 utils::table_view::Action::Task(task) => {
                     return Action::Task(task.map(Message::TableView));

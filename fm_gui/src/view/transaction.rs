@@ -1,7 +1,4 @@
 use anyhow::Context;
-use async_std::sync::Mutex;
-use std::sync::Arc;
-
 use iced::widget;
 
 #[derive(Debug, Clone)]
@@ -54,21 +51,20 @@ pub enum View {
 impl View {
     pub fn fetch(
         id: fm_core::Id,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
             utils::failing_task(async move {
-                let locked_manager = finance_manager.lock().await;
-                let transaction = locked_manager
+                let transaction = finance_controller
                     .get_transaction(id)
                     .await?
                     .context(format!("Could not find transaction {}", id))?;
-                let source = locked_manager
+                let source = finance_controller
                     .get_account(*transaction.source())
                     .await?
                     .context(format!("Could not find account {}", transaction.source()))?;
-                let destination = locked_manager
+                let destination = finance_controller
                     .get_account(*transaction.destination())
                     .await?
                     .context(format!(
@@ -76,10 +72,10 @@ impl View {
                         transaction.destination()
                     ))?;
                 let budget = match transaction.budget() {
-                    Some(budget_id) => locked_manager.get_budget(budget_id.0).await?,
+                    Some(budget_id) => finance_controller.get_budget(budget_id.0).await?,
                     None => None,
                 };
-                let categories = locked_manager.get_categories().await?;
+                let categories = finance_controller.get_categories().await?;
                 Ok(MessageContainer(Message::Initialize(Box::new(Init {
                     transaction,
                     source,
@@ -94,7 +90,7 @@ impl View {
     pub fn update(
         &mut self,
         message: MessageContainer,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message.0 {
             Message::Initialize(init) => {
@@ -134,7 +130,7 @@ impl View {
                 if let Self::Loaded { transaction, .. } = self {
                     let id = *transaction.id();
                     Action::Delete(utils::failing_task(async move {
-                        finance_manager.lock().await.delete_transaction(id).await?;
+                        finance_controller.delete_transaction(id).await?;
                         Ok(())
                     }))
                 } else {

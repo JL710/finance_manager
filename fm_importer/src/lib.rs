@@ -6,9 +6,6 @@ use fm_core::FinanceManager;
 
 use std::collections::HashMap;
 
-use std::sync::Arc;
-use tokio::sync::Mutex;
-
 pub mod csv_parser;
 pub mod terminal_importer;
 
@@ -160,28 +157,23 @@ pub mod action {
 
 pub trait Parser {
     fn next_entry(&mut self)
-        -> impl std::future::Future<Output = Result<Option<TransactionEntry>>>;
+    -> impl std::future::Future<Output = Result<Option<TransactionEntry>>>;
 
     fn format_name(&self) -> &str;
 }
 
 pub struct Importer<FM: fm_core::FinanceManager + 'static, P: Parser> {
     parser: P,
-    fm_controller: Arc<Mutex<fm_core::FMController<FM>>>,
+    fm_controller: fm_core::FMController<FM>,
     cached_accounts: Vec<fm_core::account::Account>,
     cached_transactions: Vec<fm_core::Transaction>,
     saved_account_decisions: Vec<(AccountEntry, fm_core::account::Account)>,
 }
 
 impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
-    pub async fn new(
-        importer: P,
-        fm_controller: Arc<Mutex<fm_core::FMController<FM>>>,
-    ) -> Result<Self> {
-        let cached_accounts = fm_controller.lock().await.get_accounts().await?;
+    pub async fn new(importer: P, fm_controller: fm_core::FMController<FM>) -> Result<Self> {
+        let cached_accounts = fm_controller.get_accounts().await?;
         let cached_transactions = fm_controller
-            .lock()
-            .await
             .get_transactions_in_timespan((None, None))
             .await?;
 
@@ -410,8 +402,6 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
     ) -> Result<fm_core::account::Account> {
         let account = self
             .fm_controller
-            .lock()
-            .await
             .create_book_checking_account(
                 account_entry
                     .name()
@@ -534,8 +524,6 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
             .unwrap();
         let transaction = self
             .fm_controller
-            .lock()
-            .await
             .create_transaction(
                 transaction_entry.value.clone(),
                 transaction_entry.title.clone(),
@@ -574,7 +562,7 @@ enum AccountExistsResult {
 
 pub async fn csv_camt_v2_importer<FM: FinanceManager>(
     data: BufReader<&[u8]>,
-    fm_controller: Arc<Mutex<fm_core::FMController<FM>>>,
+    fm_controller: fm_core::FMController<FM>,
 ) -> Result<Importer<FM, CSVParser>> {
     Importer::new(csv_parser::csv_camt_v2_parser(data)?, fm_controller).await
 }

@@ -1,8 +1,6 @@
 use iced::widget;
 
 use anyhow::Context;
-use async_std::sync::Mutex;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -41,24 +39,22 @@ impl View {
     }
 
     pub fn fetch(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             View::new(Vec::new()),
             utils::failing_task(async move {
-                let budgets = finance_manager.lock().await.get_budgets().await?;
+                let budgets = finance_controller.get_budgets().await?;
                 let mut tuples = Vec::new();
 
                 for budget in budgets {
-                    let current_value = finance_manager
-                        .lock()
-                        .await
+                    let current_value = finance_controller
                         .get_budget_value(
                             &budget,
                             0,
                             fm_core::get_local_timezone()
                                 .context("Error while trying to get local timezone")?,
-                        )?
+                        )
                         .await?;
                     tuples.push((budget, current_value));
                 }
@@ -71,7 +67,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        _finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::CreateBudget => Action::CreateBudget,
@@ -82,7 +78,7 @@ impl View {
                 Action::None
             }
             Message::BudgetTable(inner) => match self.budget_table.perform(inner) {
-                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_manager),
+                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_controller),
                 utils::table_view::Action::Task(task) => {
                     Action::Task(task.map(Message::BudgetTable))
                 }

@@ -1,7 +1,5 @@
 use anyhow::{Context, Result};
-use async_std::sync::Mutex;
 use iced::widget;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -86,11 +84,11 @@ impl View {
     pub fn fetch(
         id: fm_core::Id,
         offset: i32,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            utils::failing_task(Self::initial_message(finance_manager, id, offset))
+            utils::failing_task(Self::initial_message(finance_controller, id, offset))
                 .map(MessageContainer),
         )
     }
@@ -98,7 +96,7 @@ impl View {
     pub fn update(
         &mut self,
         message: MessageContainer,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message.0 {
             Message::Initialize(init) => {
@@ -142,7 +140,7 @@ impl View {
                     let id = *budget.id();
                     Action::Task(
                         utils::failing_task(async move {
-                            finance_manager.lock().await.delete_budget(id).await?;
+                            finance_controller.delete_budget(id).await?;
                             Ok(Message::Deleted)
                         })
                         .map(MessageContainer),
@@ -159,7 +157,7 @@ impl View {
                 if let Self::Loaded { budget, offset, .. } = self {
                     Action::Task(
                         utils::failing_task(Self::initial_message(
-                            finance_manager,
+                            finance_controller,
                             *budget.id(),
                             *offset + 1,
                         ))
@@ -173,7 +171,7 @@ impl View {
                 if let Self::Loaded { budget, offset, .. } = self {
                     Action::Task(
                         utils::failing_task(Self::initial_message(
-                            finance_manager,
+                            finance_controller,
                             *budget.id(),
                             *offset - 1,
                         ))
@@ -188,7 +186,7 @@ impl View {
                     transaction_table, ..
                 } = self
                 {
-                    match transaction_table.update(msg, finance_manager) {
+                    match transaction_table.update(msg, finance_controller) {
                         utils::transaction_table::Action::None => Action::None,
                         utils::transaction_table::Action::ViewTransaction(id) => {
                             Action::ViewTransaction(id)
@@ -264,40 +262,39 @@ impl View {
     }
 
     async fn initial_message(
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         id: fm_core::Id,
         offset: i32,
     ) -> Result<Message> {
-        let locked_manager = finance_manager.lock().await;
-        let budget = locked_manager
+        let budget = finance_controller
             .get_budget(id)
             .await?
             .context(format!("Could not find budget {}", id))?;
-        let transactions = locked_manager
+        let transactions = finance_controller
             .get_budget_transactions(
                 &budget,
                 offset,
                 fm_core::get_local_timezone().context("Error while getting local timezone")?,
-            )?
+            )
             .await?;
-        let current_value = locked_manager
+        let current_value = finance_controller
             .get_budget_value(
                 &budget,
                 offset,
                 fm_core::get_local_timezone().context("Error while getting local timezone")?,
-            )?
+            )
             .await?;
 
         let mut transaction_tuples = Vec::new();
         for transaction in transactions {
-            let source = locked_manager
+            let source = finance_controller
                 .get_account(*transaction.source())
                 .await?
                 .context(format!(
                     "Error while fetching account {}",
                     transaction.source()
                 ))?;
-            let destination = locked_manager
+            let destination = finance_controller
                 .get_account(*transaction.destination())
                 .await?
                 .context(format!(
@@ -307,7 +304,7 @@ impl View {
             transaction_tuples.push((transaction, source, destination));
         }
 
-        let categories = locked_manager.get_categories().await?;
+        let categories = finance_controller.get_categories().await?;
 
         Ok(Message::Initialize(Box::new(Init {
             budget,

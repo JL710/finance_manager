@@ -1,6 +1,4 @@
 use anyhow::Context;
-use async_std::sync::Mutex;
-use std::sync::Arc;
 
 pub enum Action {
     None,
@@ -37,14 +35,12 @@ impl View {
 
     pub fn fetch(
         id: fm_core::Id,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(None, String::new()),
             utils::failing_task(async move {
-                let category = finance_manager
-                    .lock()
-                    .await
+                let category = finance_controller
                     .get_category(id)
                     .await?
                     .context(format!("Could not find category {}", id))?;
@@ -56,7 +52,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        finance_manager: Arc<Mutex<fm_core::FMController<impl fm_core::FinanceManager>>>,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
             Message::Cancel => {
@@ -81,14 +77,13 @@ impl View {
                 let id = self.id;
                 let name = self.name.clone();
                 Action::Task(utils::failing_task(async move {
-                    let mut locked_manager = finance_manager.lock().await;
                     if let Some(id) = id {
                         Ok(Message::CategoryCreated(
-                            *locked_manager.update_category(id, name).await?.id(),
+                            *finance_controller.update_category(id, name).await?.id(),
                         ))
                     } else {
                         Ok(Message::CategoryCreated(
-                            *locked_manager.create_category(name).await?.id(),
+                            *finance_controller.create_category(name).await?.id(),
                         ))
                     }
                 }))

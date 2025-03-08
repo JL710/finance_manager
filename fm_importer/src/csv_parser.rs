@@ -147,7 +147,7 @@ impl<'a> CSVParser<'a> {
     }
 }
 
-impl<'a> super::Parser for CSVParser<'a> {
+impl super::Parser for CSVParser<'_> {
     async fn next_entry(&mut self) -> Result<Option<crate::TransactionEntry>> {
         loop {
             match self.next().await? {
