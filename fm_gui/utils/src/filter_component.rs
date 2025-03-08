@@ -68,7 +68,7 @@ impl FilterComponent {
 
     pub fn set_filter(&mut self, new_filter: fm_core::transaction_filter::TransactionFilter) {
         self.default_transaction_input =
-            date_span_input::State::new(Some(*new_filter.get_default_timespan()));
+            date_span_input::State::new(Some(new_filter.default_timespan));
 
         fn set_inputs<
             T: Clone + std::fmt::Debug + std::fmt::Display + 'static,
@@ -91,28 +91,28 @@ impl FilterComponent {
 
         set_inputs(
             &mut self.account_filter_entries,
-            new_filter.get_account_filters().clone(),
+            new_filter.accounts,
             self.accounts.clone(),
             |acc| *acc.id(),
         );
 
         set_inputs(
             &mut self.category_filter_entries,
-            new_filter.get_category_filters().clone(),
+            new_filter.categories,
             self.categories.clone(),
             |category| *category.id(),
         );
 
         set_inputs(
             &mut self.budget_filter_entries,
-            new_filter.get_budget_filters().clone(),
+            new_filter.budgets,
             self.budgets.clone(),
             |budget| *budget.id(),
         );
 
         set_inputs(
             &mut self.bill_filter_entries,
-            new_filter.get_bill_filters().clone(),
+            new_filter.bills,
             self.bills.clone(),
             |bill| bill.clone(),
         );
@@ -130,18 +130,18 @@ impl FilterComponent {
         match message {
             InnerMessage::Submit => {
                 let mut filter = fm_core::transaction_filter::TransactionFilter::default();
-                filter.set_default_timespan(self.default_transaction_input.timespan());
+                filter.default_timespan = self.default_transaction_input.timespan();
                 for bill_entry in &self.bill_filter_entries {
-                    filter.add_bill(bill_entry.get_filter().clone());
+                    filter.bills.push(bill_entry.get_filter().clone());
                 }
                 for acc_entry in &self.account_filter_entries {
-                    filter.add_account(acc_entry.get_filter().clone());
+                    filter.accounts.push(acc_entry.get_filter().clone());
                 }
                 for category_entry in &self.category_filter_entries {
-                    filter.add_category(category_entry.get_filter().clone());
+                    filter.categories.push(category_entry.get_filter().clone());
                 }
                 for budget_entry in &self.budget_filter_entries {
-                    filter.add_budget(budget_entry.get_filter().clone());
+                    filter.budgets.push(budget_entry.get_filter().clone());
                 }
                 return Action::Submit(filter);
             }

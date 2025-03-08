@@ -17,33 +17,17 @@ pub struct Filter<I: Clone + std::fmt::Debug> {
 /// Exclude timespan excludes only transaction in that range but does not include everything else and has higher priority than includes.
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TransactionFilter {
-    default_timespan: Timespan,
-    accounts: Vec<Filter<Id>>,
-    categories: Vec<Filter<Id>>,
-    bills: Vec<Filter<Bill>>,
-    budgets: Vec<Filter<Id>>,
+    pub default_timespan: Timespan,
+    pub accounts: Vec<Filter<Id>>,
+    pub categories: Vec<Filter<Id>>,
+    pub bills: Vec<Filter<Bill>>,
+    pub budgets: Vec<Filter<Id>>,
 }
 
 impl TransactionFilter {
-    pub fn set_default_timespan(&mut self, timespan: Timespan) {
-        self.default_timespan = timespan;
-    }
-
-    pub fn get_default_timespan(&self) -> &Timespan {
-        &self.default_timespan
-    }
-
-    pub fn get_account_filters(&self) -> &Vec<Filter<Id>> {
-        &self.accounts
-    }
-
-    pub fn add_account(&mut self, filter: Filter<Id>) {
-        self.accounts.push(filter);
-    }
-
     pub fn push_account(self, filter: Filter<Id>) -> Self {
         let mut new = self;
-        new.add_account(filter);
+        new.accounts.push(filter);
         new
     }
 
@@ -60,17 +44,9 @@ impl TransactionFilter {
         }
     }
 
-    pub fn get_category_filters(&self) -> &Vec<Filter<Id>> {
-        &self.categories
-    }
-
-    pub fn add_category(&mut self, filter: Filter<Id>) {
-        self.categories.push(filter);
-    }
-
     pub fn push_category(self, filter: Filter<Id>) -> Self {
         let mut new = self;
-        new.add_category(filter);
+        new.categories.push(filter);
         new
     }
 
@@ -87,17 +63,9 @@ impl TransactionFilter {
         }
     }
 
-    pub fn get_bill_filters(&self) -> &Vec<Filter<Bill>> {
-        &self.bills
-    }
-
-    pub fn add_bill(&mut self, filter: Filter<Bill>) {
-        self.bills.push(filter);
-    }
-
     pub fn push_bill(self, filter: Filter<Bill>) -> Self {
         let mut new = self;
-        new.add_bill(filter);
+        new.bills.push(filter);
         new
     }
 
@@ -114,17 +82,9 @@ impl TransactionFilter {
         }
     }
 
-    pub fn get_budget_filters(&self) -> &Vec<Filter<Id>> {
-        &self.budgets
-    }
-
-    pub fn add_budget(&mut self, filter: Filter<Id>) {
-        self.budgets.push(filter);
-    }
-
     pub fn push_budget(self, filter: Filter<Id>) -> Self {
         let mut new = self;
-        new.add_budget(filter);
+        new.budgets.push(filter);
         new
     }
 
@@ -394,7 +354,7 @@ mod test {
         let transactions = generate_test_transactions_1();
         let bill = generate_test_bill_1();
         let mut filter = TransactionFilter::default();
-        filter.add_bill(Filter {
+        filter.bills.push(Filter {
             negated: false,
             id: Some(bill.clone()),
             include: true,
@@ -409,13 +369,13 @@ mod test {
     #[test]
     fn filter_bill_include_and_exclude() {
         let mut filter = TransactionFilter::default();
-        filter.add_bill(Filter {
+        filter.bills.push(Filter {
             negated: false,
             id: Some(generate_test_bill_1()),
             include: true,
             timespan: None,
         });
-        filter.add_bill(Filter {
+        filter.bills.push(Filter {
             negated: false,
             id: Some(generate_test_bill_2()),
             include: false,
@@ -578,25 +538,25 @@ mod test {
     #[test]
     fn filter_total_timespan_empty() {
         let mut filter = TransactionFilter::default();
-        filter.add_bill(Filter {
+        filter.bills.push(Filter {
             negated: false,
             id: Some(generate_test_bill_1()),
             include: true,
             timespan: None,
         });
-        filter.add_account(Filter {
+        filter.accounts.push(Filter {
             negated: false,
             id: Some(2),
             include: true,
             timespan: None,
         });
-        filter.add_category(Filter {
+        filter.categories.push(Filter {
             negated: false,
             id: Some(1),
             include: true,
             timespan: None,
         });
-        filter.add_budget(Filter {
+        filter.budgets.push(Filter {
             negated: false,
             id: Some(1),
             include: true,
