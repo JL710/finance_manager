@@ -37,7 +37,7 @@ where
             self.get_transactions(bill.transactions.keys().cloned().collect::<Vec<_>>());
 
         async move {
-            (async || {
+            async {
                 let mut sum = Currency::default();
                 let transactions = transactions_future.await?;
                 for transaction in transactions {
@@ -51,7 +51,7 @@ where
                     }
                 }
                 Ok::<_, anyhow::Error>(sum)
-            })()
+            }
             .await
             .context(format!(
                 "Error while getting bill sum {} {}",
@@ -100,13 +100,11 @@ where
         })
     }
 
-    pub fn delete_bill(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend + '_ {
-        async move {
-            self.finance_manager
-                .delete_bill(id)
-                .await
-                .context(format!("Error while deleting bill with id {}", id))
-        }
+    pub async fn delete_bill(&mut self, id: Id) -> Result<()> {
+        self.finance_manager
+            .delete_bill(id)
+            .await
+            .context(format!("Error while deleting bill with id {}", id))
     }
 
     pub fn update_bill(
@@ -264,7 +262,7 @@ where
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn create_transaction(
+    pub async fn create_transaction(
         &mut self,
         amount: Currency,
         title: String,
@@ -275,36 +273,34 @@ where
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: HashMap<Id, Sign>,
-    ) -> impl Future<Output = Result<Transaction>> + MaybeSend + '_ {
-        async move {
-            (|| async {
-                if amount.get_eur_num() < 0.0 {
-                    anyhow::bail!("Amount must be positive")
-                }
+    ) -> Result<Transaction> {
+        async {
+            if amount.get_eur_num() < 0.0 {
+                anyhow::bail!("Amount must be positive")
+            }
 
-                for category in &categories {
-                    if self.get_category(*category.0).await.unwrap().is_none() {
-                        anyhow::bail!("Category does not exist!")
-                    }
+            for category in &categories {
+                if self.get_category(*category.0).await.unwrap().is_none() {
+                    anyhow::bail!("Category does not exist!")
                 }
+            }
 
-                self.finance_manager
-                    .create_transaction(
-                        amount,
-                        title,
-                        description,
-                        source,
-                        destination,
-                        budget,
-                        date,
-                        metadata,
-                        categories,
-                    )
-                    .await
-            })()
-            .await
-            .context("Error while creating transaction")
+            self.finance_manager
+                .create_transaction(
+                    amount,
+                    title,
+                    description,
+                    source,
+                    destination,
+                    budget,
+                    date,
+                    metadata,
+                    categories,
+                )
+                .await
         }
+        .await
+        .context("Error while creating transaction")
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -440,7 +436,7 @@ where
     }
 
     pub async fn delete_transaction(&mut self, id: Id) -> Result<()> {
-        (|| async move {
+        async move {
             for bill in self.get_bills().await? {
                 if bill.transactions().iter().any(|(x, _)| *x == id) {
                     self.update_bill(
@@ -458,7 +454,7 @@ where
                 .delete_transaction(id)
                 .await
                 .context("underlying finance manager error")
-        })()
+        }
         .await
         .context(format!("Error while deleting transaction with id {}", id))
     }

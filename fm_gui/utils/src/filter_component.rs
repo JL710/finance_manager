@@ -50,7 +50,7 @@ impl FilterComponent {
         categories.sort_by(|a, b| a.name().cmp(b.name()));
         let mut accounts = accounts;
         accounts.sort_by(|a, b| a.name().cmp(b.name()));
-        let mut bills = bills.into_iter().map(|x| Arc::new(x)).collect::<Vec<_>>();
+        let mut bills = bills.into_iter().map(Arc::new).collect::<Vec<_>>();
         bills.sort_by(|a, b| a.name().cmp(b.name()));
         let mut budgets = budgets;
         budgets.sort_by(|a, b| a.name().cmp(b.name()));
@@ -139,8 +139,10 @@ impl FilterComponent {
     pub fn update(&mut self, message: InnerMessage) -> Action {
         match message {
             InnerMessage::Submit => {
-                let mut filter = fm_core::transaction_filter::TransactionFilter::default();
-                filter.default_timespan = self.default_transaction_input.timespan();
+                let mut filter = fm_core::transaction_filter::TransactionFilter {
+                    default_timespan: self.default_transaction_input.timespan(),
+                    ..Default::default()
+                };
                 for bill_entry in &self.bill_filter_entries {
                     let bill_filter = bill_entry.get_filter().clone();
                     let bill_filter = Filter {

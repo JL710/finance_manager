@@ -462,7 +462,7 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn get_account(&self, id: Id) -> Result<Option<account::Account>> {
         let connection = self.connect().await;
-        Ok(get_account(&connection, id)?)
+        get_account(&connection, id)
     }
 
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
