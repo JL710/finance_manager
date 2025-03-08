@@ -1,6 +1,7 @@
 use crate::date_time::date_span_input;
 use fm_core::transaction_filter::Filter;
 use iced::widget;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -20,7 +21,7 @@ pub enum InnerMessage {
         usize,
         filter_entry::MessageContainer<fm_core::account::Account>,
     ),
-    BillEntryMessage(usize, filter_entry::MessageContainer<fm_core::Bill>),
+    BillEntryMessage(usize, filter_entry::MessageContainer<Arc<fm_core::Bill>>),
     CategoryEntryMessage(usize, filter_entry::MessageContainer<fm_core::Category>),
     BudgetEntryMessage(usize, filter_entry::MessageContainer<fm_core::Budget>),
 }
@@ -29,10 +30,10 @@ pub enum InnerMessage {
 pub struct FilterComponent {
     accounts: Vec<fm_core::account::Account>,
     categories: Vec<fm_core::Category>,
-    bills: Vec<fm_core::Bill>,
+    bills: Vec<Arc<fm_core::Bill>>,
     budgets: Vec<fm_core::Budget>,
     default_transaction_input: date_span_input::State,
-    bill_filter_entries: Vec<filter_entry::FilterEntry<fm_core::Bill, fm_core::Bill>>,
+    bill_filter_entries: Vec<filter_entry::FilterEntry<Arc<fm_core::Bill>, Arc<fm_core::Bill>>>,
     account_filter_entries: Vec<filter_entry::FilterEntry<fm_core::account::Account, fm_core::Id>>,
     category_filter_entries: Vec<filter_entry::FilterEntry<fm_core::Category, fm_core::Id>>,
     budget_filter_entries: Vec<filter_entry::FilterEntry<fm_core::Budget, fm_core::Id>>,
@@ -49,7 +50,7 @@ impl FilterComponent {
         categories.sort_by(|a, b| a.name().cmp(b.name()));
         let mut accounts = accounts;
         accounts.sort_by(|a, b| a.name().cmp(b.name()));
-        let mut bills = bills;
+        let mut bills = bills.into_iter().map(|x| Arc::new(x)).collect::<Vec<_>>();
         bills.sort_by(|a, b| a.name().cmp(b.name()));
         let mut budgets = budgets;
         budgets.sort_by(|a, b| a.name().cmp(b.name()));
@@ -112,7 +113,16 @@ impl FilterComponent {
 
         set_inputs(
             &mut self.bill_filter_entries,
-            new_filter.bills,
+            new_filter
+                .bills
+                .into_iter()
+                .map(|x| Filter {
+                    negated: x.negated,
+                    id: x.id.map(Arc::new),
+                    include: x.include,
+                    timespan: x.timespan,
+                })
+                .collect(),
             self.bills.clone(),
             |bill| bill.clone(),
         );
@@ -132,7 +142,14 @@ impl FilterComponent {
                 let mut filter = fm_core::transaction_filter::TransactionFilter::default();
                 filter.default_timespan = self.default_transaction_input.timespan();
                 for bill_entry in &self.bill_filter_entries {
-                    filter.bills.push(bill_entry.get_filter().clone());
+                    let bill_filter = bill_entry.get_filter().clone();
+                    let bill_filter = Filter {
+                        negated: bill_filter.negated,
+                        id: bill_filter.id.map(|x| (*x).clone()),
+                        include: bill_filter.include,
+                        timespan: bill_filter.timespan,
+                    };
+                    filter.bills.push(bill_filter);
                 }
                 for acc_entry in &self.account_filter_entries {
                     filter.accounts.push(acc_entry.get_filter().clone());
