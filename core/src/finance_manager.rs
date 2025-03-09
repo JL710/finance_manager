@@ -214,8 +214,7 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     fn update_category(
         &mut self,
-        id: Id,
-        name: String,
+        category: Category,
     ) -> impl Future<Output = Result<Category>> + MaybeSend;
 
     // delete category and remove it from every transaction

@@ -97,8 +97,8 @@ impl std::fmt::Display for Budget {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Category {
-    id: Id,
-    name: String,
+    pub id: Id,
+    pub name: String,
 }
 
 impl std::fmt::Display for Category {
@@ -111,14 +111,6 @@ impl Category {
     pub fn new(id: Id, name: String) -> Self {
         Self { id, name }
     }
-
-    pub fn id(&self) -> &Id {
-        &self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
 }
 
 impl PartialEq for Category {
@@ -129,7 +121,7 @@ impl PartialEq for Category {
 
 impl PartialOrd for Category {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.name().cmp(other.name()))
+        Some(self.name.cmp(&other.name))
     }
 }
 
@@ -137,7 +129,7 @@ impl Eq for Category {}
 
 impl Ord for Category {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.name().cmp(other.name())
+        self.name.cmp(&other.name)
     }
 }
 

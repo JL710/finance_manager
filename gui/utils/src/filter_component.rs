@@ -47,7 +47,7 @@ impl FilterComponent {
         budgets: Vec<fm_core::Budget>,
     ) -> Self {
         let mut categories = categories;
-        categories.sort_by(|a, b| a.name().cmp(b.name()));
+        categories.sort_by(|a, b| a.name.cmp(&b.name));
         let mut accounts = accounts;
         accounts.sort_by(|a, b| a.name().cmp(b.name()));
         let mut bills = bills.into_iter().map(Arc::new).collect::<Vec<_>>();
@@ -101,7 +101,7 @@ impl FilterComponent {
             &mut self.category_filter_entries,
             new_filter.categories,
             self.categories.clone(),
-            |category| *category.id(),
+            |category| category.id,
         );
 
         set_inputs(
@@ -203,12 +203,12 @@ impl FilterComponent {
                         .push(filter_entry::FilterEntry::new(
                             Filter {
                                 negated: false,
-                                id: Some(*self.categories[0].id()),
+                                id: Some(self.categories[0].id),
                                 include: true,
                                 timespan: None,
                             },
                             self.categories.clone(),
-                            |x| *x.id(),
+                            |x| x.id,
                         ));
                 }
             }

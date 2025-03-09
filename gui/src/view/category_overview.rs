@@ -22,7 +22,7 @@ impl View {
     pub fn new(categories: Vec<fm_core::Category>) -> Self {
         Self {
             category_table: utils::table_view::State::new(categories, ())
-                .sort_by(|a, b, _| a.name().cmp(b.name()))
+                .sort_by(|a, b, _| a.name.cmp(&b.name))
                 .sortable_columns([0]),
         }
     }
@@ -69,11 +69,9 @@ impl View {
                 iced::widget::horizontal_rule(10),
                 utils::table_view::table_view(&self.category_table)
                     .headers(["Name".to_string()])
-                    .view(|category, _| [utils::link(iced::widget::text(
-                        category.name().to_string()
-                    ))
-                    .on_press(Message::ViewCategory(*category.id()))
-                    .into()])
+                    .view(|category, _| [utils::link(category.name.as_str())
+                        .on_press(Message::ViewCategory(category.id))
+                        .into()])
                     .map(Message::CategoryTable),
             ]
             .height(iced::Fill)

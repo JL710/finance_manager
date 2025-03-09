@@ -476,7 +476,7 @@ impl FinanceManager for SqliteFinanceManager {
         )?;
         let categories = get_categories_of_transaction(&connection, result.0)?
             .iter()
-            .map(|x| (*x.0.id(), x.1))
+            .map(|x| (x.0.id, x.1))
             .collect();
         let transaction: Transaction = result.try_into()?;
         Ok(Some(Transaction::new(
@@ -548,7 +548,7 @@ impl FinanceManager for SqliteFinanceManager {
             let transaction: Transaction = row?.try_into()?;
             let categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
-                .map(|x| (*x.0.id(), x.1))
+                .map(|x| (x.0.id, x.1))
                 .collect();
             transactions.push(Transaction::new(
                 transaction.id,
@@ -820,7 +820,7 @@ impl FinanceManager for SqliteFinanceManager {
             let transaction: Transaction = row?.try_into()?;
             let categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
-                .map(|x| (*x.0.id(), x.1))
+                .map(|x| (x.0.id, x.1))
                 .collect();
             transactions.push(Transaction::new(
                 transaction.id,
@@ -923,7 +923,7 @@ impl FinanceManager for SqliteFinanceManager {
             let transaction: Transaction = row?.try_into()?;
             let categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
-                .map(|x| (*x.0.id(), x.1))
+                .map(|x| (x.0.id, x.1))
                 .collect();
             transactions.push(Transaction::new(
                 transaction.id,
@@ -962,10 +962,13 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(Category::new(connection.last_insert_rowid() as Id, name))
     }
 
-    async fn update_category(&mut self, id: Id, name: String) -> Result<Category> {
+    async fn update_category(&mut self, category: Category) -> Result<Category> {
         let connection = self.connect().await;
-        connection.execute("UPDATE categories SET name=?1 WHERE id=?2", (&name, id))?;
-        Ok(Category::new(id, name))
+        connection.execute(
+            "UPDATE categories SET name=?1 WHERE id=?2",
+            (&category.name, category.id),
+        )?;
+        Ok(category)
     }
 
     async fn get_category(&self, id: Id) -> Result<Option<Category>> {
@@ -1050,7 +1053,7 @@ impl FinanceManager for SqliteFinanceManager {
             let transaction: Transaction = row?.try_into()?;
             let categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
-                .map(|x| (*x.0.id(), x.1))
+                .map(|x| (x.0.id, x.1))
                 .collect();
             transactions.push(Transaction::new(
                 transaction.id,

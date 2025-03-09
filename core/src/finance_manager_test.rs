@@ -76,15 +76,15 @@ pub async fn delete_category_test<T: FinanceManager>(mut fm: T) {
             None,
             DateTime::now_utc(),
             HashMap::new(),
-            [(*category.id(), Sign::Positive)].iter().cloned().collect(),
+            [(category.id, Sign::Positive)].iter().cloned().collect(),
         )
         .await
         .unwrap();
 
-    fm.delete_category(*category.id()).await.unwrap();
+    fm.delete_category(category.id).await.unwrap();
 
     // check if category is deleted
-    assert!(fm.get_category(*category.id()).await.unwrap().is_none());
+    assert!(fm.get_category(category.id).await.unwrap().is_none());
 
     // check if category is removed from transactions
     assert!(

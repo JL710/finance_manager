@@ -561,16 +561,12 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
-    async fn update_category(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-    ) -> Result<fm_core::Category> {
+    async fn update_category(&mut self, category: fm_core::Category) -> Result<fm_core::Category> {
         match self {
-            FinanceManagers::Server(client) => client.update_category(id, name).await,
+            FinanceManagers::Server(client) => client.update_category(category).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => sqlite.update_category(id, name).await,
-            FinanceManagers::Ram(ram) => ram.update_category(id, name).await,
+            FinanceManagers::Sqlite(sqlite) => sqlite.update_category(category).await,
+            FinanceManagers::Ram(ram) => ram.update_category(category).await,
         }
     }
 

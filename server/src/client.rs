@@ -305,12 +305,8 @@ impl fm_core::FinanceManager for Client {
         client_post_macro!(self.url, self.token.clone(), "create_category", name)
     }
 
-    async fn update_category(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-    ) -> Result<fm_core::Category> {
-        client_post_macro!(self.url, self.token.clone(), "update_category", (id, name))
+    async fn update_category(&mut self, category: fm_core::Category) -> Result<fm_core::Category> {
+        client_post_macro!(self.url, self.token.clone(), "update_category", category)
     }
 
     async fn get_category(&self, id: fm_core::Id) -> Result<Option<fm_core::Category>> {

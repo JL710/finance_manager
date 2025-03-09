@@ -194,9 +194,10 @@ impl View {
                     widget::button(
                         categories
                             .iter()
-                            .find(|x| x.id() == category.0)
+                            .find(|x| x.id == *category.0)
                             .unwrap()
-                            .name()
+                            .name
+                            .as_str()
                     )
                     .style(widget::button::text)
                     .on_press(Message::ViewCategory(*category.0)),

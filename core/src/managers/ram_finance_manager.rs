@@ -360,11 +360,9 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_category)
     }
 
-    async fn update_category(&mut self, id: Id, name: String) -> Result<Category> {
-        let new_category = Category { id, name };
-
+    async fn update_category(&mut self, new_category: Category) -> Result<Category> {
         for category in &mut self.categories {
-            if category.id == id {
+            if category.id == new_category.id {
                 *category = new_category.clone();
                 return Ok(new_category);
             }

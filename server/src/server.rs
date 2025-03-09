@@ -570,13 +570,13 @@ async fn create_category(
 
 async fn update_category(
     axum::extract::State(state): axum::extract::State<State>,
-    axum::extract::Json(data): axum::extract::Json<(fm_core::Id, String)>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Category>,
 ) -> Json<Value> {
     let category = state
         .finance_controller
         .lock()
         .await
-        .update_category(data.0, data.1)
+        .update_category(data)
         .await
         .unwrap();
     json!(category).into()

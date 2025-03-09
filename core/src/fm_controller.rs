@@ -563,13 +563,17 @@ where
             .context("Error while creating category")
     }
 
-    pub async fn update_category(&self, id: Id, name: String) -> Result<Category> {
+    pub async fn update_category(&self, category: Category) -> Result<Category> {
+        let category_id = category.id;
         self.finance_manager
             .lock()
             .await
-            .update_category(id, name)
+            .update_category(category)
             .await
-            .context(format!("Error while updating category with id {}", id))
+            .context(format!(
+                "Error while updating category with id {}",
+                category_id
+            ))
     }
 
     pub async fn delete_category(&self, id: Id) -> Result<()> {

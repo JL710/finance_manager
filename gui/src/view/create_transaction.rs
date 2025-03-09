@@ -325,13 +325,10 @@ impl View {
 
         let mut categories = utils::spaced_column![];
         for category in &self.available_categories {
-            let selected = self
-                .selected_categories
-                .iter()
-                .find(|x| x.0 == *category.id());
+            let selected = self.selected_categories.iter().find(|x| x.0 == category.id);
             categories = categories.push(utils::spal_row![
-                widget::checkbox(category.name(), selected.is_some())
-                    .on_toggle(move |_| { Message::SelectCategory(*category.id()) }),
+                widget::checkbox(&category.name, selected.is_some())
+                    .on_toggle(move |_| { Message::SelectCategory(category.id) }),
                 widget::checkbox(
                     "Negative",
                     if let Some(s) = selected {
@@ -342,7 +339,7 @@ impl View {
                 )
                 .on_toggle_maybe(selected.map(|s| |_| {
                     Message::ChangeSelectedCategorySign(
-                        *category.id(),
+                        category.id,
                         if s.1 == fm_core::Sign::Negative {
                             fm_core::Sign::Positive
                         } else {

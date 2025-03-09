@@ -64,8 +64,8 @@ impl View {
             }
             Message::CategoryCreated(id) => Action::CategoryCreated(id),
             Message::Initialize(category) => {
-                self.id = Some(*category.id());
-                self.name = category.name().to_string();
+                self.id = Some(category.id);
+                self.name = category.name;
                 Action::None
             }
             Message::NameInput(content) => {
@@ -79,11 +79,14 @@ impl View {
                 Action::Task(utils::failing_task(async move {
                     if let Some(id) = id {
                         Ok(Message::CategoryCreated(
-                            *finance_controller.update_category(id, name).await?.id(),
+                            finance_controller
+                                .update_category(fm_core::Category { id, name })
+                                .await?
+                                .id,
                         ))
                     } else {
                         Ok(Message::CategoryCreated(
-                            *finance_controller.create_category(name).await?.id(),
+                            finance_controller.create_category(name).await?.id,
                         ))
                     }
                 }))

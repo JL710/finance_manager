@@ -99,17 +99,14 @@ impl View {
                 if let Self::Loaded { category, .. } = self {
                     if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
                         .set_title("Delete category")
-                        .set_description(format!(
-                            "Do you really want to delete {}?",
-                            category.name()
-                        ))
+                        .set_description(format!("Do you really want to delete {}?", category.name))
                         .set_buttons(rfd::MessageButtons::YesNo)
                         .show()
                     {
                         return Action::None;
                     }
 
-                    let category_id = *category.id();
+                    let category_id = category.id;
                     Action::DeleteCategory(utils::failing_task(async move {
                         finance_controller.delete_category(category_id).await?;
                         Ok(())
@@ -120,7 +117,7 @@ impl View {
             }
             Message::Edit => {
                 if let Self::Loaded { category, .. } = self {
-                    Action::EditCategory(*category.id())
+                    Action::EditCategory(category.id)
                 } else {
                     Action::None
                 }
@@ -135,7 +132,7 @@ impl View {
                     timespan_input.perform(action);
 
                     let cloned_category = category.clone();
-                    let id = *category.id();
+                    let id = category.id;
                     let timespan = timespan_input.timespan();
 
                     Action::Task(utils::failing_task(async move {
@@ -182,7 +179,7 @@ impl View {
                 }
             }
             Message::Set(category, values, transactions, categories, budgets) => {
-                let category_id = *category.id();
+                let category_id = category.id;
                 *self = Self::Loaded {
                     category,
                     transaction_table: Box::new(utils::TransactionTable::new(
@@ -250,7 +247,7 @@ impl View {
                                     "0€".to_string()
                                 }),
                             ],
-                            widget::text(category.name().to_string()),
+                            category.name.as_str(),
                         ],
                         widget::Space::with_width(iced::Length::Fill),
                         utils::spaced_column![

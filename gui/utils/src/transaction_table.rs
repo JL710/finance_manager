@@ -323,7 +323,7 @@ fn get_category_text(
     let mut category_names = transaction
         .categories
         .iter()
-        .map(|x| categories.iter().find(|c| c.id() == x.0).unwrap().name())
+        .map(|x| &categories.iter().find(|c| c.id == *x.0).unwrap().name)
         .collect::<Vec<_>>();
     category_names.sort();
     let mut category_iter = category_names.into_iter();
@@ -344,12 +344,12 @@ fn category_popup(
 ) -> iced::Element<'static, Message> {
     let mut column = super::spaced_column![];
     for category in categories {
-        let category_id = *category.id();
+        let category_id = category.id;
         let transaction_category = transaction.categories.get(&category_id).copied();
         column = column.push(super::spal_row![
             widget::checkbox(
-                category.name(),
-                transaction.categories.contains_key(category.id())
+                &category.name,
+                transaction.categories.contains_key(&category.id)
             )
             .on_toggle(move |value| if value {
                 Message::SetCategory {
