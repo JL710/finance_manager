@@ -142,21 +142,8 @@ impl fm_core::FinanceManager for Client {
         )
     }
 
-    async fn update_bill(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-        description: Option<String>,
-        value: fm_core::Currency,
-        transactions: HashMap<fm_core::Id, fm_core::Sign>,
-        due_date: Option<fm_core::DateTime>,
-    ) -> Result<()> {
-        client_post_macro!(
-            self.url,
-            self.token.clone(),
-            "update_bill",
-            (id, name, description, value, transactions, due_date)
-        )
+    async fn update_bill(&mut self, bill: fm_core::Bill) -> Result<()> {
+        client_post_macro!(self.url, self.token.clone(), "update_bill", bill)
     }
 
     async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {

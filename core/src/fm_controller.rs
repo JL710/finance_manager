@@ -114,28 +114,21 @@ where
             .context(format!("Error while deleting bill with id {}", id))
     }
 
-    pub async fn update_bill(
-        &self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        value: Currency,
-        transactions: HashMap<Id, Sign>,
-        due_date: Option<DateTime>,
-    ) -> Result<()> {
-        let mut ids = Vec::with_capacity(transactions.len());
-        for transaction in &transactions {
+    pub async fn update_bill(&self, bill: Bill) -> Result<()> {
+        let mut ids = Vec::with_capacity(bill.transactions.len());
+        for transaction in &bill.transactions {
             if ids.contains(&transaction.0) {
                 anyhow::bail!("Bill cannot have a transaction twice")
             }
             ids.push(transaction.0);
         }
+        let bill_id = bill.id;
         self.finance_manager
             .lock()
             .await
-            .update_bill(id, name, description, value, transactions, due_date)
+            .update_bill(bill)
             .await
-            .context(format!("Error while updating bill with id {}", id))
+            .context(format!("Error while updating bill with id {}", bill_id))
     }
 
     pub async fn get_filtered_transactions(
@@ -433,17 +426,9 @@ where
 
     pub async fn delete_transaction(&self, id: Id) -> Result<()> {
         async move {
-            for bill in self.get_bills().await? {
-                if bill.transactions.iter().any(|(x, _)| *x == id) {
-                    self.update_bill(
-                        bill.id,
-                        bill.name,
-                        bill.description,
-                        bill.value,
-                        bill.transactions,
-                        bill.due_date,
-                    )
-                    .await?;
+            for mut bill in self.get_bills().await? {
+                if bill.transactions.remove(&id).is_some() {
+                    self.update_bill(bill).await?
                 }
             }
             self.finance_manager
@@ -719,5 +704,51 @@ mod test {
             .await
             .is_err()
         )
+    }
+
+    #[async_std::test]
+    async fn delete_transaction_in_bill_test() {
+        let fm = FMController::with_finance_manager(RamFinanceManager::new(()).unwrap());
+        let acc1 = fm
+            .create_asset_account(
+                "asset_acc".to_string(),
+                None,
+                None,
+                None,
+                Currency::default(),
+            )
+            .await
+            .unwrap();
+        let acc2 = fm
+            .create_book_checking_account("book_checking_acc".to_string(), None, None, None)
+            .await
+            .unwrap();
+        let t1 = fm
+            .create_transaction(
+                Currency::default(),
+                "t1".to_string(),
+                None,
+                acc1.id(),
+                acc2.id(),
+                None,
+                time::OffsetDateTime::now_utc(),
+                HashMap::default(),
+                HashMap::default(),
+            )
+            .await
+            .unwrap();
+        let bill = fm
+            .create_bill(
+                "test".to_string(),
+                None,
+                Currency::default(),
+                HashMap::from([(t1.id, Sign::Positive)]),
+                None,
+            )
+            .await
+            .unwrap();
+        fm.delete_transaction(t1.id).await.unwrap();
+        let new_bill = fm.get_bill(&bill.id).await.unwrap().unwrap();
+        assert!(new_bill.transactions.is_empty());
     }
 }

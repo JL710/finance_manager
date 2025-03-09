@@ -241,7 +241,14 @@ impl View {
                 if let Some(id) = id_option {
                     return Action::Task(utils::failing_task(async move {
                         finance_controller
-                            .update_bill(id, name, description, value, transactions, due_date)
+                            .update_bill(fm_core::Bill {
+                                id,
+                                name,
+                                description,
+                                value,
+                                transactions,
+                                due_date,
+                            })
                             .await?;
                         Ok(Message::BillCreated(id))
                     }));

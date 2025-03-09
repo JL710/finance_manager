@@ -218,31 +218,12 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
-    async fn update_bill(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-        description: Option<String>,
-        value: fm_core::Currency,
-        transactions: HashMap<fm_core::Id, fm_core::Sign>,
-        due_date: Option<fm_core::DateTime>,
-    ) -> Result<()> {
+    async fn update_bill(&mut self, bill: fm_core::Bill) -> Result<()> {
         match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .update_bill(id, name, description, value, transactions, due_date)
-                    .await
-            }
+            FinanceManagers::Server(client) => client.update_bill(bill).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .update_bill(id, name, description, value, transactions, due_date)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.update_bill(id, name, description, value, transactions, due_date)
-                    .await
-            }
+            FinanceManagers::Sqlite(sqlite) => sqlite.update_bill(bill).await,
+            FinanceManagers::Ram(ram) => ram.update_bill(bill).await,
         }
     }
 

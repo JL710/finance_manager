@@ -340,36 +340,28 @@ impl FinanceManager for SqliteFinanceManager {
         ))
     }
 
-    async fn update_bill(
-        &mut self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        value: Currency,
-        transactions: HashMap<Id, Sign>,
-        due_date: Option<DateTime>,
-    ) -> Result<()> {
+    async fn update_bill(&mut self, bill: Bill) -> Result<()> {
         let connection = self.connect().await;
 
         connection.execute(
             "UPDATE bill SET name=?1, description=?2, value=?3, value_currency=?4, due_date=?5 WHERE id=?6",
             (
-                &name,
-                description,
-                value.get_eur_num(),
-                value.get_currency_id(),
-                due_date.map(|x| x.unix_timestamp()),
-                id,
+                &bill.name,
+                bill.description,
+                bill.value.get_eur_num(),
+                bill.value.get_currency_id(),
+                bill.due_date.map(|x| x.unix_timestamp()),
+                bill.id,
             ),
         )?;
 
-        connection.execute("DELETE FROM bill_transaction WHERE bill_id=?1", (id,))?;
+        connection.execute("DELETE FROM bill_transaction WHERE bill_id=?1", (bill.id,))?;
 
-        for transaction_pair in &transactions {
+        for transaction_pair in &bill.transactions {
             connection.execute(
                 "INSERT INTO bill_transaction (bill_id, transaction_id, sign) VALUES (?1, ?2, ?3)",
                 (
-                    id,
+                    bill.id,
                     transaction_pair.0,
                     *transaction_pair.1 == Sign::Positive,
                 ),

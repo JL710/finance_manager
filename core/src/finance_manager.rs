@@ -80,15 +80,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         due_date: Option<DateTime>,
     ) -> impl Future<Output = Result<Bill>> + MaybeSend;
 
-    fn update_bill(
-        &mut self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        value: Currency,
-        transactions: HashMap<Id, Sign>,
-        due_date: Option<DateTime>,
-    ) -> impl Future<Output = Result<()>> + MaybeSend;
+    fn update_bill(&mut self, bill: Bill) -> impl Future<Output = Result<()>> + MaybeSend;
 
     fn get_bills(&self) -> impl Future<Output = Result<Vec<Bill>>> + MaybeSend;
 
@@ -189,6 +181,7 @@ pub trait FinanceManager: Send + Clone + Sized {
     fn get_budget(&self, id: Id) -> impl Future<Output = Result<Option<Budget>>> + MaybeSend;
 
     /// This function should only delete the transaction it self.
+    /// All connections to other objects should be removed before calling this function.
     fn delete_transaction(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
 
     fn get_transactions_in_timespan(

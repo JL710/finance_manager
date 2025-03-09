@@ -112,22 +112,10 @@ impl FinanceManager for RamFinanceManager {
         Ok(new_bill)
     }
 
-    async fn update_bill(
-        &mut self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        value: Currency,
-        transactions: HashMap<Id, Sign>,
-        due_date: Option<DateTime>,
-    ) -> Result<()> {
+    async fn update_bill(&mut self, new_bill: Bill) -> Result<()> {
         for bill in &mut self.bills {
-            if bill.id == id {
-                bill.name = name;
-                bill.description = description;
-                bill.value = value;
-                bill.transactions = transactions;
-                bill.due_date = due_date;
+            if bill.id == new_bill.id {
+                *bill = new_bill;
                 return Ok(());
             }
         }

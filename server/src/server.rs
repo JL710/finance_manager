@@ -689,20 +689,13 @@ async fn delete_bill(
 #[allow(clippy::type_complexity)]
 async fn update_bill(
     axum::extract::State(state): axum::extract::State<State>,
-    axum::extract::Json(data): axum::extract::Json<(
-        fm_core::Id,
-        String,
-        Option<String>,
-        fm_core::Currency,
-        HashMap<fm_core::Id, fm_core::Sign>,
-        Option<fm_core::DateTime>,
-    )>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Bill>,
 ) -> Json<Value> {
     state
         .finance_controller
         .lock()
         .await
-        .update_bill(data.0, data.1, data.2, data.3, data.4, data.5)
+        .update_bill(data)
         .await
         .unwrap();
     json!(()).into()
