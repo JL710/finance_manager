@@ -118,7 +118,7 @@ impl View {
                                 .unwrap_or_default()
                                 .cmp(&b.0.description.clone().unwrap_or_default())
                         }
-                        3 => a.0.amount.cmp(&b.0.amount),
+                        3 => a.0.amount().cmp(b.0.amount()),
                         4 => a.0.date.cmp(&b.0.date),
                         5 => a.0.source.cmp(&b.0.source),
                         6 => a.0.destination.cmp(&b.0.destination),
@@ -233,7 +233,7 @@ impl View {
                                 .into(),
                             widget::text(transaction.description.clone().unwrap_or(String::new()))
                                 .into(),
-                            widget::text!("{}€", transaction.amount.to_num_string()).into(),
+                            widget::text!("{}€", transaction.amount().to_num_string()).into(),
                             widget::text(utils::date_time::to_date_string(transaction.date)).into(),
                             widget::text(
                                 accounts

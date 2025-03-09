@@ -1,10 +1,13 @@
+use anyhow::Result;
+
 use super::{Currency, DateTime, Id, Sign};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Transaction {
     pub id: Id,
-    pub amount: Currency, // if amount is positive the money is added to the account. If negative it is removed
+    /// This shall only be positive
+    amount: Currency,
     pub title: String,
     pub description: Option<String>,
     pub source: Id,
@@ -24,7 +27,7 @@ impl PartialEq for Transaction {
 impl Transaction {
     #[allow(clippy::too_many_arguments)]
     #[allow(unused)]
-    pub(super) fn new(
+    pub fn new(
         id: Id,
         amount: Currency,
         title: String,
@@ -35,8 +38,11 @@ impl Transaction {
         date: DateTime,
         metadata: HashMap<String, String>,
         categories: HashMap<Id, Sign>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        if amount.get_eur_num().is_sign_negative() {
+            anyhow::bail!("Amount of transaction cannot be negative")
+        }
+        Ok(Self {
             id,
             amount,
             title,
@@ -47,7 +53,11 @@ impl Transaction {
             date,
             metadata,
             categories,
-        }
+        })
+    }
+
+    pub fn amount(&self) -> &Currency {
+        &self.amount
     }
 
     pub(super) fn connection_with_account(&self, account: Id) -> bool {

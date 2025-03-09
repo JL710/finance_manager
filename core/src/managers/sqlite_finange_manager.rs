@@ -28,7 +28,7 @@ impl TryInto<Transaction> for TransactionSignature {
     type Error = anyhow::Error;
 
     fn try_into(self) -> Result<Transaction> {
-        Ok(Transaction::new(
+        Transaction::new(
             self.0,
             Currency::from_currency_id(self.2, BigDecimal::from_f64(self.1).unwrap())?,
             self.3,
@@ -48,7 +48,7 @@ impl TryInto<Transaction> for TransactionSignature {
             DateTime::from_unix_timestamp(self.9).unwrap(),
             serde_json::from_str(&self.10)?,
             HashMap::new(),
-        ))
+        )
     }
 }
 
@@ -479,23 +479,12 @@ impl FinanceManager for SqliteFinanceManager {
                 ))
             },
         )?;
-        let categories = get_categories_of_transaction(&connection, result.0)?
+        let mut transaction: Transaction = result.try_into()?;
+        transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
             .iter()
             .map(|x| (x.0.id, x.1))
             .collect();
-        let transaction: Transaction = result.try_into()?;
-        Ok(Some(Transaction::new(
-            transaction.id,
-            transaction.amount,
-            transaction.title,
-            transaction.description,
-            transaction.source,
-            transaction.destination,
-            transaction.budget,
-            transaction.date,
-            transaction.metadata,
-            categories,
-        )))
+        Ok(Some(transaction))
     }
 
     async fn get_transactions_of_account(
@@ -550,23 +539,12 @@ impl FinanceManager for SqliteFinanceManager {
         let mut transactions: Vec<Transaction> = Vec::new();
 
         for row in result {
-            let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_transaction(&connection, transaction.id)?
+            let mut transaction: Transaction = row?.try_into()?;
+            transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (x.0.id, x.1))
                 .collect();
-            transactions.push(Transaction::new(
-                transaction.id,
-                transaction.amount,
-                transaction.title,
-                transaction.description,
-                transaction.source,
-                transaction.destination,
-                transaction.budget,
-                transaction.date,
-                transaction.metadata,
-                categories,
-            ));
+            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -623,7 +601,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         set_categories_for_transaction(&connection, transaction_id as Id, &categories)?; // set categories for transaction
 
-        Ok(Transaction::new(
+        Transaction::new(
             transaction_id as Id,
             amount,
             title,
@@ -634,7 +612,7 @@ impl FinanceManager for SqliteFinanceManager {
             date,
             metadata,
             categories,
-        ))
+        )
     }
 
     async fn create_budget(
@@ -737,8 +715,8 @@ impl FinanceManager for SqliteFinanceManager {
         connection.execute(
             "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, budget_sign=?8, timestamp=?9, metadata=?10 WHERE id=?11", 
             (
-                transaction.amount.get_eur_num(),
-                transaction.amount.get_currency_id(),
+                transaction.amount().get_eur_num(),
+                transaction.amount().get_currency_id(),
                 &transaction.title,
                 &transaction.description,
                 transaction.source,
@@ -822,23 +800,12 @@ impl FinanceManager for SqliteFinanceManager {
         let mut transactions: Vec<Transaction> = Vec::new();
 
         for row in result {
-            let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_transaction(&connection, transaction.id)?
+            let mut transaction: Transaction = row?.try_into()?;
+            transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (x.0.id, x.1))
                 .collect();
-            transactions.push(Transaction::new(
-                transaction.id,
-                transaction.amount,
-                transaction.title,
-                transaction.description,
-                transaction.source,
-                transaction.destination,
-                transaction.budget,
-                transaction.date,
-                transaction.metadata,
-                categories,
-            ));
+            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -925,23 +892,12 @@ impl FinanceManager for SqliteFinanceManager {
         let mut transactions: Vec<Transaction> = Vec::new();
 
         for row in result {
-            let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_transaction(&connection, transaction.id)?
+            let mut transaction: Transaction = row?.try_into()?;
+            transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (x.0.id, x.1))
                 .collect();
-            transactions.push(Transaction::new(
-                transaction.id,
-                transaction.amount,
-                transaction.title,
-                transaction.description,
-                transaction.source,
-                transaction.destination,
-                transaction.budget,
-                transaction.date,
-                transaction.metadata,
-                categories,
-            ));
+            transactions.push(transaction);
         }
 
         Ok(transactions)
@@ -1055,23 +1011,12 @@ impl FinanceManager for SqliteFinanceManager {
         let mut transactions: Vec<Transaction> = Vec::new();
 
         for row in result {
-            let transaction: Transaction = row?.try_into()?;
-            let categories = get_categories_of_transaction(&connection, transaction.id)?
+            let mut transaction: Transaction = row?.try_into()?;
+            transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (x.0.id, x.1))
                 .collect();
-            transactions.push(Transaction::new(
-                transaction.id,
-                transaction.amount,
-                transaction.title,
-                transaction.description,
-                transaction.source,
-                transaction.destination,
-                transaction.budget,
-                transaction.date,
-                transaction.metadata,
-                categories,
-            ));
+            transactions.push(transaction);
         }
 
         Ok(transactions)

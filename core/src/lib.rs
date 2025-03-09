@@ -189,8 +189,8 @@ pub fn sum_up_transactions_by_day(
     for transaction in transactions {
         let sign = (sign_f)(&transaction);
         let mut amount = match sign {
-            Sign::Positive => transaction.amount,
-            Sign::Negative => transaction.amount.negative(),
+            Sign::Positive => transaction.amount().clone(),
+            Sign::Negative => transaction.amount().negative(),
         };
         let date_with_offset = transaction.date.replace_time(time::Time::MIDNIGHT);
         // if it is not the first value only add it

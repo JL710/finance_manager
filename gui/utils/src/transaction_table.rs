@@ -90,22 +90,26 @@ impl TransactionTable {
                     0 => a.0.title.cmp(&b.0.title),
                     1 => a.0.date.cmp(&b.0.date),
                     2 => {
-                        let a =
-                            (amount_positive)(a.0.clone()).map_or(a.0.amount.clone(), |positive| {
+                        let a = (amount_positive)(a.0.clone()).map_or(
+                            a.0.amount().clone(),
+                            |positive| {
                                 if positive {
-                                    a.0.amount.clone()
+                                    a.0.amount().clone()
                                 } else {
-                                    a.0.amount.negative()
+                                    a.0.amount().negative()
                                 }
-                            });
-                        let b =
-                            (amount_positive)(b.0.clone()).map_or(b.0.amount.clone(), |positive| {
+                            },
+                        );
+                        let b = (amount_positive)(b.0.clone()).map_or(
+                            b.0.amount().clone(),
+                            |positive| {
                                 if positive {
-                                    b.0.amount.clone()
+                                    b.0.amount().clone()
                                 } else {
-                                    b.0.amount.negative()
+                                    b.0.amount().negative()
                                 }
-                            });
+                            },
+                        );
                         a.cmp(&b)
                     }
                     3 => a.1.name().cmp(b.1.name()),
@@ -256,9 +260,11 @@ impl TransactionTable {
                             .into(),
                         widget::text(super::date_time::to_date_string(transaction.date)).into(),
                         match (self.amount_positive)(transaction.clone()) {
-                            Some(true) => colored_currency_display(&transaction.amount),
-                            Some(false) => colored_currency_display(&transaction.amount.negative()),
-                            None => widget::text(transaction.amount.to_string()).into(),
+                            Some(true) => colored_currency_display(transaction.amount()),
+                            Some(false) => {
+                                colored_currency_display(&transaction.amount().negative())
+                            }
+                            None => widget::text(transaction.amount().to_string()).into(),
                         },
                         link(widget::text(source.to_string().clone()))
                             .on_press(Message::ViewAccount(*source.id()))

@@ -259,7 +259,7 @@ impl FinanceManager for RamFinanceManager {
             date,
             metadata,
             categories,
-        );
+        )?;
 
         self.transactions.push(new_transaction.clone());
 

@@ -269,7 +269,7 @@ impl View {
                 let init_existing = *init;
                 self.id = Some(init_existing.transaction.id);
                 self.amount_input =
-                    utils::currency_input::State::new(init_existing.transaction.amount);
+                    utils::currency_input::State::new(init_existing.transaction.amount().clone());
                 self.title_input
                     .clone_from(&init_existing.transaction.title);
                 self.description_input = widget::text_editor::Content::with_text(
@@ -528,18 +528,18 @@ impl View {
             Ok(match option_id {
                 Some(id) => {
                     finance_controller
-                        .update_transaction(fm_core::Transaction {
+                        .update_transaction(fm_core::Transaction::new(
                             id,
                             amount,
                             title,
                             description,
-                            source: source_id,
-                            destination: destination_id,
+                            source_id,
+                            destination_id,
                             budget,
                             date,
                             metadata,
                             categories,
-                        })
+                        )?)
                         .await?
                 }
                 _ => {

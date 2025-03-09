@@ -269,6 +269,7 @@ mod test {
             HashMap::new(),
             HashMap::new(),
         )
+        .unwrap()
     }
 
     fn generate_transaction_with_budget(id: Id, budget: Option<Id>) -> Transaction {
@@ -284,6 +285,7 @@ mod test {
             HashMap::new(),
             HashMap::new(),
         )
+        .unwrap()
     }
 
     fn generate_advanced_transaction(
@@ -305,6 +307,7 @@ mod test {
             HashMap::new(),
             categories,
         )
+        .unwrap()
     }
 
     fn generate_test_transactions_1() -> Vec<Transaction> {
@@ -852,7 +855,8 @@ mod test {
             time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:30)),
             HashMap::default(),
             HashMap::from([(1, Sign::Positive)]),
-        );
+        )
+        .unwrap();
         let t2 = Transaction::new(
             2,
             Currency::default(),
@@ -864,7 +868,8 @@ mod test {
             time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(11:30)),
             HashMap::default(),
             HashMap::from([(1, Sign::Positive)]),
-        );
+        )
+        .unwrap();
         let t3 = Transaction::new(
             3,
             Currency::default(),
@@ -876,7 +881,8 @@ mod test {
             time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:50)),
             HashMap::default(),
             HashMap::from([(1, Sign::Positive)]),
-        );
+        )
+        .unwrap();
 
         let filter = TransactionFilter::default().push_category(Filter {
             negated: false,

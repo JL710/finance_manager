@@ -45,8 +45,8 @@ async fn do_action(
                 println!(
                     "Title: {}\nDescription: {}\nValue: {}\nDate: {}\n\nSource: \n{}\n\nDestination: \n{}\n",
                     transaction.title,
-                    transaction.description.unwrap_or_default(),
-                    transaction.amount,
+                    transaction.description.as_ref().unwrap_or(&String::new()),
+                    transaction.amount(),
                     transaction
                         .date
                         .to_offset(fm_core::get_local_timezone().unwrap())
@@ -71,8 +71,8 @@ async fn do_action(
                         Ok(format!(
                             "Title: {}\nDescription: {}\nValue: {}\nDate: {}\n\nSource: {}\n\nDestination: {}\n",
                             transaction.title,
-                            transaction.description.unwrap_or_default(),
-                            transaction.amount,
+                            transaction.description.as_ref().unwrap_or(&String::new()),
+                            transaction.amount(),
                             transaction.date.to_offset(fm_core::get_local_timezone().unwrap()).format(&time::format_description::parse("[day].[month].[year]")?)?,
                             format_account(&source),
                             format_account(&destination)

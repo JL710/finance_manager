@@ -73,7 +73,7 @@ impl View {
                             _ => std::cmp::Ordering::Equal,
                         },
                         2 => a.0.title.cmp(&b.0.title),
-                        3 => a.0.amount.cmp(&b.0.amount),
+                        3 => a.0.amount().cmp(b.0.amount()),
                         4 => a.0.date.cmp(&b.0.date),
                         5 => a.0.source.cmp(&b.0.source),
                         6 => a.0.destination.cmp(&b.0.destination),
@@ -131,7 +131,7 @@ impl View {
                                 _ => std::cmp::Ordering::Equal,
                             },
                             2 => a.0.title.cmp(&b.0.title),
-                            3 => a.0.amount.cmp(&b.0.amount),
+                            3 => a.0.amount().cmp(b.0.amount()),
                             4 => a.0.date.cmp(&b.0.date),
                             5 => a.0.source.cmp(&b.0.source),
                             6 => a.0.destination.cmp(&b.0.destination),
@@ -374,9 +374,9 @@ impl View {
                                 widget::text(transaction.title.clone()).into(),
                                 utils::colored_currency_display(
                                     &(if *sign == fm_core::Sign::Negative {
-                                        transaction.amount.negative()
+                                        transaction.amount().negative()
                                     } else {
-                                        transaction.amount.clone()
+                                        transaction.amount().clone()
                                     }),
                                 ),
                                 widget::text(utils::date_time::to_date_string(transaction.date))
@@ -474,7 +474,7 @@ mod add_transaction {
                 table: utils::table_view::State::new(transactions, accounts)
                     .sort_by(|a, b, column| match column {
                         1 => a.title.cmp(&b.title),
-                        2 => a.amount.cmp(&b.amount),
+                        2 => a.amount().cmp(b.amount()),
                         3 => a.date.cmp(&b.date),
                         4 => a.source.cmp(&b.source),
                         5 => a.destination.cmp(&b.destination),
@@ -605,7 +605,7 @@ mod add_transaction {
                             [
                                 utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
                                 widget::text(x.title.clone()).into(),
-                                widget::text(x.amount.to_num_string()).into(),
+                                widget::text(x.amount().to_num_string()).into(),
                                 widget::text(utils::date_time::to_date_string(x.date)).into(),
                                 widget::text(
                                     accounts

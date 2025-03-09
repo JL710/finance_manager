@@ -140,6 +140,42 @@ impl std::ops::SubAssign for Currency {
     }
 }
 
+impl std::ops::Add<&Currency> for Currency {
+    type Output = Currency;
+
+    fn add(self, other: &Currency) -> Self::Output {
+        match self {
+            Currency::Eur(value) => match other {
+                Currency::Eur(other_value) => Currency::Eur(value + other_value),
+            },
+        }
+    }
+}
+
+impl std::ops::Sub<&Currency> for Currency {
+    type Output = Currency;
+
+    fn sub(self, other: &Currency) -> Self::Output {
+        match self {
+            Currency::Eur(value) => match other {
+                Currency::Eur(other_value) => Currency::Eur(value - other_value),
+            },
+        }
+    }
+}
+
+impl std::ops::AddAssign<&Currency> for Currency {
+    fn add_assign(&mut self, rhs: &Self) {
+        *self = self.clone() + rhs;
+    }
+}
+
+impl std::ops::SubAssign<&Currency> for Currency {
+    fn sub_assign(&mut self, rhs: &Self) {
+        *self = self.clone() - rhs;
+    }
+}
+
 impl From<f64> for Currency {
     fn from(value: f64) -> Self {
         Currency::Eur(BigDecimal::from_f64(value).unwrap())

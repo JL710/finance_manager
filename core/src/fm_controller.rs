@@ -50,8 +50,8 @@ where
                         .get(&transaction.id)
                         .context(format!("Could not find transaction {}", transaction.id))?
                     {
-                        Sign::Positive => sum += transaction.amount,
-                        Sign::Negative => sum -= transaction.amount,
+                        Sign::Positive => sum += transaction.amount(),
+                        Sign::Negative => sum -= transaction.amount(),
                     }
                 }
                 Ok::<_, anyhow::Error>(sum)
@@ -319,7 +319,7 @@ where
     pub async fn update_transaction(&self, transaction: Transaction) -> Result<Transaction> {
         let t_id = transaction.id;
         async {
-            if transaction.amount.get_eur_num() < 0.0 {
+            if transaction.amount().get_eur_num() < 0.0 {
                 anyhow::bail!("Amount must be positive")
             }
             self.finance_manager
@@ -515,8 +515,8 @@ where
         for transaction in transactions {
             let sign = transaction.budget.unwrap().1;
             match sign {
-                Sign::Positive => sum += transaction.amount,
-                Sign::Negative => sum -= transaction.amount,
+                Sign::Positive => sum += transaction.amount(),
+                Sign::Negative => sum -= transaction.amount(),
             }
         }
         Ok(sum)
