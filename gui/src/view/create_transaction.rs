@@ -531,18 +531,18 @@ impl View {
             Ok(match option_id {
                 Some(id) => {
                     finance_controller
-                        .update_transaction(
+                        .update_transaction(fm_core::Transaction {
                             id,
                             amount,
                             title,
                             description,
-                            source_id,
-                            destination_id,
+                            source: source_id,
+                            destination: destination_id,
                             budget,
                             date,
                             metadata,
                             categories,
-                        )
+                        })
                         .await?
                 }
                 _ => {

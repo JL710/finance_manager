@@ -324,42 +324,20 @@ where
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub async fn update_transaction(
-        &self,
-        id: Id,
-        amount: Currency,
-        title: String,
-        description: Option<String>,
-        source: Id,
-        destination: Id,
-        budget: Option<(Id, Sign)>,
-        date: DateTime,
-        metadata: HashMap<String, String>,
-        categories: HashMap<Id, Sign>,
-    ) -> Result<Transaction> {
+    pub async fn update_transaction(&self, transaction: Transaction) -> Result<Transaction> {
+        let t_id = transaction.id;
         async {
-            if amount.get_eur_num() < 0.0 {
+            if transaction.amount.get_eur_num() < 0.0 {
                 anyhow::bail!("Amount must be positive")
             }
             self.finance_manager
                 .lock()
                 .await
-                .update_transaction(
-                    id,
-                    amount,
-                    title,
-                    description,
-                    source,
-                    destination,
-                    budget,
-                    date,
-                    metadata,
-                    categories,
-                )
+                .update_transaction(transaction)
                 .await
         }
         .await
-        .context(format!("Error while updating transaction with id {}", id))
+        .context(format!("Error while updating transaction with id {}", t_id))
     }
 
     pub async fn create_book_checking_account(
@@ -675,7 +653,7 @@ where
         id: Id,
         categories: HashMap<Id, Sign>,
     ) -> Result<Transaction> {
-        let transaction = self
+        let mut transaction = self
             .get_transaction(id)
             .await
             .context(format!(
@@ -683,20 +661,8 @@ where
                 id
             ))?
             .unwrap();
-        self.update_transaction(
-            transaction.id,
-            transaction.amount,
-            transaction.title,
-            transaction.description,
-            transaction.source,
-            transaction.destination,
-            transaction.budget,
-            transaction.date,
-            transaction.metadata,
-            categories,
-        )
-        .await
-        .context(format!(
+        transaction.categories = categories;
+        self.update_transaction(transaction).await.context(format!(
             "Error while updating categories for transaction with id {}",
             id
         ))

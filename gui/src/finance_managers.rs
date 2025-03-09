@@ -613,66 +613,13 @@ impl fm_core::FinanceManager for FinanceManagers {
 
     async fn update_transaction(
         &mut self,
-        id: fm_core::Id,
-        amount: fm_core::Currency,
-        title: String,
-        description: Option<String>,
-        source: fm_core::Id,
-        destination: fm_core::Id,
-        budget: Option<(fm_core::Id, fm_core::Sign)>,
-        date: fm_core::DateTime,
-        metadata: std::collections::HashMap<String, String>,
-        categories: HashMap<fm_core::Id, fm_core::Sign>,
+        transaction: fm_core::Transaction,
     ) -> Result<fm_core::Transaction> {
         match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .update_transaction(
-                        id,
-                        amount,
-                        title,
-                        description,
-                        source,
-                        destination,
-                        budget,
-                        date,
-                        metadata,
-                        categories,
-                    )
-                    .await
-            }
+            FinanceManagers::Server(client) => client.update_transaction(transaction).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .update_transaction(
-                        id,
-                        amount,
-                        title,
-                        description,
-                        source,
-                        destination,
-                        budget,
-                        date,
-                        metadata,
-                        categories,
-                    )
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.update_transaction(
-                    id,
-                    amount,
-                    title,
-                    description,
-                    source,
-                    destination,
-                    budget,
-                    date,
-                    metadata,
-                    categories,
-                )
-                .await
-            }
+            FinanceManagers::Sqlite(sqlite) => sqlite.update_transaction(transaction).await,
+            FinanceManagers::Ram(ram) => ram.update_transaction(transaction).await,
         }
     }
 }

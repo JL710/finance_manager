@@ -162,16 +162,7 @@ pub trait FinanceManager: Send + Clone + Sized {
     #[allow(clippy::too_many_arguments)]
     fn update_transaction(
         &mut self,
-        id: Id,
-        amount: Currency,
-        title: String,
-        description: Option<String>,
-        source: Id,
-        destination: Id,
-        budget: Option<(Id, Sign)>,
-        date: DateTime,
-        metadata: HashMap<String, String>,
-        categories: HashMap<Id, Sign>,
+        transaction: Transaction,
     ) -> impl Future<Output = Result<Transaction>> + MaybeSend;
 
     fn create_budget(

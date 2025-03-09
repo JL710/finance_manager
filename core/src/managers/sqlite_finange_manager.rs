@@ -742,40 +742,29 @@ impl FinanceManager for SqliteFinanceManager {
         }
     }
 
-    async fn update_transaction(
-        &mut self,
-        id: Id,
-        amount: Currency,
-        title: String,
-        description: Option<String>,
-        source: Id,
-        destination: Id,
-        budget: Option<(Id, Sign)>,
-        date: DateTime,
-        metadata: HashMap<String, String>,
-        categories: HashMap<Id, Sign>,
-    ) -> Result<Transaction> {
+    async fn update_transaction(&mut self, transaction: Transaction) -> Result<Transaction> {
         let connection = self.connect().await;
 
         connection.execute(
             "UPDATE transactions SET amount_value=?1, currency=?2, title=?3, description=?4, source_id=?5, destination_id=?6, budget=?7, budget_sign=?8, timestamp=?9, metadata=?10 WHERE id=?11", 
-            (amount.get_eur_num(), amount.get_currency_id(), &title, &description, source, destination, budget.map(|x| x.0), budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}), date.unix_timestamp(), serde_json::to_string(&metadata)?, id)
+            (
+                transaction.amount.get_eur_num(),
+                transaction.amount.get_currency_id(),
+                &transaction.title,
+                &transaction.description,
+                transaction.source,
+                transaction.destination,
+                transaction.budget.map(|x| x.0),
+                transaction.budget.map(|x| match x.1 {Sign::Positive => true, Sign::Negative => false}),
+                transaction.date.unix_timestamp(),
+                serde_json::to_string(&transaction.metadata)?,
+                transaction.id
+            )
         )?;
 
-        set_categories_for_transaction(&connection, id, &categories)?; // set categories for transaction
+        set_categories_for_transaction(&connection, transaction.id, &transaction.categories)?; // set categories for transaction
 
-        Ok(Transaction::new(
-            id,
-            amount,
-            title,
-            description,
-            source,
-            destination,
-            budget,
-            date,
-            metadata,
-            categories,
-        ))
+        Ok(transaction)
     }
 
     async fn delete_transaction(&mut self, id: Id) -> Result<()> {

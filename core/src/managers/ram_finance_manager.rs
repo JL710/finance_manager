@@ -285,33 +285,9 @@ impl FinanceManager for RamFinanceManager {
         }
     }
 
-    async fn update_transaction(
-        &mut self,
-        id: Id,
-        amount: Currency,
-        title: String,
-        description: Option<String>,
-        source: Id,
-        destination: Id,
-        budget: Option<(Id, Sign)>,
-        date: DateTime,
-        metadata: HashMap<String, String>,
-        categories: HashMap<Id, Sign>,
-    ) -> Result<Transaction> {
-        let new_transaction = Transaction::new(
-            id,
-            amount,
-            title,
-            description,
-            source,
-            destination,
-            budget,
-            date,
-            metadata,
-            categories,
-        );
+    async fn update_transaction(&mut self, new_transaction: Transaction) -> Result<Transaction> {
         for transaction in &mut self.transactions {
-            if transaction.id == id {
+            if transaction.id == new_transaction.id {
                 *transaction = new_transaction.clone();
                 return Ok(new_transaction);
             }

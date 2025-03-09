@@ -225,6 +225,42 @@ pub async fn get_transactions_timespan_test<T: FinanceManager>(mut fm: T) {
     assert!(result.iter().any(|x| x.id == t3.id));
 }
 
+pub async fn update_transaction_test<T: FinanceManager>(mut fm: T) {
+    let acc1 = fm
+        .create_asset_account(
+            "asset_acc".to_string(),
+            None,
+            None,
+            None,
+            Currency::default(),
+        )
+        .await
+        .unwrap();
+    let acc2 = fm
+        .create_book_checking_account("book_checking_acc".to_string(), None, None, None)
+        .await
+        .unwrap();
+
+    let mut transaction = fm
+        .create_transaction(
+            Currency::default(),
+            "t1".to_string(),
+            None,
+            acc1.id(),
+            acc2.id(),
+            None,
+            time::OffsetDateTime::now_utc(),
+            HashMap::default(),
+            HashMap::default(),
+        )
+        .await
+        .unwrap();
+    transaction.title = String::from("Changed Name");
+    fm.update_transaction(transaction.clone()).await.unwrap();
+    let fetched_transaction = fm.get_transaction(transaction.id).await.unwrap().unwrap();
+    assert_eq!(fetched_transaction, transaction);
+}
+
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! unit_tests {
@@ -259,6 +295,11 @@ macro_rules! unit_tests {
         #[async_std::test]
         async fn get_transactions_timespan() {
             ($runner)(get_transactions_timespan_test).await;
+        }
+
+        #[async_std::test]
+        async fn update_transaction() {
+            ($runner)(update_transaction_test).await;
         }
     };
 }

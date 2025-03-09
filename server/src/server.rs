@@ -461,26 +461,13 @@ async fn get_budget(
 #[allow(clippy::type_complexity)]
 async fn update_transaction(
     axum::extract::State(state): axum::extract::State<State>,
-    axum::extract::Json(data): axum::extract::Json<(
-        fm_core::Id,
-        fm_core::Currency,
-        String,
-        Option<String>,
-        fm_core::Id,
-        fm_core::Id,
-        Option<(fm_core::Id, fm_core::Sign)>,
-        fm_core::DateTime,
-        std::collections::HashMap<String, String>,
-        HashMap<fm_core::Id, fm_core::Sign>,
-    )>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Transaction>,
 ) -> Json<Value> {
     let transaction = state
         .finance_controller
         .lock()
         .await
-        .update_transaction(
-            data.0, data.1, data.2, data.3, data.4, data.5, data.6, data.7, data.8, data.9,
-        )
+        .update_transaction(data)
         .await
         .unwrap();
     json!(transaction).into()

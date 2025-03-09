@@ -280,33 +280,13 @@ impl fm_core::FinanceManager for Client {
 
     async fn update_transaction(
         &mut self,
-        id: fm_core::Id,
-        amount: fm_core::Currency,
-        title: String,
-        description: Option<String>,
-        source: fm_core::Id,
-        destination: fm_core::Id,
-        budget: Option<(fm_core::Id, fm_core::Sign)>,
-        date: fm_core::DateTime,
-        metadata: std::collections::HashMap<String, String>,
-        categories: HashMap<fm_core::Id, fm_core::Sign>,
+        transaction: fm_core::Transaction,
     ) -> Result<fm_core::Transaction> {
         client_post_macro!(
             self.url,
             self.token.clone(),
             "update_transaction",
-            (
-                id,
-                amount,
-                title,
-                description,
-                source,
-                destination,
-                budget,
-                date,
-                metadata,
-                categories
-            )
+            transaction
         )
     }
 
