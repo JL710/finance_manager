@@ -51,7 +51,7 @@ impl FilterComponent {
         let mut accounts = accounts;
         accounts.sort_by(|a, b| a.name().cmp(b.name()));
         let mut bills = bills.into_iter().map(Arc::new).collect::<Vec<_>>();
-        bills.sort_by(|a, b| a.name().cmp(b.name()));
+        bills.sort_by(|a, b| a.name.cmp(&b.name));
         let mut budgets = budgets;
         budgets.sort_by(|a, b| a.name().cmp(b.name()));
         Self {

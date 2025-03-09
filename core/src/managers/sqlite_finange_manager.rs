@@ -392,18 +392,10 @@ impl FinanceManager for SqliteFinanceManager {
             .collect();
 
         for bill_result in bills_result {
-            let bill: Bill = bill_result?.try_into()?;
+            let mut bill: Bill = bill_result?.try_into()?;
 
-            let transactions = get_transactions_of_bill(&connection, *bill.id())?;
-
-            bills.push(Bill::new(
-                *bill.id(),
-                bill.name().clone(),
-                bill.description().clone(),
-                bill.value().clone(),
-                transactions,
-                *bill.due_date(),
-            ));
+            bill.transactions = get_transactions_of_bill(&connection, bill.id)?;
+            bills.push(bill);
         }
 
         Ok(bills)

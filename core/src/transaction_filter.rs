@@ -185,11 +185,11 @@ impl TransactionFilter {
                 .iter()
                 .filter(|bill_filter| {
                     if let Some(id) = &bill_filter.id {
-                        id.transactions().contains_key(&transaction.id) != bill_filter.negated
+                        id.transactions.contains_key(&transaction.id) != bill_filter.negated
                     } else {
                         let mut transaction_in_a_bill = false;
                         for bill in bills {
-                            if bill.transactions().contains_key(&transaction.id) {
+                            if bill.transactions.contains_key(&transaction.id) {
                                 transaction_in_a_bill = true;
                                 break;
                             }

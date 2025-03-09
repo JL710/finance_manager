@@ -157,7 +157,7 @@ impl View {
                 let mut transactions = Vec::new();
 
                 if let Some(existing_bill) = &bill {
-                    for (transaction_id, sign) in existing_bill.transactions() {
+                    for (transaction_id, sign) in &existing_bill.transactions {
                         transactions.push((
                             finance_controller
                                 .get_transaction(*transaction_id)
@@ -193,14 +193,14 @@ impl View {
             }
             Message::Initialize(bill, transactions, accounts) => {
                 if let Some(bill) = bill {
-                    self.id = Some(*bill.id());
-                    bill.name().clone_into(&mut self.name_input);
+                    self.id = Some(bill.id);
+                    bill.name.clone_into(&mut self.name_input);
                     self.description_input = widget::text_editor::Content::with_text(
-                        &bill.description().clone().unwrap_or_default(),
+                        &bill.description.unwrap_or_default(),
                     );
-                    self.value = utils::currency_input::State::new(bill.value().clone());
+                    self.value = utils::currency_input::State::new(bill.value);
                     self.due_date_input =
-                        utils::date_time::date_time_input::State::new(*bill.due_date());
+                        utils::date_time::date_time_input::State::new(bill.due_date);
                 }
                 self.transactions = transactions.clone();
                 self.transaction_table.set_items(transactions);
@@ -250,7 +250,7 @@ impl View {
                         let bill = finance_controller
                             .create_bill(name, description, value, transactions, due_date)
                             .await?;
-                        Ok(Message::BillCreated(*bill.id()))
+                        Ok(Message::BillCreated(bill.id))
                     }));
                 }
             }

@@ -60,7 +60,7 @@ impl View {
                 let bill_sum = finance_controller.get_bill_sum(&bill).await?;
 
                 let mut transactions = Vec::new();
-                for (transaction_id, sign) in bill.transactions() {
+                for (transaction_id, sign) in &bill.transactions {
                     let transaction = finance_controller
                         .get_transaction(*transaction_id)
                         .await?
@@ -88,7 +88,7 @@ impl View {
             Message::ViewTransaction(transaction_id) => Action::ViewTransaction(transaction_id),
             Message::Edit => {
                 if let Self::Loaded { bill, .. } = self {
-                    Action::Edit(*bill.id())
+                    Action::Edit(bill.id)
                 } else {
                     Action::None
                 }
@@ -130,7 +130,7 @@ impl View {
             }
             Message::Delete => {
                 if let Self::Loaded { bill, .. } = self {
-                    let bill_id = *bill.id();
+                    let bill_id = bill.id;
 
                     Action::Task(
                         iced::Task::future(async {
@@ -193,18 +193,18 @@ impl View {
                 utils::spaced_column![
                     widget::row![
                         widget::column![
-                            widget::text!("Name: {}", bill.name()),
+                            widget::text!("Name: {}", bill.name),
                             widget::row![
                                 "Description: ",
                                 widget::container(widget::text(
-                                    bill.description().clone().unwrap_or_default()
+                                    bill.description.clone().unwrap_or_default()
                                 ))
                                 .style(utils::style::container_style_background_weak)
                             ],
-                            widget::text!("Amount: {}€", bill.value().to_num_string()),
+                            widget::text!("Amount: {}€", bill.value.to_num_string()),
                             widget::text!(
                                 "Due Date: {}",
-                                bill.due_date()
+                                bill.due_date
                                     .map_or(String::new(), utils::date_time::to_date_time_string)
                             ),
                             utils::spal_row!["Sum: ", utils::colored_currency_display(bill_sum),]

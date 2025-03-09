@@ -211,12 +211,12 @@ impl std::fmt::Display for Recurring {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Bill {
-    id: Id,
-    name: String,
-    description: Option<String>,
-    value: Currency,
-    transactions: HashMap<Id, Sign>,
-    due_date: Option<DateTime>,
+    pub id: Id,
+    pub name: String,
+    pub description: Option<String>,
+    pub value: Currency,
+    pub transactions: HashMap<Id, Sign>,
+    pub due_date: Option<DateTime>,
 }
 
 impl std::fmt::Display for Bill {
@@ -254,30 +254,6 @@ impl Bill {
             transactions,
             due_date,
         }
-    }
-
-    pub fn id(&self) -> &Id {
-        &self.id
-    }
-
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    pub fn description(&self) -> &Option<String> {
-        &self.description
-    }
-
-    pub fn value(&self) -> &Currency {
-        &self.value
-    }
-
-    pub fn transactions(&self) -> &HashMap<Id, Sign> {
-        &self.transactions
-    }
-
-    pub fn due_date(&self) -> &Option<DateTime> {
-        &self.due_date
     }
 }
 

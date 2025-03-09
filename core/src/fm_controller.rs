@@ -59,8 +59,7 @@ where
             .await
             .context(format!(
                 "Error while getting bill sum {} {}",
-                bill.id(),
-                bill.name()
+                bill.id, bill.name
             ))
         }
     }
@@ -435,14 +434,14 @@ where
     pub async fn delete_transaction(&self, id: Id) -> Result<()> {
         async move {
             for bill in self.get_bills().await? {
-                if bill.transactions().iter().any(|(x, _)| *x == id) {
+                if bill.transactions.iter().any(|(x, _)| *x == id) {
                     self.update_bill(
-                        *bill.id(),
-                        bill.name().clone(),
-                        bill.description().to_owned(),
-                        bill.value().to_owned(),
-                        bill.transactions().to_owned(),
-                        bill.due_date().to_owned(),
+                        bill.id,
+                        bill.name,
+                        bill.description,
+                        bill.value,
+                        bill.transactions,
+                        bill.due_date,
                     )
                     .await?;
                 }

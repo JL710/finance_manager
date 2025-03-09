@@ -25,11 +25,11 @@ impl View {
         Self {
             bill_table: utils::table_view::State::new(bills, ())
                 .sort_by(|a, b, column| match column {
-                    0 => a.0.name().cmp(b.0.name()),
-                    1 => a.0.value().cmp(b.0.value()),
+                    0 => a.0.name.cmp(&b.0.name),
+                    1 => a.0.value.cmp(&b.0.value),
                     2 => a.1.cmp(&b.1),
-                    3 => a.0.due_date().cmp(b.0.due_date()),
-                    4 => a.0.transactions().len().cmp(&b.0.transactions().len()),
+                    3 => a.0.due_date.cmp(&b.0.due_date),
+                    4 => a.0.transactions.len().cmp(&b.0.transactions.len()),
                     _ => {
                         panic!()
                     }
@@ -83,18 +83,18 @@ impl View {
                 utils::table_view::table_view(&self.bill_table)
                     .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
                     .view(|bill, _| [
-                        utils::link(widget::text(bill.0.name().clone()))
-                            .on_press(Message::ViewBill(*bill.0.id()))
+                        utils::link(widget::text(bill.0.name.clone()))
+                            .on_press(Message::ViewBill(bill.0.id))
                             .into(),
-                        widget::text!("{}€", bill.0.value().to_num_string()).into(),
+                        widget::text!("{}€", bill.0.value.to_num_string()).into(),
                         utils::colored_currency_display(&bill.1),
                         widget::text(
                             bill.0
-                                .due_date()
+                                .due_date
                                 .map_or(String::new(), utils::date_time::to_date_string)
                         )
                         .into(),
-                        widget::text(bill.0.transactions().len()).into()
+                        widget::text(bill.0.transactions.len()).into()
                     ])
                     .map(Message::BillTable),
             ]
