@@ -25,7 +25,7 @@ For the safety and security of your data, make sure to use HTTPS/TLS!
 The API will try to prevent brute force attacks on the token, with timeouts after too many wrong tokens.
 
 ```
-cd fm_server
+cd server
 cargo run <api-token>
 ```
 > `cargo run -- --help` for help
@@ -41,19 +41,19 @@ It runs natively and as Wasm on the web. Although current issues with iced on Wa
 #### Run the GUI
 Run the GUI natively with SQLite support:
 ```
-cd fm_gui
+cd gui
 cargo run --no-default-features
 ```
 
 Run the GUI natively without SQLite support:
 ```
-cd fm_gui
+cd gui
 cargo run
 ```
 
 Run the GUI on wasm:
 ```
-cd fm_gui
+cd gui
 trunk serve --no-default-features
 ```
 > You need to have [`trunk`](https://trunkrs.dev/) installed
