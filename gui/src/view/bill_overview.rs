@@ -83,7 +83,7 @@ impl View {
                 utils::table_view::table_view(&self.bill_table)
                     .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
                     .view(|bill, _| [
-                        utils::link(widget::text(bill.0.name.clone()))
+                        utils::link(bill.0.name.as_str())
                             .on_press(Message::ViewBill(bill.0.id))
                             .into(),
                         widget::text!("{}€", bill.0.value.to_num_string()).into(),

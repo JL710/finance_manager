@@ -255,7 +255,7 @@ impl TransactionTable {
                 ),
                       context| {
                     [
-                        link(widget::text(transaction.title.clone()))
+                        link(transaction.title.as_str())
                             .on_press(Message::ViewTransaction(transaction.id))
                             .into(),
                         widget::text(super::date_time::to_date_string(transaction.date)).into(),
@@ -289,7 +289,7 @@ impl TransactionTable {
                                     .find(|x| x.id == budget.0)
                                     .unwrap()
                                     .name
-                                    .clone(),
+                                    .as_str(),
                             )
                             .into()
                         } else {

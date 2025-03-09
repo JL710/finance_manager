@@ -57,7 +57,7 @@ impl<'a> DateSpanInput<'a> {
             super::date_input::date_input(&self.state.start, "Start", false)
                 .view()
                 .map(Action::ChangeStart),
-            widget::text(" - "),
+            " - ",
             super::date_input::date_input(&self.state.end, "End", false)
                 .view()
                 .map(Action::ChangeEnd),

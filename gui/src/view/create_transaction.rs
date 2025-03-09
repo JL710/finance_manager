@@ -391,7 +391,7 @@ impl View {
                 ]
                 .width(iced::Fill),
                 utils::spal_row![
-                    widget::text("Source"),
+                    "Source",
                     widget::ComboBox::new(
                         &self.source_state,
                         "Source",
@@ -402,7 +402,7 @@ impl View {
                     .input_style(source_acc_style)
                 ],
                 utils::spal_row![
-                    widget::text("Destination"),
+                    "Destination",
                     widget::ComboBox::new(
                         &self.destination_state,
                         "Destination",
@@ -413,7 +413,7 @@ impl View {
                     .input_style(destination_acc_style)
                 ],
                 utils::spal_row![
-                    widget::text("Budget"),
+                    "Budget",
                     widget::ComboBox::new(
                         &self.budget_state,
                         "Budget",
@@ -435,7 +435,7 @@ impl View {
                 ]
                 .align_y(iced::Center),
                 widget::horizontal_rule(10),
-                widget::text("Categories:"),
+                "Categories:",
                 categories,
                 widget::horizontal_rule(10),
                 utils::submit_cancel_row(

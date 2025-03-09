@@ -228,7 +228,7 @@ impl View {
                         ])
                         .view(|(transaction, sign), accounts| [
                             widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
-                            utils::link(widget::text(transaction.title.clone()))
+                            utils::link(transaction.title.as_str())
                                 .on_press(Message::ViewTransaction(transaction.id))
                                 .into(),
                             widget::text(transaction.description.clone().unwrap_or(String::new()))

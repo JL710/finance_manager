@@ -181,9 +181,9 @@ impl View {
         super::view(
             "Find Transactions",
             utils::spaced_column![
-                iced::widget::text("Filter Transactions"),
+                "Filter Transactions",
                 iced::widget::row![
-                    iced::widget::text("Total: "),
+                    "Total: ",
                     iced::widget::text!(
                         "{}",
                         self.sums

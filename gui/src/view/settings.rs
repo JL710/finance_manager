@@ -130,7 +130,7 @@ impl View {
                     Message::FmChoice,
                 ),
                 utils::spaced_row![
-                    widget::text("Sqlite Path:"),
+                    "Sqlite Path:",
                     widget::text_input::TextInput::new(
                         "Sqlite Path",
                         &self.settings.finance_manager.sqlite_path

@@ -180,8 +180,8 @@ impl View {
 
             if let Some(content) = &transaction.description {
                 column = column.push(utils::spaced_row![
-                    widget::text("Description: "),
-                    widget::container(widget::text(content.to_string()))
+                    "Description: ",
+                    widget::container(content.as_str())
                         .padding(3)
                         .style(utils::style::container_style_background_weak)
                 ]);

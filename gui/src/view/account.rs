@@ -336,7 +336,7 @@ fn asset_account_view<'a>(
                     ),
                     widget::text!("Offset: {}", account.offset),
                     widget::row![
-                        widget::text("Current Amount: "),
+                        "Current Amount: ",
                         utils::colored_currency_display(current_value)
                     ],
                 ],
@@ -385,7 +385,7 @@ fn book_checking_account_view<'a>(
                             .unwrap_or_default()
                     ),
                     widget::row![
-                        widget::text("Current Amount: "),
+                        "Current Amount: ",
                         utils::colored_currency_display(current_value)
                     ],
                 ],

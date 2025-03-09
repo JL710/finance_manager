@@ -101,7 +101,7 @@ impl View {
                     ])
                     .view(|budget, _| {
                         [
-                            utils::link(widget::text(&budget.0.name))
+                            utils::link(budget.0.name.as_str())
                                 .on_press(Message::ViewBudget(budget.0.id))
                                 .into(),
                             widget::text!("{}", &budget.1).into(),

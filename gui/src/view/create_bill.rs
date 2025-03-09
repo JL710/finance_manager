@@ -371,7 +371,7 @@ impl View {
                                 utils::button::delete(Some(Message::RemoveTransaction(
                                     transaction.id,
                                 ))),
-                                widget::text(transaction.title.clone()).into(),
+                                widget::text(transaction.title.as_str()).into(),
                                 utils::colored_currency_display(
                                     &(if *sign == fm_core::Sign::Negative {
                                         transaction.amount().negative()
@@ -604,7 +604,7 @@ mod add_transaction {
                         .view(|x, accounts| {
                             [
                                 utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
-                                widget::text(x.title.clone()).into(),
+                                widget::text(x.title.as_str()).into(),
                                 widget::text(x.amount().to_num_string()).into(),
                                 widget::text(utils::date_time::to_date_string(x.date)).into(),
                                 widget::text(

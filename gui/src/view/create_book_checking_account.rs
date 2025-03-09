@@ -133,7 +133,7 @@ impl View {
             widget::scrollable(utils::spaced_column![
                 utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
                 utils::spaced_row![
-                    widget::text("Notes"),
+                    "Notes",
                     widget::text_editor(&self.note_input).on_action(Message::NoteInput)
                 ],
                 utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),

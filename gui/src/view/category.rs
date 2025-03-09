@@ -240,7 +240,7 @@ impl View {
                     utils::spaced_row![
                         utils::spaced_column![
                             utils::spal_row![
-                                widget::text("Total value"),
+                                "Total value",
                                 widget::text(if let Some(value) = values.last() {
                                     value.1.to_string()
                                 } else {

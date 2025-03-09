@@ -29,7 +29,7 @@ pub fn labeled_entry<'a, Message: 'a + Clone>(
         }
     }
 
-    spal_row![widget::text(name), input].into()
+    spal_row![name, input].into()
 }
 
 pub fn colored_currency_display<Message>(

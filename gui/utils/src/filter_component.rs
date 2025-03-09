@@ -277,14 +277,14 @@ impl FilterComponent {
         widget::container(super::spaced_column![
             // default timespan
             super::spal_row![
-                widget::text("Default Timespan: "),
+                "Default Timespan: ",
                 date_span_input::date_span_input(&self.default_transaction_input)
                     .view()
                     .map(InnerMessage::ChangeDefaultTimespan),
             ],
             // account filters
             super::spal_row![
-                widget::text("Accounts"),
+                "Accounts",
                 super::button::new("New", Some(InnerMessage::NewAccountFilter)),
                 widget::horizontal_rule(3)
             ]
@@ -296,7 +296,7 @@ impl FilterComponent {
             .max_height(150),
             // category filters
             super::spal_row![
-                widget::text("Categories"),
+                "Categories",
                 super::button::new("New", Some(InnerMessage::NewCategoryFilter)),
                 widget::horizontal_rule(3)
             ]
@@ -308,7 +308,7 @@ impl FilterComponent {
             .max_height(150),
             // bill filters
             super::spal_row![
-                widget::text("Bills"),
+                "Bills",
                 super::button::new("New", Some(InnerMessage::NewBillFilter)),
                 widget::horizontal_rule(3)
             ]
@@ -320,7 +320,7 @@ impl FilterComponent {
             .max_height(150),
             // budget filters
             super::spal_row![
-                widget::text("Budget"),
+                "Budget",
                 super::button::new("New", Some(InnerMessage::NewBudgetFilter)),
                 widget::horizontal_rule(3)
             ]

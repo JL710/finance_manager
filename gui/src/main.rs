@@ -811,10 +811,9 @@ impl App {
                             widget::container(
                                 match current_view {
                                     View::Markdown(heading, items) => markdown(heading, items),
-                                    View::License => widget::scrollable(widget::text(
-                                        include_str!("../../LICENSE"),
-                                    ))
-                                    .into(),
+                                    View::License => {
+                                        widget::scrollable(include_str!("../../LICENSE")).into()
+                                    }
                                     View::BudgetOverview(view) => {
                                         view.view().map(ViewMessage::BudgetOverview)
                                     }
