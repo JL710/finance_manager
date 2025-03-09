@@ -503,7 +503,7 @@ impl View {
         let budget = self
             .budget_input
             .as_ref()
-            .map(|budget| (*budget.0.id(), budget.1));
+            .map(|budget| (budget.0.id, budget.1));
         let date = self.date_input.datetime().unwrap();
         let metadata = self.metadata.clone();
         let mut categories =

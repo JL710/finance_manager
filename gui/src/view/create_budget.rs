@@ -57,14 +57,14 @@ impl Default for View {
 impl View {
     pub fn from_budget(budget: fm_core::Budget) -> Result<Self> {
         Ok(Self {
-            id: Some(*budget.id()),
-            name_input: budget.name().to_string(),
+            id: Some(budget.id),
+            name_input: budget.name,
             description_input: widget::text_editor::Content::with_text(
-                budget.description().unwrap_or_default(),
+                &budget.description.unwrap_or_default(),
             ),
-            value_input: budget.total_value().to_num_string(),
-            recurring_input: recurring_input::State::from(budget.timespan().clone()),
-            recurring_state: match budget.timespan() {
+            value_input: budget.total_value.to_num_string(),
+            recurring_input: recurring_input::State::from(budget.timespan.clone()),
+            recurring_state: match budget.timespan {
                 fm_core::Recurring::Days(_, _) => Some("Days".to_string()),
                 fm_core::Recurring::DayInMonth(_) => Some("Day in month".to_string()),
                 fm_core::Recurring::Yearly(_, _) => Some("Yearly".to_string()),
@@ -139,7 +139,7 @@ impl View {
                     let budget = match option_id {
                         Some(id) => {
                             finance_controller
-                                .update_budget(
+                                .update_budget(fm_core::Budget::new(
                                     id,
                                     name_input,
                                     if description_input.is_empty() {
@@ -151,7 +151,7 @@ impl View {
                                     recurring_inputs.context(
                                         "Error while converting recurring input into timespan",
                                     )?,
-                                )
+                                ))
                                 .await?
                         }
                         None => {
@@ -171,7 +171,7 @@ impl View {
                                 .await?
                         }
                     };
-                    Ok(Message::BudgetCreated(*budget.id()))
+                    Ok(Message::BudgetCreated(budget.id))
                 }));
             }
             Message::RecurringPickList(recurring) => {

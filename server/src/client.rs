@@ -281,20 +281,8 @@ impl fm_core::FinanceManager for Client {
         client_post_macro!(self.url, self.token.clone(), "delete_transaction", id)
     }
 
-    async fn update_budget(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-        description: Option<String>,
-        total_value: fm_core::Currency,
-        timespan: fm_core::Recurring,
-    ) -> Result<fm_core::Budget> {
-        client_post_macro!(
-            self.url,
-            self.token.clone(),
-            "update_budget",
-            (id, name, description, total_value, timespan)
-        )
+    async fn update_budget(&mut self, budget: fm_core::Budget) -> Result<fm_core::Budget> {
+        client_post_macro!(self.url, self.token.clone(), "update_budget", budget)
     }
 
     async fn get_transactions_in_timespan(

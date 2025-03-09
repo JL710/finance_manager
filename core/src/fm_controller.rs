@@ -390,20 +390,14 @@ where
             .context(format!("Error while deleting budget with id {}", id))
     }
 
-    pub async fn update_budget(
-        &self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        total_value: Currency,
-        timespan: Recurring,
-    ) -> Result<Budget> {
+    pub async fn update_budget(&self, budget: Budget) -> Result<Budget> {
+        let budget_id = budget.id;
         self.finance_manager
             .lock()
             .await
-            .update_budget(id, name, description, total_value, timespan)
+            .update_budget(budget)
             .await
-            .context(format!("Error while updating budget with id {}", id))
+            .context(format!("Error while updating budget with id {}", budget_id))
     }
 
     pub async fn get_budgets(&self) -> Result<Vec<Budget>> {
@@ -493,12 +487,11 @@ where
             offset,
             time::OffsetDateTime::now_utc().to_offset(timezone),
         )?;
-        self.get_transactions_of_budget(*budget.id(), timespan)
+        self.get_transactions_of_budget(budget.id, timespan)
             .await
             .context(format!(
                 "Error while getting transactions of budget with {} {}",
-                budget.id(),
-                budget.name()
+                budget.id, budget.name
             ))
     }
 
@@ -516,8 +509,7 @@ where
             .await
             .context(format!(
                 "Error while getting value of budget {} {}",
-                budget.id(),
-                budget.name()
+                budget.id, budget.name
             ))?;
         let mut sum = Currency::default();
         for transaction in transactions {

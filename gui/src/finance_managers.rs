@@ -552,30 +552,12 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
-    async fn update_budget(
-        &mut self,
-        id: fm_core::Id,
-        name: String,
-        description: Option<String>,
-        total_value: fm_core::Currency,
-        timespan: fm_core::Recurring,
-    ) -> Result<fm_core::Budget> {
+    async fn update_budget(&mut self, budget: fm_core::Budget) -> Result<fm_core::Budget> {
         match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .update_budget(id, name, description, total_value, timespan)
-                    .await
-            }
+            FinanceManagers::Server(client) => client.update_budget(budget).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .update_budget(id, name, description, total_value, timespan)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.update_budget(id, name, description, total_value, timespan)
-                    .await
-            }
+            FinanceManagers::Sqlite(sqlite) => sqlite.update_budget(budget).await,
+            FinanceManagers::Ram(ram) => ram.update_budget(budget).await,
         }
     }
 

@@ -330,24 +330,10 @@ impl FinanceManager for RamFinanceManager {
             .collect())
     }
 
-    async fn update_budget(
-        &mut self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        total_value: Currency,
-        timespan: Recurring,
-    ) -> Result<Budget> {
-        let new_budget = Budget {
-            id,
-            name,
-            description,
-            total_value,
-            timespan,
-        };
-        let old_budget = self.budgets.get_mut(&id).unwrap();
-        *old_budget = new_budget.clone();
-        Ok(new_budget)
+    async fn update_budget(&mut self, budget: Budget) -> Result<Budget> {
+        let old_budget = self.budgets.get_mut(&budget.id).unwrap();
+        *old_budget = budget.clone();
+        Ok(budget)
     }
 
     async fn get_transactions_in_timespan(&self, timespan: Timespan) -> Result<Vec<Transaction>> {

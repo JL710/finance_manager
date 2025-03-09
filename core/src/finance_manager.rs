@@ -165,14 +165,8 @@ pub trait FinanceManager: Send + Clone + Sized {
         timespan: Recurring,
     ) -> impl Future<Output = Result<Budget>> + MaybeSend;
 
-    fn update_budget(
-        &mut self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        total_value: Currency,
-        timespan: Recurring,
-    ) -> impl Future<Output = Result<Budget>> + MaybeSend;
+    fn update_budget(&mut self, budget: Budget)
+    -> impl Future<Output = Result<Budget>> + MaybeSend;
 
     fn delete_budget(&mut self, id: Id) -> impl Future<Output = Result<()>> + MaybeSend;
 

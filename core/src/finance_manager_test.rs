@@ -125,7 +125,7 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
             None,
             acc1.id(),
             acc2.id(),
-            Some((*budget1.id(), Sign::Positive)),
+            Some((budget1.id, Sign::Positive)),
             DateTime::now_utc(),
             HashMap::default(),
             HashMap::default(),
@@ -133,9 +133,9 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
         .await
         .unwrap();
 
-    fm.delete_budget(*budget1.id()).await.unwrap();
+    fm.delete_budget(budget1.id).await.unwrap();
 
-    assert!(fm.get_budget(*budget1.id()).await.unwrap().is_none());
+    assert!(fm.get_budget(budget1.id).await.unwrap().is_none());
 
     assert!(
         fm.get_transaction(transaction1.id)

@@ -280,9 +280,10 @@ impl TransactionTable {
                                 context
                                     .1
                                     .iter()
-                                    .find(|x| *x.id() == budget.0)
+                                    .find(|x| x.id == budget.0)
                                     .unwrap()
-                                    .name(),
+                                    .name
+                                    .clone(),
                             )
                             .into()
                         } else {

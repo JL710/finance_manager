@@ -839,31 +839,24 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(transactions)
     }
 
-    async fn update_budget(
-        &mut self,
-        id: Id,
-        name: String,
-        description: Option<String>,
-        total_value: Currency,
-        timespan: Recurring,
-    ) -> Result<Budget> {
+    async fn update_budget(&mut self, budget: Budget) -> Result<Budget> {
         let connection = self.connect().await;
-        let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(timespan.clone());
+        let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(budget.timespan.clone());
 
         connection.execute(
                 "UPDATE budget SET name=?1, description=?2, value=?3, currency=?4, timespan_type=?5, timespan_field1=?6, timespan_field2=?7 WHERE id=?8",
                 (
-                    &name,
-                    &description,
-                    total_value.get_eur_num(),
-                    total_value.get_currency_id(),
+                    &budget.name,
+                    &budget.description,
+                    budget.total_value.get_eur_num(),
+                    budget.total_value.get_currency_id(),
                     timespan_tuple.0,
                     timespan_tuple.1,
                     timespan_tuple.2,
-                    id,
+                    budget.id,
                 ),
             )?;
-        Ok(Budget::new(id, name, description, total_value, timespan))
+        Ok(budget)
     }
 
     async fn get_transactions_in_timespan(&self, timespan: Timespan) -> Result<Vec<Transaction>> {

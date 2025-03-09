@@ -121,7 +121,7 @@ impl View {
             }
             Message::Edit => {
                 if let Self::Loaded { budget, .. } = self {
-                    Action::Edit(*budget.id())
+                    Action::Edit(budget.id)
                 } else {
                     Action::None
                 }
@@ -130,14 +130,14 @@ impl View {
                 if let Self::Loaded { budget, .. } = self {
                     if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
                         .set_title("Delete Budget")
-                        .set_description(format!("Do you really want to delete {}?", budget.name()))
+                        .set_description(format!("Do you really want to delete {}?", budget.name))
                         .set_buttons(rfd::MessageButtons::YesNo)
                         .show()
                     {
                         return Action::None;
                     }
 
-                    let id = *budget.id();
+                    let id = budget.id;
                     Action::Task(
                         utils::failing_task(async move {
                             finance_controller.delete_budget(id).await?;
@@ -158,7 +158,7 @@ impl View {
                     Action::Task(
                         utils::failing_task(Self::initial_message(
                             finance_controller,
-                            *budget.id(),
+                            budget.id,
                             *offset + 1,
                         ))
                         .map(MessageContainer),
@@ -172,7 +172,7 @@ impl View {
                     Action::Task(
                         utils::failing_task(Self::initial_message(
                             finance_controller,
-                            *budget.id(),
+                            budget.id,
                             *offset - 1,
                         ))
                         .map(MessageContainer),
@@ -226,13 +226,13 @@ impl View {
                     widget::button(">").on_press(Message::IncreaseOffset),
                 ]
                 .align_y(iced::Alignment::Center),
-                widget::text!("Name: {}", budget.name()),
-                widget::text!("Total Value: {}", budget.total_value()),
+                widget::text!("Name: {}", &budget.name),
+                widget::text!("Total Value: {}", budget.total_value),
                 widget::text!("Current Value: {}", current_value),
-                widget::text!("Recurring: {}", budget.timespan())
+                widget::text!("Recurring: {}", budget.timespan)
             ];
 
-            if let Some(content) = budget.description() {
+            if let Some(content) = &budget.description {
                 column = column.push(widget::text!("Description: {}", content));
             }
 
@@ -248,7 +248,7 @@ impl View {
                         ]
                     ],
                     widget::progress_bar(
-                        0.0..=budget.total_value().get_eur_num() as f32,
+                        0.0..=budget.total_value.get_eur_num() as f32,
                         current_value.get_eur_num() as f32
                     ),
                     transaction_table.view().map(Message::TransactionTable)

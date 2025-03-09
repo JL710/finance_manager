@@ -167,8 +167,8 @@ impl View {
 
             if let Some(budget) = &budget {
                 column = column.push(utils::spal_row![
-                    utils::link(widget::text!("Budget: {}", budget.name()))
-                        .on_press(Message::ViewBudget(*budget.id())),
+                    utils::link(widget::text!("Budget: {}", &budget.name))
+                        .on_press(Message::ViewBudget(budget.id)),
                     widget::checkbox(
                         "Negative",
                         transaction

@@ -64,11 +64,11 @@ pub type Id = u64;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Budget {
-    id: Id,
-    name: String,
-    description: Option<String>,
-    total_value: Currency,
-    timespan: Recurring,
+    pub id: Id,
+    pub name: String,
+    pub description: Option<String>,
+    pub total_value: Currency,
+    pub timespan: Recurring,
 }
 
 impl Budget {
@@ -86,29 +86,6 @@ impl Budget {
             total_value,
             timespan,
         }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn description(&self) -> Option<&str> {
-        match &self.description {
-            Some(desc) => Some(desc),
-            None => None,
-        }
-    }
-
-    pub fn total_value(&self) -> Currency {
-        self.total_value.clone()
-    }
-
-    pub fn timespan(&self) -> &Recurring {
-        &self.timespan
-    }
-
-    pub fn id(&self) -> &Id {
-        &self.id
     }
 }
 
@@ -324,7 +301,7 @@ fn previus_month(datetime: DateTime) -> DateTime {
 
 pub fn calculate_budget_timespan(budget: &Budget, offset: i32, now: DateTime) -> Result<Timespan> {
     let now = now.replace_time(time::Time::MIDNIGHT);
-    let (start, end) = match budget.timespan() {
+    let (start, end) = match &budget.timespan {
         Recurring::Days(start, days) => {
             let since_start = now - *start;
             let a: i64 = since_start.whole_days() / *days as i64; // FIXME: what is this "a" for again?

@@ -489,19 +489,13 @@ async fn delete_transaction(
 
 async fn update_budget(
     axum::extract::State(state): axum::extract::State<State>,
-    axum::extract::Json(data): axum::extract::Json<(
-        fm_core::Id,
-        String,
-        Option<String>,
-        fm_core::Currency,
-        fm_core::Recurring,
-    )>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::Budget>,
 ) -> Json<Value> {
     let budget = state
         .finance_controller
         .lock()
         .await
-        .update_budget(data.0, data.1, data.2, data.3, data.4)
+        .update_budget(data)
         .await
         .unwrap();
     json!(budget).into()

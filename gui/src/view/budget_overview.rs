@@ -29,9 +29,9 @@ impl View {
             budgets: budgets.clone(),
             budget_table: utils::table_view::State::new(budgets, ())
                 .sort_by(|a, b, column| match column {
-                    0 => a.0.name().cmp(b.0.name()),
+                    0 => a.0.name.cmp(&b.0.name),
                     1 => a.1.cmp(&b.1),
-                    2 => a.0.total_value().cmp(&b.0.total_value()),
+                    2 => a.0.total_value.cmp(&b.0.total_value),
                     _ => panic!(),
                 })
                 .sortable_columns([0, 1, 2]),
@@ -101,11 +101,11 @@ impl View {
                     ])
                     .view(|budget, _| {
                         [
-                            utils::link(widget::text(budget.0.name().to_string()))
-                                .on_press(Message::ViewBudget(*budget.0.id()))
+                            utils::link(widget::text(&budget.0.name))
+                                .on_press(Message::ViewBudget(budget.0.id))
                                 .into(),
                             widget::text!("{}", &budget.1).into(),
-                            widget::text!("{}", budget.0.total_value()).into(),
+                            widget::text!("{}", budget.0.total_value).into(),
                         ]
                     })
                     .map(Message::BudgetTable),

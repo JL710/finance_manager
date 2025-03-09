@@ -53,7 +53,7 @@ impl FilterComponent {
         let mut bills = bills.into_iter().map(Arc::new).collect::<Vec<_>>();
         bills.sort_by(|a, b| a.name.cmp(&b.name));
         let mut budgets = budgets;
-        budgets.sort_by(|a, b| a.name().cmp(b.name()));
+        budgets.sort_by(|a, b| a.name.cmp(&b.name));
         Self {
             accounts,
             categories,
@@ -108,7 +108,7 @@ impl FilterComponent {
             &mut self.budget_filter_entries,
             new_filter.budgets,
             self.budgets.clone(),
-            |budget| *budget.id(),
+            |budget| budget.id,
         );
 
         set_inputs(
@@ -218,12 +218,12 @@ impl FilterComponent {
                         .push(filter_entry::FilterEntry::new(
                             Filter {
                                 negated: false,
-                                id: Some(*self.budgets[0].id()),
+                                id: Some(self.budgets[0].id),
                                 include: true,
                                 timespan: None,
                             },
                             self.budgets.clone(),
-                            |x| *x.id(),
+                            |x| x.id,
                         ));
                 }
             }
