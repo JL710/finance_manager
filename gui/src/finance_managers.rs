@@ -271,7 +271,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         name: String,
         description: Option<String>,
         total_value: fm_core::Currency,
-        timespan: fm_core::Recurring,
+        timespan: fm_core::budget::Recurring,
     ) -> Result<fm_core::Budget> {
         match self {
             FinanceManagers::Server(client) => {

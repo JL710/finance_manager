@@ -54,27 +54,32 @@ impl TryInto<Transaction> for TransactionSignature {
 
 type RecurringSignature = (i32, i64, Option<i64>);
 
-impl From<Recurring> for RecurringSignature {
-    fn from(val: Recurring) -> Self {
+impl From<budget::Recurring> for RecurringSignature {
+    fn from(val: budget::Recurring) -> Self {
         match val {
-            Recurring::DayInMonth(num) => (1, num as i64, None),
-            Recurring::Days(datetime, days) => (2, datetime.unix_timestamp(), Some(days as i64)),
-            Recurring::Yearly(num1, num2) => (3, num1 as i64, Some(num2 as i64)),
+            budget::Recurring::DayInMonth(num) => (1, num as i64, None),
+            budget::Recurring::Days(datetime, days) => {
+                (2, datetime.unix_timestamp(), Some(days as i64))
+            }
+            budget::Recurring::Yearly(num1, num2) => (3, num1 as i64, Some(num2 as i64)),
         }
     }
 }
 
-impl TryFrom<RecurringSignature> for Recurring {
+impl TryFrom<RecurringSignature> for budget::Recurring {
     type Error = anyhow::Error;
 
     fn try_from(value: RecurringSignature) -> Result<Self> {
         match value.0 {
-            1 => Ok(Recurring::DayInMonth(value.1 as u8)),
-            2 => Ok(Recurring::Days(
+            1 => Ok(budget::Recurring::DayInMonth(value.1 as u8)),
+            2 => Ok(budget::Recurring::Days(
                 DateTime::from_unix_timestamp(value.1).unwrap(),
                 value.2.unwrap() as usize,
             )),
-            3 => Ok(Recurring::Yearly(value.1 as u8, value.2.unwrap() as u8)),
+            3 => Ok(budget::Recurring::Yearly(
+                value.1 as u8,
+                value.2.unwrap() as u8,
+            )),
             _ => anyhow::bail!("invalid id"),
         }
     }
@@ -91,7 +96,7 @@ impl TryFrom<BudgetSignature> for Budget {
             value.1,
             value.2,
             Currency::from_currency_id(value.4, BigDecimal::from_f64(value.3).unwrap())?,
-            Recurring::try_from((value.5, value.6, value.7))?,
+            budget::Recurring::try_from((value.5, value.6, value.7))?,
         ))
     }
 }
@@ -637,7 +642,7 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recurring,
+        timespan: budget::Recurring,
     ) -> Result<Budget> {
         let connection = self.connect().await;
 

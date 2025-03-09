@@ -1,6 +1,6 @@
 use crate::{
-    AccountId, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Recurring, Sign,
-    Timespan, Transaction, account,
+    AccountId, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Sign, Timespan,
+    Transaction, account, budget::Recurring,
 };
 use anyhow::Result;
 use std::collections::HashMap;

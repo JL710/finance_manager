@@ -113,7 +113,7 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
             "test budget".to_string(),
             None,
             Currency::default(),
-            Recurring::DayInMonth(1),
+            budget::Recurring::DayInMonth(1),
         )
         .await
         .unwrap();

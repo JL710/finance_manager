@@ -230,7 +230,7 @@ impl fm_core::FinanceManager for Client {
         name: String,
         description: Option<String>,
         total_value: fm_core::Currency,
-        timespan: fm_core::Recurring,
+        timespan: fm_core::budget::Recurring,
     ) -> Result<fm_core::Budget> {
         client_post_macro!(
             self.url,

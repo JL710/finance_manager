@@ -65,9 +65,9 @@ impl View {
             value_input: budget.total_value.to_num_string(),
             recurring_input: recurring_input::State::from(budget.timespan.clone()),
             recurring_state: match budget.timespan {
-                fm_core::Recurring::Days(_, _) => Some("Days".to_string()),
-                fm_core::Recurring::DayInMonth(_) => Some("Day in month".to_string()),
-                fm_core::Recurring::Yearly(_, _) => Some("Yearly".to_string()),
+                fm_core::budget::Recurring::Days(_, _) => Some("Days".to_string()),
+                fm_core::budget::Recurring::DayInMonth(_) => Some("Day in month".to_string()),
+                fm_core::budget::Recurring::Yearly(_, _) => Some("Yearly".to_string()),
             },
             submitted: false,
         })
@@ -227,7 +227,8 @@ impl View {
     }
 
     fn generate_recurring_view(&self) -> iced::Element<'_, Message> {
-        let input_correct = TryInto::<fm_core::Recurring>::try_into(&self.recurring_input).is_ok();
+        let input_correct =
+            TryInto::<fm_core::budget::Recurring>::try_into(&self.recurring_input).is_ok();
 
         widget::column![
             widget::Text::new("Recurring"),
@@ -263,7 +264,7 @@ impl View {
             return false;
         }
         // check if the recurring inputs are valid
-        if TryInto::<fm_core::Recurring>::try_into(&self.recurring_input).is_err() {
+        if TryInto::<fm_core::budget::Recurring>::try_into(&self.recurring_input).is_err() {
             return false;
         }
         true
@@ -338,21 +339,21 @@ mod recurring_input {
         }
     }
 
-    impl From<fm_core::Recurring> for State {
-        fn from(value: fm_core::Recurring) -> Self {
+    impl From<fm_core::budget::Recurring> for State {
+        fn from(value: fm_core::budget::Recurring) -> Self {
             match value {
-                fm_core::Recurring::DayInMonth(day) => State::DayInMonth(day.to_string()),
-                fm_core::Recurring::Days(start, days) => {
+                fm_core::budget::Recurring::DayInMonth(day) => State::DayInMonth(day.to_string()),
+                fm_core::budget::Recurring::Days(start, days) => {
                     State::Days(date_time_input::State::new(Some(start)), days.to_string())
                 }
-                fm_core::Recurring::Yearly(month, day) => {
+                fm_core::budget::Recurring::Yearly(month, day) => {
                     State::Yearly(month.to_string(), day.to_string())
                 }
             }
         }
     }
 
-    impl TryFrom<&State> for fm_core::Recurring {
+    impl TryFrom<&State> for fm_core::budget::Recurring {
         type Error = anyhow::Error;
 
         fn try_from(value: &State) -> Result<Self, Self::Error> {
@@ -362,7 +363,7 @@ mod recurring_input {
                     if days > 500 {
                         anyhow::bail!("Days cannot be more than 31");
                     }
-                    Ok(fm_core::Recurring::Days(
+                    Ok(fm_core::budget::Recurring::Days(
                         start.datetime().context("Could not parse date time")?,
                         days,
                     ))
@@ -372,7 +373,7 @@ mod recurring_input {
                     if day > 31 {
                         anyhow::bail!("Days cannot be more than 31");
                     }
-                    Ok(fm_core::Recurring::DayInMonth(day))
+                    Ok(fm_core::budget::Recurring::DayInMonth(day))
                 }
                 State::Yearly(month, day) => {
                     let month = month.parse()?;
@@ -383,7 +384,7 @@ mod recurring_input {
                     if day > 31 {
                         anyhow::bail!("Day cannot be more than 31");
                     }
-                    Ok(fm_core::Recurring::Yearly(month, day))
+                    Ok(fm_core::budget::Recurring::Yearly(month, day))
                 }
             }
         }

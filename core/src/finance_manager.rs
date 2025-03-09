@@ -162,7 +162,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recurring,
+        timespan: budget::Recurring,
     ) -> impl Future<Output = Result<Budget>> + MaybeSend;
 
     fn update_budget(&mut self, budget: Budget)

@@ -62,7 +62,7 @@ impl View {
         categories: Vec<fm_core::Category>,
         offset: i32,
     ) -> Result<Self> {
-        let timespan = fm_core::calculate_budget_timespan(
+        let timespan = fm_core::budget::calculate_budget_timespan(
             &budget,
             offset,
             fm_core::DateTime::now_utc().to_offset(fm_core::get_local_timezone()?),

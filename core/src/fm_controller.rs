@@ -371,7 +371,7 @@ where
         name: String,
         description: Option<String>,
         total_value: Currency,
-        timespan: Recurring,
+        timespan: budget::Recurring,
     ) -> Result<Budget> {
         self.finance_manager
             .lock()
@@ -482,7 +482,7 @@ where
         offset: i32,
         timezone: time::UtcOffset,
     ) -> Result<Vec<Transaction>> {
-        let timespan = calculate_budget_timespan(
+        let timespan = budget::calculate_budget_timespan(
             budget,
             offset,
             time::OffsetDateTime::now_utc().to_offset(timezone),
