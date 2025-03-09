@@ -63,18 +63,12 @@ impl View {
         match message {
             Message::AccountCreated(id) => return Action::AccountCreated(id),
             Message::Initialize(account) => {
-                self.id = Some(account.id());
-                self.name_input = account.name().to_string();
-                self.note_input = account
-                    .note()
-                    .map_or(widget::text_editor::Content::default(), |note| {
-                        widget::text_editor::Content::with_text(note)
-                    });
-                self.iban_input = account
-                    .iban()
-                    .clone()
-                    .map_or(String::new(), |iban| iban.to_string());
-                self.bic_input = account.bic().map_or(String::new(), |bic| bic.to_string());
+                self.id = Some(account.id);
+                self.name_input = account.name;
+                self.note_input =
+                    widget::text_editor::Content::with_text(&account.note.unwrap_or_default());
+                self.iban_input = account.iban.map_or(String::new(), |iban| iban.to_string());
+                self.bic_input = account.bic.map_or(String::new(), |bic| bic.to_string());
             }
             Message::NameInput(input) => self.name_input = input,
             Message::NoteInput(action) => self.note_input.perform(action),
@@ -102,14 +96,20 @@ impl View {
                 return Action::Task(utils::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_controller
-                            .update_book_checking_account(some_id, name, note, iban, bic)
+                            .update_book_checking_account(
+                                some_id,
+                                name,
+                                note,
+                                iban,
+                                bic.map(|x| x.into()),
+                            )
                             .await?
                     } else {
                         finance_controller
-                            .create_book_checking_account(name, note, iban, bic)
+                            .create_book_checking_account(name, note, iban, bic.map(|x| x.into()))
                             .await?
                     };
-                    Ok(Message::AccountCreated(account.id()))
+                    Ok(Message::AccountCreated(account.id))
                 }));
             }
             Message::Cancel => {

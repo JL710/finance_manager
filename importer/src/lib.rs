@@ -18,11 +18,11 @@ const METADATA_IMPORT_FORMAT: &str = "importer-import-format";
 pub struct AccountEntry {
     name: Option<String>,
     iban: fm_core::AccountId,
-    bic: Option<String>,
+    bic: Option<fm_core::Bic>,
 }
 
 impl AccountEntry {
-    pub fn new(name: Option<String>, iban: fm_core::AccountId, bic: Option<String>) -> Self {
+    pub fn new(name: Option<String>, iban: fm_core::AccountId, bic: Option<fm_core::Bic>) -> Self {
         Self { name, iban, bic }
     }
 
@@ -34,8 +34,8 @@ impl AccountEntry {
         &self.iban
     }
 
-    pub fn bic(&self) -> Option<&str> {
-        self.bic.as_deref()
+    pub fn bic(&self) -> Option<&fm_core::Bic> {
+        self.bic.as_ref()
     }
 }
 

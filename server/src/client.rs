@@ -50,7 +50,7 @@ impl fm_core::FinanceManager for Client {
         name: String,
         note: Option<String>,
         iban: Option<fm_core::AccountId>,
-        bic: Option<String>,
+        bic: Option<fm_core::Bic>,
         offset: fm_core::Currency,
     ) -> Result<fm_core::account::AssetAccount> {
         client_post_macro!(
@@ -67,7 +67,7 @@ impl fm_core::FinanceManager for Client {
         name: String,
         note: Option<String>,
         iban: Option<fm_core::AccountId>,
-        bic: Option<String>,
+        bic: Option<fm_core::Bic>,
         offset: fm_core::Currency,
     ) -> Result<fm_core::account::AssetAccount> {
         client_post_macro!(
@@ -87,7 +87,7 @@ impl fm_core::FinanceManager for Client {
         name: String,
         notes: Option<String>,
         iban: Option<fm_core::AccountId>,
-        bic: Option<String>,
+        bic: Option<fm_core::Bic>,
     ) -> Result<fm_core::account::BookCheckingAccount> {
         client_post_macro!(
             self.url,
@@ -103,7 +103,7 @@ impl fm_core::FinanceManager for Client {
         name: String,
         notes: Option<String>,
         iban: Option<fm_core::AccountId>,
-        bic: Option<String>,
+        bic: Option<fm_core::Bic>,
     ) -> Result<fm_core::account::BookCheckingAccount> {
         client_post_macro!(
             self.url,

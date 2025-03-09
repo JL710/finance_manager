@@ -85,16 +85,13 @@ impl View {
                 }
             }
             Message::Initialize(account) => {
-                self.id = Some(account.id());
-                self.name_input = account.name().to_string();
+                self.id = Some(account.id);
+                self.name_input = account.name;
                 self.note_input =
-                    widget::text_editor::Content::with_text(account.note().unwrap_or_default());
-                self.iban_input = account
-                    .iban()
-                    .clone()
-                    .map_or(String::new(), |iban| iban.to_string());
-                self.bic_input = account.bic().unwrap_or_default().to_string();
-                self.offset_input = utils::currency_input::State::new(account.offset().to_owned());
+                    widget::text_editor::Content::with_text(&account.note.unwrap_or_default());
+                self.iban_input = account.iban.map_or(String::new(), |iban| iban.to_string());
+                self.bic_input = account.bic.map(|x| x.to_string()).unwrap_or_default();
+                self.offset_input = utils::currency_input::State::new(account.offset);
             }
             Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
             Message::NameInput(input) => self.name_input = input,
@@ -125,14 +122,21 @@ impl View {
                 return Action::Task(utils::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_controller
-                            .update_asset_account(some_id, name, note, iban, bic, offset)
+                            .update_asset_account(
+                                some_id,
+                                name,
+                                note,
+                                iban,
+                                bic.map(|x| x.into()),
+                                offset,
+                            )
                             .await?
                     } else {
                         finance_controller
-                            .create_asset_account(name, note, iban, bic, offset)
+                            .create_asset_account(name, note, iban, bic.map(|x| x.into()), offset)
                             .await?
                     };
-                    Ok(Message::AssetAccountCreated(account.id()))
+                    Ok(Message::AssetAccountCreated(account.id))
                 }));
             }
         }

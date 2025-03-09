@@ -18,6 +18,7 @@ mod currency;
 pub use currency::Currency;
 
 pub mod account;
+pub use account::Bic;
 
 pub mod managers;
 pub mod transaction_filter;

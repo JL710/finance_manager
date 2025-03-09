@@ -33,7 +33,7 @@ impl View {
         Self {
             account_table: utils::table_view::State::new(accounts, ())
                 .sort_by(|a, b, column| match column {
-                    0 => a.0.name().cmp(b.0.name()),
+                    0 => a.0.name.cmp(&b.0.name),
                     1 => a.1.cmp(&b.1),
                     _ => panic!(),
                 })
@@ -78,7 +78,7 @@ impl View {
                 self.account_table.set_items(accounts);
             }
             Message::CreateAssetAccount => return Action::CreateAssetAccount,
-            Message::AccountView(account) => return Action::ViewAccount(account.id()),
+            Message::AccountView(account) => return Action::ViewAccount(account.id),
             Message::TableView(m) => match self.account_table.perform(m) {
                 utils::table_view::Action::OuterMessage(m) => {
                     return self.update(m, _finance_controller);
@@ -97,7 +97,7 @@ impl View {
             .headers(["Account".to_string(), "Current Value".to_string()])
             .view(|account, _| {
                 [
-                    utils::link(widget::text(account.0.name().to_string()))
+                    utils::link(account.0.name.as_str())
                         .on_press(Message::AccountView(account.0.clone()))
                         .into(),
                     utils::colored_currency_display(&account.1),

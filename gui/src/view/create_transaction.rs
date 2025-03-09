@@ -19,7 +19,7 @@ impl std::fmt::Display for SelectedAccount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SelectedAccount::Account(account) => match account {
-                fm_core::account::Account::AssetAccount(acc) => write!(f, "{}", acc.name()),
+                fm_core::account::Account::AssetAccount(acc) => write!(f, "{}", acc.name),
                 fm_core::account::Account::BookCheckingAccount(acc) => write!(f, "{}", acc),
             },
             SelectedAccount::New(name) => write!(f, "{}", name),
@@ -511,18 +511,22 @@ impl View {
         utils::failing_task(async move {
             let source_id = match source {
                 SelectedAccount::Account(acc) => *acc.id(),
-                SelectedAccount::New(name) => finance_controller
-                    .create_book_checking_account(name, None, None, None)
-                    .await?
-                    .id(),
+                SelectedAccount::New(name) => {
+                    finance_controller
+                        .create_book_checking_account(name, None, None, None)
+                        .await?
+                        .id
+                }
             };
 
             let destination_id = match destination {
                 SelectedAccount::Account(acc) => *acc.id(),
-                SelectedAccount::New(name) => finance_controller
-                    .create_book_checking_account(name, None, None, None)
-                    .await?
-                    .id(),
+                SelectedAccount::New(name) => {
+                    finance_controller
+                        .create_book_checking_account(name, None, None, None)
+                        .await?
+                        .id
+                }
             };
 
             Ok(match option_id {

@@ -192,13 +192,13 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
         let connection = self.connect().await;
         connection.execute(
             "INSERT INTO asset_account (name, notes, iban, bic, offset_value, offset_currency) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
-            (&name, &note, iban.clone().map(|x| x.electronic_str().to_owned()), &bic, offset.get_eur_num(), offset.get_currency_id()),
+            (&name, &note, iban.clone().map(|x| x.electronic_str().to_owned()), bic.as_ref().map(|x|x.to_string()), offset.get_eur_num(), offset.get_currency_id()),
         )?;
         connection.execute(
             "INSERT INTO account (asset_account) VALUES (?1)",
@@ -220,7 +220,7 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
         let connection = self.connect().await;
@@ -229,7 +229,7 @@ impl FinanceManager for SqliteFinanceManager {
 
         connection.execute(
             "UPDATE asset_account SET name=?1, notes=?2, iban=?3, bic=?4, offset_value=?5, offset_currency=?6 WHERE id=?7",
-            (&name, &note, iban.clone().map(|x| x.electronic_str().to_owned()), &bic, offset.get_eur_num(), offset.get_currency_id(), asset_account_id),
+            (&name, &note, iban.clone().map(|x| x.electronic_str().to_owned()), bic.as_ref().map(|x|x.to_string()), offset.get_eur_num(), offset.get_currency_id(), asset_account_id),
         )?;
         Ok(account::AssetAccount::new(
             id, name, note, iban, bic, offset,
@@ -271,7 +271,7 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         notes: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> Result<account::BookCheckingAccount> {
         let connection = self.connect().await;
         create_book_checking_account(&connection, name, notes, iban, bic)
@@ -283,7 +283,7 @@ impl FinanceManager for SqliteFinanceManager {
         name: String,
         notes: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> Result<account::BookCheckingAccount> {
         let connection = self.connect().await;
         let account_id = get_book_checking_account_id(&connection, id)?;
@@ -293,7 +293,7 @@ impl FinanceManager for SqliteFinanceManager {
                 &name,
                 &notes,
                 iban.clone().map(|x| x.electronic_str().to_owned()),
-                &bic,
+                bic.as_ref().map(|x| x.to_string()),
                 account_id,
             ),
         )?;
@@ -1080,7 +1080,7 @@ fn get_account(
                 } else {
                     None
                 },
-                asset_account_result.3,
+                asset_account_result.3.map(|x| x.into()),
                 Currency::from_currency_id(
                     asset_account_result.5,
                     BigDecimal::from_f64(asset_account_result.4).unwrap(),
@@ -1105,7 +1105,7 @@ fn get_account(
                 } else {
                     None
                 },
-                book_checking_account_result.3,
+                book_checking_account_result.3.map(|x| x.into()),
             )
             .into(),
         ))
@@ -1119,7 +1119,7 @@ fn create_book_checking_account(
     name: String,
     notes: Option<String>,
     iban: Option<AccountId>,
-    bic: Option<String>,
+    bic: Option<Bic>,
 ) -> Result<account::BookCheckingAccount> {
     connection.execute(
         "INSERT INTO book_checking_account (name, notes, iban, bic) VALUES (?1, ?2, ?3, ?4)",
@@ -1127,7 +1127,7 @@ fn create_book_checking_account(
             &name,
             &notes,
             iban.clone().map(|x| x.electronic_str().to_owned()),
-            &bic,
+            bic.as_ref().map(|x| x.to_string()),
         ),
     )?;
     connection.execute(

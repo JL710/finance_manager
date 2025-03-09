@@ -292,10 +292,10 @@ fn view_update(finance_controller: Fm, view: &mut View, message: ViewMessage) ->
                 view::account::Action::Task(t) => ViewAction::ViewTask(t.map(ViewMessage::Account)),
                 view::account::Action::None => ViewAction::None,
                 view::account::Action::EditAssetAccount(acc) => ViewAction::ViewTask(
-                    view.asset_account_edit(finance_controller.clone(), acc.id()),
+                    view.asset_account_edit(finance_controller.clone(), acc.id),
                 ),
                 view::account::Action::EditBookCheckingAccount(acc) => ViewAction::ViewTask(
-                    view.book_checking_account_edit(finance_controller.clone(), acc.id()),
+                    view.book_checking_account_edit(finance_controller.clone(), acc.id),
                 ),
                 view::account::Action::ViewTransaction(id) => {
                     ViewAction::ViewTask(view.transaction(finance_controller.clone(), id))

@@ -66,7 +66,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         name: String,
         note: Option<String>,
         iban: Option<fm_core::AccountId>,
-        bic: Option<String>,
+        bic: Option<fm_core::Bic>,
         offset: fm_core::Currency,
     ) -> Result<fm_core::account::AssetAccount> {
         match self {
@@ -102,7 +102,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         name: String,
         note: Option<String>,
         iban: Option<fm_core::AccountId>,
-        bic: Option<String>,
+        bic: Option<fm_core::Bic>,
     ) -> Result<fm_core::account::BookCheckingAccount> {
         match self {
             FinanceManagers::Server(client) => {
@@ -142,7 +142,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         name: String,
         note: Option<String>,
         iban: Option<fm_core::AccountId>,
-        bic: Option<String>,
+        bic: Option<fm_core::Bic>,
         offset: fm_core::Currency,
     ) -> Result<fm_core::account::AssetAccount> {
         match self {
@@ -170,7 +170,7 @@ impl fm_core::FinanceManager for FinanceManagers {
         name: String,
         note: Option<String>,
         iban: Option<fm_core::AccountId>,
-        bic: Option<String>,
+        bic: Option<fm_core::Bic>,
     ) -> Result<fm_core::account::BookCheckingAccount> {
         match self {
             FinanceManagers::Server(client) => {

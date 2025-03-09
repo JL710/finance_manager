@@ -6,14 +6,14 @@ pub async fn create_asset_account_test<T: FinanceManager>(mut fm: T) {
         .create_asset_account("Test".to_string(), None, None, None, Currency::default())
         .await
         .unwrap();
-    assert_eq!(account.name(), "Test");
-    assert_eq!(account.note(), None);
-    assert_eq!(*account.iban(), None);
-    assert_eq!(account.bic(), None);
-    assert_eq!(*account.offset(), Currency::default());
+    assert_eq!(account.name, "Test");
+    assert_eq!(account.note, None);
+    assert_eq!(account.iban, None);
+    assert_eq!(account.bic, None);
+    assert_eq!(account.offset, Currency::default());
 
     if let account::Account::AssetAccount(fetched_account) =
-        fm.get_account(account.id()).await.unwrap().unwrap()
+        fm.get_account(account.id).await.unwrap().unwrap()
     {
         assert_eq!(fetched_account, account);
     } else {
@@ -39,13 +39,13 @@ pub async fn create_book_checking_account_test<T: FinanceManager>(mut fm: T) {
         .create_book_checking_account("Test".to_string(), None, None, None)
         .await
         .unwrap();
-    assert_eq!(account.name(), "Test");
-    assert_eq!(account.note(), None);
-    assert_eq!(*account.iban(), None);
-    assert_eq!(account.bic(), None);
+    assert_eq!(account.name, "Test");
+    assert_eq!(account.note, None);
+    assert_eq!(account.iban, None);
+    assert_eq!(account.bic, None);
 
     if let account::Account::BookCheckingAccount(fetched_account) =
-        fm.get_account(account.id()).await.unwrap().unwrap()
+        fm.get_account(account.id).await.unwrap().unwrap()
     {
         assert_eq!(fetched_account, account);
     } else {
@@ -71,8 +71,8 @@ pub async fn delete_category_test<T: FinanceManager>(mut fm: T) {
             Currency::default(),
             "Test".to_string(),
             None,
-            acc1.id(),
-            acc2.id(),
+            acc1.id,
+            acc2.id,
             None,
             DateTime::now_utc(),
             HashMap::new(),
@@ -123,8 +123,8 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
             Currency::default(),
             "Transaction1".to_string(),
             None,
-            acc1.id(),
-            acc2.id(),
+            acc1.id,
+            acc2.id,
             Some((budget1.id, Sign::Positive)),
             DateTime::now_utc(),
             HashMap::default(),
@@ -168,8 +168,8 @@ pub async fn get_transactions_timespan_test<T: FinanceManager>(mut fm: T) {
             Currency::default(),
             "t1".to_string(),
             None,
-            acc1.id(),
-            acc2.id(),
+            acc1.id,
+            acc2.id,
             None,
             time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:30)),
             HashMap::default(),
@@ -182,8 +182,8 @@ pub async fn get_transactions_timespan_test<T: FinanceManager>(mut fm: T) {
             Currency::default(),
             "t2".to_string(),
             None,
-            acc1.id(),
-            acc2.id(),
+            acc1.id,
+            acc2.id,
             None,
             time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(11:30)),
             HashMap::default(),
@@ -196,8 +196,8 @@ pub async fn get_transactions_timespan_test<T: FinanceManager>(mut fm: T) {
             Currency::default(),
             "t3".to_string(),
             None,
-            acc1.id(),
-            acc2.id(),
+            acc1.id,
+            acc2.id,
             None,
             time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:50)),
             HashMap::default(),
@@ -246,8 +246,8 @@ pub async fn update_transaction_test<T: FinanceManager>(mut fm: T) {
             Currency::default(),
             "t1".to_string(),
             None,
-            acc1.id(),
-            acc2.id(),
+            acc1.id,
+            acc2.id,
             None,
             time::OffsetDateTime::now_utc(),
             HashMap::default(),

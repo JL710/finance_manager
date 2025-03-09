@@ -26,7 +26,7 @@ impl View {
         Self {
             accounts_table: utils::table_view::State::new(accounts, ())
                 .sort_by(|a, b, column| match column {
-                    0 => b.0.name().cmp(a.0.name()),
+                    0 => b.0.name.cmp(&a.0.name),
                     1 => a.1.cmp(&b.1),
                     _ => std::cmp::Ordering::Equal,
                 })
@@ -93,8 +93,8 @@ impl View {
                 utils::table_view::table_view(&self.accounts_table)
                     .headers(["Account".to_string(), "Sum".to_string()])
                     .view(|(account, sum), _| [
-                        utils::link(widget::text(account.name().to_string()))
-                            .on_press(Message::ViewAccount(account.id()))
+                        utils::link(account.name.as_str())
+                            .on_press(Message::ViewAccount(account.id))
                             .into(),
                         utils::colored_currency_display(sum),
                     ])

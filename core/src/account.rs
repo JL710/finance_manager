@@ -1,76 +1,61 @@
 use crate::Currency;
 
 use super::{AccountId, Id};
-use anyhow::Result;
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct Bic(String);
+
+impl std::fmt::Display for Bic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Bic {
+    pub fn new(bic: String) -> Self {
+        Self(bic.to_uppercase().replace(' ', ""))
+    }
+}
+
+impl From<String> for Bic {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+
+impl<'a> Into<&'a String> for &'a Bic {
+    fn into(self) -> &'a String {
+        &self.0
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct AssetAccount {
-    id: Id,
-    name: String,
-    notes: Option<String>,
-    iban: Option<AccountId>,
-    bic: Option<String>,
-    offset: super::Currency,
-}
-
-pub fn valid_iban_bic(value: &String) -> Result<()> {
-    let valid = value.to_uppercase().replace(' ', "");
-    if &valid != value {
-        anyhow::bail!("IBAN/BIC must be uppercase and without spaces")
-    }
-    Ok(())
+    pub id: Id,
+    pub name: String,
+    pub note: Option<String>,
+    pub iban: Option<AccountId>,
+    pub bic: Option<Bic>,
+    pub offset: super::Currency,
 }
 
 impl AssetAccount {
     pub fn new(
         id: Id,
         name: String,
-        notes: Option<String>,
+        note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> Self {
-        if let Some(bic) = &bic {
-            valid_iban_bic(bic).unwrap();
-        }
         Self {
             id,
             name,
-            notes,
+            note,
             iban,
             bic,
             offset,
         }
-    }
-
-    pub fn id(&self) -> Id {
-        self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn note(&self) -> Option<&str> {
-        match &self.notes {
-            Some(note) => Some(note),
-            None => None,
-        }
-    }
-
-    pub fn iban(&self) -> &Option<AccountId> {
-        &self.iban
-    }
-
-    pub fn bic(&self) -> Option<&str> {
-        match &self.bic {
-            Some(content) => Some(content),
-            None => None,
-        }
-    }
-
-    pub fn offset(&self) -> &Currency {
-        &self.offset
     }
 }
 
@@ -82,11 +67,11 @@ impl From<AssetAccount> for Account {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct BookCheckingAccount {
-    id: Id,
-    name: String,
-    notes: Option<String>,
-    iban: Option<AccountId>,
-    bic: Option<String>,
+    pub id: Id,
+    pub name: String,
+    pub note: Option<String>,
+    pub iban: Option<AccountId>,
+    pub bic: Option<Bic>,
 }
 
 impl std::fmt::Display for BookCheckingAccount {
@@ -105,45 +90,16 @@ impl BookCheckingAccount {
     pub fn new(
         id: Id,
         name: String,
-        notes: Option<String>,
+        note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> Self {
-        if let Some(value) = &bic {
-            valid_iban_bic(value).unwrap();
-        }
         Self {
             id,
             name,
-            notes,
+            note,
             iban,
             bic,
-        }
-    }
-
-    pub fn id(&self) -> Id {
-        self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn note(&self) -> Option<&str> {
-        match &self.notes {
-            Some(note) => Some(note),
-            None => None,
-        }
-    }
-
-    pub fn iban(&self) -> &Option<AccountId> {
-        &self.iban
-    }
-
-    pub fn bic(&self) -> Option<&str> {
-        match &self.bic {
-            Some(content) => Some(content),
-            None => None,
         }
     }
 }
@@ -157,15 +113,15 @@ pub enum Account {
 impl Account {
     pub fn name(&self) -> &str {
         match self {
-            Account::AssetAccount(acc) => acc.name(),
-            Account::BookCheckingAccount(acc) => acc.name(),
+            Account::AssetAccount(acc) => &acc.name,
+            Account::BookCheckingAccount(acc) => &acc.name,
         }
     }
 
-    pub fn note(&self) -> Option<&str> {
+    pub fn note(&self) -> Option<&String> {
         match self {
-            Account::AssetAccount(acc) => acc.note(),
-            Account::BookCheckingAccount(acc) => acc.note(),
+            Account::AssetAccount(acc) => acc.note.as_ref(),
+            Account::BookCheckingAccount(acc) => acc.note.as_ref(),
         }
     }
 
@@ -176,17 +132,17 @@ impl Account {
         }
     }
 
-    pub fn iban(&self) -> &Option<AccountId> {
+    pub fn iban(&self) -> Option<&AccountId> {
         match self {
-            Account::AssetAccount(acc) => acc.iban(),
-            Account::BookCheckingAccount(acc) => acc.iban(),
+            Account::AssetAccount(acc) => acc.iban.as_ref(),
+            Account::BookCheckingAccount(acc) => acc.iban.as_ref(),
         }
     }
 
-    pub fn bic(&self) -> Option<&str> {
+    pub fn bic(&self) -> Option<&Bic> {
         match self {
-            Account::AssetAccount(acc) => acc.bic(),
-            Account::BookCheckingAccount(acc) => acc.bic(),
+            Account::AssetAccount(acc) => acc.bic.as_ref(),
+            Account::BookCheckingAccount(acc) => acc.bic.as_ref(),
         }
     }
 }

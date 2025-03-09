@@ -182,10 +182,18 @@ fn format_transaction_entry(entry: &super::TransactionEntry) -> Result<String> {
         entry.description,
         entry.value,
         entry.source_entry.iban(),
-        entry.source_entry.bic().unwrap_or_default(),
+        entry
+            .source_entry
+            .bic()
+            .map(|x| x.to_string())
+            .unwrap_or_default(),
         entry.source_entry.name().clone().unwrap_or_default(),
         entry.destination_entry.iban(),
-        entry.destination_entry.bic().unwrap_or_default(),
+        entry
+            .destination_entry
+            .bic()
+            .map(|x| x.to_string())
+            .unwrap_or_default(),
         entry.destination_entry.name().clone().unwrap_or_default(),
         entry
             .date
@@ -198,11 +206,8 @@ fn format_account(account: &fm_core::account::Account) -> String {
     format!(
         "Name: {}\nDescription: {}\nIBAN: {}\nBIC: {}\n",
         account.name(),
-        account.note().unwrap_or_default(),
-        account
-            .iban()
-            .clone()
-            .map_or(String::new(), |x| x.to_string()),
-        account.bic().unwrap_or_default()
+        account.note().unwrap_or(&String::new()),
+        account.iban().map_or(String::new(), |x| x.to_string()),
+        account.bic().map(|x| x.to_string()).unwrap_or_default()
     )
 }

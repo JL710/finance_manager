@@ -148,13 +148,13 @@ where
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
         self.finance_manager
             .lock()
             .await
-            .create_asset_account(name, note, iban, make_iban_bic_unified(bic), offset)
+            .create_asset_account(name, note, iban, bic, offset)
             .await
             .context("Error while creating asset account")
     }
@@ -165,13 +165,13 @@ where
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
         self.finance_manager
             .lock()
             .await
-            .update_asset_account(id, name, note, iban, make_iban_bic_unified(bic), offset)
+            .update_asset_account(id, name, note, iban, bic, offset)
             .await
             .context(format!("Error while updating asset account {}", id))
     }
@@ -244,7 +244,7 @@ where
             .await
             .context("Error while getting account sum")?;
         if let account::Account::AssetAccount(asset_account) = account {
-            Ok(sum + asset_account.offset().clone())
+            Ok(sum + &asset_account.offset)
         } else {
             Ok(sum)
         }
@@ -337,12 +337,12 @@ where
         name: String,
         notes: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> Result<account::BookCheckingAccount> {
         self.finance_manager
             .lock()
             .await
-            .create_book_checking_account(name, notes, iban, make_iban_bic_unified(bic))
+            .create_book_checking_account(name, notes, iban, bic)
             .await
             .context("Error while creating book checking account")
     }
@@ -353,12 +353,12 @@ where
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> Result<account::BookCheckingAccount> {
         self.finance_manager
             .lock()
             .await
-            .update_book_checking_account(id, name, note, iban, make_iban_bic_unified(bic))
+            .update_book_checking_account(id, name, note, iban, bic)
             .await
             .context(format!(
                 "Error while updating book checking account with id {}",
@@ -649,10 +649,6 @@ where
     }
 }
 
-fn make_iban_bic_unified(content: Option<String>) -> Option<String> {
-    content.map(|content| content.to_uppercase().replace(' ', "").trim().to_string())
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteAccountError {
     #[error("Account is still used in transactions")]
@@ -690,8 +686,8 @@ mod test {
                 Currency::default(),
                 "test".to_string(),
                 None,
-                acc1.id(),
-                acc2.id(),
+                acc1.id,
+                acc2.id,
                 None,
                 time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:50)),
                 HashMap::default(),
@@ -724,8 +720,8 @@ mod test {
                 Currency::default(),
                 "t1".to_string(),
                 None,
-                acc1.id(),
-                acc2.id(),
+                acc1.id,
+                acc2.id,
                 None,
                 time::OffsetDateTime::now_utc(),
                 HashMap::default(),

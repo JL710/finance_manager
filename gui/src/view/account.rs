@@ -317,17 +317,24 @@ fn asset_account_view<'a>(
         utils::spaced_column![
             widget::row![
                 widget::column![
-                    widget::text!("Account: {}", account.name()),
-                    widget::text!("Notes: {}", account.note().unwrap_or("")),
+                    widget::text!("Account: {}", account.name),
+                    widget::text!("Notes: {}", account.note.clone().unwrap_or_default()),
                     widget::text!(
                         "IBAN: {}",
                         account
-                            .iban()
+                            .iban
                             .clone()
                             .map_or(String::new(), |iban| iban.to_string())
                     ),
-                    widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
-                    widget::text!("Offset: {}", account.offset()),
+                    widget::text!(
+                        "BIC/Swift: {}",
+                        account
+                            .bic
+                            .clone()
+                            .map(|x| x.to_string())
+                            .unwrap_or_default()
+                    ),
+                    widget::text!("Offset: {}", account.offset),
                     widget::row![
                         widget::text("Current Amount: "),
                         utils::colored_currency_display(current_value)
@@ -360,16 +367,23 @@ fn book_checking_account_view<'a>(
         utils::spaced_column![
             widget::row![
                 widget::column![
-                    widget::text!("Account: {}", account.name()),
-                    widget::text!("Notes: {}", account.note().unwrap_or("")),
+                    widget::text!("Account: {}", account.name),
+                    widget::text!("Notes: {}", account.note.clone().unwrap_or_default()),
                     widget::text!(
                         "IBAN: {}",
                         account
-                            .iban()
+                            .iban
                             .clone()
                             .map_or(String::new(), |iban| iban.to_string())
                     ),
-                    widget::text!("BIC/Swift: {}", account.bic().unwrap_or("")),
+                    widget::text!(
+                        "BIC/Swift: {}",
+                        account
+                            .bic
+                            .clone()
+                            .map(|x| x.to_string())
+                            .unwrap_or_default()
+                    ),
                     widget::row![
                         widget::text("Current Amount: "),
                         utils::colored_currency_display(current_value)

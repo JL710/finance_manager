@@ -1,5 +1,5 @@
 use crate::{
-    AccountId, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Sign, Timespan,
+    AccountId, Bic, Bill, Budget, Category, Currency, DateTime, FinanceManager, Id, Sign, Timespan,
     Transaction, account, budget::Recurring,
 };
 use anyhow::Result;
@@ -27,7 +27,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
         let account = self.accounts.get_mut(&id).unwrap();
@@ -41,7 +41,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
@@ -67,7 +67,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         notes: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> Result<account::BookCheckingAccount> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
@@ -88,7 +88,7 @@ impl FinanceManager for RamFinanceManager {
         name: String,
         notes: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> Result<account::BookCheckingAccount> {
         let account = self.accounts.get_mut(&id).unwrap();
         let new_account = account::BookCheckingAccount::new(id, name, notes, iban, bic);

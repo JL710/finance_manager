@@ -260,7 +260,7 @@ async fn create_asset_account(
         String,
         Option<String>,
         Option<fm_core::AccountId>,
-        Option<String>,
+        Option<fm_core::Bic>,
         fm_core::Currency,
     )>,
 ) -> Json<Value> {
@@ -395,7 +395,7 @@ async fn create_book_checking_account(
         String,
         Option<String>,
         Option<fm_core::AccountId>,
-        Option<String>,
+        Option<fm_core::Bic>,
     )>,
 ) -> Json<Value> {
     let account = state
@@ -430,7 +430,7 @@ async fn update_asset_account(
         String,
         Option<String>,
         Option<fm_core::AccountId>,
-        Option<String>,
+        Option<fm_core::Bic>,
         fm_core::Currency,
     )>,
 ) -> Json<Value> {
@@ -618,7 +618,7 @@ async fn update_book_checking_account(
         String,
         Option<String>,
         Option<fm_core::AccountId>,
-        Option<String>,
+        Option<fm_core::Bic>,
     )>,
 ) -> Json<Value> {
     let account = state

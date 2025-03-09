@@ -11,7 +11,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
@@ -21,7 +21,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
         offset: Currency,
     ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
@@ -33,7 +33,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         notes: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
     fn update_book_checking_account(
@@ -42,7 +42,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         name: String,
         note: Option<String>,
         iban: Option<AccountId>,
-        bic: Option<String>,
+        bic: Option<Bic>,
     ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
     /// Only get the sum of the transactions for the account at the given date.
