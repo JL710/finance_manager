@@ -161,19 +161,15 @@ where
 
     pub async fn update_asset_account(
         &self,
-        id: Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<AccountId>,
-        bic: Option<Bic>,
-        offset: Currency,
+        account: account::AssetAccount,
     ) -> Result<account::AssetAccount> {
+        let acc_id = account.id;
         self.finance_manager
             .lock()
             .await
-            .update_asset_account(id, name, note, iban, bic, offset)
+            .update_asset_account(account)
             .await
-            .context(format!("Error while updating asset account {}", id))
+            .context(format!("Error while updating asset account {}", acc_id))
     }
 
     /// Deletes an account.
@@ -349,20 +345,17 @@ where
 
     pub async fn update_book_checking_account(
         &self,
-        id: Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<AccountId>,
-        bic: Option<Bic>,
+        account: account::BookCheckingAccount,
     ) -> Result<account::BookCheckingAccount> {
+        let acc_id = account.id;
         self.finance_manager
             .lock()
             .await
-            .update_book_checking_account(id, name, note, iban, bic)
+            .update_book_checking_account(account)
             .await
             .context(format!(
                 "Error while updating book checking account with id {}",
-                id
+                acc_id
             ))
     }
 

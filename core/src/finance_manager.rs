@@ -17,12 +17,7 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     fn update_asset_account(
         &mut self,
-        id: Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<AccountId>,
-        bic: Option<Bic>,
-        offset: Currency,
+        account: account::AssetAccount,
     ) -> impl Future<Output = Result<account::AssetAccount>> + MaybeSend;
 
     /// This should only delete the account and nothing else (like asserted transactions).
@@ -38,11 +33,7 @@ pub trait FinanceManager: Send + Clone + Sized {
 
     fn update_book_checking_account(
         &mut self,
-        id: Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<AccountId>,
-        bic: Option<Bic>,
+        account: account::BookCheckingAccount,
     ) -> impl Future<Output = Result<account::BookCheckingAccount>> + MaybeSend;
 
     /// Only get the sum of the transactions for the account at the given date.

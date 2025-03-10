@@ -63,18 +63,13 @@ impl fm_core::FinanceManager for Client {
 
     async fn update_asset_account(
         &mut self,
-        id: fm_core::Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<fm_core::AccountId>,
-        bic: Option<fm_core::Bic>,
-        offset: fm_core::Currency,
+        account: fm_core::account::AssetAccount,
     ) -> Result<fm_core::account::AssetAccount> {
         client_post_macro!(
             self.url,
             self.token.clone(),
             "update_asset_account",
-            (id, name, note, iban, bic, offset)
+            account
         )
     }
 
@@ -99,17 +94,13 @@ impl fm_core::FinanceManager for Client {
 
     async fn update_book_checking_account(
         &mut self,
-        id: fm_core::Id,
-        name: String,
-        notes: Option<String>,
-        iban: Option<fm_core::AccountId>,
-        bic: Option<fm_core::Bic>,
+        account: fm_core::account::BookCheckingAccount,
     ) -> Result<fm_core::account::BookCheckingAccount> {
         client_post_macro!(
             self.url,
             self.token.clone(),
             "update_book_checking_account",
-            (id, name, notes, iban, bic)
+            account
         )
     }
 

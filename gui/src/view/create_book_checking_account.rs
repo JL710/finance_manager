@@ -97,11 +97,13 @@ impl View {
                     let account = if let Some(some_id) = id {
                         finance_controller
                             .update_book_checking_account(
-                                some_id,
-                                name,
-                                note,
-                                iban,
-                                bic.map(|x| x.into()),
+                                fm_core::account::BookCheckingAccount::new(
+                                    some_id,
+                                    name,
+                                    note,
+                                    iban,
+                                    bic.map(|x| x.into()),
+                                ),
                             )
                             .await?
                     } else {

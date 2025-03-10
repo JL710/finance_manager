@@ -138,56 +138,25 @@ impl fm_core::FinanceManager for FinanceManagers {
 
     async fn update_asset_account(
         &mut self,
-        id: fm_core::Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<fm_core::AccountId>,
-        bic: Option<fm_core::Bic>,
-        offset: fm_core::Currency,
+        account: fm_core::account::AssetAccount,
     ) -> Result<fm_core::account::AssetAccount> {
         match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .update_asset_account(id, name, note, iban, bic, offset)
-                    .await
-            }
+            FinanceManagers::Server(client) => client.update_asset_account(account).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .update_asset_account(id, name, note, iban, bic, offset)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.update_asset_account(id, name, note, iban, bic, offset)
-                    .await
-            }
+            FinanceManagers::Sqlite(sqlite) => sqlite.update_asset_account(account).await,
+            FinanceManagers::Ram(ram) => ram.update_asset_account(account).await,
         }
     }
 
     async fn update_book_checking_account(
         &mut self,
-        id: fm_core::Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<fm_core::AccountId>,
-        bic: Option<fm_core::Bic>,
+        account: fm_core::account::BookCheckingAccount,
     ) -> Result<fm_core::account::BookCheckingAccount> {
         match self {
-            FinanceManagers::Server(client) => {
-                client
-                    .update_book_checking_account(id, name, note, iban, bic)
-                    .await
-            }
+            FinanceManagers::Server(client) => client.update_book_checking_account(account).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => {
-                sqlite
-                    .update_book_checking_account(id, name, note, iban, bic)
-                    .await
-            }
-            FinanceManagers::Ram(ram) => {
-                ram.update_book_checking_account(id, name, note, iban, bic)
-                    .await
-            }
+            FinanceManagers::Sqlite(sqlite) => sqlite.update_book_checking_account(account).await,
+            FinanceManagers::Ram(ram) => ram.update_book_checking_account(account).await,
         }
     }
 

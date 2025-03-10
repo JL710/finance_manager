@@ -122,14 +122,14 @@ impl View {
                 return Action::Task(utils::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_controller
-                            .update_asset_account(
+                            .update_asset_account(fm_core::account::AssetAccount::new(
                                 some_id,
                                 name,
                                 note,
                                 iban,
                                 bic.map(|x| x.into()),
                                 offset,
-                            )
+                            ))
                             .await?
                     } else {
                         finance_controller

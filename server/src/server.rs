@@ -425,20 +425,13 @@ async fn get_transaction(
 #[allow(clippy::type_complexity)]
 async fn update_asset_account(
     axum::extract::State(state): axum::extract::State<State>,
-    axum::extract::Json(data): axum::extract::Json<(
-        fm_core::Id,
-        String,
-        Option<String>,
-        Option<fm_core::AccountId>,
-        Option<fm_core::Bic>,
-        fm_core::Currency,
-    )>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::account::AssetAccount>,
 ) -> Json<Value> {
     let account = state
         .finance_controller
         .lock()
         .await
-        .update_asset_account(data.0, data.1, data.2, data.3, data.4, data.5)
+        .update_asset_account(data)
         .await
         .unwrap();
     json!(account).into()
@@ -613,19 +606,13 @@ async fn get_transactions_of_category(
 #[allow(clippy::type_complexity)]
 async fn update_book_checking_account(
     axum::extract::State(state): axum::extract::State<State>,
-    axum::extract::Json(data): axum::extract::Json<(
-        fm_core::Id,
-        String,
-        Option<String>,
-        Option<fm_core::AccountId>,
-        Option<fm_core::Bic>,
-    )>,
+    axum::extract::Json(data): axum::extract::Json<fm_core::account::BookCheckingAccount>,
 ) -> Json<Value> {
     let account = state
         .finance_controller
         .lock()
         .await
-        .update_book_checking_account(data.0, data.1, data.2, data.3, data.4)
+        .update_book_checking_account(data)
         .await
         .unwrap();
     json!(account).into()

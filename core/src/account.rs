@@ -23,9 +23,9 @@ impl From<String> for Bic {
     }
 }
 
-impl<'a> Into<&'a String> for &'a Bic {
-    fn into(self) -> &'a String {
-        &self.0
+impl<'a> From<&'a Bic> for &'a String {
+    fn from(val: &'a Bic) -> Self {
+        &val.0
     }
 }
 

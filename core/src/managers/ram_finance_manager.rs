@@ -23,15 +23,9 @@ impl FinanceManager for RamFinanceManager {
 
     async fn update_asset_account(
         &mut self,
-        id: Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<AccountId>,
-        bic: Option<Bic>,
-        offset: Currency,
+        new_account: account::AssetAccount,
     ) -> Result<account::AssetAccount> {
-        let account = self.accounts.get_mut(&id).unwrap();
-        let new_account = account::AssetAccount::new(id, name, note, iban, bic, offset);
+        let account = self.accounts.get_mut(&new_account.id).unwrap();
         *account = new_account.clone().into();
         Ok(new_account)
     }
@@ -84,14 +78,9 @@ impl FinanceManager for RamFinanceManager {
 
     async fn update_book_checking_account(
         &mut self,
-        id: Id,
-        name: String,
-        notes: Option<String>,
-        iban: Option<AccountId>,
-        bic: Option<Bic>,
+        new_account: account::BookCheckingAccount,
     ) -> Result<account::BookCheckingAccount> {
-        let account = self.accounts.get_mut(&id).unwrap();
-        let new_account = account::BookCheckingAccount::new(id, name, notes, iban, bic);
+        let account = self.accounts.get_mut(&new_account.id).unwrap();
         *account = new_account.clone().into();
         Ok(new_account)
     }

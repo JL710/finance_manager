@@ -216,24 +216,25 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn update_asset_account(
         &mut self,
-        id: Id,
-        name: String,
-        note: Option<String>,
-        iban: Option<AccountId>,
-        bic: Option<Bic>,
-        offset: Currency,
+        account: account::AssetAccount,
     ) -> Result<account::AssetAccount> {
         let connection = self.connect().await;
 
-        let asset_account_id = get_asset_account_id(&connection, id)?;
+        let asset_account_id = get_asset_account_id(&connection, account.id)?;
 
         connection.execute(
             "UPDATE asset_account SET name=?1, notes=?2, iban=?3, bic=?4, offset_value=?5, offset_currency=?6 WHERE id=?7",
-            (&name, &note, iban.clone().map(|x| x.electronic_str().to_owned()), bic.as_ref().map(|x|x.to_string()), offset.get_eur_num(), offset.get_currency_id(), asset_account_id),
+            (
+                &account.name, 
+                &account.note, 
+                account.iban.clone().map(|x| x.electronic_str().to_owned()), 
+                account.bic.as_ref().map(|x|x.to_string()), 
+                account.offset.get_eur_num(), 
+                account.offset.get_currency_id(), 
+                asset_account_id
+            ),
         )?;
-        Ok(account::AssetAccount::new(
-            id, name, note, iban, bic, offset,
-        ))
+        Ok(account)
     }
 
     async fn delete_account(&mut self, id: Id) -> Result<()> {
@@ -279,27 +280,21 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn update_book_checking_account(
         &mut self,
-        id: Id,
-        name: String,
-        notes: Option<String>,
-        iban: Option<AccountId>,
-        bic: Option<Bic>,
+        account: account::BookCheckingAccount
     ) -> Result<account::BookCheckingAccount> {
         let connection = self.connect().await;
-        let account_id = get_book_checking_account_id(&connection, id)?;
+        let account_id = get_book_checking_account_id(&connection, account.id)?;
         connection.execute(
             "UPDATE book_checking_account SET name=?1, notes=?2, iban=?3, bic=?4 WHERE id=?5",
             (
-                &name,
-                &notes,
-                iban.clone().map(|x| x.electronic_str().to_owned()),
-                bic.as_ref().map(|x| x.to_string()),
+                &account.name,
+                &account.note,
+                account.iban.clone().map(|x| x.electronic_str().to_owned()),
+                account.bic.as_ref().map(|x| x.to_string()),
                 account_id,
             ),
         )?;
-        Ok(account::BookCheckingAccount::new(
-            id, name, notes, iban, bic,
-        ))
+        Ok(account)
     }
 
     async fn create_bill(
