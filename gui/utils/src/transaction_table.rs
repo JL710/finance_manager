@@ -246,7 +246,6 @@ impl TransactionTable {
                 "Categories",
                 "Budget",
             ])
-            .cell_portions([3, 1, 1, 3, 3, 3, 2])
             .view(
                 move |(transaction, source, destination): &(
                     fm_core::Transaction,
