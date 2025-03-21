@@ -438,7 +438,9 @@ impl<'a, Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Th
 
         iced::advanced::layout::Node::with_children(
             iced::Size::new(
-                horizontal_padding_sum as f32 + column_widths.iter().sum::<f32>(),
+                horizontal_padding_sum as f32
+                    + column_widths.iter().sum::<f32>()
+                    + COLUMNS as f32 * self.cell_padding.horizontal(),
                 total_height,
             ),
             child_layouts,
