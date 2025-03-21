@@ -71,6 +71,20 @@ fn max_node_width(nodes: &[iced::advanced::layout::Node]) -> f32 {
     smallest
 }
 
+fn layouts_max<'a>(
+    start_x: f32,
+    start_y: f32,
+    layouts: &[iced::advanced::layout::Layout<'a>],
+) -> (f32, f32) {
+    let mut x: f32 = start_x;
+    let mut y: f32 = start_y;
+    for child_layout in layouts {
+        x = x.max(child_layout.position().x + child_layout.bounds().width);
+        y = y.max(child_layout.position().y + child_layout.bounds().height);
+    }
+    (x, y)
+}
+
 fn unpositioned_header_layouts<'a, Message>(
     header_elements: &Vec<(iced::Element<'a, Message>, iced::Element<'a, Message>)>,
     max_column_sizes: &[f32],
@@ -313,15 +327,12 @@ impl<'a, Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Th
             .collect::<Vec<_>>();
 
         // draw heading border
-        let mut max_header_border_x: f32 = layout.position().x;
-        let mut max_header_border_y: f32 = layout.position().y;
         let header_todos = pop_front_slice(&mut child_draw_todos, COLUMNS * 2);
-        for (_, child_layout) in &header_todos {
-            max_header_border_x =
-                max_header_border_x.max(child_layout.position().x + child_layout.bounds().width);
-            max_header_border_y =
-                max_header_border_y.max(child_layout.position().y + child_layout.bounds().height);
-        }
+        let (max_header_border_x, max_header_border_y) = layouts_max(
+            layout.position().x,
+            layout.position().y,
+            &header_todos.iter().map(|x| x.1).collect::<Vec<_>>(),
+        );
         renderer.fill_quad(
             iced::advanced::renderer::Quad {
                 bounds: iced::Rectangle::new(
@@ -356,15 +367,12 @@ impl<'a, Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Th
         let mut row_index = 0;
         while !child_draw_todos.is_empty() {
             let y_cell_start = child_draw_todos[0].1.position().y;
-            let mut max_row_border_x: f32 = layout.position().x;
-            let mut max_row_border_y: f32 = layout.position().y;
             let row_todos = pop_front_slice(&mut child_draw_todos, COLUMNS);
-            for (_, child_layout) in &row_todos {
-                max_row_border_x =
-                    max_row_border_x.max(child_layout.position().x + child_layout.bounds().width);
-                max_row_border_y =
-                    max_row_border_y.max(child_layout.position().y + child_layout.bounds().height);
-            }
+            let (max_row_border_x, max_row_border_y) = layouts_max(
+                layout.position().x,
+                layout.position().y,
+                &row_todos.iter().map(|x| x.1).collect::<Vec<_>>(),
+            );
             renderer.fill_quad(
                 iced::advanced::renderer::Quad {
                     bounds: iced::Rectangle::new(
