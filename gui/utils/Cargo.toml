@@ -8,6 +8,5 @@ fm_core = { path = "../../core", default-features = false }
 iced.workspace = true
 time.workspace = true
 anyhow.workspace = true
-async-std.workspace = true
 rfd.workspace = true
 uuid = { version = "1.8.0", features = ["v4"] }
