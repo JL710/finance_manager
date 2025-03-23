@@ -1,5 +1,6 @@
 struct State {
     column_widths: Option<Vec<f32>>,
+    layout_id: isize,
 }
 
 pub struct InnerTableView<
@@ -26,6 +27,7 @@ pub struct InnerTableView<
     cell_padding: iced::Padding,
     header_background_color: Box<dyn Fn(&Theme) -> iced::Color>,
     row_color: Box<dyn Fn(&Theme, usize) -> iced::Color>,
+    layout_id: isize,
 }
 
 impl<'a, Message, const COLUMNS: usize, Theme, Renderer>
@@ -48,6 +50,7 @@ where
         cell_padding: iced::Padding,
         header_background_color: impl Fn(&Theme) -> iced::Color + 'static,
         row_color: impl Fn(&Theme, usize) -> iced::Color + 'static,
+        layout_id: isize,
     ) -> Self {
         Self {
             header_elements,
@@ -60,6 +63,7 @@ where
             cell_padding,
             header_background_color: Box::new(header_background_color),
             row_color: Box::new(row_color),
+            layout_id,
         }
     }
 
@@ -247,6 +251,7 @@ where
     fn state(&self) -> iced::advanced::widget::tree::State {
         iced::advanced::widget::tree::State::new(State {
             column_widths: None,
+            layout_id: self.layout_id,
         })
     }
 
@@ -264,13 +269,15 @@ where
     fn diff(&self, tree: &mut iced::advanced::widget::Tree) {
         let state = tree.state.downcast_mut::<State>();
 
-        let state_is_valid = if let Some(column_widths) = &mut state.column_widths {
+        let column_widths_valid = if let Some(column_widths) = &mut state.column_widths {
             column_widths.len() == COLUMNS
         } else {
             true
         };
-        if !state_is_valid {
+
+        if !column_widths_valid || state.layout_id != self.layout_id {
             state.column_widths = None;
+            state.layout_id = self.layout_id
         }
 
         tree.diff_children(&self.child_elements());
@@ -621,4 +628,15 @@ fn pop_front_slice<T>(vector: &mut Vec<T>, count: usize) -> Vec<T> {
         result.push(vector.remove(0));
     }
     result
+}
+
+impl<'a, Message: 'a, const COLUMNS: usize, Theme: 'a, Renderer: 'a>
+    From<InnerTableView<'a, Message, COLUMNS, Theme, Renderer>>
+    for iced::Element<'a, Message, Theme, Renderer>
+where
+    Renderer: iced::advanced::Renderer,
+{
+    fn from(value: InnerTableView<'a, Message, COLUMNS, Theme, Renderer>) -> Self {
+        iced::Element::new(value)
+    }
 }

@@ -20,6 +20,7 @@ pub enum InnerMessage<Message> {
 #[allow(clippy::type_complexity)]
 pub struct State<T, C> {
     items: Vec<T>,
+    inner_layout_id: isize,
     context: C,
     page_size: usize,
     page: usize,
@@ -49,6 +50,7 @@ impl<T, C> State<T, C> {
     pub fn new(items: Vec<T>, context: C) -> Self {
         Self {
             items,
+            inner_layout_id: uuid::Uuid::new_v4().as_u128() as isize,
             context,
             page_size: 50,
             page: 0,
@@ -156,6 +158,7 @@ impl<T, C> State<T, C> {
 
     pub fn set_items(&mut self, items: Vec<T>) {
         self.items = items;
+        self.inner_layout_id = uuid::Uuid::new_v4().as_u128() as isize;
         self.page = 0;
         self.sort_column = None;
         self.sort_reverse = false;
@@ -163,6 +166,7 @@ impl<T, C> State<T, C> {
 
     pub fn edit_items(&mut self, update: impl Fn(&mut Vec<T>)) {
         (update)(&mut self.items);
+        self.inner_layout_id = uuid::Uuid::new_v4().as_u128() as isize;
         self.sort_column = None;
         self.sort_reverse = false;
         if self.page > self.max_page() {
@@ -171,6 +175,7 @@ impl<T, C> State<T, C> {
     }
 
     pub fn set_context(&mut self, context: C) {
+        self.inner_layout_id = uuid::Uuid::new_v4().as_u128() as isize;
         self.context = context;
     }
 }
@@ -181,6 +186,8 @@ pub struct TableView<'a, T, C, const COLUMNS: usize> {
     row_spacing: f32,
     column_spacing: f32,
     cell_padding: iced::Padding,
+    max_column_sizes: [f32; COLUMNS],
+    column_max_is_weak: [bool; COLUMNS],
 }
 
 impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
@@ -191,7 +198,19 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
             row_spacing: 10.0,
             column_spacing: 30.0,
             cell_padding: iced::Padding::new(10.0),
+            max_column_sizes: [300.0; COLUMNS],
+            column_max_is_weak: [false; COLUMNS],
         }
+    }
+
+    pub fn max_column_sizes(mut self, max_column_sizes: [f32; COLUMNS]) -> Self {
+        self.max_column_sizes = max_column_sizes;
+        self
+    }
+
+    pub fn column_max_is_weak(mut self, column_max_is_weak: [bool; COLUMNS]) -> Self {
+        self.column_max_is_weak = column_max_is_weak;
+        self
     }
 
     pub fn row_spacing(mut self, spacing: f32) -> Self {
@@ -278,12 +297,12 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
             }
 
             iced::Element::new(
-                iced::widget::scrollable(iced::Element::new(
-                    inner_table_view::InnerTableView::new(
+                iced::widget::scrollable(
+                    widget::container(inner_table_view::InnerTableView::new(
                         header_elements,
                         cell_elements,
-                        [400.0; COLUMNS],
-                        [false; COLUMNS],
+                        self.max_column_sizes,
+                        self.column_max_is_weak,
                         self.row_spacing,
                         self.column_spacing,
                         size.width,
@@ -298,8 +317,10 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                             weak.b += (strong.b - weak.b) * factor;
                             weak
                         },
-                    ),
-                ))
+                        self.state.inner_layout_id,
+                    ))
+                    .padding(iced::Padding::ZERO.bottom(10)),
+                )
                 .direction(iced::widget::scrollable::Direction::Both {
                     horizontal: iced::widget::scrollable::Scrollbar::new(),
                     vertical: iced::widget::scrollable::Scrollbar::new(),
