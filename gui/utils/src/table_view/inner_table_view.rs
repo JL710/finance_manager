@@ -3,6 +3,13 @@ struct State {
     layout_id: isize,
 }
 
+type HeaderElementPair<'a, Message, Theme, Renderer> = (
+    iced::Element<'a, Message, Theme, Renderer>,
+    iced::Element<'a, Message, Theme, Renderer>,
+);
+
+type RowColorStyleFn<Theme> = Box<dyn Fn(&Theme, usize) -> iced::Color>;
+
 pub struct InnerTableView<
     'a,
     Message,
@@ -13,10 +20,7 @@ pub struct InnerTableView<
     Renderer: iced::advanced::Renderer,
 {
     /// name and sort svg/button represents one header
-    header_elements: Vec<(
-        iced::Element<'a, Message, Theme, Renderer>,
-        iced::Element<'a, Message, Theme, Renderer>,
-    )>,
+    header_elements: Vec<HeaderElementPair<'a, Message, Theme, Renderer>>,
     elements: Vec<iced::Element<'a, Message, Theme, Renderer>>,
     max_column_sizes: [f32; COLUMNS],
     /// if a column max is set to weak, it gets expanded if otherwise the widget with is smaller than [`Self::optimal_width`].
@@ -26,7 +30,7 @@ pub struct InnerTableView<
     optimal_width: f32,
     cell_padding: iced::Padding,
     header_background_color: Box<dyn Fn(&Theme) -> iced::Color>,
-    row_color: Box<dyn Fn(&Theme, usize) -> iced::Color>,
+    row_color: RowColorStyleFn<Theme>,
     layout_id: isize,
 }
 
@@ -37,10 +41,7 @@ where
 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        header_elements: Vec<(
-            iced::Element<'a, Message, Theme, Renderer>,
-            iced::Element<'a, Message, Theme, Renderer>,
-        )>,
+        header_elements: Vec<HeaderElementPair<'a, Message, Theme, Renderer>>,
         elements: Vec<iced::Element<'a, Message, Theme, Renderer>>,
         max_column_sizes: [f32; COLUMNS],
         column_max_is_weak: [bool; COLUMNS],
@@ -120,11 +121,8 @@ fn layouts_max(
 /// Assumes that the order of elements is left to right.
 ///
 /// Returns the list of [`iced::advanced::layout::Node`]s for each cell and sizes of the columns.
-fn dynamic_header_layout_size<'a, Message, Theme, Renderer: iced::advanced::Renderer>(
-    header_elements: &Vec<(
-        iced::Element<'a, Message, Theme, Renderer>,
-        iced::Element<'a, Message, Theme, Renderer>,
-    )>,
+fn dynamic_header_layout_size<Message, Theme, Renderer: iced::advanced::Renderer>(
+    header_elements: &Vec<HeaderElementPair<'_, Message, Theme, Renderer>>,
     max_column_sizes: &[f32],
     renderer: &Renderer,
     states: &mut [iced::advanced::widget::Tree],
