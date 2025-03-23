@@ -288,6 +288,16 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                         self.column_spacing,
                         size.width,
                         self.cell_padding,
+                        |theme: &iced::Theme| theme.extended_palette().background.strong.color,
+                        |theme: &iced::Theme, row: usize| {
+                            let factor = if row % 2 == 0 { 0.25 } else { 0.5 };
+                            let mut weak = theme.extended_palette().background.weak.color;
+                            let strong = theme.extended_palette().background.base.color;
+                            weak.r += (strong.r - weak.r) * factor;
+                            weak.g += (strong.g - weak.g) * factor;
+                            weak.b += (strong.b - weak.b) * factor;
+                            weak
+                        },
                     ),
                 ))
                 .direction(iced::widget::scrollable::Direction::Both {

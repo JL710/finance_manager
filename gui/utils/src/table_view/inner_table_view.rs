@@ -1,13 +1,22 @@
-use iced::advanced::Renderer;
-
 struct State {
     column_widths: Option<Vec<f32>>,
 }
 
-pub struct InnerTableView<'a, Message, const COLUMNS: usize> {
+pub struct InnerTableView<
+    'a,
+    Message,
+    const COLUMNS: usize,
+    Theme = iced::Theme,
+    Renderer = iced::Renderer,
+> where
+    Renderer: iced::advanced::Renderer,
+{
     /// name and sort svg/button represents one header
-    header_elements: Vec<(iced::Element<'a, Message>, iced::Element<'a, Message>)>,
-    elements: Vec<iced::Element<'a, Message>>,
+    header_elements: Vec<(
+        iced::Element<'a, Message, Theme, Renderer>,
+        iced::Element<'a, Message, Theme, Renderer>,
+    )>,
+    elements: Vec<iced::Element<'a, Message, Theme, Renderer>>,
     max_column_sizes: [f32; COLUMNS],
     /// if a column max is set to weak, it gets expanded if otherwise the widget with is smaller than [`Self::optimal_width`].
     column_max_is_weak: [bool; COLUMNS],
@@ -15,19 +24,30 @@ pub struct InnerTableView<'a, Message, const COLUMNS: usize> {
     column_spacing: f32,
     optimal_width: f32,
     cell_padding: iced::Padding,
+    header_background_color: Box<dyn Fn(&Theme) -> iced::Color>,
+    row_color: Box<dyn Fn(&Theme, usize) -> iced::Color>,
 }
 
-impl<'a, Message, const COLUMNS: usize> InnerTableView<'a, Message, COLUMNS> {
+impl<'a, Message, const COLUMNS: usize, Theme, Renderer>
+    InnerTableView<'a, Message, COLUMNS, Theme, Renderer>
+where
+    Renderer: iced::advanced::Renderer,
+{
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        header_elements: Vec<(iced::Element<'a, Message>, iced::Element<'a, Message>)>,
-        elements: Vec<iced::Element<'a, Message>>,
+        header_elements: Vec<(
+            iced::Element<'a, Message, Theme, Renderer>,
+            iced::Element<'a, Message, Theme, Renderer>,
+        )>,
+        elements: Vec<iced::Element<'a, Message, Theme, Renderer>>,
         max_column_sizes: [f32; COLUMNS],
         column_max_is_weak: [bool; COLUMNS],
         row_spacing: f32,
         column_spacing: f32,
         optimal_width: f32,
         cell_padding: iced::Padding,
+        header_background_color: impl Fn(&Theme) -> iced::Color + 'static,
+        row_color: impl Fn(&Theme, usize) -> iced::Color + 'static,
     ) -> Self {
         Self {
             header_elements,
@@ -38,10 +58,12 @@ impl<'a, Message, const COLUMNS: usize> InnerTableView<'a, Message, COLUMNS> {
             column_spacing,
             optimal_width,
             cell_padding,
+            header_background_color: Box::new(header_background_color),
+            row_color: Box::new(row_color),
         }
     }
 
-    fn child_elements(&self) -> Vec<&iced::Element<'a, Message>> {
+    fn child_elements(&self) -> Vec<&iced::Element<'a, Message, Theme, Renderer>> {
         let mut children = Vec::with_capacity(self.header_elements.len() + self.elements.len());
         for header_element in &self.header_elements {
             children.push(&header_element.0);
@@ -53,7 +75,7 @@ impl<'a, Message, const COLUMNS: usize> InnerTableView<'a, Message, COLUMNS> {
         children
     }
 
-    fn child_elements_mut(&mut self) -> Vec<&mut iced::Element<'a, Message>> {
+    fn child_elements_mut(&mut self) -> Vec<&mut iced::Element<'a, Message, Theme, Renderer>> {
         let mut children = Vec::with_capacity(self.header_elements.len() + self.elements.len());
         for header_element in &mut self.header_elements {
             children.push(&mut header_element.0);
@@ -90,10 +112,17 @@ fn layouts_max(
     (x, y)
 }
 
-fn unpositioned_header_layouts<'a, Message>(
-    header_elements: &Vec<(iced::Element<'a, Message>, iced::Element<'a, Message>)>,
+/// Generates the dynamic layout sizes.
+/// Assumes that the order of elements is left to right.
+///
+/// Returns the list of [`iced::advanced::layout::Node`]s for each cell and sizes of the columns.
+fn dynamic_header_layout_size<'a, Message, Theme, Renderer: iced::advanced::Renderer>(
+    header_elements: &Vec<(
+        iced::Element<'a, Message, Theme, Renderer>,
+        iced::Element<'a, Message, Theme, Renderer>,
+    )>,
     max_column_sizes: &[f32],
-    renderer: &iced::Renderer,
+    renderer: &Renderer,
     states: &mut [iced::advanced::widget::Tree],
 ) -> (Vec<iced::advanced::layout::Node>, Vec<f32>) {
     let mut nodes = Vec::with_capacity(header_elements.len() * 2);
@@ -127,9 +156,18 @@ fn unpositioned_header_layouts<'a, Message>(
     (nodes, widths)
 }
 
-fn unpositioned_cell_layouts<Message, const COLUMNS: usize>(
-    table: &InnerTableView<'_, Message, COLUMNS>,
-    renderer: &iced::Renderer,
+/// Generates the dynamic layout sizes.
+/// Assumes that the order of elements is left to right, row for row.
+///
+/// Returns the list of [`iced::advanced::layout::Node`]s for each cell and sizes of the columns.
+fn dynamic_cell_layout_size<
+    Message,
+    const COLUMNS: usize,
+    Theme,
+    Renderer: iced::advanced::Renderer,
+>(
+    table: &InnerTableView<'_, Message, COLUMNS, Theme, Renderer>,
+    renderer: &Renderer,
     states: &mut [iced::advanced::widget::Tree],
     reserved_space: f32,
 ) -> (Vec<iced::advanced::layout::Node>, Vec<f32>) {
@@ -200,8 +238,11 @@ fn unpositioned_cell_layouts<Message, const COLUMNS: usize>(
     )
 }
 
-impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme, iced::Renderer>
-    for InnerTableView<'_, Message, COLUMNS>
+impl<Message, const COLUMNS: usize, Theme, Renderer>
+    iced::advanced::Widget<Message, Theme, Renderer>
+    for InnerTableView<'_, Message, COLUMNS, Theme, Renderer>
+where
+    Renderer: iced::advanced::Renderer,
 {
     fn state(&self) -> iced::advanced::widget::tree::State {
         iced::advanced::widget::tree::State::new(State {
@@ -238,7 +279,7 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
     fn layout(
         &self,
         tree: &mut iced::advanced::widget::Tree,
-        renderer: &iced::Renderer,
+        renderer: &Renderer,
         _limits: &iced::advanced::layout::Limits,
     ) -> iced::advanced::layout::Node {
         let state = tree.state.downcast_mut::<State>();
@@ -289,7 +330,7 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
 
             col_widths
         } else {
-            let (header_layouts, header_widths) = unpositioned_header_layouts(
+            let (header_layouts, header_widths) = dynamic_header_layout_size(
                 &self.header_elements,
                 &self.max_column_sizes,
                 renderer,
@@ -297,7 +338,7 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
             );
             child_layouts.extend(header_layouts);
 
-            let (cell_layouts, element_column_widths) = unpositioned_cell_layouts(
+            let (cell_layouts, element_column_widths) = dynamic_cell_layout_size(
                 self,
                 renderer,
                 &mut tree.children[self.header_elements.len() * 2..],
@@ -311,6 +352,8 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
                 column_widths
                     .push(header_widths[column_index].max(element_column_widths[column_index]));
             }
+
+            state.column_widths = Some(column_widths.clone());
 
             column_widths
         };
@@ -364,8 +407,6 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
             }
         }
 
-        state.column_widths = Some(column_widths);
-
         iced::advanced::layout::Node::with_children(
             iced::Size::new(
                 horizontal_padding_sum
@@ -380,8 +421,8 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
     fn draw(
         &self,
         tree: &iced::advanced::widget::Tree,
-        renderer: &mut iced::Renderer,
-        theme: &iced::Theme,
+        renderer: &mut Renderer,
+        theme: &Theme,
         style: &iced::advanced::renderer::Style,
         layout: iced::advanced::Layout<'_>,
         cursor: iced::advanced::mouse::Cursor,
@@ -400,9 +441,9 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
             .zip(layout.children())
             .collect::<Vec<_>>();
 
-        // draw heading border
+        // draw heading
         let header_todos = pop_front_slice(&mut child_draw_todos, COLUMNS * 2);
-        let (_, max_header_border_y) = layouts_max(
+        let (_, row_bottom_y) = layouts_max(
             layout.position().x,
             layout.position().y,
             &header_todos.iter().map(|x| x.1).collect::<Vec<_>>(),
@@ -413,14 +454,14 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
                     layout.position(),
                     (
                         self.optimal_width.max(row_width), // use optimal width or max header x depending on what is larger
-                        max_header_border_y - layout.position().y + self.cell_padding.bottom,
+                        row_bottom_y - layout.position().y + self.cell_padding.bottom,
                     )
                         .into(),
                 ),
                 border: iced::Border::default(),
                 shadow: iced::Shadow::default(),
             },
-            iced::Background::Color(theme.extended_palette().background.strong.color),
+            iced::Background::Color((self.header_background_color)(theme)),
         );
         for ((child, state), child_layout) in header_todos {
             child.as_widget().draw(
@@ -434,12 +475,12 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
             );
         }
 
-        // draw row border
+        // draw rows
         let mut row_index = 0;
         while !child_draw_todos.is_empty() {
             let y_cell_start = child_draw_todos[0].1.position().y;
             let row_todos = pop_front_slice(&mut child_draw_todos, COLUMNS);
-            let (_, max_row_border_y) = layouts_max(
+            let (_, row_bottom_y) = layouts_max(
                 layout.position().x,
                 layout.position().y,
                 &row_todos.iter().map(|x| x.1).collect::<Vec<_>>(),
@@ -450,14 +491,14 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
                         (layout.position().x, y_cell_start - self.cell_padding.top).into(),
                         (
                             self.optimal_width.max(row_width), // use optimal width or max header x depending on what is larger
-                            max_row_border_y - y_cell_start + self.cell_padding.vertical(),
+                            row_bottom_y - y_cell_start + self.cell_padding.vertical(),
                         )
                             .into(),
                     ),
                     border: iced::Border::default(),
                     shadow: iced::Shadow::default(),
                 },
-                iced::Background::Color(row_background_color(row_index, theme)),
+                iced::Background::Color((self.row_color)(theme, row_index)),
             );
             for ((child, state), child_layout) in row_todos {
                 child.as_widget().draw(
@@ -479,7 +520,7 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
         &self,
         state: &mut iced::advanced::widget::Tree,
         layout: iced::advanced::Layout<'_>,
-        renderer: &iced::Renderer,
+        renderer: &Renderer,
         operation: &mut dyn iced::advanced::widget::Operation,
     ) {
         operation.container(None, layout.bounds(), &mut |operation| {
@@ -501,7 +542,7 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
         event: iced::Event,
         layout: iced::advanced::Layout<'_>,
         cursor: iced::advanced::mouse::Cursor,
-        renderer: &iced::Renderer,
+        renderer: &Renderer,
         clipboard: &mut dyn iced::advanced::Clipboard,
         shell: &mut iced::advanced::Shell<'_, Message>,
         viewport: &iced::Rectangle,
@@ -532,7 +573,7 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
         layout: iced::advanced::Layout<'_>,
         cursor: iced::advanced::mouse::Cursor,
         viewport: &iced::Rectangle,
-        renderer: &iced::Renderer,
+        renderer: &Renderer,
     ) -> iced::advanced::mouse::Interaction {
         self.child_elements()
             .iter()
@@ -551,9 +592,9 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
         &'b mut self,
         state: &'b mut iced::advanced::widget::Tree,
         layout: iced::advanced::Layout<'_>,
-        renderer: &iced::Renderer,
+        renderer: &Renderer,
         translation: iced::Vector,
-    ) -> Option<iced::advanced::overlay::Element<'b, Message, iced::Theme, iced::Renderer>> {
+    ) -> Option<iced::advanced::overlay::Element<'b, Message, Theme, Renderer>> {
         let mut child_layouts = layout.children();
         let mut child_states = state.children.iter_mut();
 
@@ -572,16 +613,6 @@ impl<Message, const COLUMNS: usize> iced::advanced::Widget<Message, iced::Theme,
         (!children.is_empty())
             .then(|| iced::advanced::overlay::Group::with_children(children).overlay())
     }
-}
-
-fn row_background_color(row_index: usize, theme: &iced::Theme) -> iced::Color {
-    let factor = if row_index % 2 == 0 { 0.25 } else { 0.5 };
-    let mut weak = theme.extended_palette().background.weak.color;
-    let strong = theme.extended_palette().background.base.color;
-    weak.r += (strong.r - weak.r) * factor;
-    weak.g += (strong.g - weak.g) * factor;
-    weak.b += (strong.b - weak.b) * factor;
-    weak
 }
 
 fn pop_front_slice<T>(vector: &mut Vec<T>, count: usize) -> Vec<T> {
