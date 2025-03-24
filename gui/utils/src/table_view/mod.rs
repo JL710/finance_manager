@@ -254,22 +254,21 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                     if self.state.sortable.contains(&index) {
                         iced::Element::new(
                             widget::button(
-                                widget::svg::Svg::new(widget::svg::Handle::from_memory(
-                                    std::borrow::Cow::from(
-                                        if Some(index) == self.state.sort_column {
-                                            if self.state.sort_reverse {
-                                                &include_bytes!(
-                                                    "../../../assets/filter-circle-fill.svg"
-                                                )[..]
-                                            } else {
-                                                &include_bytes!("../../../assets/filter-circle.svg")
-                                                    [..]
-                                            }
-                                        } else {
-                                            &include_bytes!("../../../assets/filter.svg")[..]
-                                        },
-                                    ),
-                                ))
+                                widget::svg::Svg::new(if Some(index) == self.state.sort_column {
+                                    if self.state.sort_reverse {
+                                        widget::svg::Handle::from_memory(include_bytes!(
+                                            "../../../assets/filter-circle-fill.svg"
+                                        ))
+                                    } else {
+                                        widget::svg::Handle::from_memory(include_bytes!(
+                                            "../../../assets/filter-circle.svg"
+                                        ))
+                                    }
+                                } else {
+                                    widget::svg::Handle::from_memory(include_bytes!(
+                                        "../../../assets/filter.svg"
+                                    ))
+                                })
                                 .content_fit(iced::ContentFit::Fill)
                                 .width(iced::Length::Shrink),
                             )
