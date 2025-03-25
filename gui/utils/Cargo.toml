@@ -10,3 +10,6 @@ time.workspace = true
 anyhow.workspace = true
 rfd.workspace = true
 uuid = { version = "1.8.0", features = ["v4"] }
+iced_aw = { version = "0.12.2", features = [
+    "drop_down",
+], default-features = false }

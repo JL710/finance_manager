@@ -88,3 +88,49 @@ pub fn to_time_string(t: time::Time) -> String {
     t.format(&time::format_description::parse("[hour]:[minute]").unwrap())
         .unwrap()
 }
+
+pub fn add_months(date_time: time::OffsetDateTime, months: i32) -> time::OffsetDateTime {
+    let mut months = date_time.date().month() as i32 + months;
+    let mut year = date_time.year();
+
+    while months > 12 {
+        year += 1;
+        months -= 12;
+    }
+    while months <= 0 {
+        year -= 1;
+        months += 12;
+    }
+    date_time
+        .replace_year(year)
+        .unwrap()
+        .replace_month(time::Month::try_from(months as u8).unwrap())
+        .unwrap()
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Shift {
+    Duration(time::Duration),
+    Month,
+    Year,
+}
+
+fn apply_shift(
+    date_time: time::OffsetDateTime,
+    shift: Shift,
+    positive: bool,
+) -> time::OffsetDateTime {
+    match shift {
+        Shift::Duration(duration) => {
+            if positive {
+                date_time.checked_add(duration).unwrap()
+            } else {
+                date_time.checked_sub(duration).unwrap()
+            }
+        }
+        Shift::Month => add_months(date_time, if positive { 1 } else { -1 }),
+        Shift::Year => date_time
+            .replace_year(date_time.year() + if positive { 1 } else { -1 })
+            .unwrap(),
+    }
+}

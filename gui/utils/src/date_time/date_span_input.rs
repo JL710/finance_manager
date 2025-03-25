@@ -1,15 +1,19 @@
+use super::Shift;
 use iced::widget;
 
 #[derive(Debug, Clone)]
 pub enum Action {
     ChangeStart(super::date_input::Action),
     ChangeEnd(super::date_input::Action),
+    Shift { shift: super::Shift, positive: bool },
+    ToggleDropdown,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct State {
     start: super::date_input::State,
     end: super::date_input::State,
+    drop_down: bool,
 }
 
 impl State {
@@ -17,6 +21,7 @@ impl State {
         Self {
             start: super::date_input::State::new(if let Some(t) = timespan { t.0 } else { None }),
             end: super::date_input::State::new(if let Some(t) = timespan { t.1 } else { None }),
+            drop_down: false,
         }
     }
 
@@ -39,6 +44,21 @@ impl State {
             Action::ChangeEnd(end) => {
                 self.end.perform(end);
             }
+            Action::Shift { shift, positive } => {
+                if let Some(before) = self.start.date() {
+                    self.start = super::date_input::State::new(Some(super::apply_shift(
+                        before, shift, positive,
+                    )));
+                }
+                if let Some(before) = self.end.date() {
+                    self.end = super::date_input::State::new(Some(super::apply_shift(
+                        before, shift, positive,
+                    )));
+                }
+            }
+            Action::ToggleDropdown => {
+                self.drop_down = !self.drop_down;
+            }
         }
     }
 }
@@ -53,17 +73,79 @@ impl<'a> DateSpanInput<'a> {
     }
 
     pub fn view(self) -> iced::Element<'a, Action> {
-        widget::row![
-            super::date_input::date_input(&self.state.start, "Start", false)
-                .view()
-                .map(Action::ChangeStart),
-            " - ",
-            super::date_input::date_input(&self.state.end, "End", false)
-                .view()
-                .map(Action::ChangeEnd),
-        ]
-        .align_y(iced::Alignment::Center)
-        .width(iced::Length::Fixed(300.0))
+        crate::drop_down(
+            crate::spal_row![
+                super::date_input::date_input(&self.state.start, "Start", false)
+                    .view()
+                    .map(Action::ChangeStart),
+                " - ",
+                super::date_input::date_input(&self.state.end, "End", false)
+                    .view()
+                    .map(Action::ChangeEnd),
+                widget::button(
+                    widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
+                        "../../../assets/pencil-fill.svg"
+                    )))
+                    .width(iced::Shrink)
+                )
+                .on_press_maybe(
+                    if self.state.start.date().is_some() && self.state.end.date().is_some() {
+                        Some(Action::ToggleDropdown)
+                    } else {
+                        None
+                    }
+                )
+            ]
+            .align_y(iced::Alignment::Center),
+            crate::spal_column![
+                crate::spal_row![
+                    widget::button("-").on_press(Action::Shift {
+                        shift: Shift::Duration(time::Duration::DAY),
+                        positive: false
+                    }),
+                    "Day",
+                    widget::button("+").on_press(Action::Shift {
+                        shift: Shift::Duration(time::Duration::DAY),
+                        positive: true
+                    }),
+                ],
+                crate::spal_row![
+                    widget::button("-").on_press(Action::Shift {
+                        shift: Shift::Duration(time::Duration::WEEK),
+                        positive: false
+                    }),
+                    "Week",
+                    widget::button("+").on_press(Action::Shift {
+                        shift: Shift::Duration(time::Duration::WEEK),
+                        positive: true
+                    }),
+                ],
+                crate::spal_row![
+                    widget::button("-").on_press(Action::Shift {
+                        shift: Shift::Month,
+                        positive: false
+                    }),
+                    "Month",
+                    widget::button("+").on_press(Action::Shift {
+                        shift: Shift::Month,
+                        positive: true
+                    }),
+                ],
+                crate::spal_row![
+                    widget::button("-").on_press(Action::Shift {
+                        shift: Shift::Year,
+                        positive: false
+                    }),
+                    "Year",
+                    widget::button("+").on_press(Action::Shift {
+                        shift: Shift::Year,
+                        positive: true
+                    }),
+                ]
+            ],
+            self.state.drop_down,
+        )
+        .on_dismiss(Action::ToggleDropdown)
         .into()
     }
 }

@@ -213,6 +213,45 @@ macro_rules! spal_row {
     );
 }
 
+/// The default column macro from iced with a default padding and vertical centered layout.
+///
+/// spal stands for spaced and aligned
+#[macro_export]
+macro_rules! spal_column {
+    () => (
+        $crate::widget::Column::new()
+            .spacing(style::COLUMN_SPACING)
+            .align_x($crate::iced::Alignment::Center)
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Column::with_children([$($crate::iced::Element::from($x)),+])
+            .spacing($crate::style::COLUMN_SPACING)
+            .align_x($crate::iced::Alignment::Center)
+    );
+}
+
+/// The column macro from iced with align center
+#[macro_export]
+macro_rules! centered_column {
+    () => (
+        $crate::widget::Column::new().align_x($crate::iced::Alignment::Center)
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Column::with_children([$($crate::iced::Element::from($x)),+]).align_x($crate::iced::Alignment::Center)
+    );
+}
+
+/// The row macro from iced with align center
+#[macro_export]
+macro_rules! centered_row {
+    () => (
+        $crate::widget::Row::new().align_y($crate::iced::Alignment::Center)
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget::Row::with_children([$($crate::iced::Element::from($x)),+]).align_y($crate::iced::Alignment::Center)
+    );
+}
+
 pub fn error_chain_string(error: anyhow::Error) -> String {
     let mut message = String::new();
 
@@ -251,4 +290,30 @@ pub fn failing_task<T: Send + 'static>(
     fut: impl Future<Output = Result<T>> + Send + 'static,
 ) -> iced::Task<T> {
     iced::Task::future(async { async_popup_wrapper(fut).await }).and_then(iced::Task::done)
+}
+
+/// Creates a dropdown where the width is set to shrink, and the overlay is placed in a bordered container.
+pub fn drop_down<'a, Message: Clone + 'a>(
+    underlay: impl Into<iced::Element<'a, Message>>,
+    overlay: impl Into<iced::Element<'a, Message>>,
+    expanded: bool,
+) -> iced_aw::drop_down::DropDown<'a, Message> {
+    iced_aw::drop_down::DropDown::new(
+        underlay,
+        crate::style::container_popup_styling(widget::container(overlay)),
+        expanded,
+    )
+    .width(iced::Shrink)
+}
+
+pub fn right_attached_button<'a, Message: Clone>(
+    content: impl Into<iced::Element<'a, Message>>,
+) -> widget::Button<'a, Message> {
+    widget::button(content)
+        .style(|theme, status| {
+            let mut style = widget::button::primary(theme, status);
+            style.border.radius = style.border.radius.right(15.0);
+            style
+        })
+        .padding(iced::Padding::new(5.0).right(10.0))
 }

@@ -1,13 +1,18 @@
 use iced::widget;
 
+use super::Shift;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     OnInput(String),
+    ToggleDropdown,
+    TimeShift { shift: Shift, positive: bool },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct State {
     value: String,
+    drop_down: bool,
 }
 
 impl State {
@@ -18,12 +23,26 @@ impl State {
             } else {
                 String::default()
             },
+            drop_down: false,
         }
     }
 
     pub fn perform(&mut self, message: Message) {
         match message {
             Message::OnInput(input) => self.value = input,
+            Message::ToggleDropdown => self.drop_down = !self.drop_down,
+            Message::TimeShift { shift, positive } => {
+                if let Some(before) = self.time() {
+                    self.value = super::to_time_string(
+                        super::apply_shift(
+                            time::OffsetDateTime::now_utc().replace_time(before),
+                            shift,
+                            positive,
+                        )
+                        .time(),
+                    )
+                }
+            }
         }
     }
 
@@ -53,21 +72,63 @@ impl<'a> TimeInput<'a> {
     }
 
     pub fn view(self) -> iced::Element<'a, Message> {
-        widget::text_input("12:00", &self.state.value)
-            .style(move |theme: &iced::Theme, status| {
-                let mut original = iced::widget::text_input::default(theme, status);
+        crate::drop_down(
+            crate::centered_row![
+                widget::text_input("12:00", &self.state.value)
+                    .style(move |theme: &iced::Theme, status| {
+                        let mut original = iced::widget::text_input::default(theme, status);
 
-                if (self.state.value.is_empty() && self.required)
-                    || (!self.state.value.is_empty() && self.state.time().is_none())
-                {
-                    original.border.color = theme.palette().danger;
-                } else if !self.state.value.is_empty() && self.state.time().is_some() {
-                    original.border.color = theme.palette().success;
-                }
-                original
-            })
-            .on_input(Message::OnInput)
-            .into()
+                        if (self.state.value.is_empty() && self.required)
+                            || (!self.state.value.is_empty() && self.state.time().is_none())
+                        {
+                            original.border.color = theme.palette().danger;
+                        } else if !self.state.value.is_empty() && self.state.time().is_some() {
+                            original.border.color = theme.palette().success;
+                        }
+                        original
+                    })
+                    .on_input(Message::OnInput)
+                    .width(60.0),
+                crate::right_attached_button(
+                    widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
+                        "../../../assets/pencil-fill.svg"
+                    )))
+                    .width(iced::Shrink)
+                )
+                .on_press_maybe(if self.state.time().is_some() {
+                    Some(Message::ToggleDropdown)
+                } else {
+                    None
+                })
+            ],
+            crate::spal_column![
+                crate::spal_row![
+                    widget::button("-").on_press(Message::TimeShift {
+                        shift: Shift::Duration(time::Duration::MINUTE),
+                        positive: false
+                    }),
+                    "Minute",
+                    widget::button("+").on_press(Message::TimeShift {
+                        shift: Shift::Duration(time::Duration::MINUTE),
+                        positive: true
+                    })
+                ],
+                crate::spal_row![
+                    widget::button("-").on_press(Message::TimeShift {
+                        shift: Shift::Duration(time::Duration::HOUR),
+                        positive: false
+                    }),
+                    "Hour",
+                    widget::button("+").on_press(Message::TimeShift {
+                        shift: Shift::Duration(time::Duration::HOUR),
+                        positive: true
+                    })
+                ]
+            ],
+            self.state.drop_down,
+        )
+        .on_dismiss(Message::ToggleDropdown)
+        .into()
     }
 }
 

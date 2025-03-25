@@ -6,19 +6,10 @@ pub enum Action {
     TimeInput(time_input::Message),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct State {
     date_input: date_input::State,
     time_input: time_input::State,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            date_input: date_input::State::default(),
-            time_input: time_input::State::new(None),
-        }
-    }
 }
 
 impl State {
