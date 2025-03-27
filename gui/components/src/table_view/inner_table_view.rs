@@ -150,7 +150,7 @@ fn dynamic_header_layout_size<Message, Theme, Renderer: iced::advanced::Renderer
                 ),
             ),
         );
-        widths.push(left_layout.size().width + right_layout.size().width + 10.0); // + 10.0 for spacing
+        widths.push((left_layout.size().width + right_layout.size().width).ceil() + 10.0); // + 10.0 for spacing + do the ceil because of missing float precision issues that lead to visual artifacts
         nodes.push(left_layout);
         nodes.push(right_layout);
     }
@@ -224,7 +224,7 @@ fn dynamic_cell_layout_size<
         }
 
         // save column width
-        column_widths[column_index] = Some(max_node_width(&column_layouts[column_index]));
+        column_widths[column_index] = Some(max_node_width(&column_layouts[column_index]).ceil()); // do the ceil because of missing float precision issues that lead to visual artifacts
     }
 
     let mut cell_layouts = Vec::with_capacity(table.elements.len());
