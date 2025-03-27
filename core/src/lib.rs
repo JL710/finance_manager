@@ -213,3 +213,24 @@ pub fn sum_up_transactions_by_day(
 
     values
 }
+
+/// Returns a hashmap where the transaction values are summed by category (and the sign for each).
+/// If a transaction is in multiple categories it will be in the sum of each of those categories.
+pub fn transactions_category_distribution(transactions: Vec<Transaction>) -> HashMap<Id, Currency> {
+    let mut split = HashMap::new();
+
+    for transaction in transactions {
+        for category in &transaction.categories {
+            if !split.contains_key(category.0) {
+                split.insert(*category.0, Currency::default());
+            }
+            if category.1 == &Sign::Positive {
+                *split.get_mut(&category.0).unwrap() += transaction.amount();
+            } else {
+                *split.get_mut(&category.0).unwrap() -= transaction.amount();
+            }
+        }
+    }
+
+    split
+}

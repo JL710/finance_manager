@@ -1,3 +1,4 @@
+use anyhow::Context;
 pub use iced::{self, widget};
 
 pub mod button;
@@ -272,4 +273,40 @@ pub fn right_attached_button<'a, Message: Clone>(
             style
         })
         .padding(iced::Padding::new(5.0).right(10.0))
+}
+
+pub fn category_distribution_popup<Message: std::marker::Send + 'static>(
+    finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    transaction_ids: Vec<fm_core::Id>,
+    title: String,
+    additional_description: String,
+) -> iced::Task<Message> {
+    error::failing_task(async move {
+        let transactions = finance_controller.get_transactions(transaction_ids).await?;
+        let category_distribution = fm_core::transactions_category_distribution(transactions);
+
+        let mut displayed_text = additional_description;
+        for (category_id, value) in category_distribution {
+            displayed_text += &format!(
+                "{}: {}\n",
+                finance_controller
+                    .get_category(category_id)
+                    .await?
+                    .context("Category not found")?
+                    .name,
+                value
+            );
+        }
+        displayed_text += "\nCategory Distribution is a list of transactions summed by categories (and the sign for each). If a transaction is in multiple categories it will be in the sum of each of those categories.";
+
+        rfd::AsyncMessageDialog::new()
+            .set_title(title)
+            .set_description(displayed_text)
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show()
+            .await;
+
+        Ok(())
+    })
+    .discard()
 }

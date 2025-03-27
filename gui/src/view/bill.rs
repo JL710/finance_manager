@@ -28,6 +28,7 @@ enum Message {
     Delete,
     Deleted,
     TransactionTable(components::table_view::InnerMessage<Message>),
+    CategoryDistribution,
 }
 
 #[derive(Debug)]
@@ -178,6 +179,19 @@ impl View {
                 }
                 Action::None
             }
+            Message::CategoryDistribution => {
+                if let Self::Loaded { bill, .. } = self {
+                    let transaction_ids = bill.transactions.iter().map(|x| *x.0).collect();
+                    Action::Task(components::category_distribution_popup(
+                        finance_controller,
+                        transaction_ids,
+                        "Category Distribution".to_string(),
+                        format!("Category distribution for Category \"{}\"\n\n", &bill.name),
+                    ))
+                } else {
+                    Action::None
+                }
+            }
         }
     }
 
@@ -212,7 +226,9 @@ impl View {
                             components::spal_row![
                                 "Sum: ",
                                 components::colored_currency_display(bill_sum),
-                            ]
+                            ],
+                            widget::button("Category Distribution")
+                                .on_press(Message::CategoryDistribution)
                         ],
                         widget::horizontal_space(),
                         components::spaced_column![

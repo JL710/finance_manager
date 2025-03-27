@@ -8,6 +8,8 @@ iced.workspace = true
 time.workspace = true
 anyhow.workspace = true
 style.workspace = true
+rfd.workspace = true
+error.workspace = true
 
 fm_core = { path = "../../core", default-features = false }
 uuid = { version = "1.8.0", features = ["v4"] }
