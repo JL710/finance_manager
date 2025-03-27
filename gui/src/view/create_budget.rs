@@ -79,7 +79,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let budget = finance_controller
                     .get_budget(id)
                     .await?
@@ -109,8 +109,8 @@ impl View {
                         Ok(new) => *self = new,
                         Err(error) => {
                             return Action::Task(iced::Task::future(async {
-                                components::error_popup(
-                                    components::error_chain_string(
+                                error::error_popup(
+                                    error::error_chain_string(
                                         error.context("Error while creating create budget view from existing budget")
                                     )
                                 ).await
@@ -135,7 +135,7 @@ impl View {
                 let description_input = self.description_input.text();
                 let value_input = self.value_input.clone();
                 let recurring_inputs = (&self.recurring_input).try_into();
-                return Action::Task(components::failing_task(async move {
+                return Action::Task(error::failing_task(async move {
                     let budget = match option_id {
                         Some(id) => {
                             finance_controller

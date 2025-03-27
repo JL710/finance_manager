@@ -88,7 +88,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            components::failing_task(Self::initial_message(finance_controller, id, offset))
+            error::failing_task(Self::initial_message(finance_controller, id, offset))
                 .map(MessageContainer),
         )
     }
@@ -109,9 +109,9 @@ impl View {
                 ) {
                     Err(error) => {
                         return Action::Task(
-                            iced::Task::future(components::error_popup(
-                                components::error_chain_string(error),
-                            ))
+                            iced::Task::future(error::error_popup(error::error_chain_string(
+                                error,
+                            )))
                             .discard(),
                         );
                     }
@@ -139,7 +139,7 @@ impl View {
 
                     let id = budget.id;
                     Action::Task(
-                        components::failing_task(async move {
+                        error::failing_task(async move {
                             finance_controller.delete_budget(id).await?;
                             Ok(Message::Deleted)
                         })
@@ -156,7 +156,7 @@ impl View {
             Message::IncreaseOffset => {
                 if let Self::Loaded { budget, offset, .. } = self {
                     Action::Task(
-                        components::failing_task(Self::initial_message(
+                        error::failing_task(Self::initial_message(
                             finance_controller,
                             budget.id,
                             *offset + 1,
@@ -170,7 +170,7 @@ impl View {
             Message::DecreaseOffset => {
                 if let Self::Loaded { budget, offset, .. } = self {
                     Action::Task(
-                        components::failing_task(Self::initial_message(
+                        error::failing_task(Self::initial_message(
                             finance_controller,
                             budget.id,
                             *offset - 1,

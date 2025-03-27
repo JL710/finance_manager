@@ -51,7 +51,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let bill = finance_controller
                     .get_bill(&id)
                     .await?
@@ -144,7 +144,7 @@ impl View {
                         .then(move |result| {
                             if let rfd::MessageDialogResult::Yes = result {
                                 let manager = finance_controller.clone();
-                                components::failing_task(async move {
+                                error::failing_task(async move {
                                     manager.delete_bill(bill_id).await?;
                                     Ok(Message::Deleted)
                                 })

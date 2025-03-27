@@ -60,7 +60,7 @@ impl View {
                 sums: Vec::new(),
                 filter: TransactionFilter::default(),
             },
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let accounts = finance_controller.get_accounts().await?;
                 let categories = finance_controller.get_categories().await?;
                 let bills = finance_controller.get_bills().await?;
@@ -140,7 +140,7 @@ impl View {
                         components::filter_component::Action::Submit(new_filter) => {
                             self.filter = new_filter.clone();
                             self.change_filter = None;
-                            return Action::Task(components::failing_task(async move {
+                            return Action::Task(error::failing_task(async move {
                                 let transactions = finance_controller
                                     .get_filtered_transactions(new_filter.clone())
                                     .await?;

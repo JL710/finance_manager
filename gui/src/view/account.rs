@@ -70,7 +70,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let account = finance_controller
                     .get_account(account_id)
                     .await?
@@ -168,7 +168,7 @@ impl View {
                     return Action::None;
                 };
                 Action::Task(
-                    components::failing_task(async move {
+                    error::failing_task(async move {
                         let transactions = finance_controller
                             .get_transactions_of_account(account_id, timespan)
                             .await

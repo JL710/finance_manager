@@ -32,7 +32,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let categories = finance_controller.get_categories().await?;
                 Ok(Message::Initialize(categories))
             }),

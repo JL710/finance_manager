@@ -41,7 +41,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let accounts = finance_controller
                     .get_accounts()
                     .await?

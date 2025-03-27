@@ -48,7 +48,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::NotLoaded,
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let transactions = finance_controller
                     .get_transactions_of_category(category_id, (None, None))
                     .await?;
@@ -107,7 +107,7 @@ impl View {
                     }
 
                     let category_id = category.id;
-                    Action::DeleteCategory(components::failing_task(async move {
+                    Action::DeleteCategory(error::failing_task(async move {
                         finance_controller.delete_category(category_id).await?;
                         Ok(())
                     }))
@@ -135,7 +135,7 @@ impl View {
                     let id = category.id;
                     let timespan = timespan_input.timespan();
 
-                    Action::Task(components::failing_task(async move {
+                    Action::Task(error::failing_task(async move {
                         let transactions = finance_controller
                             .get_transactions_of_category(id, timespan)
                             .await?;

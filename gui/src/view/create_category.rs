@@ -39,7 +39,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(None, String::new()),
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let category = finance_controller
                     .get_category(id)
                     .await?
@@ -76,7 +76,7 @@ impl View {
                 self.submitted = true;
                 let id = self.id;
                 let name = self.name.clone();
-                Action::Task(components::failing_task(async move {
+                Action::Task(error::failing_task(async move {
                     if let Some(id) = id {
                         Ok(Message::CategoryCreated(
                             finance_controller

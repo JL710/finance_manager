@@ -41,7 +41,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             View::default(),
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let account = finance_controller
                     .get_account(account_id)
                     .await?
@@ -93,7 +93,7 @@ impl View {
                     Some(self.bic_input.clone())
                 };
                 let id = self.id;
-                return Action::Task(components::failing_task(async move {
+                return Action::Task(error::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_controller
                             .update_book_checking_account(

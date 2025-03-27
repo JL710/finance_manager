@@ -118,7 +118,7 @@ impl View {
                 available_categories: Vec::new(),
                 submitted: false,
             },
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let budgets = finance_controller.get_budgets().await?;
                 let accounts = finance_controller.get_accounts().await?;
                 let categories = finance_controller.get_categories().await?;
@@ -136,7 +136,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::new(finance_controller.clone()).0,
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let transaction = finance_controller
                     .get_transaction(transaction_id)
                     .await?
@@ -509,7 +509,7 @@ impl View {
         for (id, sign) in &self.selected_categories {
             categories.insert(*id, *sign);
         }
-        components::failing_task(async move {
+        error::failing_task(async move {
             let source_id = match source {
                 SelectedAccount::Account(acc) => *acc.id(),
                 SelectedAccount::New(name) => {

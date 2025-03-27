@@ -55,7 +55,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let account = if let fm_core::account::Account::AssetAccount(acc) =
                     finance_controller
                         .get_account(account_id)
@@ -119,7 +119,7 @@ impl View {
                 };
                 let offset = self.offset_input.currency().unwrap();
                 let id = self.id;
-                return Action::Task(components::failing_task(async move {
+                return Action::Task(error::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_controller
                             .update_asset_account(fm_core::account::AssetAccount::new(

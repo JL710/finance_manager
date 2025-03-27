@@ -92,7 +92,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let accounts = finance_controller.get_accounts().await?;
 
                 Ok(Message::Initialize(
@@ -142,7 +142,7 @@ impl View {
                 add_transaction: None,
                 submitted: false,
             },
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let bill = if let Some(id) = id {
                     Some(
                         finance_controller
@@ -239,7 +239,7 @@ impl View {
                     transactions.insert(transaction.0.id, transaction.1);
                 }
                 if let Some(id) = id_option {
-                    return Action::Task(components::failing_task(async move {
+                    return Action::Task(error::failing_task(async move {
                         finance_controller
                             .update_bill(fm_core::Bill {
                                 id,
@@ -253,7 +253,7 @@ impl View {
                         Ok(Message::BillCreated(id))
                     }));
                 } else {
-                    return Action::Task(components::failing_task(async move {
+                    return Action::Task(error::failing_task(async move {
                         let bill = finance_controller
                             .create_bill(name, description, value, transactions, due_date)
                             .await?;
@@ -497,7 +497,7 @@ mod add_transaction {
         ) -> (Self, iced::Task<Message>) {
             (
                 Self::new(None, Vec::new(), Vec::new(), Vec::new()),
-                components::failing_task(async move {
+                error::failing_task(async move {
                     let accounts = finance_controller.get_accounts().await?;
                     let categories = finance_controller.get_categories().await?;
                     let bills = finance_controller.get_bills().await?;
@@ -526,7 +526,7 @@ mod add_transaction {
                         match filter.update(m) {
                             components::filter_component::Action::Submit(submitted_filter) => {
                                 self.filter = None;
-                                return Action::Task(components::failing_task(async move {
+                                return Action::Task(error::failing_task(async move {
                                     Ok(Message::FetchedTransactions(
                                         finance_controller
                                             .get_filtered_transactions(submitted_filter.clone())

@@ -43,7 +43,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let bills = finance_controller.get_bills().await?;
                 let mut bill_tuples = Vec::new();
                 for bill in bills {

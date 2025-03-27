@@ -55,7 +55,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            components::failing_task(async move {
+            error::failing_task(async move {
                 let transaction = finance_controller
                     .get_transaction(id)
                     .await?
@@ -129,7 +129,7 @@ impl View {
                 }
                 if let Self::Loaded { transaction, .. } = self {
                     let id = transaction.id;
-                    Action::Delete(components::failing_task(async move {
+                    Action::Delete(error::failing_task(async move {
                         finance_controller.delete_transaction(id).await?;
                         Ok(())
                     }))
