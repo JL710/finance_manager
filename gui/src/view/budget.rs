@@ -32,7 +32,7 @@ enum Message {
     IncreaseOffset,
     DecreaseOffset,
     Initialize(Box<Init>),
-    TransactionTable(utils::transaction_table::Message),
+    TransactionTable(components::transaction_table::Message),
     Delete,
     Deleted,
 }
@@ -44,7 +44,7 @@ pub enum View {
     Loaded {
         budget: fm_core::Budget,
         current_value: fm_core::Currency,
-        transaction_table: utils::TransactionTable,
+        transaction_table: components::TransactionTable,
         offset: i32,
         time_span: fm_core::Timespan,
     },
@@ -70,7 +70,7 @@ impl View {
         Ok(Self::Loaded {
             budget: budget.clone(),
             current_value,
-            transaction_table: utils::TransactionTable::new(
+            transaction_table: components::TransactionTable::new(
                 transactions,
                 categories,
                 vec![budget],
@@ -88,7 +88,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            utils::failing_task(Self::initial_message(finance_controller, id, offset))
+            components::failing_task(Self::initial_message(finance_controller, id, offset))
                 .map(MessageContainer),
         )
     }
@@ -109,9 +109,9 @@ impl View {
                 ) {
                     Err(error) => {
                         return Action::Task(
-                            iced::Task::future(utils::error_popup(utils::error_chain_string(
-                                error,
-                            )))
+                            iced::Task::future(components::error_popup(
+                                components::error_chain_string(error),
+                            ))
                             .discard(),
                         );
                     }
@@ -139,7 +139,7 @@ impl View {
 
                     let id = budget.id;
                     Action::Task(
-                        utils::failing_task(async move {
+                        components::failing_task(async move {
                             finance_controller.delete_budget(id).await?;
                             Ok(Message::Deleted)
                         })
@@ -156,7 +156,7 @@ impl View {
             Message::IncreaseOffset => {
                 if let Self::Loaded { budget, offset, .. } = self {
                     Action::Task(
-                        utils::failing_task(Self::initial_message(
+                        components::failing_task(Self::initial_message(
                             finance_controller,
                             budget.id,
                             *offset + 1,
@@ -170,7 +170,7 @@ impl View {
             Message::DecreaseOffset => {
                 if let Self::Loaded { budget, offset, .. } = self {
                     Action::Task(
-                        utils::failing_task(Self::initial_message(
+                        components::failing_task(Self::initial_message(
                             finance_controller,
                             budget.id,
                             *offset - 1,
@@ -187,14 +187,14 @@ impl View {
                 } = self
                 {
                     match transaction_table.update(msg, finance_controller) {
-                        utils::transaction_table::Action::None => Action::None,
-                        utils::transaction_table::Action::ViewTransaction(id) => {
+                        components::transaction_table::Action::None => Action::None,
+                        components::transaction_table::Action::ViewTransaction(id) => {
                             Action::ViewTransaction(id)
                         }
-                        utils::transaction_table::Action::ViewAccount(id) => {
+                        components::transaction_table::Action::ViewAccount(id) => {
                             Action::ViewAccount(id)
                         }
-                        utils::transaction_table::Action::Task(task) => {
+                        components::transaction_table::Action::Task(task) => {
                             Action::Task(task.map(Message::TransactionTable).map(MessageContainer))
                         }
                     }
@@ -214,14 +214,14 @@ impl View {
             time_span,
         } = self
         {
-            let mut column = utils::spaced_column![
-                utils::spal_row![
+            let mut column = components::spaced_column![
+                components::spal_row![
                     widget::button("<").on_press(Message::DecreaseOffset),
                     widget::text!("Offset: {}", offset),
                     widget::text!(
                         "Time Span: {} - {}",
-                        utils::date_time::to_date_time_string(time_span.0.unwrap()),
-                        utils::date_time::to_date_time_string(time_span.1.unwrap())
+                        components::date_time::to_date_time_string(time_span.0.unwrap()),
+                        components::date_time::to_date_time_string(time_span.1.unwrap())
                     ),
                     widget::button(">").on_press(Message::IncreaseOffset),
                 ]
@@ -238,13 +238,13 @@ impl View {
 
             super::view(
                 "Budget",
-                utils::spaced_column![
+                components::spaced_column![
                     widget::row![
                         column,
                         widget::Space::with_width(iced::Length::Fill),
-                        utils::spaced_row![
-                            utils::button::edit(Some(Message::Edit)),
-                            utils::button::delete(Some(Message::Delete))
+                        components::spaced_row![
+                            components::button::edit(Some(Message::Edit)),
+                            components::button::delete(Some(Message::Delete))
                         ]
                     ],
                     widget::progress_bar(

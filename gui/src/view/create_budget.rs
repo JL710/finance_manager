@@ -45,7 +45,7 @@ impl Default for View {
             description_input: widget::text_editor::Content::default(),
             value_input: String::new(),
             recurring_input: recurring_input::State::Days(
-                utils::date_time::date_time_input::State::default(),
+                components::date_time::date_time_input::State::default(),
                 String::new(),
             ),
             recurring_state: None,
@@ -79,7 +79,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let budget = finance_controller
                     .get_budget(id)
                     .await?
@@ -109,8 +109,8 @@ impl View {
                         Ok(new) => *self = new,
                         Err(error) => {
                             return Action::Task(iced::Task::future(async {
-                                utils::error_popup(
-                                    utils::error_chain_string(
+                                components::error_popup(
+                                    components::error_chain_string(
                                         error.context("Error while creating create budget view from existing budget")
                                     )
                                 ).await
@@ -135,7 +135,7 @@ impl View {
                 let description_input = self.description_input.text();
                 let value_input = self.value_input.clone();
                 let recurring_inputs = (&self.recurring_input).try_into();
-                return Action::Task(utils::failing_task(async move {
+                return Action::Task(components::failing_task(async move {
                     let budget = match option_id {
                         Some(id) => {
                             finance_controller
@@ -179,7 +179,7 @@ impl View {
                 match recurring.as_str() {
                     "Days" => {
                         self.recurring_input = recurring_input::State::Days(
-                            utils::date_time::date_time_input::State::default(),
+                            components::date_time::date_time_input::State::default(),
                             String::new(),
                         );
                     }
@@ -205,16 +205,16 @@ impl View {
 
         super::view(
             "Create Budget",
-            widget::scrollable(utils::spaced_column![
-                utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                utils::spaced_row![
+            widget::scrollable(components::spaced_column![
+                components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+                components::spaced_row![
                     "Description",
                     widget::text_editor(&self.description_input)
                         .on_action(Message::DescriptionInput)
                 ],
-                utils::labeled_entry("Value", &self.value_input, Message::ValueInput, true),
+                components::labeled_entry("Value", &self.value_input, Message::ValueInput, true),
                 self.generate_recurring_view(),
-                utils::submit_cancel_row(
+                components::submit_cancel_row(
                     if self.submittable() {
                         Some(Message::Submit)
                     } else {
@@ -232,7 +232,7 @@ impl View {
 
         widget::column![
             widget::Text::new("Recurring"),
-            widget::container(utils::spal_row![
+            widget::container(components::spal_row![
                 widget::text(self.recurring_input.to_string()),
                 widget::PickList::new(
                     vec!["Days", "Day in month", "Yearly"],
@@ -273,8 +273,8 @@ impl View {
 
 mod recurring_input {
     use anyhow::Context;
+    use components::date_time::date_time_input;
     use iced::widget;
-    use utils::date_time::date_time_input;
 
     #[derive(Debug, Clone)]
     #[allow(clippy::enum_variant_names)]
@@ -329,7 +329,7 @@ mod recurring_input {
                         "Every {} days starting from {}",
                         days,
                         start.datetime().map_or("ERROR".to_owned(), |x| {
-                            utils::date_time::to_date_time_string(x)
+                            components::date_time::to_date_time_string(x)
                         })
                     )
                 }
@@ -392,7 +392,7 @@ mod recurring_input {
 
     pub fn recurring_input(state: &State) -> iced::Element<'_, Action> {
         match state {
-            State::Days(date, days) => utils::spal_row![
+            State::Days(date, days) => components::spal_row![
                 date_time_input::date_time_input(date, true)
                     .view()
                     .map(Action::DateInput),
@@ -402,7 +402,7 @@ mod recurring_input {
             State::DayInMonth(day) => widget::text_input("Day", day)
                 .on_input(Action::FirstTextInput)
                 .into(),
-            State::Yearly(month, day) => utils::spal_row![
+            State::Yearly(month, day) => components::spal_row![
                 widget::text_input("Month", month).on_input(Action::FirstTextInput),
                 widget::text_input("Day", day).on_input(Action::SecondTextInput)
             ]

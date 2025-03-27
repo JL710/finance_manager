@@ -55,7 +55,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let transaction = finance_controller
                     .get_transaction(id)
                     .await?
@@ -129,7 +129,7 @@ impl View {
                 }
                 if let Self::Loaded { transaction, .. } = self {
                     let id = transaction.id;
-                    Action::Delete(utils::failing_task(async move {
+                    Action::Delete(components::failing_task(async move {
                         finance_controller.delete_transaction(id).await?;
                         Ok(())
                     }))
@@ -155,19 +155,19 @@ impl View {
             let mut column = widget::column![
                 widget::row![widget::text!("Value: {}", transaction.amount())],
                 widget::text!("Name: {}", transaction.title),
-                utils::link(widget::text!("Source: {}", source))
+                components::link(widget::text!("Source: {}", source))
                     .on_press(Message::ViewAccount(*source.id())),
-                utils::link(widget::text!("Destination: {}", destination))
+                components::link(widget::text!("Destination: {}", destination))
                     .on_press(Message::ViewAccount(*destination.id())),
                 widget::text!(
                     "Date: {}",
-                    utils::date_time::to_date_time_string(transaction.date)
+                    components::date_time::to_date_time_string(transaction.date)
                 ),
             ];
 
             if let Some(budget) = &budget {
-                column = column.push(utils::spal_row![
-                    utils::link(widget::text!("Budget: {}", &budget.name))
+                column = column.push(components::spal_row![
+                    components::link(widget::text!("Budget: {}", &budget.name))
                         .on_press(Message::ViewBudget(budget.id)),
                     widget::checkbox(
                         "Negative",
@@ -179,17 +179,17 @@ impl View {
             }
 
             if let Some(content) = &transaction.description {
-                column = column.push(utils::spaced_row![
+                column = column.push(components::spaced_row![
                     "Description: ",
                     widget::container(content.as_str())
                         .padding(3)
-                        .style(utils::style::container_style_background_weak)
+                        .style(style::container_style_background_weak)
                 ]);
             }
 
-            let mut category_column = utils::spaced_column!();
+            let mut category_column = components::spaced_column!();
             for category in &transaction.categories {
-                category_column = category_column.push(utils::spal_row![
+                category_column = category_column.push(components::spal_row![
                     widget::checkbox("", true,),
                     widget::button(
                         categories
@@ -206,14 +206,14 @@ impl View {
             }
 
             iced::Element::new(widget::column![
-                utils::heading("Transaction", utils::HeadingLevel::H1),
+                components::heading("Transaction", components::HeadingLevel::H1),
                 widget::row![
                     column,
                     widget::Space::with_width(iced::Length::Fill),
-                    utils::spaced_column![
-                        utils::button::edit(Some(Message::Edit)),
-                        utils::button::delete(Some(Message::Delete)),
-                        utils::button::new("New Bill", Some(Message::NewBill))
+                    components::spaced_column![
+                        components::button::edit(Some(Message::Edit)),
+                        components::button::delete(Some(Message::Delete)),
+                        components::button::new("New Bill", Some(Message::NewBill))
                     ]
                 ],
                 widget::horizontal_rule(10),

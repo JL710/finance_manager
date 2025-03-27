@@ -10,7 +10,7 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    FilterComponent(Box<utils::filter_component::InnerMessage>),
+    FilterComponent(Box<components::filter_component::InnerMessage>),
     ToggleEditFilter,
     UpdateTransactions(
         Vec<(
@@ -25,7 +25,7 @@ pub enum Message {
         bills: Vec<fm_core::Bill>,
         budgets: Vec<fm_core::Budget>,
     },
-    TransactionTable(utils::transaction_table::Message),
+    TransactionTable(components::transaction_table::Message),
 }
 
 #[derive(Debug)]
@@ -34,8 +34,8 @@ pub struct View {
     categories: Vec<fm_core::Category>,
     bills: Vec<fm_core::Bill>,
     budgets: Vec<fm_core::Budget>,
-    change_filter: Option<utils::filter_component::FilterComponent>,
-    transaction_table: utils::TransactionTable,
+    change_filter: Option<components::filter_component::FilterComponent>,
+    transaction_table: components::TransactionTable,
     sums: Vec<(fm_core::DateTime, fm_core::Currency)>,
     filter: TransactionFilter,
 }
@@ -51,7 +51,7 @@ impl View {
                 bills: Vec::new(),
                 budgets: Vec::new(),
                 change_filter: None,
-                transaction_table: utils::TransactionTable::new(
+                transaction_table: components::TransactionTable::new(
                     Vec::new(),
                     Vec::new(),
                     Vec::new(),
@@ -60,7 +60,7 @@ impl View {
                 sums: Vec::new(),
                 filter: TransactionFilter::default(),
             },
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let accounts = finance_controller.get_accounts().await?;
                 let categories = finance_controller.get_categories().await?;
                 let bills = finance_controller.get_bills().await?;
@@ -91,7 +91,7 @@ impl View {
                 self.categories = categories;
                 self.bills = bills;
                 self.budgets = budgets.clone();
-                self.transaction_table = utils::TransactionTable::new(
+                self.transaction_table = components::TransactionTable::new(
                     Vec::new(),
                     self.categories.clone(),
                     budgets,
@@ -103,7 +103,7 @@ impl View {
                     None
                 } else {
                     Some(
-                        utils::filter_component::FilterComponent::new(
+                        components::filter_component::FilterComponent::new(
                             self.accounts.clone(),
                             self.categories.clone(),
                             self.bills.clone(),
@@ -122,14 +122,14 @@ impl View {
             }
             Message::TransactionTable(msg) => {
                 match self.transaction_table.update(msg, finance_controller) {
-                    utils::transaction_table::Action::None => return Action::None,
-                    utils::transaction_table::Action::ViewTransaction(id) => {
+                    components::transaction_table::Action::None => return Action::None,
+                    components::transaction_table::Action::ViewTransaction(id) => {
                         return Action::ViewTransaction(id);
                     }
-                    utils::transaction_table::Action::ViewAccount(id) => {
+                    components::transaction_table::Action::ViewAccount(id) => {
                         return Action::ViewAccount(id);
                     }
-                    utils::transaction_table::Action::Task(task) => {
+                    components::transaction_table::Action::Task(task) => {
                         return Action::Task(task.map(Message::TransactionTable));
                     }
                 }
@@ -137,10 +137,10 @@ impl View {
             Message::FilterComponent(m) => {
                 if let Some(component) = &mut self.change_filter {
                     match component.update(*m) {
-                        utils::filter_component::Action::Submit(new_filter) => {
+                        components::filter_component::Action::Submit(new_filter) => {
                             self.filter = new_filter.clone();
                             self.change_filter = None;
-                            return Action::Task(utils::failing_task(async move {
+                            return Action::Task(components::failing_task(async move {
                                 let transactions = finance_controller
                                     .get_filtered_transactions(new_filter.clone())
                                     .await?;
@@ -169,7 +169,7 @@ impl View {
                                 Ok(Message::UpdateTransactions(tuples))
                             }));
                         }
-                        utils::filter_component::Action::None => {}
+                        components::filter_component::Action::None => {}
                     }
                 }
             }
@@ -180,7 +180,7 @@ impl View {
     pub fn view(&self) -> iced::Element<Message> {
         super::view(
             "Find Transactions",
-            utils::spaced_column![
+            components::spaced_column![
                 "Filter Transactions",
                 iced::widget::row![
                     "Total: ",
@@ -191,7 +191,7 @@ impl View {
                             .map_or(fm_core::Currency::default(), |x| x.1.clone())
                     )
                 ],
-                utils::button::edit_with_text("Edit Filter", Some(Message::ToggleEditFilter)),
+                components::button::edit_with_text("Edit Filter", Some(Message::ToggleEditFilter)),
                 if let Some(filter_component) = &self.change_filter {
                     filter_component
                         .view()

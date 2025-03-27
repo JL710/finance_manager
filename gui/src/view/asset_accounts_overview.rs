@@ -13,13 +13,13 @@ pub enum Message {
     CreateAssetAccount,
     AccountView(fm_core::account::AssetAccount),
     Initialize(Vec<(fm_core::account::AssetAccount, fm_core::Currency)>),
-    TableView(utils::table_view::InnerMessage<Message>),
+    TableView(components::table_view::InnerMessage<Message>),
 }
 
 #[derive(Debug)]
 pub struct View {
     account_table:
-        utils::table_view::State<(fm_core::account::AssetAccount, fm_core::Currency), ()>,
+        components::table_view::State<(fm_core::account::AssetAccount, fm_core::Currency), ()>,
 }
 
 impl std::default::Default for View {
@@ -31,7 +31,7 @@ impl std::default::Default for View {
 impl View {
     pub fn new(accounts: Vec<(fm_core::account::AssetAccount, fm_core::Currency)>) -> Self {
         Self {
-            account_table: utils::table_view::State::new(accounts, ())
+            account_table: components::table_view::State::new(accounts, ())
                 .sort_by(|a, b, column| match column {
                     0 => a.0.name.cmp(&b.0.name),
                     1 => a.1.cmp(&b.1),
@@ -46,7 +46,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let accounts = finance_controller
                     .get_accounts()
                     .await?
@@ -80,10 +80,10 @@ impl View {
             Message::CreateAssetAccount => return Action::CreateAssetAccount,
             Message::AccountView(account) => return Action::ViewAccount(account.id),
             Message::TableView(m) => match self.account_table.perform(m) {
-                utils::table_view::Action::OuterMessage(m) => {
+                components::table_view::Action::OuterMessage(m) => {
                     return self.update(m, _finance_controller);
                 }
-                utils::table_view::Action::Task(task) => {
+                components::table_view::Action::Task(task) => {
                     return Action::Task(task.map(Message::TableView));
                 }
                 _ => {}
@@ -93,22 +93,22 @@ impl View {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        let account_table = utils::table_view::table_view(&self.account_table)
+        let account_table = components::table_view::table_view(&self.account_table)
             .headers(["Account".to_string(), "Current Value".to_string()])
             .view(|account, _| {
                 [
-                    utils::link(account.0.name.as_str())
+                    components::link(account.0.name.as_str())
                         .on_press(Message::AccountView(account.0.clone()))
                         .into(),
-                    utils::colored_currency_display(&account.1),
+                    components::colored_currency_display(&account.1),
                 ]
             })
             .map(Message::TableView);
 
         super::view(
             "Asset Account Overview",
-            utils::spaced_column![
-                widget::row![utils::button::new(
+            components::spaced_column![
+                widget::row![components::button::new(
                     "New Asset Account",
                     Some(Message::CreateAssetAccount)
                 )],

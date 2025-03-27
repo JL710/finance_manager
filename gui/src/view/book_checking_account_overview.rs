@@ -11,20 +11,22 @@ pub enum Action {
 pub enum Message {
     ViewAccount(fm_core::Id),
     Initialize(Vec<(fm_core::account::BookCheckingAccount, fm_core::Currency)>),
-    AccountTable(utils::table_view::InnerMessage<Message>),
+    AccountTable(components::table_view::InnerMessage<Message>),
     New,
 }
 
 #[derive(Debug)]
 pub struct View {
-    accounts_table:
-        utils::table_view::State<(fm_core::account::BookCheckingAccount, fm_core::Currency), ()>,
+    accounts_table: components::table_view::State<
+        (fm_core::account::BookCheckingAccount, fm_core::Currency),
+        (),
+    >,
 }
 
 impl View {
     pub fn new(accounts: Vec<(fm_core::account::BookCheckingAccount, fm_core::Currency)>) -> Self {
         Self {
-            accounts_table: utils::table_view::State::new(accounts, ())
+            accounts_table: components::table_view::State::new(accounts, ())
                 .sort_by(|a, b, column| match column {
                     0 => b.0.name.cmp(&a.0.name),
                     1 => a.1.cmp(&b.1),
@@ -39,7 +41,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let accounts = finance_controller
                     .get_accounts()
                     .await?
@@ -75,8 +77,10 @@ impl View {
             }
             Message::New => Action::CreateNewAccount,
             Message::AccountTable(inner) => match self.accounts_table.perform(inner) {
-                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_controller),
-                utils::table_view::Action::Task(task) => {
+                components::table_view::Action::OuterMessage(m) => {
+                    self.update(m, _finance_controller)
+                }
+                components::table_view::Action::Task(task) => {
                     Action::Task(task.map(Message::AccountTable))
                 }
                 _ => Action::None,
@@ -87,16 +91,16 @@ impl View {
     pub fn view(&self) -> iced::Element<Message> {
         super::view(
             "Book Checking Account Overview",
-            utils::spaced_column![
-                utils::button::new("Create new account", Some(Message::New)),
+            components::spaced_column![
+                components::button::new("Create new account", Some(Message::New)),
                 widget::horizontal_rule(10),
-                utils::table_view::table_view(&self.accounts_table)
+                components::table_view::table_view(&self.accounts_table)
                     .headers(["Account".to_string(), "Sum".to_string()])
                     .view(|(account, sum), _| [
-                        utils::link(account.name.as_str())
+                        components::link(account.name.as_str())
                             .on_press(Message::ViewAccount(account.id))
                             .into(),
-                        utils::colored_currency_display(sum),
+                        components::colored_currency_display(sum),
                     ])
                     .map(Message::AccountTable)
             ]

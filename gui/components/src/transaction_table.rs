@@ -386,5 +386,5 @@ fn category_popup(
         ]);
     }
 
-    super::style::container_popup_styling(widget::container(column)).into()
+    style::container_popup_styling(widget::container(column)).into()
 }

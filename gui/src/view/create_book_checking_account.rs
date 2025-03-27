@@ -41,7 +41,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             View::default(),
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let account = finance_controller
                     .get_account(account_id)
                     .await?
@@ -93,7 +93,7 @@ impl View {
                     Some(self.bic_input.clone())
                 };
                 let id = self.id;
-                return Action::Task(utils::failing_task(async move {
+                return Action::Task(components::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_controller
                             .update_book_checking_account(
@@ -132,15 +132,15 @@ impl View {
 
         super::view(
             "Create Book Checking Account",
-            widget::scrollable(utils::spaced_column![
-                utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                utils::spaced_row![
+            widget::scrollable(components::spaced_column![
+                components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+                components::spaced_row![
                     "Notes",
                     widget::text_editor(&self.note_input).on_action(Message::NoteInput)
                 ],
-                utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-                utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                utils::submit_cancel_row(
+                components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+                components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+                components::submit_cancel_row(
                     if self.can_submit() {
                         Some(Message::Submit)
                     } else {

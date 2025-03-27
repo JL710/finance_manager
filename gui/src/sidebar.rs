@@ -59,7 +59,7 @@ impl Sidebar {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        utils::spaced_column![
+        components::spaced_column![
             widget::button(
                 widget::Svg::new(self.svg_cache.list.clone())
                     .style(|theme: &iced::Theme, _| widget::svg::Style {
@@ -148,13 +148,13 @@ fn icon_menu_item<'a, M: Clone + 'a>(
             )
             .style(widget::button::text)
             .on_press(message),
-            utils::style::container_popup_styling(widget::container(text)),
+            style::container_popup_styling(widget::container(text)),
             widget::tooltip::Position::Right,
         )
         .into()
     } else {
         widget::button(
-            utils::spal_row![
+            components::spal_row![
                 widget::Svg::new(icon.clone()).width(iced::Shrink).style(
                     |theme: &iced::Theme, _| widget::svg::Style {
                         color: Some(theme.palette().primary)
@@ -164,7 +164,7 @@ fn icon_menu_item<'a, M: Clone + 'a>(
             ]
             .height(25),
         )
-        .style(utils::style::button_sidebar)
+        .style(style::button_sidebar)
         .on_press(message)
         .into()
     }

@@ -1,7 +1,7 @@
 use anyhow::Context;
 
+use components::date_time::date_time_input;
 use iced::widget;
-use utils::date_time::date_time_input;
 
 pub enum Action {
     None,
@@ -15,7 +15,7 @@ pub enum Action {
 pub enum Message {
     DueDateChanged(date_time_input::Action),
     NameInputChanged(String),
-    ValueChanged(utils::currency_input::Action),
+    ValueChanged(components::currency_input::Action),
     DescriptionInputChanged(widget::text_editor::Action),
     AddTransactionToggle,
     ChangeTransactionSign(fm_core::Id, fm_core::Sign),
@@ -28,7 +28,7 @@ pub enum Message {
         Vec<fm_core::account::Account>,
     ),
     BillCreated(fm_core::Id),
-    TransactionTable(utils::table_view::InnerMessage<Message>),
+    TransactionTable(components::table_view::InnerMessage<Message>),
     Cancel,
 }
 
@@ -37,10 +37,10 @@ pub struct View {
     id: Option<fm_core::Id>,
     name_input: String,
     description_input: widget::text_editor::Content,
-    value: utils::currency_input::State,
+    value: components::currency_input::State,
     due_date_input: date_time_input::State,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
-    transaction_table: utils::table_view::State<
+    transaction_table: components::table_view::State<
         (fm_core::Transaction, fm_core::Sign),
         Vec<fm_core::account::Account>,
     >,
@@ -55,10 +55,10 @@ impl View {
             id: None,
             name_input: String::new(),
             description_input: widget::text_editor::Content::default(),
-            value: utils::currency_input::State::default(),
+            value: components::currency_input::State::default(),
             due_date_input: date_time_input::State::default(),
             transactions: Vec::new(),
-            transaction_table: utils::table_view::State::new(Vec::new(), Vec::new())
+            transaction_table: components::table_view::State::new(Vec::new(), Vec::new())
                 .sort_by(
                     |a: &(fm_core::Transaction, fm_core::Sign),
                      b: &(fm_core::Transaction, fm_core::Sign),
@@ -92,7 +92,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let accounts = finance_controller.get_accounts().await?;
 
                 Ok(Message::Initialize(
@@ -113,10 +113,10 @@ impl View {
                 id: None,
                 name_input: String::new(),
                 description_input: widget::text_editor::Content::default(),
-                value: utils::currency_input::State::default(),
+                value: components::currency_input::State::default(),
                 due_date_input: date_time_input::State::default(),
                 transactions: Vec::new(),
-                transaction_table: utils::table_view::State::new(Vec::new(), Vec::new())
+                transaction_table: components::table_view::State::new(Vec::new(), Vec::new())
                     .sort_by(
                         |a: &(fm_core::Transaction, fm_core::Sign),
                          b: &(fm_core::Transaction, fm_core::Sign),
@@ -142,7 +142,7 @@ impl View {
                 add_transaction: None,
                 submitted: false,
             },
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let bill = if let Some(id) = id {
                     Some(
                         finance_controller
@@ -198,9 +198,9 @@ impl View {
                     self.description_input = widget::text_editor::Content::with_text(
                         &bill.description.unwrap_or_default(),
                     );
-                    self.value = utils::currency_input::State::new(bill.value);
+                    self.value = components::currency_input::State::new(bill.value);
                     self.due_date_input =
-                        utils::date_time::date_time_input::State::new(bill.due_date);
+                        components::date_time::date_time_input::State::new(bill.due_date);
                 }
                 self.transactions = transactions.clone();
                 self.transaction_table.set_items(transactions);
@@ -239,7 +239,7 @@ impl View {
                     transactions.insert(transaction.0.id, transaction.1);
                 }
                 if let Some(id) = id_option {
-                    return Action::Task(utils::failing_task(async move {
+                    return Action::Task(components::failing_task(async move {
                         finance_controller
                             .update_bill(fm_core::Bill {
                                 id,
@@ -253,7 +253,7 @@ impl View {
                         Ok(Message::BillCreated(id))
                     }));
                 } else {
-                    return Action::Task(utils::failing_task(async move {
+                    return Action::Task(components::failing_task(async move {
                         let bill = finance_controller
                             .create_bill(name, description, value, transactions, due_date)
                             .await?;
@@ -307,10 +307,10 @@ impl View {
                 }
             }
             Message::TransactionTable(inner) => match self.transaction_table.perform(inner) {
-                utils::table_view::Action::OuterMessage(m) => {
+                components::table_view::Action::OuterMessage(m) => {
                     return self.update(m, finance_controller);
                 }
-                utils::table_view::Action::Task(task) => {
+                components::table_view::Action::Task(task) => {
                     return Action::Task(task.map(Message::TransactionTable));
                 }
                 _ => {}
@@ -326,9 +326,14 @@ impl View {
 
         super::view(
             "Create Bill",
-            utils::spaced_column![
-                utils::labeled_entry("Name", &self.name_input, Message::NameInputChanged, true),
-                utils::spaced_row![
+            components::spaced_column![
+                components::labeled_entry(
+                    "Name",
+                    &self.name_input,
+                    Message::NameInputChanged,
+                    true
+                ),
+                components::spaced_row![
                     "Description: ",
                     widget::container(widget::scrollable(
                         widget::text_editor(&self.description_input)
@@ -336,14 +341,14 @@ impl View {
                     ))
                     .max_height(200)
                 ],
-                utils::spal_row![
+                components::spal_row![
                     "Value: ",
-                    utils::currency_input::currency_input(&self.value, true)
+                    components::currency_input::currency_input(&self.value, true)
                         .view()
                         .map(Message::ValueChanged),
                 ]
                 .width(iced::Length::Fill),
-                utils::spal_row![
+                components::spal_row![
                     "Due Date: ",
                     date_time_input::date_time_input(&self.due_date_input, false)
                         .view()
@@ -352,7 +357,7 @@ impl View {
                 .width(iced::Length::Fill),
                 "Transactions:",
                 widget::container(
-                    utils::table_view::table_view(&self.transaction_table)
+                    components::table_view::table_view(&self.transaction_table)
                         .headers(["", "", "Title", "Amount", "Date", "Source", "Destination"])
                         .view(|(transaction, sign), accounts| {
                             [
@@ -368,19 +373,21 @@ impl View {
                                         )
                                     })
                                     .into(),
-                                utils::button::delete(Some(Message::RemoveTransaction(
+                                components::button::delete(Some(Message::RemoveTransaction(
                                     transaction.id,
                                 ))),
                                 widget::text(transaction.title.as_str()).into(),
-                                utils::colored_currency_display(
+                                components::colored_currency_display(
                                     &(if *sign == fm_core::Sign::Negative {
                                         transaction.amount().negative()
                                     } else {
                                         transaction.amount().clone()
                                     }),
                                 ),
-                                widget::text(utils::date_time::to_date_string(transaction.date))
-                                    .into(),
+                                widget::text(components::date_time::to_date_string(
+                                    transaction.date,
+                                ))
+                                .into(),
                                 widget::text(
                                     accounts
                                         .iter()
@@ -403,7 +410,7 @@ impl View {
                 )
                 .height(iced::Fill),
                 widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
-                utils::submit_cancel_row(
+                components::submit_cancel_row(
                     if self.submittable() {
                         Some(Message::Submit)
                     } else {
@@ -444,25 +451,25 @@ mod add_transaction {
     #[derive(Debug, Clone)]
     pub enum Message {
         Back,
-        FilterComponent(utils::filter_component::InnerMessage),
+        FilterComponent(components::filter_component::InnerMessage),
         AddTransaction(fm_core::Transaction),
         FetchedTransactions(Vec<fm_core::Transaction>),
-        Table(utils::table_view::InnerMessage<Message>),
+        Table(components::table_view::InnerMessage<Message>),
         Init(Init),
         AddAllTransactions,
     }
 
     #[derive(Debug)]
     pub struct AddTransaction {
-        filter: Option<utils::filter_component::FilterComponent>,
+        filter: Option<components::filter_component::FilterComponent>,
         transactions: Vec<fm_core::Transaction>,
         ignored_transactions: Vec<fm_core::Id>,
-        table: utils::table_view::State<fm_core::Transaction, Vec<fm_core::account::Account>>,
+        table: components::table_view::State<fm_core::Transaction, Vec<fm_core::account::Account>>,
     }
 
     impl AddTransaction {
         pub fn new(
-            filter: Option<utils::filter_component::FilterComponent>,
+            filter: Option<components::filter_component::FilterComponent>,
             transactions: Vec<fm_core::Transaction>,
             accounts: Vec<fm_core::account::Account>,
             ignored_transactions: Vec<fm_core::Id>,
@@ -471,7 +478,7 @@ mod add_transaction {
                 filter,
                 transactions: transactions.clone(),
                 ignored_transactions,
-                table: utils::table_view::State::new(transactions, accounts)
+                table: components::table_view::State::new(transactions, accounts)
                     .sort_by(|a, b, column| match column {
                         1 => a.title.cmp(&b.title),
                         2 => a.amount().cmp(b.amount()),
@@ -490,7 +497,7 @@ mod add_transaction {
         ) -> (Self, iced::Task<Message>) {
             (
                 Self::new(None, Vec::new(), Vec::new(), Vec::new()),
-                utils::failing_task(async move {
+                components::failing_task(async move {
                     let accounts = finance_controller.get_accounts().await?;
                     let categories = finance_controller.get_categories().await?;
                     let bills = finance_controller.get_bills().await?;
@@ -517,9 +524,9 @@ mod add_transaction {
                 Message::FilterComponent(m) => {
                     if let Some(filter) = &mut self.filter {
                         match filter.update(m) {
-                            utils::filter_component::Action::Submit(submitted_filter) => {
+                            components::filter_component::Action::Submit(submitted_filter) => {
                                 self.filter = None;
-                                return Action::Task(utils::failing_task(async move {
+                                return Action::Task(components::failing_task(async move {
                                     Ok(Message::FetchedTransactions(
                                         finance_controller
                                             .get_filtered_transactions(submitted_filter.clone())
@@ -527,7 +534,7 @@ mod add_transaction {
                                     ))
                                 }));
                             }
-                            utils::filter_component::Action::None => {}
+                            components::filter_component::Action::None => {}
                         }
                     }
                     Action::None
@@ -560,10 +567,12 @@ mod add_transaction {
                     Action::None
                 }
                 Message::Table(inner) => match self.table.perform(inner) {
-                    utils::table_view::Action::OuterMessage(m) => {
+                    components::table_view::Action::OuterMessage(m) => {
                         self.update(m, finance_controller)
                     }
-                    utils::table_view::Action::Task(task) => Action::Task(task.map(Message::Table)),
+                    components::table_view::Action::Task(task) => {
+                        Action::Task(task.map(Message::Table))
+                    }
                     _ => Action::None,
                 },
                 Message::Init(init) => {
@@ -571,7 +580,7 @@ mod add_transaction {
                     self.table.set_items(init.transactions);
                     self.table.set_context(init.accounts.clone());
                     self.ignored_transactions = init.ignored_transactions;
-                    self.filter = Some(utils::filter_component::FilterComponent::new(
+                    self.filter = Some(components::filter_component::FilterComponent::new(
                         init.accounts,
                         init.categories,
                         init.bills,
@@ -583,30 +592,33 @@ mod add_transaction {
         }
 
         pub fn view(&self) -> iced::Element<Message> {
-            utils::spaced_column![
-                utils::heading("Add", utils::HeadingLevel::H1),
-                utils::spal_row![
+            components::spaced_column![
+                components::heading("Add", components::HeadingLevel::H1),
+                components::spal_row![
                     widget::button("Back").on_press(Message::Back),
                     widget::horizontal_space(),
                     widget::button("Add All").on_press(Message::AddAllTransactions)
                 ],
                 if let Some(filter) = &self.filter {
                     iced::Element::new(
-                        utils::spaced_column![
+                        components::spaced_column![
                             "Create Filter for Transactions:",
                             filter.view().map(Message::FilterComponent),
                         ]
                         .width(iced::Length::Fill),
                     )
                 } else {
-                    utils::table_view::table_view(&self.table)
+                    components::table_view::table_view(&self.table)
                         .headers(["", "Title", "Amount", "Date", "Source", "Destination"])
                         .view(|x, accounts| {
                             [
-                                utils::button::new("Add", Some(Message::AddTransaction(x.clone()))),
+                                components::button::new(
+                                    "Add",
+                                    Some(Message::AddTransaction(x.clone())),
+                                ),
                                 widget::text(x.title.as_str()).into(),
                                 widget::text(x.amount().to_num_string()).into(),
-                                widget::text(utils::date_time::to_date_string(x.date)).into(),
+                                widget::text(components::date_time::to_date_string(x.date)).into(),
                                 widget::text(
                                     accounts
                                         .iter()

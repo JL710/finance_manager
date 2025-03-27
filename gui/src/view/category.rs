@@ -1,6 +1,6 @@
 use anyhow::Context;
+use components::date_time::date_span_input;
 use iced::widget;
-use utils::date_time::date_span_input;
 
 pub enum Action {
     None,
@@ -27,7 +27,7 @@ pub enum Message {
         Vec<fm_core::Category>,
         Vec<fm_core::Budget>,
     ),
-    TransactionTable(utils::transaction_table::Message),
+    TransactionTable(components::transaction_table::Message),
 }
 
 #[derive(Debug)]
@@ -35,7 +35,7 @@ pub enum View {
     NotLoaded,
     Loaded {
         category: fm_core::Category,
-        transaction_table: Box<utils::TransactionTable>,
+        transaction_table: Box<components::TransactionTable>,
         values: Vec<(fm_core::DateTime, fm_core::Currency)>,
         timespan_input: date_span_input::State,
     },
@@ -48,7 +48,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::NotLoaded,
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let transactions = finance_controller
                     .get_transactions_of_category(category_id, (None, None))
                     .await?;
@@ -107,7 +107,7 @@ impl View {
                     }
 
                     let category_id = category.id;
-                    Action::DeleteCategory(utils::failing_task(async move {
+                    Action::DeleteCategory(components::failing_task(async move {
                         finance_controller.delete_category(category_id).await?;
                         Ok(())
                     }))
@@ -135,7 +135,7 @@ impl View {
                     let id = category.id;
                     let timespan = timespan_input.timespan();
 
-                    Action::Task(utils::failing_task(async move {
+                    Action::Task(components::failing_task(async move {
                         let transactions = finance_controller
                             .get_transactions_of_category(id, timespan)
                             .await?;
@@ -182,7 +182,7 @@ impl View {
                 let category_id = category.id;
                 *self = Self::Loaded {
                     category,
-                    transaction_table: Box::new(utils::TransactionTable::new(
+                    transaction_table: Box::new(components::TransactionTable::new(
                         transactions,
                         categories,
                         budgets,
@@ -208,14 +208,14 @@ impl View {
                 } = self
                 {
                     match transaction_table.update(msg, finance_controller) {
-                        utils::transaction_table::Action::None => Action::None,
-                        utils::transaction_table::Action::ViewTransaction(id) => {
+                        components::transaction_table::Action::None => Action::None,
+                        components::transaction_table::Action::ViewTransaction(id) => {
                             Action::ViewTransaction(id)
                         }
-                        utils::transaction_table::Action::ViewAccount(id) => {
+                        components::transaction_table::Action::ViewAccount(id) => {
                             Action::ViewAccount(id)
                         }
-                        utils::transaction_table::Action::Task(task) => {
+                        components::transaction_table::Action::Task(task) => {
                             Action::Task(task.map(Message::TransactionTable))
                         }
                     }
@@ -236,10 +236,10 @@ impl View {
         {
             super::view(
                 "Category",
-                utils::spaced_column![
-                    utils::spaced_row![
-                        utils::spaced_column![
-                            utils::spal_row![
+                components::spaced_column![
+                    components::spaced_row![
+                        components::spaced_column![
+                            components::spal_row![
                                 "Total value",
                                 widget::text(if let Some(value) = values.last() {
                                     value.1.to_string()
@@ -250,9 +250,9 @@ impl View {
                             category.name.as_str(),
                         ],
                         widget::Space::with_width(iced::Length::Fill),
-                        utils::spaced_column![
-                            utils::button::edit(Some(Message::Edit)),
-                            utils::button::delete(Some(Message::Delete))
+                        components::spaced_column![
+                            components::button::edit(Some(Message::Edit)),
+                            components::button::delete(Some(Message::Delete))
                         ]
                     ],
                     date_span_input::date_span_input(timespan_input)

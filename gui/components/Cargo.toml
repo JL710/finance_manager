@@ -1,14 +1,16 @@
 [package]
-name = "utils"
+name = "components"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-fm_core = { path = "../../core", default-features = false }
 iced.workspace = true
 time.workspace = true
 anyhow.workspace = true
 rfd.workspace = true
+style.workspace = true
+
+fm_core = { path = "../../core", default-features = false }
 uuid = { version = "1.8.0", features = ["v4"] }
 iced_aw = { version = "0.12.2", features = [
     "drop_down",

@@ -22,7 +22,7 @@ fn view<'a, Message: 'a>(
     content: impl Into<iced::Element<'a, Message>>,
 ) -> iced::Element<'a, Message> {
     iced::widget::column![
-        utils::heading(title, utils::HeadingLevel::H1),
+        components::heading(title, components::HeadingLevel::H1),
         content.into()
     ]
     .into()

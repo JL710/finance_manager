@@ -16,7 +16,7 @@ pub enum Message {
     NoteInput(widget::text_editor::Action),
     IbanInput(String),
     BicInput(String),
-    OffsetInput(utils::currency_input::Action),
+    OffsetInput(components::currency_input::Action),
     Submit,
     AssetAccountCreated(fm_core::Id),
     Initialize(fm_core::account::AssetAccount),
@@ -30,14 +30,14 @@ pub struct View {
     note_input: widget::text_editor::Content,
     iban_input: String,
     bic_input: String,
-    offset_input: utils::currency_input::State,
+    offset_input: components::currency_input::State,
     submitted: bool,
 }
 
 impl std::default::Default for View {
     fn default() -> Self {
         Self {
-            offset_input: utils::currency_input::State::new(fm_core::Currency::from(0.0)),
+            offset_input: components::currency_input::State::new(fm_core::Currency::from(0.0)),
             id: None,
             name_input: String::new(),
             note_input: widget::text_editor::Content::default(),
@@ -55,7 +55,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let account = if let fm_core::account::Account::AssetAccount(acc) =
                     finance_controller
                         .get_account(account_id)
@@ -91,7 +91,7 @@ impl View {
                     widget::text_editor::Content::with_text(&account.note.unwrap_or_default());
                 self.iban_input = account.iban.map_or(String::new(), |iban| iban.to_string());
                 self.bic_input = account.bic.map(|x| x.to_string()).unwrap_or_default();
-                self.offset_input = utils::currency_input::State::new(account.offset);
+                self.offset_input = components::currency_input::State::new(account.offset);
             }
             Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
             Message::NameInput(input) => self.name_input = input,
@@ -119,7 +119,7 @@ impl View {
                 };
                 let offset = self.offset_input.currency().unwrap();
                 let id = self.id;
-                return Action::Task(utils::failing_task(async move {
+                return Action::Task(components::failing_task(async move {
                     let account = if let Some(some_id) = id {
                         finance_controller
                             .update_asset_account(fm_core::account::AssetAccount::new(
@@ -150,22 +150,22 @@ impl View {
 
         super::view(
             "Create Asset Account",
-            widget::scrollable(utils::spaced_column![
-                utils::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                utils::spaced_row![
+            widget::scrollable(components::spaced_column![
+                components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+                components::spaced_row![
                     "Notes",
                     widget::text_editor(&self.note_input).on_action(Message::NoteInput)
                 ],
-                utils::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-                utils::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                utils::spal_row![
+                components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+                components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+                components::spal_row![
                     "Offset",
-                    utils::currency_input::currency_input(&self.offset_input, true)
+                    components::currency_input::currency_input(&self.offset_input, true)
                         .view()
                         .map(Message::OffsetInput),
                 ]
                 .width(iced::Fill),
-                utils::submit_cancel_row(
+                components::submit_cancel_row(
                     if self.can_submit() {
                         Some(Message::Submit)
                     } else {

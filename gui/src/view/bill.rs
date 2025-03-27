@@ -27,7 +27,7 @@ enum Message {
     Initialize(Box<Init>),
     Delete,
     Deleted,
-    TransactionTable(utils::table_view::InnerMessage<Message>),
+    TransactionTable(components::table_view::InnerMessage<Message>),
 }
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ pub enum View {
     Loaded {
         bill: fm_core::Bill,
         bill_sum: fm_core::Currency,
-        transaction_table: utils::table_view::State<
+        transaction_table: components::table_view::State<
             (fm_core::Transaction, fm_core::Sign),
             Vec<fm_core::account::Account>,
         >,
@@ -51,7 +51,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let bill = finance_controller
                     .get_bill(&id)
                     .await?
@@ -97,7 +97,7 @@ impl View {
                 *self = Self::Loaded {
                     bill: init.bill,
                     bill_sum: init.bill_sum,
-                    transaction_table: utils::table_view::State::new(
+                    transaction_table: components::table_view::State::new(
                         init.transactions,
                         init.accounts,
                     )
@@ -144,7 +144,7 @@ impl View {
                         .then(move |result| {
                             if let rfd::MessageDialogResult::Yes = result {
                                 let manager = finance_controller.clone();
-                                utils::failing_task(async move {
+                                components::failing_task(async move {
                                     manager.delete_bill(bill_id).await?;
                                     Ok(Message::Deleted)
                                 })
@@ -165,11 +165,11 @@ impl View {
                 } = self
                 {
                     match transaction_table.perform(inner) {
-                        utils::table_view::Action::None => {}
-                        utils::table_view::Action::OuterMessage(m) => {
+                        components::table_view::Action::None => {}
+                        components::table_view::Action::OuterMessage(m) => {
                             return self.update(MessageContainer(m), finance_controller);
                         }
-                        utils::table_view::Action::Task(task) => {
+                        components::table_view::Action::Task(task) => {
                             return Action::Task(
                                 task.map(Message::TransactionTable).map(MessageContainer),
                             );
@@ -190,7 +190,7 @@ impl View {
         {
             super::view(
                 "Bill",
-                utils::spaced_column![
+                components::spaced_column![
                     widget::row![
                         widget::column![
                             widget::text!("Name: {}", bill.name),
@@ -199,24 +199,29 @@ impl View {
                                 widget::container(widget::text(
                                     bill.description.clone().unwrap_or_default()
                                 ))
-                                .style(utils::style::container_style_background_weak)
+                                .style(style::container_style_background_weak)
                             ],
                             widget::text!("Amount: {}€", bill.value.to_num_string()),
                             widget::text!(
                                 "Due Date: {}",
-                                bill.due_date
-                                    .map_or(String::new(), utils::date_time::to_date_time_string)
+                                bill.due_date.map_or(
+                                    String::new(),
+                                    components::date_time::to_date_time_string
+                                )
                             ),
-                            utils::spal_row!["Sum: ", utils::colored_currency_display(bill_sum),]
+                            components::spal_row![
+                                "Sum: ",
+                                components::colored_currency_display(bill_sum),
+                            ]
                         ],
                         widget::horizontal_space(),
-                        utils::spaced_column![
-                            utils::button::edit(Some(Message::Edit)),
-                            utils::button::delete(Some(Message::Delete))
+                        components::spaced_column![
+                            components::button::edit(Some(Message::Edit)),
+                            components::button::delete(Some(Message::Delete))
                         ]
                     ],
                     widget::horizontal_rule(10),
-                    utils::table_view::table_view(transaction_table)
+                    components::table_view::table_view(transaction_table)
                         .headers([
                             "Negative",
                             "Title",
@@ -228,13 +233,14 @@ impl View {
                         ])
                         .view(|(transaction, sign), accounts| [
                             widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
-                            utils::link(transaction.title.as_str())
+                            components::link(transaction.title.as_str())
                                 .on_press(Message::ViewTransaction(transaction.id))
                                 .into(),
                             widget::text(transaction.description.clone().unwrap_or(String::new()))
                                 .into(),
                             widget::text!("{}€", transaction.amount().to_num_string()).into(),
-                            widget::text(utils::date_time::to_date_string(transaction.date)).into(),
+                            widget::text(components::date_time::to_date_string(transaction.date))
+                                .into(),
                             widget::text(
                                 accounts
                                     .iter()

@@ -861,7 +861,7 @@ impl App {
                                 }
                                 .map(move |m| AppMessage::PaneViewMessage(pane, m)),
                             )
-                            .padding(utils::style::PADDING)
+                            .padding(style::PADDING)
                             .style(move |theme: &iced::Theme| {
                                 let mut style =
                                     widget::container::background(theme.palette().background);
@@ -878,7 +878,7 @@ impl App {
                         )
                         .title_bar(
                             widget::pane_grid::TitleBar::new("Finance Manager")
-                                .controls(iced::Element::new(utils::spaced_row![
+                                .controls(iced::Element::new(components::spaced_row![
                                     pane_grid_control_buttons(
                                         self.svg_cache.split_horizontal.clone()
                                     )
@@ -926,17 +926,17 @@ impl App {
                                         style.border.radius.top(PANE_BORDER_RADIUS);
                                     style
                                 })
-                                .padding(utils::style::PADDING),
+                                .padding(style::PADDING),
                         )
                     }
                 )
-                .spacing(utils::style::SPACING)
+                .spacing(style::SPACING)
                 .on_drag(AppMessage::PaneDragged)
                 .on_resize(10, AppMessage::PaneResize)
                 .on_click(AppMessage::PaneClicked)
             )
             .width(iced::Fill)
-            .padding(utils::style::PADDING)
+            .padding(style::PADDING)
         ]
         .into()
     }
@@ -1110,10 +1110,10 @@ fn markdown<'a>(
     items: &'a Vec<widget::markdown::Item>,
 ) -> iced::Element<'a, ViewMessage> {
     widget::container(widget::scrollable(widget::column![
-        utils::heading(heading, utils::HeadingLevel::H1),
+        components::heading(heading, components::HeadingLevel::H1),
         widget::markdown(
             items,
-            utils::markdown_settings(),
+            components::markdown_settings(),
             widget::markdown::Style::from_palette(iced::Theme::Nord.palette())
         )
         .map(|_| ViewMessage::None)

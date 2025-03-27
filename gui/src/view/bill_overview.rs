@@ -10,20 +10,20 @@ pub enum Action {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewBill(fm_core::Id),
-    BillTable(utils::table_view::InnerMessage<Message>),
+    BillTable(components::table_view::InnerMessage<Message>),
     NewBill,
     Initialize(Vec<(fm_core::Bill, fm_core::Currency)>),
 }
 
 #[derive(Debug)]
 pub struct View {
-    bill_table: utils::table_view::State<(fm_core::Bill, fm_core::Currency), ()>,
+    bill_table: components::table_view::State<(fm_core::Bill, fm_core::Currency), ()>,
 }
 
 impl View {
     pub fn new(bills: Vec<(fm_core::Bill, fm_core::Currency)>) -> Self {
         Self {
-            bill_table: utils::table_view::State::new(bills, ())
+            bill_table: components::table_view::State::new(bills, ())
                 .sort_by(|a, b, column| match column {
                     0 => a.0.name.cmp(&b.0.name),
                     1 => a.0.value.cmp(&b.0.value),
@@ -43,7 +43,7 @@ impl View {
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let bills = finance_controller.get_bills().await?;
                 let mut bill_tuples = Vec::new();
                 for bill in bills {
@@ -68,8 +68,12 @@ impl View {
             Message::ViewBill(bill_id) => Action::ViewBill(bill_id),
             Message::NewBill => Action::NewBill,
             Message::BillTable(inner) => match self.bill_table.perform(inner) {
-                utils::table_view::Action::OuterMessage(m) => self.update(m, _finance_controller),
-                utils::table_view::Action::Task(task) => Action::Task(task.map(Message::BillTable)),
+                components::table_view::Action::OuterMessage(m) => {
+                    self.update(m, _finance_controller)
+                }
+                components::table_view::Action::Task(task) => {
+                    Action::Task(task.map(Message::BillTable))
+                }
                 _ => Action::None,
             },
         }
@@ -78,20 +82,20 @@ impl View {
     pub fn view(&self) -> iced::Element<Message> {
         super::view(
             "Bill Overview",
-            utils::spaced_column![
-                utils::button::new("New", Some(Message::NewBill)),
-                utils::table_view::table_view(&self.bill_table)
+            components::spaced_column![
+                components::button::new("New", Some(Message::NewBill)),
+                components::table_view::table_view(&self.bill_table)
                     .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
                     .view(|bill, _| [
-                        utils::link(bill.0.name.as_str())
+                        components::link(bill.0.name.as_str())
                             .on_press(Message::ViewBill(bill.0.id))
                             .into(),
                         widget::text!("{}€", bill.0.value.to_num_string()).into(),
-                        utils::colored_currency_display(&bill.1),
+                        components::colored_currency_display(&bill.1),
                         widget::text(
                             bill.0
                                 .due_date
-                                .map_or(String::new(), utils::date_time::to_date_string)
+                                .map_or(String::new(), components::date_time::to_date_string)
                         )
                         .into(),
                         widget::text(bill.0.transactions.len()).into()

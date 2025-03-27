@@ -1,7 +1,7 @@
 use anyhow::Context;
+use components::date_time::date_span_input;
 use iced::widget;
 use std::sync::Arc;
-use utils::date_time::date_span_input;
 
 pub enum AccountType {
     AssetAccount,
@@ -48,7 +48,7 @@ enum Message {
     Initialize(Box<Init>),
     Delete,
     Deleted(Arc<std::result::Result<(), fm_core::DeleteAccountError>>),
-    TransactionTable(utils::transaction_table::Message),
+    TransactionTable(components::transaction_table::Message),
 }
 
 #[derive(Debug)]
@@ -58,7 +58,7 @@ pub enum View {
     Loaded {
         account: fm_core::account::Account,
         current_value: fm_core::Currency,
-        transaction_table: utils::TransactionTable,
+        transaction_table: components::TransactionTable,
         timespan_input: date_span_input::State,
     },
 }
@@ -70,7 +70,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let account = finance_controller
                     .get_account(account_id)
                     .await?
@@ -122,7 +122,7 @@ impl View {
                 *self = Self::Loaded {
                     account: init.account,
                     current_value: init.value,
-                    transaction_table: utils::TransactionTable::new(
+                    transaction_table: components::TransactionTable::new(
                         init.transactions,
                         init.categories,
                         init.budgets,
@@ -168,7 +168,7 @@ impl View {
                     return Action::None;
                 };
                 Action::Task(
-                    utils::failing_task(async move {
+                    components::failing_task(async move {
                         let transactions = finance_controller
                             .get_transactions_of_account(account_id, timespan)
                             .await
@@ -262,14 +262,14 @@ impl View {
                 } = self
                 {
                     return match transaction_table.update(msg, finance_controller) {
-                        utils::transaction_table::Action::None => Action::None,
-                        utils::transaction_table::Action::ViewTransaction(id) => {
+                        components::transaction_table::Action::None => Action::None,
+                        components::transaction_table::Action::ViewTransaction(id) => {
                             Action::ViewTransaction(id)
                         }
-                        utils::transaction_table::Action::ViewAccount(id) => {
+                        components::transaction_table::Action::ViewAccount(id) => {
                             Action::ViewAccount(id)
                         }
-                        utils::transaction_table::Action::Task(task) => {
+                        components::transaction_table::Action::Task(task) => {
                             Action::Task(task.map(Message::TransactionTable).map(MessageContainer))
                         }
                     };
@@ -308,13 +308,13 @@ impl View {
 
 fn asset_account_view<'a>(
     account: &'a fm_core::account::AssetAccount,
-    transaction_table: &'a utils::TransactionTable,
+    transaction_table: &'a components::TransactionTable,
     current_value: &fm_core::Currency,
     timespan_input: &'a date_span_input::State,
 ) -> iced::Element<'a, Message> {
     super::view(
         "Asset Account",
-        utils::spaced_column![
+        components::spaced_column![
             widget::row![
                 widget::column![
                     widget::text!("Account: {}", account.name),
@@ -337,13 +337,13 @@ fn asset_account_view<'a>(
                     widget::text!("Offset: {}", account.offset),
                     widget::row![
                         "Current Amount: ",
-                        utils::colored_currency_display(current_value)
+                        components::colored_currency_display(current_value)
                     ],
                 ],
                 widget::Space::with_width(iced::Length::Fill),
-                utils::spaced_column![
-                    utils::button::edit(Some(Message::Edit)),
-                    utils::button::delete(Some(Message::Delete))
+                components::spaced_column![
+                    components::button::edit(Some(Message::Edit)),
+                    components::button::delete(Some(Message::Delete))
                 ]
             ],
             widget::horizontal_rule(10),
@@ -358,13 +358,13 @@ fn asset_account_view<'a>(
 
 fn book_checking_account_view<'a>(
     account: &'a fm_core::account::BookCheckingAccount,
-    transaction_table: &'a utils::TransactionTable,
+    transaction_table: &'a components::TransactionTable,
     current_value: &fm_core::Currency,
     timespan_input: &'a date_span_input::State,
 ) -> iced::Element<'a, Message> {
     super::view(
         "Book Checking Account",
-        utils::spaced_column![
+        components::spaced_column![
             widget::row![
                 widget::column![
                     widget::text!("Account: {}", account.name),
@@ -386,13 +386,13 @@ fn book_checking_account_view<'a>(
                     ),
                     widget::row![
                         "Current Amount: ",
-                        utils::colored_currency_display(current_value)
+                        components::colored_currency_display(current_value)
                     ],
                 ],
                 widget::Space::with_width(iced::Length::Fill),
-                utils::spaced_column![
-                    utils::button::edit(Some(Message::Edit)),
-                    utils::button::delete(Some(Message::Delete))
+                components::spaced_column![
+                    components::button::edit(Some(Message::Edit)),
+                    components::button::delete(Some(Message::Delete))
                 ]
             ],
             widget::horizontal_rule(10),

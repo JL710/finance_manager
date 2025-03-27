@@ -6,7 +6,6 @@ pub use iced::{self, widget};
 pub mod button;
 pub mod currency_input;
 pub mod filter_component;
-pub mod style;
 pub mod table_view;
 pub mod transaction_table;
 
@@ -176,10 +175,10 @@ pub fn submit_cancel_row<'a, Message: Clone + 'a>(
 #[macro_export]
 macro_rules! spaced_column {
     () => (
-        $crate::widget::Column::new().spacing($crate::style::COLUMN_SPACING)
+        $crate::widget::Column::new().spacing(style::COLUMN_SPACING)
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::widget::Column::with_children([$($crate::iced::Element::from($x)),+]).spacing($crate::style::COLUMN_SPACING)
+        $crate::widget::Column::with_children([$($crate::iced::Element::from($x)),+]).spacing(style::COLUMN_SPACING)
     );
 }
 
@@ -190,7 +189,7 @@ macro_rules! spaced_row {
         $crate::widget::Row::new().spacing(style::ROW_SPACING)
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::widget::Row::with_children([$($crate::iced::Element::from($x)),+]).spacing($crate::style::ROW_SPACING)
+        $crate::widget::Row::with_children([$($crate::iced::Element::from($x)),+]).spacing(style::ROW_SPACING)
     );
 }
 
@@ -208,7 +207,7 @@ macro_rules! spal_row {
     );
     ($($x:expr),+ $(,)?) => (
         $crate::widget::Row::with_children([$($crate::iced::Element::from($x)),+])
-            .spacing($crate::style::ROW_SPACING)
+            .spacing(style::ROW_SPACING)
             .align_y($crate::iced::Alignment::Center)
     );
 }
@@ -225,7 +224,7 @@ macro_rules! spal_column {
     );
     ($($x:expr),+ $(,)?) => (
         $crate::widget::Column::with_children([$($crate::iced::Element::from($x)),+])
-            .spacing($crate::style::COLUMN_SPACING)
+            .spacing(style::COLUMN_SPACING)
             .align_x($crate::iced::Alignment::Center)
     );
 }
@@ -300,7 +299,7 @@ pub fn drop_down<'a, Message: Clone + 'a>(
 ) -> iced_aw::drop_down::DropDown<'a, Message> {
     iced_aw::drop_down::DropDown::new(
         underlay,
-        crate::style::container_popup_styling(widget::container(overlay)),
+        style::container_popup_styling(widget::container(overlay)),
         expanded,
     )
     .width(iced::Shrink)

@@ -95,21 +95,21 @@ impl View {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        let mut col = utils::spaced_column![fm_settings_view(
+        let mut col = components::spaced_column![fm_settings_view(
             widget::radio(
                 "Server",
                 crate::settings::SelectedFinanceManager::Server,
                 Some(self.settings.finance_manager.selected_finance_manager),
                 Message::FmChoice
             ),
-            utils::spaced_column![
-                utils::labeled_entry(
+            components::spaced_column![
+                components::labeled_entry(
                     "API URL:",
                     &self.settings.finance_manager.server_url,
                     Message::ChangeAPIUrl,
                     false
                 ),
-                utils::labeled_entry(
+                components::labeled_entry(
                     "API Token:",
                     &self.settings.finance_manager.server_token,
                     Message::ChangeAPIToken,
@@ -129,7 +129,7 @@ impl View {
                     Some(self.settings.finance_manager.selected_finance_manager),
                     Message::FmChoice,
                 ),
-                utils::spaced_row![
+                components::spaced_row![
                     "Sqlite Path:",
                     widget::text_input::TextInput::new(
                         "Sqlite Path",
@@ -137,9 +137,9 @@ impl View {
                     )
                     .on_input(Message::ChangeSqlitePath)
                     .style(if valid_path {
-                        utils::style::text_input_success
+                        style::text_input_success
                     } else {
-                        utils::style::text_input_danger
+                        style::text_input_danger
                     }),
                     widget::button("Select File").on_press(Message::StartSQLiteFileSelector),
                     widget::button("New").on_press(Message::StartSQLiteNewFileSelector),
@@ -157,7 +157,7 @@ impl View {
                     Message::FmChoice,
                 ))
                 .push(widget::vertical_space())
-                .push(utils::button::submit(if self.unsaved {
+                .push(components::button::submit(if self.unsaved {
                     Some(Message::Save)
                 } else {
                     None
@@ -170,7 +170,7 @@ fn fm_settings_view<'a>(
     radio: impl Into<iced::Element<'a, Message>>,
     settings: impl Into<iced::Element<'a, Message>>,
 ) -> iced::Element<'a, Message> {
-    utils::spaced_row![
+    components::spaced_row![
         radio.into(),
         widget::column![widget::Space::new(0, 30), settings.into()],
     ]

@@ -334,8 +334,8 @@ impl FilterComponent {
             widget::horizontal_rule(3),
             widget::button("Submit").on_press(InnerMessage::Submit)
         ])
-        .padding(super::style::PADDING)
-        .style(super::style::container_style_background_weak)
+        .padding(style::PADDING)
+        .style(style::container_style_background_weak)
         .into()
     }
 }
@@ -491,7 +491,7 @@ mod filter_entry {
                     crate::button::delete(Some(Message::Delete))
                 ])
                 .align_y(iced::Alignment::Center)
-                .spacing(crate::style::ROW_SPACING),
+                .spacing(style::ROW_SPACING),
             )
             .map(MessageContainer)
         }

@@ -1,7 +1,7 @@
 use anyhow::Context;
+use components::date_time::date_time_input;
 use fm_core;
 use iced::widget;
-use utils::date_time::date_time_input;
 
 #[derive(Debug, Clone, PartialEq)]
 enum SelectedAccount {
@@ -51,7 +51,7 @@ pub struct MessageContainer(Message);
 
 #[derive(Debug, Clone)]
 enum Message {
-    AmountInput(utils::currency_input::Action),
+    AmountInput(components::currency_input::Action),
     TitleInput(String),
     DescriptionInput(widget::text_editor::Action),
     DateInput(date_time_input::Action),
@@ -80,7 +80,7 @@ enum Message {
 #[derive(Debug)]
 pub struct View {
     id: Option<fm_core::Id>,
-    amount_input: utils::currency_input::State,
+    amount_input: components::currency_input::State,
     title_input: String,
     description_input: widget::text_editor::Content,
     source_input: Option<SelectedAccount>,
@@ -103,7 +103,7 @@ impl View {
         (
             Self {
                 id: None,
-                amount_input: utils::currency_input::State::default(),
+                amount_input: components::currency_input::State::default(),
                 title_input: String::new(),
                 description_input: widget::text_editor::Content::new(),
                 source_input: None,
@@ -118,7 +118,7 @@ impl View {
                 available_categories: Vec::new(),
                 submitted: false,
             },
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let budgets = finance_controller.get_budgets().await?;
                 let accounts = finance_controller.get_accounts().await?;
                 let categories = finance_controller.get_categories().await?;
@@ -136,7 +136,7 @@ impl View {
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::new(finance_controller.clone()).0,
-            utils::failing_task(async move {
+            components::failing_task(async move {
                 let transaction = finance_controller
                     .get_transaction(transaction_id)
                     .await?
@@ -268,8 +268,9 @@ impl View {
             Message::InitializeFromExisting(init) => {
                 let init_existing = *init;
                 self.id = Some(init_existing.transaction.id);
-                self.amount_input =
-                    utils::currency_input::State::new(init_existing.transaction.amount().clone());
+                self.amount_input = components::currency_input::State::new(
+                    init_existing.transaction.amount().clone(),
+                );
                 self.title_input
                     .clone_from(&init_existing.transaction.title);
                 self.description_input = widget::text_editor::Content::with_text(
@@ -323,10 +324,10 @@ impl View {
             return "Loading...".into();
         }
 
-        let mut categories = utils::spaced_column![];
+        let mut categories = components::spaced_column![];
         for category in &self.available_categories {
             let selected = self.selected_categories.iter().find(|x| x.0 == category.id);
-            categories = categories.push(utils::spal_row![
+            categories = categories.push(components::spal_row![
                 widget::checkbox(&category.name, selected.is_some())
                     .on_toggle(move |_| { Message::SelectCategory(category.id) }),
                 widget::checkbox(
@@ -352,45 +353,45 @@ impl View {
 
         let source_acc_style = if let Some(acc) = &self.source_input {
             match acc {
-                SelectedAccount::Account(_) => utils::style::text_input_success,
-                SelectedAccount::New(_) => utils::style::text_input_primary,
+                SelectedAccount::Account(_) => style::text_input_success,
+                SelectedAccount::New(_) => style::text_input_primary,
             }
         } else {
-            utils::style::text_input_danger
+            style::text_input_danger
         };
         let destination_acc_style = if let Some(acc) = &self.destination_input {
             match acc {
-                SelectedAccount::Account(_) => utils::style::text_input_success,
-                SelectedAccount::New(_) => utils::style::text_input_primary,
+                SelectedAccount::Account(_) => style::text_input_success,
+                SelectedAccount::New(_) => style::text_input_primary,
             }
         } else {
-            utils::style::text_input_danger
+            style::text_input_danger
         };
 
         super::view(
             "Create Transaction",
-            widget::scrollable(utils::spaced_column![
-                utils::spal_row![
+            widget::scrollable(components::spaced_column![
+                components::spal_row![
                     "Amount: ",
-                    utils::currency_input::currency_input(&self.amount_input, true)
+                    components::currency_input::currency_input(&self.amount_input, true)
                         .view()
                         .map(Message::AmountInput),
                 ]
                 .width(iced::Fill),
-                utils::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
-                utils::spaced_row![
+                components::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
+                components::spaced_row![
                     "Description",
                     widget::text_editor(&self.description_input)
                         .on_action(Message::DescriptionInput)
                 ],
-                utils::spal_row![
+                components::spal_row![
                     "Date: ",
                     date_time_input::date_time_input(&self.date_input, true)
                         .view()
                         .map(Message::DateInput)
                 ]
                 .width(iced::Fill),
-                utils::spal_row![
+                components::spal_row![
                     "Source",
                     widget::ComboBox::new(
                         &self.source_state,
@@ -401,7 +402,7 @@ impl View {
                     .on_input(Message::SourceInput)
                     .input_style(source_acc_style)
                 ],
-                utils::spal_row![
+                components::spal_row![
                     "Destination",
                     widget::ComboBox::new(
                         &self.destination_state,
@@ -412,7 +413,7 @@ impl View {
                     .on_input(Message::DestinationInput)
                     .input_style(destination_acc_style)
                 ],
-                utils::spal_row![
+                components::spal_row![
                     "Budget",
                     widget::ComboBox::new(
                         &self.budget_state,
@@ -438,7 +439,7 @@ impl View {
                 "Categories:",
                 categories,
                 widget::horizontal_rule(10),
-                utils::submit_cancel_row(
+                components::submit_cancel_row(
                     if self.submittable() {
                         Some(Message::Submit)
                     } else {
@@ -508,7 +509,7 @@ impl View {
         for (id, sign) in &self.selected_categories {
             categories.insert(*id, *sign);
         }
-        utils::failing_task(async move {
+        components::failing_task(async move {
             let source_id = match source {
                 SelectedAccount::Account(acc) => *acc.id(),
                 SelectedAccount::New(name) => {
