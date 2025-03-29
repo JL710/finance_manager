@@ -8,11 +8,15 @@ iced.workspace = true
 time.workspace = true
 anyhow.workspace = true
 style.workspace = true
+async-std.workspace = true
 rfd.workspace = true
 error.workspace = true
+fm_core.workspace = true
 
-fm_core = { path = "../../core", default-features = false }
 uuid = { version = "1.8.0", features = ["v4"] }
-iced_aw = { version = "0.12.2", features = [
+iced_aw = { git = "https://github.com/iced-rs/iced_aw.git", rev = "def1db9aac1e58a47e0c3127d4d4e95d724ca8ad", features = [
     "drop_down",
 ], default-features = false }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { version = "1.8.0", features = ["js", "v4"] }

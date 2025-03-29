@@ -2,7 +2,7 @@ use crate::*;
 use anyhow::{Context, Result};
 use std::future::Future;
 
-use smol::lock::Mutex;
+use async_std::sync::Mutex;
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
@@ -652,14 +652,12 @@ pub enum DeleteAccountError {
 
 #[cfg(test)]
 mod test {
-    use macro_rules_attribute::apply;
     use managers::RamFinanceManager;
-    use smol_macros::test;
 
     use super::*;
     use time::macros::*;
 
-    #[apply(test!)]
+    #[async_std::test]
     async fn create_transaction_category_does_not_exist() {
         let fm = FMController::with_finance_manager(RamFinanceManager::new(()).unwrap());
         let acc1 = fm
@@ -693,7 +691,7 @@ mod test {
         )
     }
 
-    #[apply(test!)]
+    #[async_std::test]
     async fn delete_transaction_in_bill_test() {
         let fm = FMController::with_finance_manager(RamFinanceManager::new(()).unwrap());
         let acc1 = fm

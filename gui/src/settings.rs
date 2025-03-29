@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::io::Read;
+use std::io::{Read, Write};
 
 #[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FinanceManager {
@@ -56,12 +56,13 @@ pub fn read_settings() -> Result<Settings> {
 
 #[cfg(feature = "native")]
 pub async fn write_settings(settings: Settings) -> Result<()> {
-    use futures_lite::io::AsyncWriteExt;
+    async_std::task::spawn_blocking(move || {
+        let mut file = std::fs::File::create(get_settings_path())?;
+        file.write_all(serde_json::to_value(settings)?.to_string().as_bytes())?;
 
-    let mut file = smol::fs::File::create(get_settings_path()).await?;
-    file.write_all(serde_json::to_value(settings)?.to_string().as_bytes())
-        .await?;
-    Ok(())
+        Ok(())
+    })
+    .await
 }
 
 #[cfg(not(feature = "native"))]

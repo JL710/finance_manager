@@ -7,3 +7,4 @@ edition = "2024"
 iced.workspace = true
 rfd.workspace = true
 anyhow.workspace = true
+fm_core.workspace = true

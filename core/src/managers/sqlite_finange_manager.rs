@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use bigdecimal::{BigDecimal, FromPrimitive};
 use rusqlite::OptionalExtension;
 
-use smol::lock::{Mutex, MutexGuard};
+use async_std::sync::{Mutex, MutexGuard};
 use std::sync::Arc;
 
 type TransactionSignature = (
@@ -157,7 +157,7 @@ impl SqliteFinanceManager {
         Ok(())
     }
 
-    async fn connect(&self) -> MutexGuard<rusqlite::Connection> {
+    async fn connect(&self) -> async_std::sync::MutexGuard<rusqlite::Connection> {
         self.connection.lock().await
     }
 
@@ -170,7 +170,7 @@ impl SqliteFinanceManager {
             connection: Arc::new(Mutex::new(rusqlite::Connection::open_in_memory()?)),
             path: String::new(),
         };
-        smol::block_on(async { new.init_db().await })?;
+        async_std::task::block_on(async { new.init_db().await })?;
         Ok(new)
     }
 }
@@ -183,7 +183,7 @@ impl FinanceManager for SqliteFinanceManager {
             connection: Arc::new(Mutex::new(rusqlite::Connection::open(&path)?)),
             path,
         };
-        smol::block_on(async { new.init_db().await })?;
+        async_std::task::block_on(async { new.init_db().await })?;
         Ok(new)
     }
 

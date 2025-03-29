@@ -43,4 +43,5 @@ anyhow = "1.0.82"
 clap = { version = "4.5.4", features = ["derive"], optional = true }
 
 [dev-dependencies]
+async-std = { version = "1.12.0", features = ["attributes"] }
 fm_core = { path = "../core", default-features = false, features = ["test"] }

@@ -261,48 +261,43 @@ pub async fn update_transaction_test<T: FinanceManager>(mut fm: T) {
     assert_eq!(fetched_transaction, transaction);
 }
 
-pub use macro_rules_attribute;
-pub use smol_macros;
-
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! unit_tests {
     ($runner:expr) => {
-        use $crate::finance_manager_test::macro_rules_attribute::apply;
-        use $crate::finance_manager_test::smol_macros::test;
         use $crate::finance_manager_test::*;
 
-        #[apply(test!)]
+        #[async_std::test]
         async fn create_asset_account() {
             ($runner)(create_asset_account_test).await;
         }
 
-        #[apply(test!)]
+        #[async_std::test]
         async fn get_accounts() {
             ($runner)(get_accounts_test).await;
         }
 
-        #[apply(test!)]
+        #[async_std::test]
         async fn create_book_checking_account() {
             ($runner)(create_book_checking_account_test).await;
         }
 
-        #[apply(test!)]
+        #[async_std::test]
         async fn delete_category() {
             ($runner)(delete_category_test).await;
         }
 
-        #[apply(test!)]
+        #[async_std::test]
         async fn delete_budget() {
             ($runner)(delete_budget_test).await;
         }
 
-        #[apply(test!)]
+        #[async_std::test]
         async fn get_transactions_timespan() {
             ($runner)(get_transactions_timespan_test).await;
         }
 
-        #[apply(test!)]
+        #[async_std::test]
         async fn update_transaction() {
             ($runner)(update_transaction_test).await;
         }

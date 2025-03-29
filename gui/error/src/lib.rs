@@ -35,8 +35,8 @@ pub async fn async_popup_wrapper<T>(fut: impl Future<Output = Result<T>>) -> Opt
     }
 }
 
-pub fn failing_task<T: Send + 'static>(
-    fut: impl Future<Output = Result<T>> + Send + 'static,
+pub fn failing_task<T: fm_core::MaybeSend + 'static>(
+    fut: impl Future<Output = Result<T>> + fm_core::MaybeSend + 'static,
 ) -> iced::Task<T> {
     iced::Task::future(async { async_popup_wrapper(fut).await }).and_then(iced::Task::done)
 }
