@@ -130,26 +130,24 @@ impl View {
             return "Loading...".into();
         }
 
-        super::view(
-            "Create Book Checking Account",
-            widget::scrollable(components::spaced_column![
-                components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                components::spaced_row![
-                    "Notes",
-                    widget::text_editor(&self.note_input).on_action(Message::NoteInput)
-                ],
-                components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-                components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                components::submit_cancel_row(
-                    if self.can_submit() {
-                        Some(Message::Submit)
-                    } else {
-                        None
-                    },
-                    Some(Message::Cancel)
-                ),
-            ]),
-        )
+        widget::scrollable(components::spaced_column![
+            components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+            components::spaced_row![
+                "Notes",
+                widget::text_editor(&self.note_input).on_action(Message::NoteInput)
+            ],
+            components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+            components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+            components::submit_cancel_row(
+                if self.can_submit() {
+                    Some(Message::Submit)
+                } else {
+                    None
+                },
+                Some(Message::Cancel)
+            ),
+        ])
+        .into()
     }
 
     fn can_submit(&self) -> bool {

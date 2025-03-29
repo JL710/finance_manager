@@ -147,22 +147,20 @@ impl View {
             ));
         }
 
-        super::view(
-            "Settings",
-            col.push(widget::Rule::horizontal(10))
-                .push(widget::radio(
-                    "Ram",
-                    crate::settings::SelectedFinanceManager::Ram,
-                    Some(self.settings.finance_manager.selected_finance_manager),
-                    Message::FmChoice,
-                ))
-                .push(widget::vertical_space())
-                .push(components::button::submit(if self.unsaved {
-                    Some(Message::Save)
-                } else {
-                    None
-                })),
-        )
+        col.push(widget::Rule::horizontal(10))
+            .push(widget::radio(
+                "Ram",
+                crate::settings::SelectedFinanceManager::Ram,
+                Some(self.settings.finance_manager.selected_finance_manager),
+                Message::FmChoice,
+            ))
+            .push(widget::vertical_space())
+            .push(components::button::submit(if self.unsaved {
+                Some(Message::Save)
+            } else {
+                None
+            }))
+            .into()
     }
 }
 

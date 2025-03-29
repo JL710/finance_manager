@@ -105,17 +105,15 @@ impl View {
             })
             .map(Message::TableView);
 
-        super::view(
-            "Asset Account Overview",
-            components::spaced_column![
-                widget::row![components::button::new(
-                    "New Asset Account",
-                    Some(Message::CreateAssetAccount)
-                )],
-                widget::horizontal_rule(10),
-                account_table,
-            ]
-            .height(iced::Fill),
-        )
+        components::spaced_column![
+            widget::row![components::button::new(
+                "New Asset Account",
+                Some(Message::CreateAssetAccount)
+            )],
+            widget::horizontal_rule(10),
+            account_table,
+        ]
+        .height(iced::Fill)
+        .into()
     }
 }

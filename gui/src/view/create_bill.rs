@@ -324,103 +324,94 @@ impl View {
             return add_transaction.view().map(Message::AddTransaction);
         }
 
-        super::view(
-            "Create Bill",
-            components::spaced_column![
-                components::labeled_entry(
-                    "Name",
-                    &self.name_input,
-                    Message::NameInputChanged,
-                    true
-                ),
-                components::spaced_row![
-                    "Description: ",
-                    widget::container(widget::scrollable(
-                        widget::text_editor(&self.description_input)
-                            .on_action(Message::DescriptionInputChanged)
-                    ))
-                    .max_height(200)
-                ],
-                components::spal_row![
-                    "Value: ",
-                    components::currency_input::currency_input(&self.value, true)
-                        .view()
-                        .map(Message::ValueChanged),
-                ]
-                .width(iced::Length::Fill),
-                components::spal_row![
-                    "Due Date: ",
-                    date_time_input::date_time_input(&self.due_date_input, false)
-                        .view()
-                        .map(Message::DueDateChanged),
-                ]
-                .width(iced::Length::Fill),
-                "Transactions:",
-                widget::container(
-                    components::table_view::table_view(&self.transaction_table)
-                        .headers(["", "", "Title", "Amount", "Date", "Source", "Destination"])
-                        .view(|(transaction, sign), accounts| {
-                            [
-                                widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
-                                    .on_toggle(move |x| {
-                                        Message::ChangeTransactionSign(
-                                            transaction.id,
-                                            if x {
-                                                fm_core::Sign::Positive
-                                            } else {
-                                                fm_core::Sign::Negative
-                                            },
-                                        )
-                                    })
-                                    .into(),
-                                components::button::delete(Some(Message::RemoveTransaction(
-                                    transaction.id,
-                                ))),
-                                widget::text(transaction.title.as_str()).into(),
-                                components::colored_currency_display(
-                                    &(if *sign == fm_core::Sign::Negative {
-                                        transaction.amount().negative()
-                                    } else {
-                                        transaction.amount().clone()
-                                    }),
-                                ),
-                                widget::text(components::date_time::to_date_string(
-                                    transaction.date,
-                                ))
-                                .into(),
-                                widget::text(
-                                    accounts
-                                        .iter()
-                                        .find(|acc| *acc.id() == transaction.source)
-                                        .unwrap()
-                                        .name(),
-                                )
-                                .into(),
-                                widget::text(
-                                    accounts
-                                        .iter()
-                                        .find(|acc| *acc.id() == transaction.destination)
-                                        .unwrap()
-                                        .name(),
-                                )
-                                .into(),
-                            ]
-                        })
-                        .map(Message::TransactionTable)
-                )
-                .height(iced::Fill),
-                widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
-                components::submit_cancel_row(
-                    if self.submittable() {
-                        Some(Message::Submit)
-                    } else {
-                        None
-                    },
-                    Some(Message::Cancel)
-                ),
+        components::spaced_column![
+            components::labeled_entry("Name", &self.name_input, Message::NameInputChanged, true),
+            components::spaced_row![
+                "Description: ",
+                widget::container(widget::scrollable(
+                    widget::text_editor(&self.description_input)
+                        .on_action(Message::DescriptionInputChanged)
+                ))
+                .max_height(200)
+            ],
+            components::spal_row![
+                "Value: ",
+                components::currency_input::currency_input(&self.value, true)
+                    .view()
+                    .map(Message::ValueChanged),
             ]
+            .width(iced::Length::Fill),
+            components::spal_row![
+                "Due Date: ",
+                date_time_input::date_time_input(&self.due_date_input, false)
+                    .view()
+                    .map(Message::DueDateChanged),
+            ]
+            .width(iced::Length::Fill),
+            "Transactions:",
+            widget::container(
+                components::table_view::table_view(&self.transaction_table)
+                    .headers(["", "", "Title", "Amount", "Date", "Source", "Destination"])
+                    .view(|(transaction, sign), accounts| {
+                        [
+                            widget::checkbox("Positive", sign == &fm_core::Sign::Positive)
+                                .on_toggle(move |x| {
+                                    Message::ChangeTransactionSign(
+                                        transaction.id,
+                                        if x {
+                                            fm_core::Sign::Positive
+                                        } else {
+                                            fm_core::Sign::Negative
+                                        },
+                                    )
+                                })
+                                .into(),
+                            components::button::delete(Some(Message::RemoveTransaction(
+                                transaction.id,
+                            ))),
+                            widget::text(transaction.title.as_str()).into(),
+                            components::colored_currency_display(
+                                &(if *sign == fm_core::Sign::Negative {
+                                    transaction.amount().negative()
+                                } else {
+                                    transaction.amount().clone()
+                                }),
+                            ),
+                            widget::text(components::date_time::to_date_string(transaction.date))
+                                .into(),
+                            widget::text(
+                                accounts
+                                    .iter()
+                                    .find(|acc| *acc.id() == transaction.source)
+                                    .unwrap()
+                                    .name(),
+                            )
+                            .into(),
+                            widget::text(
+                                accounts
+                                    .iter()
+                                    .find(|acc| *acc.id() == transaction.destination)
+                                    .unwrap()
+                                    .name(),
+                            )
+                            .into(),
+                        ]
+                    })
+                    .map(Message::TransactionTable)
+            )
             .height(iced::Fill),
-        )
+            widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
+            components::submit_cancel_row(
+                if self.submittable() {
+                    Some(Message::Submit)
+                } else {
+                    None
+                },
+                Some(Message::Cancel)
+            ),
+        ]
+        .height(iced::Fill)
+        .into()
     }
 
     fn submittable(&self) -> bool {
@@ -593,9 +584,8 @@ mod add_transaction {
 
         pub fn view(&self) -> iced::Element<Message> {
             components::spaced_column![
-                components::heading("Add", components::HeadingLevel::H1),
                 components::spal_row![
-                    widget::button("Back").on_press(Message::Back),
+                    widget::button("< Back").on_press(Message::Back),
                     widget::horizontal_space(),
                     widget::button("Add All").on_press(Message::AddAllTransactions)
                 ],

@@ -95,20 +95,18 @@ impl View {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        super::view(
-            "Create Category",
-            components::spaced_column![
-                components::labeled_entry("Name", &self.name, Message::NameInput, true),
-                components::submit_cancel_row(
-                    if self.is_submittable() {
-                        Some(Message::Submit)
-                    } else {
-                        None
-                    },
-                    Some(Message::Cancel)
-                ),
-            ],
-        )
+        components::spaced_column![
+            components::labeled_entry("Name", &self.name, Message::NameInput, true),
+            components::submit_cancel_row(
+                if self.is_submittable() {
+                    Some(Message::Submit)
+                } else {
+                    None
+                },
+                Some(Message::Cancel)
+            ),
+        ]
+        .into()
     }
 
     fn is_submittable(&self) -> bool {

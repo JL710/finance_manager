@@ -234,35 +234,33 @@ impl View {
             timespan_input,
         } = self
         {
-            super::view(
-                "Category",
-                components::spaced_column![
-                    components::spaced_row![
-                        components::spaced_column![
-                            components::spal_row![
-                                "Total value",
-                                widget::text(if let Some(value) = values.last() {
-                                    value.1.to_string()
-                                } else {
-                                    "0€".to_string()
-                                }),
-                            ],
-                            category.name.as_str(),
+            components::spaced_column![
+                components::spaced_row![
+                    components::spaced_column![
+                        components::spal_row![
+                            "Total value",
+                            widget::text(if let Some(value) = values.last() {
+                                value.1.to_string()
+                            } else {
+                                "0€".to_string()
+                            }),
                         ],
-                        widget::Space::with_width(iced::Length::Fill),
-                        components::spaced_column![
-                            components::button::edit(Some(Message::Edit)),
-                            components::button::delete(Some(Message::Delete))
-                        ]
+                        category.name.as_str(),
                     ],
-                    date_span_input::date_span_input(timespan_input)
-                        .view()
-                        .map(Message::ChangedTimespan),
-                    transaction_table.view().map(Message::TransactionTable),
-                ]
-                .height(iced::Fill)
-                .width(iced::Fill),
-            )
+                    widget::Space::with_width(iced::Length::Fill),
+                    components::spaced_column![
+                        components::button::edit(Some(Message::Edit)),
+                        components::button::delete(Some(Message::Delete))
+                    ]
+                ],
+                date_span_input::date_span_input(timespan_input)
+                    .view()
+                    .map(Message::ChangedTimespan),
+                transaction_table.view().map(Message::TransactionTable),
+            ]
+            .height(iced::Fill)
+            .width(iced::Fill)
+            .into()
         } else {
             widget::text("Loading...").into()
         }

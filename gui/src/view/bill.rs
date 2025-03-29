@@ -202,8 +202,7 @@ impl View {
             transaction_table,
         } = self
         {
-            super::view(
-                "Bill",
+            iced::Element::new(
                 components::spaced_column![
                     widget::row![
                         widget::column![
@@ -280,7 +279,7 @@ impl View {
             )
             .map(MessageContainer)
         } else {
-            super::view("Bill", "Loading...")
+            "Loading...".into()
         }
     }
 }

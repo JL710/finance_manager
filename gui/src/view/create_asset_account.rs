@@ -148,33 +148,31 @@ impl View {
             return "Loading...".into();
         }
 
-        super::view(
-            "Create Asset Account",
-            widget::scrollable(components::spaced_column![
-                components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                components::spaced_row![
-                    "Notes",
-                    widget::text_editor(&self.note_input).on_action(Message::NoteInput)
-                ],
-                components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-                components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-                components::spal_row![
-                    "Offset",
-                    components::currency_input::currency_input(&self.offset_input, true)
-                        .view()
-                        .map(Message::OffsetInput),
-                ]
-                .width(iced::Fill),
-                components::submit_cancel_row(
-                    if self.can_submit() {
-                        Some(Message::Submit)
-                    } else {
-                        None
-                    },
-                    Some(Message::Cancel)
-                ),
-            ]),
-        )
+        widget::scrollable(components::spaced_column![
+            components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+            components::spaced_row![
+                "Notes",
+                widget::text_editor(&self.note_input).on_action(Message::NoteInput)
+            ],
+            components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
+            components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+            components::spal_row![
+                "Offset",
+                components::currency_input::currency_input(&self.offset_input, true)
+                    .view()
+                    .map(Message::OffsetInput),
+            ]
+            .width(iced::Fill),
+            components::submit_cancel_row(
+                if self.can_submit() {
+                    Some(Message::Submit)
+                } else {
+                    None
+                },
+                Some(Message::Cancel)
+            ),
+        ])
+        .into()
     }
 
     fn can_submit(&self) -> bool {

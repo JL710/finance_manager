@@ -203,27 +203,24 @@ impl View {
             return "Loading...".into();
         }
 
-        super::view(
-            "Create Budget",
-            widget::scrollable(components::spaced_column![
-                components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
-                components::spaced_row![
-                    "Description",
-                    widget::text_editor(&self.description_input)
-                        .on_action(Message::DescriptionInput)
-                ],
-                components::labeled_entry("Value", &self.value_input, Message::ValueInput, true),
-                self.generate_recurring_view(),
-                components::submit_cancel_row(
-                    if self.submittable() {
-                        Some(Message::Submit)
-                    } else {
-                        None
-                    },
-                    Some(Message::Cancel)
-                ),
-            ]),
-        )
+        widget::scrollable(components::spaced_column![
+            components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+            components::spaced_row![
+                "Description",
+                widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
+            ],
+            components::labeled_entry("Value", &self.value_input, Message::ValueInput, true),
+            self.generate_recurring_view(),
+            components::submit_cancel_row(
+                if self.submittable() {
+                    Some(Message::Submit)
+                } else {
+                    None
+                },
+                Some(Message::Cancel)
+            ),
+        ])
+        .into()
     }
 
     fn generate_recurring_view(&self) -> iced::Element<'_, Message> {

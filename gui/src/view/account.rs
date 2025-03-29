@@ -301,7 +301,7 @@ impl View {
                 .map(MessageContainer),
             }
         } else {
-            super::view("Account", "Loading")
+            "Loading".into()
         }
     }
 }
@@ -312,48 +312,46 @@ fn asset_account_view<'a>(
     current_value: &fm_core::Currency,
     timespan_input: &'a date_span_input::State,
 ) -> iced::Element<'a, Message> {
-    super::view(
-        "Asset Account",
-        components::spaced_column![
-            widget::row![
-                widget::column![
-                    widget::text!("Account: {}", account.name),
-                    widget::text!("Notes: {}", account.note.clone().unwrap_or_default()),
-                    widget::text!(
-                        "IBAN: {}",
-                        account
-                            .iban
-                            .clone()
-                            .map_or(String::new(), |iban| iban.to_string())
-                    ),
-                    widget::text!(
-                        "BIC/Swift: {}",
-                        account
-                            .bic
-                            .clone()
-                            .map(|x| x.to_string())
-                            .unwrap_or_default()
-                    ),
-                    widget::text!("Offset: {}", account.offset),
-                    widget::row![
-                        "Current Amount: ",
-                        components::colored_currency_display(current_value)
-                    ],
+    components::spaced_column![
+        widget::row![
+            widget::column![
+                widget::text!("Account: {}", account.name),
+                widget::text!("Notes: {}", account.note.clone().unwrap_or_default()),
+                widget::text!(
+                    "IBAN: {}",
+                    account
+                        .iban
+                        .clone()
+                        .map_or(String::new(), |iban| iban.to_string())
+                ),
+                widget::text!(
+                    "BIC/Swift: {}",
+                    account
+                        .bic
+                        .clone()
+                        .map(|x| x.to_string())
+                        .unwrap_or_default()
+                ),
+                widget::text!("Offset: {}", account.offset),
+                widget::row![
+                    "Current Amount: ",
+                    components::colored_currency_display(current_value)
                 ],
-                widget::Space::with_width(iced::Length::Fill),
-                components::spaced_column![
-                    components::button::edit(Some(Message::Edit)),
-                    components::button::delete(Some(Message::Delete))
-                ]
             ],
-            widget::horizontal_rule(10),
-            date_span_input::date_span_input(timespan_input)
-                .view()
-                .map(Message::ChangeTransactionTimespan),
-            transaction_table.view().map(Message::TransactionTable),
-        ]
-        .height(iced::Fill),
-    )
+            widget::Space::with_width(iced::Length::Fill),
+            components::spaced_column![
+                components::button::edit(Some(Message::Edit)),
+                components::button::delete(Some(Message::Delete))
+            ]
+        ],
+        widget::horizontal_rule(10),
+        date_span_input::date_span_input(timespan_input)
+            .view()
+            .map(Message::ChangeTransactionTimespan),
+        transaction_table.view().map(Message::TransactionTable),
+    ]
+    .height(iced::Fill)
+    .into()
 }
 
 fn book_checking_account_view<'a>(
@@ -362,45 +360,43 @@ fn book_checking_account_view<'a>(
     current_value: &fm_core::Currency,
     timespan_input: &'a date_span_input::State,
 ) -> iced::Element<'a, Message> {
-    super::view(
-        "Book Checking Account",
-        components::spaced_column![
-            widget::row![
-                widget::column![
-                    widget::text!("Account: {}", account.name),
-                    widget::text!("Notes: {}", account.note.clone().unwrap_or_default()),
-                    widget::text!(
-                        "IBAN: {}",
-                        account
-                            .iban
-                            .clone()
-                            .map_or(String::new(), |iban| iban.to_string())
-                    ),
-                    widget::text!(
-                        "BIC/Swift: {}",
-                        account
-                            .bic
-                            .clone()
-                            .map(|x| x.to_string())
-                            .unwrap_or_default()
-                    ),
-                    widget::row![
-                        "Current Amount: ",
-                        components::colored_currency_display(current_value)
-                    ],
+    components::spaced_column![
+        widget::row![
+            widget::column![
+                widget::text!("Account: {}", account.name),
+                widget::text!("Notes: {}", account.note.clone().unwrap_or_default()),
+                widget::text!(
+                    "IBAN: {}",
+                    account
+                        .iban
+                        .clone()
+                        .map_or(String::new(), |iban| iban.to_string())
+                ),
+                widget::text!(
+                    "BIC/Swift: {}",
+                    account
+                        .bic
+                        .clone()
+                        .map(|x| x.to_string())
+                        .unwrap_or_default()
+                ),
+                widget::row![
+                    "Current Amount: ",
+                    components::colored_currency_display(current_value)
                 ],
-                widget::Space::with_width(iced::Length::Fill),
-                components::spaced_column![
-                    components::button::edit(Some(Message::Edit)),
-                    components::button::delete(Some(Message::Delete))
-                ]
             ],
-            widget::horizontal_rule(10),
-            date_span_input::date_span_input(timespan_input)
-                .view()
-                .map(Message::ChangeTransactionTimespan),
-            transaction_table.view().map(Message::TransactionTable),
-        ]
-        .height(iced::Fill),
-    )
+            widget::Space::with_width(iced::Length::Fill),
+            components::spaced_column![
+                components::button::edit(Some(Message::Edit)),
+                components::button::delete(Some(Message::Delete))
+            ]
+        ],
+        widget::horizontal_rule(10),
+        date_span_input::date_span_input(timespan_input)
+            .view()
+            .map(Message::ChangeTransactionTimespan),
+        transaction_table.view().map(Message::TransactionTable),
+    ]
+    .height(iced::Fill)
+    .into()
 }

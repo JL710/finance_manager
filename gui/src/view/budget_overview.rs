@@ -90,29 +90,27 @@ impl View {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        super::view(
-            "Budget Overview",
-            components::spaced_column![
-                components::button::new("Create Budget", Some(Message::CreateBudget)),
-                widget::horizontal_rule(10),
-                components::table_view::table_view(&self.budget_table)
-                    .headers([
-                        "Name".to_string(),
-                        "Current".to_string(),
-                        "Total".to_string(),
-                    ])
-                    .view(|budget, _| {
-                        [
-                            components::link(budget.0.name.as_str())
-                                .on_press(Message::ViewBudget(budget.0.id))
-                                .into(),
-                            widget::text!("{}", &budget.1).into(),
-                            widget::text!("{}", budget.0.total_value).into(),
-                        ]
-                    })
-                    .map(Message::BudgetTable),
-            ]
-            .height(iced::Fill),
-        )
+        components::spaced_column![
+            components::button::new("Create Budget", Some(Message::CreateBudget)),
+            widget::horizontal_rule(10),
+            components::table_view::table_view(&self.budget_table)
+                .headers([
+                    "Name".to_string(),
+                    "Current".to_string(),
+                    "Total".to_string(),
+                ])
+                .view(|budget, _| {
+                    [
+                        components::link(budget.0.name.as_str())
+                            .on_press(Message::ViewBudget(budget.0.id))
+                            .into(),
+                        widget::text!("{}", &budget.1).into(),
+                        widget::text!("{}", budget.0.total_value).into(),
+                    ]
+                })
+                .map(Message::BudgetTable),
+        ]
+        .height(iced::Fill)
+        .into()
     }
 }

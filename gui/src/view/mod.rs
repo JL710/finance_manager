@@ -16,14 +16,3 @@ pub mod create_transaction;
 pub mod filter_transactions;
 pub mod settings;
 pub mod transaction;
-
-fn view<'a, Message: 'a>(
-    title: &str,
-    content: impl Into<iced::Element<'a, Message>>,
-) -> iced::Element<'a, Message> {
-    iced::widget::column![
-        components::heading(title, components::HeadingLevel::H1),
-        content.into()
-    ]
-    .into()
-}

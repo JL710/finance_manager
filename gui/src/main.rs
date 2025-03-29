@@ -47,6 +47,33 @@ enum View {
     Bill(view::bill::View),
 }
 
+impl std::fmt::Display for View {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Markdown(title, _) => write!(f, "{}", title),
+            Self::License => write!(f, "License"),
+            Self::BudgetOverview(_) => write!(f, "Budget Overview"),
+            Self::CreateAssetAccount(_) => write!(f, "Create Asset Account"),
+            Self::CreateBudget(_) => write!(f, "Create Budget"),
+            Self::CreateTransaction(_) => write!(f, "Create Transaction"),
+            Self::AssetAccounts(_) => write!(f, "Asset Account Overview"),
+            Self::Account(_) => write!(f, "Account"),
+            Self::Transaction(_) => write!(f, "Transaction"),
+            Self::Budget(_) => write!(f, "Budget"),
+            Self::CreateCategory(_) => write!(f, "Create Category"),
+            Self::CategoryOverview(_) => write!(f, "Category Overview"),
+            Self::Category(_) => write!(f, "Category"),
+            Self::BookCheckingAccountOverview(_) => write!(f, "Book Checking Account Overview"),
+            Self::CreateBookCheckingAccount(_) => write!(f, "Create Book Checking Account"),
+            Self::Settings(_) => write!(f, "Settings"),
+            Self::FilterTransaction(_) => write!(f, "Filter Transactions"),
+            Self::CreateBill(_) => write!(f, "Create Bill"),
+            Self::BillOverview(_) => write!(f, "Bill Overview"),
+            Self::Bill(_) => write!(f, "Bill"),
+        }
+    }
+}
+
 impl View {
     fn account(&mut self, finance_controller: Fm, account: fm_core::Id) -> iced::Task<ViewMessage> {
         let (view, task) = view::account::View::fetch(finance_controller, account);
@@ -810,7 +837,7 @@ impl App {
                         widget::pane_grid::Content::new(
                             widget::container(
                                 match current_view {
-                                    View::Markdown(heading, items) => markdown(heading, items),
+                                    View::Markdown(_heading, items) => markdown(items),
                                     View::License => {
                                         widget::scrollable(include_str!("../../LICENSE")).into()
                                     }
@@ -877,56 +904,48 @@ impl App {
                             }),
                         )
                         .title_bar(
-                            widget::pane_grid::TitleBar::new("Finance Manager")
-                                .controls(iced::Element::new(components::spaced_row![
-                                    pane_grid_control_buttons(
-                                        self.svg_cache.split_horizontal.clone()
-                                    )
-                                    .on_press(
-                                        AppMessage::PaneSplit(
-                                            widget::pane_grid::Axis::Vertical,
-                                            pane
-                                        )
-                                    ),
-                                    pane_grid_control_buttons(
-                                        self.svg_cache.split_vertical.clone()
-                                    )
-                                    .on_press(
-                                        AppMessage::PaneSplit(
-                                            widget::pane_grid::Axis::Horizontal,
-                                            pane
-                                        )
-                                    ),
-                                    pane_grid_control_buttons(if maximized {
-                                        self.svg_cache.exit_fullscreen.clone()
-                                    } else {
-                                        self.svg_cache.fullscreen.clone()
-                                    })
-                                    .on_press(if maximized {
-                                        AppMessage::PaneRestore
-                                    } else {
-                                        AppMessage::PaneMaximize(pane)
-                                    }),
-                                    pane_grid_control_buttons(self.svg_cache.cross_x.clone())
-                                        .on_press_maybe(if self.pane_grid.panes.len() <= 1 {
-                                            None
-                                        } else {
-                                            Some(AppMessage::PaneClose(pane))
-                                        }),
-                                ]))
-                                .style(move |theme: &iced::Theme| {
-                                    let mut style = widget::container::background(
-                                        if pane == self.focused_pane {
-                                            theme.extended_palette().primary.weak.color
-                                        } else {
-                                            theme.extended_palette().secondary.strong.color
-                                        },
-                                    );
-                                    style.border.radius =
-                                        style.border.radius.top(PANE_BORDER_RADIUS);
-                                    style
+                            widget::pane_grid::TitleBar::new(widget::text(
+                                current_view.to_string(),
+                            ))
+                            .controls(iced::Element::new(components::spaced_row![
+                                pane_grid_control_buttons(self.svg_cache.split_horizontal.clone())
+                                    .on_press(AppMessage::PaneSplit(
+                                        widget::pane_grid::Axis::Vertical,
+                                        pane
+                                    )),
+                                pane_grid_control_buttons(self.svg_cache.split_vertical.clone())
+                                    .on_press(AppMessage::PaneSplit(
+                                        widget::pane_grid::Axis::Horizontal,
+                                        pane
+                                    )),
+                                pane_grid_control_buttons(if maximized {
+                                    self.svg_cache.exit_fullscreen.clone()
+                                } else {
+                                    self.svg_cache.fullscreen.clone()
                                 })
-                                .padding(style::PADDING),
+                                .on_press(if maximized {
+                                    AppMessage::PaneRestore
+                                } else {
+                                    AppMessage::PaneMaximize(pane)
+                                }),
+                                pane_grid_control_buttons(self.svg_cache.cross_x.clone())
+                                    .on_press_maybe(if self.pane_grid.panes.len() <= 1 {
+                                        None
+                                    } else {
+                                        Some(AppMessage::PaneClose(pane))
+                                    }),
+                            ]))
+                            .style(move |theme: &iced::Theme| {
+                                let mut style =
+                                    widget::container::background(if pane == self.focused_pane {
+                                        theme.extended_palette().primary.weak.color
+                                    } else {
+                                        theme.extended_palette().secondary.strong.color
+                                    });
+                                style.border.radius = style.border.radius.top(PANE_BORDER_RADIUS);
+                                style
+                            })
+                            .padding(style::PADDING),
                         )
                     }
                 )
@@ -1105,12 +1124,8 @@ fn main() {
         .unwrap();
 }
 
-fn markdown<'a>(
-    heading: &'a str,
-    items: &'a Vec<widget::markdown::Item>,
-) -> iced::Element<'a, ViewMessage> {
+fn markdown<'a>(items: &'a Vec<widget::markdown::Item>) -> iced::Element<'a, ViewMessage> {
     widget::container(widget::scrollable(widget::column![
-        components::heading(heading, components::HeadingLevel::H1),
         widget::markdown(
             items,
             components::markdown_settings(),

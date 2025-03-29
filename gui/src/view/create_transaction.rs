@@ -368,87 +368,83 @@ impl View {
             style::text_input_danger
         };
 
-        super::view(
-            "Create Transaction",
-            widget::scrollable(components::spaced_column![
-                components::spal_row![
-                    "Amount: ",
-                    components::currency_input::currency_input(&self.amount_input, true)
-                        .view()
-                        .map(Message::AmountInput),
-                ]
-                .width(iced::Fill),
-                components::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
-                components::spaced_row![
-                    "Description",
-                    widget::text_editor(&self.description_input)
-                        .on_action(Message::DescriptionInput)
-                ],
-                components::spal_row![
-                    "Date: ",
-                    date_time_input::date_time_input(&self.date_input, true)
-                        .view()
-                        .map(Message::DateInput)
-                ]
-                .width(iced::Fill),
-                components::spal_row![
+        iced::Element::new(widget::scrollable(components::spaced_column![
+            components::spal_row![
+                "Amount: ",
+                components::currency_input::currency_input(&self.amount_input, true)
+                    .view()
+                    .map(Message::AmountInput),
+            ]
+            .width(iced::Fill),
+            components::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
+            components::spaced_row![
+                "Description",
+                widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
+            ],
+            components::spal_row![
+                "Date: ",
+                date_time_input::date_time_input(&self.date_input, true)
+                    .view()
+                    .map(Message::DateInput)
+            ]
+            .width(iced::Fill),
+            components::spal_row![
+                "Source",
+                widget::ComboBox::new(
+                    &self.source_state,
                     "Source",
-                    widget::ComboBox::new(
-                        &self.source_state,
-                        "Source",
-                        self.source_input.as_ref(),
-                        Message::SourceSelected
-                    )
-                    .on_input(Message::SourceInput)
-                    .input_style(source_acc_style)
-                ],
-                components::spal_row![
+                    self.source_input.as_ref(),
+                    Message::SourceSelected
+                )
+                .on_input(Message::SourceInput)
+                .input_style(source_acc_style)
+            ],
+            components::spal_row![
+                "Destination",
+                widget::ComboBox::new(
+                    &self.destination_state,
                     "Destination",
-                    widget::ComboBox::new(
-                        &self.destination_state,
-                        "Destination",
-                        self.destination_input.as_ref(),
-                        Message::DestinationSelected
-                    )
-                    .on_input(Message::DestinationInput)
-                    .input_style(destination_acc_style)
-                ],
-                components::spal_row![
+                    self.destination_input.as_ref(),
+                    Message::DestinationSelected
+                )
+                .on_input(Message::DestinationInput)
+                .input_style(destination_acc_style)
+            ],
+            components::spal_row![
+                "Budget",
+                widget::ComboBox::new(
+                    &self.budget_state,
                     "Budget",
-                    widget::ComboBox::new(
-                        &self.budget_state,
-                        "Budget",
-                        self.budget_input.as_ref().map(|x| &x.0),
-                        Message::BudgetSelected
-                    ),
-                    widget::checkbox(
-                        "Negative",
-                        self.budget_input
-                            .as_ref()
-                            .is_some_and(|x| x.1 == fm_core::Sign::Negative)
-                    )
-                    .on_toggle_maybe(if self.budget_input.is_some() {
-                        Some(Message::BudgetSignChange)
-                    } else {
-                        None
-                    }),
-                    widget::button("X").on_press(Message::ClearBudget)
-                ]
-                .align_y(iced::Center),
-                widget::horizontal_rule(10),
-                "Categories:",
-                categories,
-                widget::horizontal_rule(10),
-                components::submit_cancel_row(
-                    if self.submittable() {
-                        Some(Message::Submit)
-                    } else {
-                        None
-                    },
-                    Some(Message::Cancel)
+                    self.budget_input.as_ref().map(|x| &x.0),
+                    Message::BudgetSelected
                 ),
-            ]),
-        )
+                widget::checkbox(
+                    "Negative",
+                    self.budget_input
+                        .as_ref()
+                        .is_some_and(|x| x.1 == fm_core::Sign::Negative)
+                )
+                .on_toggle_maybe(if self.budget_input.is_some() {
+                    Some(Message::BudgetSignChange)
+                } else {
+                    None
+                }),
+                widget::button("X").on_press(Message::ClearBudget)
+            ]
+            .align_y(iced::Center),
+            widget::horizontal_rule(10),
+            "Categories:",
+            categories,
+            widget::horizontal_rule(10),
+            components::submit_cancel_row(
+                if self.submittable() {
+                    Some(Message::Submit)
+                } else {
+                    None
+                },
+                Some(Message::Cancel)
+            ),
+        ]))
         .map(MessageContainer)
     }
 

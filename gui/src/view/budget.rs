@@ -236,8 +236,7 @@ impl View {
                 column = column.push(widget::text!("Description: {}", content));
             }
 
-            super::view(
-                "Budget",
+            iced::Element::new(
                 components::spaced_column![
                     widget::row![
                         column,
