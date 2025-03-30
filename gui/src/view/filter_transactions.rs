@@ -26,6 +26,7 @@ pub enum Message {
         budgets: Vec<fm_core::Budget>,
     },
     TransactionTable(components::transaction_table::Message),
+    CategoryDistribution,
 }
 
 #[derive(Debug)]
@@ -173,6 +174,18 @@ impl View {
                     }
                 }
             }
+            Message::CategoryDistribution => {
+                return Action::Task(components::category_distribution_popup(
+                    finance_controller,
+                    self.transaction_table
+                        .transactions()
+                        .iter()
+                        .map(|x| x.0.id)
+                        .collect(),
+                    "Category Distribution".to_string(),
+                    Some("Category distribution for filtered transactions".to_string()),
+                ));
+            }
         }
         Action::None
     }
@@ -189,7 +202,11 @@ impl View {
                         .map_or(fm_core::Currency::default(), |x| x.1.clone())
                 )
             ],
-            components::button::edit_with_text("Edit Filter", Some(Message::ToggleEditFilter)),
+            components::spal_row![
+                components::button::edit_with_text("Edit Filter", Some(Message::ToggleEditFilter)),
+                iced::widget::button("Category Distribution")
+                    .on_press(Message::CategoryDistribution)
+            ],
             if let Some(filter_component) = &self.change_filter {
                 filter_component
                     .view()

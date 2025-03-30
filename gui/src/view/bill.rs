@@ -186,7 +186,10 @@ impl View {
                         finance_controller,
                         transaction_ids,
                         "Category Distribution".to_string(),
-                        format!("Category distribution for Category \"{}\"\n\n", &bill.name),
+                        Some(format!(
+                            "Category distribution for Category \"{}\"",
+                            &bill.name,
+                        )),
                     ))
                 } else {
                     Action::None

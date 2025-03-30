@@ -141,6 +141,16 @@ impl TransactionTable {
         self.transaction_table.sort(1, true);
     }
 
+    pub fn transactions(
+        &self,
+    ) -> &Vec<(
+        fm_core::Transaction,
+        fm_core::account::Account,
+        fm_core::account::Account,
+    )> {
+        self.transaction_table.items()
+    }
+
     pub fn update(
         &mut self,
         message: Message,

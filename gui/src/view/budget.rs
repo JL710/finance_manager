@@ -35,6 +35,7 @@ enum Message {
     TransactionTable(components::transaction_table::Message),
     Delete,
     Deleted,
+    CategoryDistribution,
 }
 
 #[derive(Debug)]
@@ -202,6 +203,27 @@ impl View {
                     Action::None
                 }
             }
+            Message::CategoryDistribution => {
+                if let Self::Loaded {
+                    transaction_table,
+                    budget,
+                    ..
+                } = self
+                {
+                    Action::Task(components::category_distribution_popup(
+                        finance_controller,
+                        transaction_table
+                            .transactions()
+                            .iter()
+                            .map(|x| x.0.id)
+                            .collect(),
+                        "Category Distribution".to_string(),
+                        Some(format!("Category Distribution for budget {}", budget.name)),
+                    ))
+                } else {
+                    Action::None
+                }
+            }
         }
     }
 
@@ -214,23 +236,19 @@ impl View {
             time_span,
         } = self
         {
-            let mut column = components::spaced_column![
-                components::spal_row![
-                    widget::button("<").on_press(Message::DecreaseOffset),
-                    widget::text!("Offset: {}", offset),
-                    widget::text!(
-                        "Time Span: {} - {}",
-                        components::date_time::to_date_time_string(time_span.0.unwrap()),
-                        components::date_time::to_date_time_string(time_span.1.unwrap())
-                    ),
-                    widget::button(">").on_press(Message::IncreaseOffset),
-                ]
-                .align_y(iced::Alignment::Center),
-                widget::text!("Name: {}", &budget.name),
-                widget::text!("Total Value: {}", budget.total_value),
-                widget::text!("Current Value: {}", current_value),
-                widget::text!("Recurring: {}", budget.timespan)
-            ];
+            let mut column = components::spaced_column![components::spal_row![
+                widget::button("<").on_press(Message::DecreaseOffset),
+                widget::text!("Offset: {}", offset),
+                widget::text!(
+                    "Time Span: {} - {}",
+                    components::date_time::to_date_time_string(time_span.0.unwrap()),
+                    components::date_time::to_date_time_string(time_span.1.unwrap())
+                ),
+                widget::button(">").on_press(Message::IncreaseOffset),
+                widget::Space::with_width(iced::Length::Fill),
+                components::button::edit(Some(Message::Edit)),
+                components::button::delete(Some(Message::Delete))
+            ],];
 
             if let Some(content) = &budget.description {
                 column = column.push(widget::text!("Description: {}", content));
@@ -238,12 +256,18 @@ impl View {
 
             iced::Element::new(
                 components::spaced_column![
-                    widget::row![
+                    components::spaced_column![
                         column,
-                        widget::Space::with_width(iced::Length::Fill),
-                        components::spaced_row![
-                            components::button::edit(Some(Message::Edit)),
-                            components::button::delete(Some(Message::Delete))
+                        widget::row![
+                            components::spaced_column![
+                                widget::text!("Name: {}", &budget.name),
+                                widget::text!("Total Value: {}", budget.total_value),
+                                widget::text!("Current Value: {}", current_value),
+                                widget::text!("Recurring: {}", budget.timespan)
+                            ],
+                            widget::horizontal_space(),
+                            widget::button("Category Distribution")
+                                .on_press(Message::CategoryDistribution)
                         ]
                     ],
                     widget::progress_bar(

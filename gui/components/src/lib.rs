@@ -279,13 +279,16 @@ pub fn category_distribution_popup<Message: std::marker::Send + 'static>(
     finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     transaction_ids: Vec<fm_core::Id>,
     title: String,
-    additional_description: String,
+    additional_description: Option<String>,
 ) -> iced::Task<Message> {
     error::failing_task(async move {
         let transactions = finance_controller.get_transactions(transaction_ids).await?;
         let category_distribution = fm_core::transactions_category_distribution(transactions);
 
-        let mut displayed_text = additional_description;
+        let mut displayed_text = String::new();
+        if let Some(additional_description) = additional_description {
+            displayed_text += &format!("{}\n\n", additional_description);
+        }
         for (category_id, value) in category_distribution {
             displayed_text += &format!(
                 "{}: {}\n",
