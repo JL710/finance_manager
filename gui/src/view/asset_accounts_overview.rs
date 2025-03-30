@@ -105,7 +105,7 @@ impl View {
 
         components::overlap_bottom_right(
             account_table,
-            components::large_round_plus_button(Some(Message::CreateAssetAccount)),
+            components::button::large_round_plus_button(Some(Message::CreateAssetAccount)),
         )
         .height(iced::Fill)
         .into()

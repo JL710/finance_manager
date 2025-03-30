@@ -73,7 +73,7 @@ impl View {
                         .into()]
                 })
                 .map(Message::CategoryTable),
-            components::large_round_plus_button(Some(Message::NewCategory)),
+            components::button::large_round_plus_button(Some(Message::NewCategory)),
         )
         .height(iced::Fill)
         .width(iced::Fill)

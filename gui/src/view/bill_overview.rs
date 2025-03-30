@@ -100,7 +100,7 @@ impl View {
                     ]
                 })
                 .map(Message::BillTable),
-            components::large_round_plus_button(Some(Message::NewBill)),
+            components::button::large_round_plus_button(Some(Message::NewBill)),
         )
         .height(iced::Fill)
         .width(iced::Fill)

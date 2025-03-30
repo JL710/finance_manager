@@ -89,7 +89,7 @@ impl<'a> TimeInput<'a> {
                     })
                     .on_input(Message::OnInput)
                     .width(60.0),
-                crate::right_attached_button(
+                crate::button::right_attached_button(
                     widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
                         "../../../assets/pencil-fill.svg"
                     )))

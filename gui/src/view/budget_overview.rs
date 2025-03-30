@@ -107,7 +107,7 @@ impl View {
                     ]
                 })
                 .map(Message::BudgetTable),
-            components::large_round_plus_button(Some(Message::CreateBudget)),
+            components::button::large_round_plus_button(Some(Message::CreateBudget)),
         )
         .height(iced::Fill)
         .into()

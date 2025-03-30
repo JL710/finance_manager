@@ -99,7 +99,7 @@ impl View {
                     ]
                 })
                 .map(Message::AccountTable),
-            components::large_round_plus_button(Some(Message::New)),
+            components::button::large_round_plus_button(Some(Message::New)),
         )
         .height(iced::Fill)
         .width(iced::Fill)

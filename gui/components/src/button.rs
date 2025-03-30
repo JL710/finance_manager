@@ -101,3 +101,35 @@ pub fn new<'a, Message: Clone + 'a>(
         .on_press_maybe(message)
         .into()
 }
+
+const PLUS_SVG: &[u8] = include_bytes!("../../assets/plus-circle-fill.svg");
+/// A large round plus button with a big margin.
+/// It is supposed to be an overlay button to create new stuff.
+pub fn large_round_plus_button<Message: Clone + 'static>(
+    on_pressed_maybe: Option<Message>,
+) -> iced::Element<'static, Message> {
+    widget::container(
+        widget::button(widget::svg(widget::svg::Handle::from_memory(PLUS_SVG)).width(iced::Shrink))
+            .style(|theme, status| {
+                let mut style = widget::button::success(theme, status);
+                style.border.radius = iced::border::Radius::new(100);
+                style
+            })
+            .padding(15)
+            .on_press_maybe(on_pressed_maybe),
+    )
+    .padding(15)
+    .into()
+}
+
+pub fn right_attached_button<'a, Message: Clone>(
+    content: impl Into<iced::Element<'a, Message>>,
+) -> widget::Button<'a, Message> {
+    widget::button(content)
+        .style(|theme, status| {
+            let mut style = widget::button::primary(theme, status);
+            style.border.radius = style.border.radius.right(15.0);
+            style
+        })
+        .padding(iced::Padding::new(5.0).right(10.0))
+}

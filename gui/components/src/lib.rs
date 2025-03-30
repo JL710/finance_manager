@@ -116,7 +116,7 @@ pub fn heading<'a, Message: 'a>(
     .into()
 }
 
-pub fn parse_number(input: &str) -> Option<f64> {
+fn parse_number(input: &str) -> Option<f64> {
     let input = input
         .replace(",", ".")
         .chars()
@@ -263,18 +263,6 @@ pub fn drop_down<'a, Message: Clone + 'a>(
     .width(iced::Shrink)
 }
 
-pub fn right_attached_button<'a, Message: Clone>(
-    content: impl Into<iced::Element<'a, Message>>,
-) -> widget::Button<'a, Message> {
-    widget::button(content)
-        .style(|theme, status| {
-            let mut style = widget::button::primary(theme, status);
-            style.border.radius = style.border.radius.right(15.0);
-            style
-        })
-        .padding(iced::Padding::new(5.0).right(10.0))
-}
-
 pub fn category_distribution_popup<Message: std::marker::Send + 'static>(
     finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     transaction_ids: Vec<fm_core::Id>,
@@ -312,28 +300,6 @@ pub fn category_distribution_popup<Message: std::marker::Send + 'static>(
         Ok(())
     })
     .discard()
-}
-
-pub fn large_round_plus_button<Message: Clone + 'static>(
-    on_pressed_maybe: Option<Message>,
-) -> iced::Element<'static, Message> {
-    widget::container(
-        widget::button(
-            widget::svg(widget::svg::Handle::from_memory(include_bytes!(
-                "../../assets/plus-circle-fill.svg"
-            )))
-            .width(iced::Shrink),
-        )
-        .style(|theme, status| {
-            let mut style = widget::button::success(theme, status);
-            style.border.radius = iced::border::Radius::new(100);
-            style
-        })
-        .padding(15)
-        .on_press_maybe(on_pressed_maybe),
-    )
-    .padding(15)
-    .into()
 }
 
 pub fn overlap_bottom_right<'a, Message: Clone + 'static>(
