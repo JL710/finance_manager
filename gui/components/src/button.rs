@@ -53,17 +53,15 @@ impl<'a, Message: 'a + Clone> From<SvgButton<'a, Message>> for iced::Element<'a,
     }
 }
 
-const SUBMIT_SVG: &[u8] = include_bytes!("../../assets/check-lg.svg");
 pub fn submit<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Element<'a, Message> {
-    SvgButton::new(widget::svg::Handle::from_memory(SUBMIT_SVG), "Save")
+    SvgButton::new(icons::CHECK_LG.clone(), "Save")
         .on_press_maybe(message)
         .style(widget::button::success)
         .into()
 }
 
-const CANCEL_SVG: &[u8] = include_bytes!("../../assets/x-lg.svg");
 pub fn cancel<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Element<'a, Message> {
-    SvgButton::new(widget::svg::Handle::from_memory(CANCEL_SVG), "Cancel")
+    SvgButton::new(icons::X_LG.clone(), "Cancel")
         .on_press_maybe(message)
         .style(widget::button::danger)
         .into()
@@ -73,43 +71,39 @@ pub fn edit<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Element<
     edit_with_text("Edit", message)
 }
 
-const EDIT_SVG: &[u8] = include_bytes!("../../assets/pencil-square.svg");
 pub fn edit_with_text<'a, Message: Clone + 'a>(
     text: &'a str,
     message: Option<Message>,
 ) -> iced::Element<'a, Message> {
-    SvgButton::new(widget::svg::Handle::from_memory(EDIT_SVG), text)
+    SvgButton::new(icons::PENCIL_SQUARE.clone(), text)
         .on_press_maybe(message)
         .style(widget::button::secondary)
         .into()
 }
 
-const DELETE_SVG: &[u8] = include_bytes!("../../assets/trash-fill.svg");
 pub fn delete<'a, Message: Clone + 'a>(message: Option<Message>) -> iced::Element<'a, Message> {
-    SvgButton::new(widget::svg::Handle::from_memory(DELETE_SVG), "Delete")
+    SvgButton::new(icons::TRASH_FILL.clone(), "Delete")
         .on_press_maybe(message)
         .style(widget::button::danger)
         .into()
 }
 
-const NEW_SVG: &[u8] = include_bytes!("../../assets/plus-square-fill.svg");
 pub fn new<'a, Message: Clone + 'a>(
     content: &'a str,
     message: Option<Message>,
 ) -> iced::Element<'a, Message> {
-    SvgButton::new(widget::svg::Handle::from_memory(NEW_SVG), content)
+    SvgButton::new(icons::PLUS_SQUARE_FILL.clone(), content)
         .on_press_maybe(message)
         .into()
 }
 
-const PLUS_SVG: &[u8] = include_bytes!("../../assets/plus-circle-fill.svg");
 /// A large round plus button with a big margin.
 /// It is supposed to be an overlay button to create new stuff.
 pub fn large_round_plus_button<Message: Clone + 'static>(
     on_pressed_maybe: Option<Message>,
 ) -> iced::Element<'static, Message> {
     widget::container(
-        widget::button(widget::svg(widget::svg::Handle::from_memory(PLUS_SVG)).width(iced::Shrink))
+        widget::button(icons::plus_circle_fill())
             .style(|theme, status| {
                 let mut style = widget::button::success(theme, status);
                 style.border.radius = iced::border::Radius::new(100);

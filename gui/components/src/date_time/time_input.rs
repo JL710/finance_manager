@@ -89,17 +89,13 @@ impl<'a> TimeInput<'a> {
                     })
                     .on_input(Message::OnInput)
                     .width(60.0),
-                crate::button::right_attached_button(
-                    widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
-                        "../../../assets/pencil-fill.svg"
-                    )))
-                    .width(iced::Shrink)
+                crate::button::right_attached_button(icons::pencil_fill()).on_press_maybe(
+                    if self.state.time().is_some() {
+                        Some(Message::ToggleDropdown)
+                    } else {
+                        None
+                    }
                 )
-                .on_press_maybe(if self.state.time().is_some() {
-                    Some(Message::ToggleDropdown)
-                } else {
-                    None
-                })
             ],
             crate::spal_column![
                 crate::spal_row![

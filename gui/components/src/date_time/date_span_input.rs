@@ -82,13 +82,7 @@ impl<'a> DateSpanInput<'a> {
                 super::date_input::date_input(&self.state.end, "End", false)
                     .view()
                     .map(Action::ChangeEnd),
-                widget::button(
-                    widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
-                        "../../../assets/pencil-fill.svg"
-                    )))
-                    .width(iced::Shrink)
-                )
-                .on_press_maybe(
+                widget::button(icons::pencil_fill()).on_press_maybe(
                     if self.state.start.date().is_some() && self.state.end.date().is_some() {
                         Some(Action::ToggleDropdown)
                     } else {

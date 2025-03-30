@@ -29,15 +29,11 @@ pub enum Message {
 
 pub struct Sidebar {
     collapsed: bool,
-    svg_cache: SvgCache,
 }
 
 impl Sidebar {
     pub fn new(collapsed: bool) -> Self {
-        Self {
-            collapsed,
-            svg_cache: SvgCache::default(),
-        }
+        Self { collapsed }
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -61,7 +57,7 @@ impl Sidebar {
     pub fn view(&self) -> iced::Element<Message> {
         components::spaced_column![
             widget::button(
-                widget::Svg::new(self.svg_cache.list.clone())
+                widget::Svg::new(icons::LIST.clone())
                     .style(|theme: &iced::Theme, _| widget::svg::Style {
                         color: Some(theme.palette().primary)
                     })
@@ -71,56 +67,56 @@ impl Sidebar {
             .style(widget::button::text),
             icon_menu_item(
                 "AssetAccounts",
-                &self.svg_cache.bank2,
+                icons::BANK2.clone(),
                 Message::AssetAccountView,
                 self.collapsed
             ),
             icon_menu_item(
                 "BookCheckingAccounts",
-                &self.svg_cache.cash,
+                icons::CASH.clone(),
                 Message::BookCheckingAccountOverview,
                 self.collapsed
             ),
             icon_menu_item(
                 "Budgets",
-                &self.svg_cache.piggy_bank_fill,
+                icons::PIGGY_BANK_FILL.clone(),
                 Message::BudgetOverview,
                 self.collapsed
             ),
             icon_menu_item(
                 "Categories",
-                &self.svg_cache.bookmark_fill,
+                icons::BOOKMARK_FILL.clone(),
                 Message::CategoryOverview,
                 self.collapsed
             ),
             icon_menu_item(
                 "Bills",
-                &self.svg_cache.folder_fill,
+                icons::FOLDER_FILL.clone(),
                 Message::BillOverview,
                 self.collapsed
             ),
             icon_menu_item(
                 "Transactions",
-                &self.svg_cache.send_fill,
+                icons::SEND_FILL.clone(),
                 Message::FilterTransactionView,
                 self.collapsed
             ),
             icon_menu_item(
                 "Create Transaction",
-                &self.svg_cache.plus_circle_fill,
+                icons::PLUS_CIRCLE_FILL.clone(),
                 Message::CreateTransaction,
                 self.collapsed
             ),
             widget::vertical_space(),
             icon_menu_item(
                 "Settings",
-                &self.svg_cache.gear_fill,
+                icons::GEAR_FILL.clone(),
                 Message::SettingsView,
                 self.collapsed
             ),
             icon_menu_item(
                 "License",
-                &self.svg_cache.book_fill,
+                icons::BOOK_FILL.clone(),
                 Message::License,
                 self.collapsed
             ),
@@ -132,14 +128,14 @@ impl Sidebar {
 
 fn icon_menu_item<'a, M: Clone + 'a>(
     text: &'a str,
-    icon: &widget::svg::Handle,
+    icon: widget::svg::Handle,
     message: M,
     collapsed: bool,
 ) -> iced::Element<'a, M> {
     if collapsed {
         widget::tooltip(
             widget::button(
-                widget::Svg::new(icon.clone())
+                widget::Svg::new(icon)
                     .width(iced::Shrink)
                     .style(|theme: &iced::Theme, _| widget::svg::Style {
                         color: Some(theme.palette().primary),
@@ -167,43 +163,5 @@ fn icon_menu_item<'a, M: Clone + 'a>(
         .style(style::button_sidebar)
         .on_press(message)
         .into()
-    }
-}
-
-struct SvgCache {
-    bank2: widget::svg::Handle,
-    cash: widget::svg::Handle,
-    piggy_bank_fill: widget::svg::Handle,
-    bookmark_fill: widget::svg::Handle,
-    send_fill: widget::svg::Handle,
-    folder_fill: widget::svg::Handle,
-    plus_circle_fill: widget::svg::Handle,
-    gear_fill: widget::svg::Handle,
-    book_fill: widget::svg::Handle,
-    list: widget::svg::Handle,
-}
-
-impl Default for SvgCache {
-    fn default() -> Self {
-        SvgCache {
-            bank2: widget::svg::Handle::from_memory(include_bytes!("../assets/bank2.svg")),
-            cash: widget::svg::Handle::from_memory(include_bytes!("../assets/cash.svg")),
-            piggy_bank_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/piggy-bank-fill.svg"
-            )),
-            bookmark_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/bookmark-fill.svg"
-            )),
-            send_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/send-fill.svg")),
-            folder_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/folder-fill.svg"
-            )),
-            plus_circle_fill: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/plus-circle-fill.svg"
-            )),
-            gear_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/gear-fill.svg")),
-            book_fill: widget::svg::Handle::from_memory(include_bytes!("../assets/book-fill.svg")),
-            list: widget::svg::Handle::from_memory(include_bytes!("../assets/list.svg")),
-        }
     }
 }

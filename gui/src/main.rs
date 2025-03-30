@@ -590,39 +590,10 @@ enum AppMessage {
     SwitchToCategoryOverview,
 }
 
-struct SvgCache {
-    exit_fullscreen: widget::svg::Handle,
-    fullscreen: widget::svg::Handle,
-    split_horizontal: widget::svg::Handle,
-    split_vertical: widget::svg::Handle,
-    cross_x: widget::svg::Handle,
-}
-
-impl Default for SvgCache {
-    fn default() -> Self {
-        SvgCache {
-            exit_fullscreen: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/fullscreen-exit.svg"
-            )),
-            fullscreen: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/fullscreen.svg"
-            )),
-            split_horizontal: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/layout-split-horizontal.svg"
-            )),
-            split_vertical: widget::svg::Handle::from_memory(include_bytes!(
-                "../assets/layout-split-vertical.svg"
-            )),
-            cross_x: widget::svg::Handle::from_memory(include_bytes!("../assets/x-lg.svg")),
-        }
-    }
-}
-
 pub struct App {
     finance_controller: fm_core::FMController<finance_managers::FinanceManagers>,
     pane_grid: widget::pane_grid::State<View>,
     focused_pane: widget::pane_grid::Pane,
-    svg_cache: SvgCache,
     side_bar: sidebar::Sidebar,
     settings: settings::Settings,
 }
@@ -641,7 +612,6 @@ impl Default for App {
             pane_grid,
             focused_pane,
             finance_controller: finance_manager,
-            svg_cache: SvgCache::default(),
             side_bar: sidebar::Sidebar::new(false),
             settings: settings::Settings::default(),
         }
@@ -908,32 +878,33 @@ impl App {
                                 current_view.to_string(),
                             ))
                             .controls(iced::Element::new(components::spaced_row![
-                                pane_grid_control_buttons(self.svg_cache.split_horizontal.clone())
+                                pane_grid_control_buttons(icons::LAYOUT_SPLIT_HORIZONTAL.clone())
                                     .on_press(AppMessage::PaneSplit(
                                         widget::pane_grid::Axis::Vertical,
                                         pane
                                     )),
-                                pane_grid_control_buttons(self.svg_cache.split_vertical.clone())
+                                pane_grid_control_buttons(icons::LAYOUT_SPLIT_VERTICAL.clone())
                                     .on_press(AppMessage::PaneSplit(
                                         widget::pane_grid::Axis::Horizontal,
                                         pane
                                     )),
                                 pane_grid_control_buttons(if maximized {
-                                    self.svg_cache.exit_fullscreen.clone()
+                                    icons::FULLSCREEN_EXIT.clone()
                                 } else {
-                                    self.svg_cache.fullscreen.clone()
+                                    icons::FULLSCREEN.clone()
                                 })
                                 .on_press(if maximized {
                                     AppMessage::PaneRestore
                                 } else {
                                     AppMessage::PaneMaximize(pane)
                                 }),
-                                pane_grid_control_buttons(self.svg_cache.cross_x.clone())
-                                    .on_press_maybe(if self.pane_grid.panes.len() <= 1 {
+                                pane_grid_control_buttons(icons::X_LG.clone()).on_press_maybe(
+                                    if self.pane_grid.panes.len() <= 1 {
                                         None
                                     } else {
                                         Some(AppMessage::PaneClose(pane))
-                                    }),
+                                    }
+                                ),
                             ]))
                             .style(move |theme: &iced::Theme| {
                                 let mut style =
@@ -1114,10 +1085,7 @@ fn main() {
     iced::application("Finance Manager", App::update, App::view)
         .theme(|_| iced::Theme::Nord)
         .window(iced::window::Settings {
-            icon: Some(
-                iced::window::icon::from_file_data(include_bytes!("../assets/FM_Logo.png"), None)
-                    .unwrap(),
-            ),
+            icon: Some(icons::FM_LOGO_WINDOW_ICON.clone()),
             ..Default::default()
         })
         .run_with(|| (app, iced::Task::none()))

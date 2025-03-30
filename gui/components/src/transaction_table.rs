@@ -43,7 +43,6 @@ pub struct TransactionTable {
     categories: Vec<fm_core::Category>,
     /// The id of the transaction that has the category popup open if any
     category_popup: Option<fm_core::Id>,
-    edit_svg: widget::svg::Handle,
 }
 
 impl std::fmt::Debug for TransactionTable {
@@ -123,9 +122,6 @@ impl TransactionTable {
             amount_positive: Box::new(amount_positive),
             transaction_table,
             category_popup: None,
-            edit_svg: widget::svg::Handle::from_memory(include_bytes!(
-                "../../assets/pencil-fill.svg"
-            )),
         }
     }
 
@@ -282,11 +278,9 @@ impl TransactionTable {
                             .on_press(Message::ViewAccount(*destination.id()))
                             .into(),
                         super::spal_row![
-                            widget::button(
-                                widget::Svg::new(self.edit_svg.clone()).width(iced::Shrink)
-                            )
-                            .on_press(Message::OpenCategoryPopup(transaction.id))
-                            .style(widget::button::secondary),
+                            widget::button(icons::pencil_fill())
+                                .on_press(Message::OpenCategoryPopup(transaction.id))
+                                .style(widget::button::secondary),
                             widget::text(get_category_text(transaction, &context.0)),
                         ]
                         .into(),

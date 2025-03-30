@@ -105,17 +105,13 @@ impl<'a> DateInput<'a> {
                         original
                     })
                     .width(100.0),
-                crate::button::right_attached_button(
-                    widget::Svg::new(widget::svg::Handle::from_memory(include_bytes!(
-                        "../../../assets/pencil-fill.svg"
-                    )))
-                    .width(iced::Shrink)
+                crate::button::right_attached_button(icons::pencil_fill()).on_press_maybe(
+                    if self.state.date().is_some() {
+                        Some(Action::ToggleDropdown)
+                    } else {
+                        None
+                    }
                 )
-                .on_press_maybe(if self.state.date().is_some() {
-                    Some(Action::ToggleDropdown)
-                } else {
-                    None
-                })
             ],
             crate::spal_column![
                 crate::spal_row![

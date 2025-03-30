@@ -12,6 +12,7 @@ async-std.workspace = true
 rfd.workspace = true
 error.workspace = true
 fm_core.workspace = true
+icons.workspace = true
 
 uuid = { version = "1.8.0", features = ["v4"] }
 iced_aw = { git = "https://github.com/iced-rs/iced_aw.git", rev = "def1db9aac1e58a47e0c3127d4d4e95d724ca8ad", features = [

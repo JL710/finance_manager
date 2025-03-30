@@ -256,18 +256,12 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                             widget::button(
                                 widget::svg::Svg::new(if Some(index) == self.state.sort_column {
                                     if self.state.sort_reverse {
-                                        widget::svg::Handle::from_memory(include_bytes!(
-                                            "../../../assets/filter-circle-fill.svg"
-                                        ))
+                                        icons::FILTER_CIRCLE_FILL.clone()
                                     } else {
-                                        widget::svg::Handle::from_memory(include_bytes!(
-                                            "../../../assets/filter-circle.svg"
-                                        ))
+                                        icons::FILTER_CIRCLE.clone()
                                     }
                                 } else {
-                                    widget::svg::Handle::from_memory(include_bytes!(
-                                        "../../../assets/filter.svg"
-                                    ))
+                                    icons::FILTER.clone()
                                 })
                                 .content_fit(iced::ContentFit::Fill)
                                 .width(iced::Length::Shrink),

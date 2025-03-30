@@ -89,10 +89,7 @@ impl View {
                 if self.closed {
                     widget::row![
                         widget::button(components::spal_row![
-                            widget::svg::Svg::new(widget::svg::Handle::from_memory(
-                                include_bytes!("../../assets/arrow-left.svg")
-                            ))
-                            .width(iced::Shrink),
+                            icons::arrow_left(),
                             "Back to Unclosed"
                         ])
                         .on_press(Message::BackToUnclosed)
@@ -100,14 +97,8 @@ impl View {
                 } else {
                     widget::row![
                         widget::horizontal_space(),
-                        widget::button(components::spal_row![
-                            "Closed Bills",
-                            widget::svg::Svg::new(widget::svg::Handle::from_memory(
-                                include_bytes!("../../assets/arrow-right.svg")
-                            ))
-                            .width(iced::Shrink)
-                        ])
-                        .on_press(Message::ViewClosed)
+                        widget::button(components::spal_row!["Closed Bills", icons::arrow_right()])
+                            .on_press(Message::ViewClosed)
                     ]
                 },
                 if self.closed {

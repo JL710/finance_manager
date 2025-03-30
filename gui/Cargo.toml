@@ -8,7 +8,7 @@ default = ["native"]
 native = ["fm_core/sqlite", "dep:serde_json"]
 
 [workspace]
-members = ["components", "style", "error"]
+members = ["components", "style", "error", "icons"]
 
 [dependencies]
 components.workspace = true
@@ -19,6 +19,7 @@ iced.workspace = true
 fm_core.workspace = true
 time.workspace = true
 error.workspace = true
+icons.workspace = true
 
 fm_server = { path = "../server", features = [
     "client",
@@ -37,6 +38,7 @@ anyhow = "1.0.82"
 fm_core = { path = "../core", default-features = false, features = ["ram"] }
 style = { path = "./style" }
 error = { path = "./error" }
+icons = { path = "./icons" }
 async-std = "1.12.0"
 components = { path = "./components" }
 time = { version = "0.3.36", features = [
