@@ -257,7 +257,13 @@ impl View {
                                 .into(),
                             widget::text(transaction.description.clone().unwrap_or(String::new()))
                                 .into(),
-                            widget::text!("{}€", transaction.amount().to_num_string()).into(),
+                            if *sign == fm_core::Sign::Positive {
+                                components::colored_currency_display(transaction.amount())
+                            } else {
+                                components::colored_currency_display(
+                                    &transaction.amount().negative(),
+                                )
+                            },
                             widget::text(components::date_time::to_date_string(transaction.date))
                                 .into(),
                             widget::text(
