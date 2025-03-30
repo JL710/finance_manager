@@ -22,14 +22,15 @@ pub enum Message {
     RemoveTransaction(fm_core::Id),
     AddTransaction(add_transaction::Message),
     Submit,
-    Initialize(
-        Option<fm_core::Bill>,
-        Vec<(fm_core::Transaction, fm_core::Sign)>,
-        Vec<fm_core::account::Account>,
-    ),
+    Initialize {
+        existing_bill: Option<fm_core::Bill>,
+        transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
+        accounts: Vec<fm_core::account::Account>,
+    },
     BillCreated(fm_core::Id),
     TransactionTable(components::table_view::InnerMessage<Message>),
     Cancel,
+    ClosedInput(bool),
 }
 
 #[derive(Debug)]
@@ -39,6 +40,7 @@ pub struct View {
     description_input: widget::text_editor::Content,
     value: components::currency_input::State,
     due_date_input: date_time_input::State,
+    closed: bool,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
     transaction_table: components::table_view::State<
         (fm_core::Transaction, fm_core::Sign),
@@ -57,6 +59,7 @@ impl View {
             description_input: widget::text_editor::Content::default(),
             value: components::currency_input::State::default(),
             due_date_input: date_time_input::State::default(),
+            closed: false,
             transactions: Vec::new(),
             transaction_table: components::table_view::State::new(Vec::new(), Vec::new())
                 .sort_by(
@@ -95,11 +98,11 @@ impl View {
             error::failing_task(async move {
                 let accounts = finance_controller.get_accounts().await?;
 
-                Ok(Message::Initialize(
-                    None,
-                    vec![(transaction, fm_core::Sign::Negative)],
+                Ok(Message::Initialize {
+                    existing_bill: None,
+                    transactions: vec![(transaction, fm_core::Sign::Negative)],
                     accounts,
-                ))
+                })
             }),
         )
     }
@@ -109,39 +112,7 @@ impl View {
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
-            Self {
-                id: None,
-                name_input: String::new(),
-                description_input: widget::text_editor::Content::default(),
-                value: components::currency_input::State::default(),
-                due_date_input: date_time_input::State::default(),
-                transactions: Vec::new(),
-                transaction_table: components::table_view::State::new(Vec::new(), Vec::new())
-                    .sort_by(
-                        |a: &(fm_core::Transaction, fm_core::Sign),
-                         b: &(fm_core::Transaction, fm_core::Sign),
-                         column| match column {
-                            0 => match (a.1, b.1) {
-                                (fm_core::Sign::Positive, fm_core::Sign::Negative) => {
-                                    std::cmp::Ordering::Less
-                                }
-                                (fm_core::Sign::Negative, fm_core::Sign::Positive) => {
-                                    std::cmp::Ordering::Greater
-                                }
-                                _ => std::cmp::Ordering::Equal,
-                            },
-                            2 => a.0.title.cmp(&b.0.title),
-                            3 => a.0.amount().cmp(b.0.amount()),
-                            4 => a.0.date.cmp(&b.0.date),
-                            5 => a.0.source.cmp(&b.0.source),
-                            6 => a.0.destination.cmp(&b.0.destination),
-                            _ => panic!(),
-                        },
-                    )
-                    .sortable_columns([0, 2, 3, 4, 5, 6]),
-                add_transaction: None,
-                submitted: false,
-            },
+            Self::default(),
             error::failing_task(async move {
                 let bill = if let Some(id) = id {
                     Some(
@@ -170,7 +141,11 @@ impl View {
 
                 let accounts = finance_controller.get_accounts().await?;
 
-                Ok(Message::Initialize(bill, transactions, accounts))
+                Ok(Message::Initialize {
+                    existing_bill: bill,
+                    transactions,
+                    accounts,
+                })
             }),
         )
     }
@@ -181,6 +156,9 @@ impl View {
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
+            Message::ClosedInput(new_value) => {
+                self.closed = new_value;
+            }
             Message::Cancel => {
                 if let Some(id) = self.id {
                     return Action::CancelWithId(id);
@@ -191,8 +169,12 @@ impl View {
             Message::BillCreated(id) => {
                 return Action::BillCreated(id);
             }
-            Message::Initialize(bill, transactions, accounts) => {
-                if let Some(bill) = bill {
+            Message::Initialize {
+                existing_bill,
+                transactions,
+                accounts,
+            } => {
+                if let Some(bill) = existing_bill {
                     self.id = Some(bill.id);
                     bill.name.clone_into(&mut self.name_input);
                     self.description_input = widget::text_editor::Content::with_text(
@@ -201,6 +183,7 @@ impl View {
                     self.value = components::currency_input::State::new(bill.value);
                     self.due_date_input =
                         components::date_time::date_time_input::State::new(bill.due_date);
+                    self.closed = bill.closed;
                 }
                 self.transactions = transactions.clone();
                 self.transaction_table.set_items(transactions);
@@ -238,6 +221,7 @@ impl View {
                 for transaction in &self.transactions {
                     transactions.insert(transaction.0.id, transaction.1);
                 }
+                let closed = self.closed;
                 if let Some(id) = id_option {
                     return Action::Task(error::failing_task(async move {
                         finance_controller
@@ -248,6 +232,7 @@ impl View {
                                 value,
                                 transactions,
                                 due_date,
+                                closed,
                             })
                             .await?;
                         Ok(Message::BillCreated(id))
@@ -255,7 +240,7 @@ impl View {
                 } else {
                     return Action::Task(error::failing_task(async move {
                         let bill = finance_controller
-                            .create_bill(name, description, value, transactions, due_date)
+                            .create_bill(name, description, value, transactions, due_date, closed)
                             .await?;
                         Ok(Message::BillCreated(bill.id))
                     }));
@@ -348,6 +333,7 @@ impl View {
                     .map(Message::DueDateChanged),
             ]
             .width(iced::Length::Fill),
+            widget::checkbox("Closed", self.closed).on_toggle(Message::ClosedInput),
             "Transactions:",
             widget::container(
                 components::table_view::table_view(&self.transaction_table)
@@ -491,7 +477,7 @@ mod add_transaction {
                 error::failing_task(async move {
                     let accounts = finance_controller.get_accounts().await?;
                     let categories = finance_controller.get_categories().await?;
-                    let bills = finance_controller.get_bills().await?;
+                    let bills = finance_controller.get_bills(None).await?;
                     let budgets = finance_controller.get_budgets().await?;
                     Ok(Message::Init(Init {
                         transactions: Vec::new(),

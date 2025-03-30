@@ -641,13 +641,14 @@ async fn create_bill(
         fm_core::Currency,
         HashMap<fm_core::Id, fm_core::Sign>,
         Option<fm_core::DateTime>,
+        bool,
     )>,
 ) -> Json<Value> {
     let bill = state
         .finance_controller
         .lock()
         .await
-        .create_bill(data.0, data.1, data.2, data.3, data.4)
+        .create_bill(data.0, data.1, data.2, data.3, data.4, data.5)
         .await
         .unwrap();
     json!(bill).into()
@@ -682,12 +683,15 @@ async fn update_bill(
     json!(()).into()
 }
 
-async fn get_bills(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
+async fn get_bills(
+    axum::extract::State(state): axum::extract::State<State>,
+    axum::extract::Json(data): axum::extract::Json<Option<bool>>,
+) -> Json<Value> {
     let bills = state
         .finance_controller
         .lock()
         .await
-        .get_bills()
+        .get_bills(data)
         .await
         .unwrap();
     json!(bills).into()

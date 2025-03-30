@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS bill (
     description TEXT,
     value REAL NOT NULL,
     value_currency INTEGER NOT NULL,
-    due_date INTEGER
+    due_date INTEGER,
+    closed BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS bill_transaction (

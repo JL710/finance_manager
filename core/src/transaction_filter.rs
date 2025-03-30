@@ -327,6 +327,7 @@ mod test {
             Currency::default(),
             HashMap::from([(2, Sign::Positive), (3, Sign::Positive)]),
             None,
+            false,
         )
     }
 
@@ -338,6 +339,7 @@ mod test {
             Currency::default(),
             HashMap::from([(3, Sign::Positive), (4, Sign::Positive)]),
             None,
+            false,
         )
     }
 
@@ -349,6 +351,7 @@ mod test {
             Currency::default(),
             transactions,
             None,
+            false,
         )
     }
 

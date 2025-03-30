@@ -92,10 +92,11 @@ impl FinanceManager for RamFinanceManager {
         value: Currency,
         transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
+        closed: bool,
     ) -> Result<Bill> {
         let id = uuid::Uuid::new_v4().as_u64_pair().0;
 
-        let new_bill = Bill::new(id, name, description, value, transactions, due_date);
+        let new_bill = Bill::new(id, name, description, value, transactions, due_date, closed);
 
         self.bills.push(new_bill.clone());
         Ok(new_bill)
@@ -111,8 +112,12 @@ impl FinanceManager for RamFinanceManager {
         Ok(())
     }
 
-    async fn get_bills(&self) -> Result<Vec<Bill>> {
-        Ok(self.bills.clone())
+    async fn get_bills(&self, closed: Option<bool>) -> Result<Vec<Bill>> {
+        let mut bills = self.bills.clone();
+        if let Some(closed) = closed {
+            bills.retain(|x| x.closed == closed);
+        }
+        Ok(bills)
     }
 
     async fn get_bill(&self, id: &Id) -> Result<Option<Bill>> {

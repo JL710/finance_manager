@@ -69,11 +69,15 @@ pub trait FinanceManager: Send + Clone + Sized {
         value: Currency,
         transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
+        closed: bool,
     ) -> impl Future<Output = Result<Bill>> + MaybeSend;
 
     fn update_bill(&mut self, bill: Bill) -> impl Future<Output = Result<()>> + MaybeSend;
 
-    fn get_bills(&self) -> impl Future<Output = Result<Vec<Bill>>> + MaybeSend;
+    fn get_bills(
+        &self,
+        closed: Option<bool>,
+    ) -> impl Future<Output = Result<Vec<Bill>>> + MaybeSend;
 
     fn get_bill(&self, id: &Id) -> impl Future<Output = Result<Option<Bill>>> + MaybeSend;
 
@@ -84,7 +88,7 @@ pub trait FinanceManager: Send + Clone + Sized {
         filter: transaction_filter::TransactionFilter,
     ) -> impl Future<Output = Result<Vec<Transaction>>> + MaybeSend {
         let transactions_future = self.get_transactions_in_timespan(filter.total_timespan());
-        let bills_future = self.get_bills();
+        let bills_future = self.get_bills(None);
         async move {
             let transactions = transactions_future.await?;
             let bills = bills_future.await?;

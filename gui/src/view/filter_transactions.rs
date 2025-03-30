@@ -64,7 +64,7 @@ impl View {
             error::failing_task(async move {
                 let accounts = finance_controller.get_accounts().await?;
                 let categories = finance_controller.get_categories().await?;
-                let bills = finance_controller.get_bills().await?;
+                let bills = finance_controller.get_bills(None).await?;
                 let budgets = finance_controller.get_budgets().await?;
                 Ok(Message::Initialize {
                     accounts,

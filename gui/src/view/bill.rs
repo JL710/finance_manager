@@ -229,6 +229,7 @@ impl View {
                                 "Sum: ",
                                 components::colored_currency_display(bill_sum),
                             ],
+                            widget::checkbox("Closed", bill.closed),
                             widget::button("Category Distribution")
                                 .on_press(Message::CategoryDistribution)
                         ],

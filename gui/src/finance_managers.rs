@@ -167,21 +167,22 @@ impl fm_core::FinanceManager for FinanceManagers {
         value: fm_core::Currency,
         transactions: HashMap<fm_core::Id, fm_core::Sign>,
         due_date: Option<fm_core::DateTime>,
+        closed: bool,
     ) -> Result<fm_core::Bill> {
         match self {
             FinanceManagers::Server(client) => {
                 client
-                    .create_bill(name, description, value, transactions, due_date)
+                    .create_bill(name, description, value, transactions, due_date, closed)
                     .await
             }
             #[cfg(feature = "native")]
             FinanceManagers::Sqlite(sqlite) => {
                 sqlite
-                    .create_bill(name, description, value, transactions, due_date)
+                    .create_bill(name, description, value, transactions, due_date, closed)
                     .await
             }
             FinanceManagers::Ram(ram) => {
-                ram.create_bill(name, description, value, transactions, due_date)
+                ram.create_bill(name, description, value, transactions, due_date, closed)
                     .await
             }
         }
@@ -196,12 +197,12 @@ impl fm_core::FinanceManager for FinanceManagers {
         }
     }
 
-    async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {
+    async fn get_bills(&self, closed: Option<bool>) -> Result<Vec<fm_core::Bill>> {
         match self {
-            FinanceManagers::Server(client) => client.get_bills().await,
+            FinanceManagers::Server(client) => client.get_bills(closed).await,
             #[cfg(feature = "native")]
-            FinanceManagers::Sqlite(sqlite) => sqlite.get_bills().await,
-            FinanceManagers::Ram(ram) => ram.get_bills().await,
+            FinanceManagers::Sqlite(sqlite) => sqlite.get_bills(closed).await,
+            FinanceManagers::Ram(ram) => ram.get_bills(closed).await,
         }
     }
 

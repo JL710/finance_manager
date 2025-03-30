@@ -88,7 +88,7 @@ impl View {
     }
 
     fn bill_overview(&mut self, finance_controller: Fm) -> iced::Task<ViewMessage> {
-        let (view, task) = view::bill_overview::View::fetch(finance_controller);
+        let (view, task) = view::bill_overview::View::fetch_unclosed(finance_controller);
         *self = Self::BillOverview(view);
         task.map(ViewMessage::BillOverview)
     }

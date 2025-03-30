@@ -124,12 +124,13 @@ impl fm_core::FinanceManager for Client {
         value: fm_core::Currency,
         transactions: HashMap<fm_core::Id, fm_core::Sign>,
         due_date: Option<fm_core::DateTime>,
+        closed: bool,
     ) -> Result<fm_core::Bill> {
         client_post_macro!(
             self.url,
             self.token.clone(),
             "create_bill",
-            (name, description, value, transactions, due_date)
+            (name, description, value, transactions, due_date, closed)
         )
     }
 
@@ -137,8 +138,8 @@ impl fm_core::FinanceManager for Client {
         client_post_macro!(self.url, self.token.clone(), "update_bill", bill)
     }
 
-    async fn get_bills(&self) -> Result<Vec<fm_core::Bill>> {
-        client_post_macro!(self.url, self.token.clone(), "get_bills", ())
+    async fn get_bills(&self, closed: Option<bool>) -> Result<Vec<fm_core::Bill>> {
+        client_post_macro!(self.url, self.token.clone(), "get_bills", closed)
     }
 
     async fn get_bill(&self, id: &fm_core::Id) -> Result<Option<fm_core::Bill>> {

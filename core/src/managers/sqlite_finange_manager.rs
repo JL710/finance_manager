@@ -3,7 +3,7 @@ use crate::account::AssetAccount;
 use crate::*;
 use anyhow::{Context, Result};
 use bigdecimal::{BigDecimal, FromPrimitive};
-use rusqlite::OptionalExtension;
+use rusqlite::{OptionalExtension, fallible_iterator::FallibleIterator};
 
 use async_std::sync::{Mutex, MutexGuard};
 use std::sync::Arc;
@@ -101,7 +101,7 @@ impl TryFrom<BudgetSignature> for Budget {
     }
 }
 
-type BillSignature = (Id, String, Option<String>, f64, i32);
+type BillSignature = (Id, String, Option<String>, f64, i32, Option<i64>, bool);
 
 impl TryInto<Bill> for BillSignature {
     type Error = anyhow::Error;
@@ -113,7 +113,8 @@ impl TryInto<Bill> for BillSignature {
             self.2,
             Currency::from_currency_id(self.4, BigDecimal::from_f64(self.3).unwrap())?,
             HashMap::new(),
-            None,
+            if let Some(timestamp) = self.5 {Some(time::OffsetDateTime::from_unix_timestamp(timestamp).unwrap())} else {None},
+            self.6
         ))
     }
 }
@@ -131,7 +132,11 @@ async fn migrate_db(connection: MutexGuard<'_, rusqlite::Connection>) -> Result<
 
     if let Some(version) = version_result {
         match version {
-            0 => {}
+            0 => {
+                connection.execute("ALTER TABLE bill ADD closed BOOLEAN NOT NULL DEFAULT false;", ())?;
+                connection.execute("UPDATE database_info SET value=1 WHERE tag='version'", ())?;
+            }
+            1 => {}
             _ => panic!("unknown database version"),
         }
     } else {
@@ -304,17 +309,19 @@ impl FinanceManager for SqliteFinanceManager {
         value: Currency,
         transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
+        closed: bool
     ) -> Result<Bill> {
         let connection = self.connect().await;
 
         connection.execute(
-            "INSERT INTO bill (name, description, value, value_currency, due_date) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO bill (name, description, value, value_currency, due_date, closed) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             (
                 &name,
                 &description,
                 value.get_eur_num(),
                 value.get_currency_id(),
                 due_date.map(|x| x.unix_timestamp()),
+                closed
             ),
         )?;
         let bill_id = connection.last_insert_rowid();
@@ -337,6 +344,7 @@ impl FinanceManager for SqliteFinanceManager {
             value,
             transactions,
             due_date,
+            closed
         ))
     }
 
@@ -344,13 +352,14 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect().await;
 
         connection.execute(
-            "UPDATE bill SET name=?1, description=?2, value=?3, value_currency=?4, due_date=?5 WHERE id=?6",
+            "UPDATE bill SET name=?1, description=?2, value=?3, value_currency=?4, due_date=?5, closed=?6 WHERE id=?7",
             (
                 &bill.name,
                 bill.description,
                 bill.value.get_eur_num(),
                 bill.value.get_currency_id(),
                 bill.due_date.map(|x| x.unix_timestamp()),
+                bill.closed,
                 bill.id,
             ),
         )?;
@@ -371,20 +380,28 @@ impl FinanceManager for SqliteFinanceManager {
         Ok(())
     }
 
-    async fn get_bills(&self) -> Result<Vec<Bill>> {
+    async fn get_bills(&self, closed: Option<bool>) -> Result<Vec<Bill>> {
         let connection = self.connect().await;
 
         let mut bills = Vec::new();
 
-        let bills_result: Vec<std::result::Result<BillSignature, rusqlite::Error>> = connection
-            .prepare("SELECT id, name, description, value, value_currency FROM bill")?
-            .query_map((), |x| {
-                Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?))
-            })?
-            .collect();
+        let mut sql = "SELECT id, name, description, value, value_currency, due_date, closed FROM bill".to_string();
+        if closed.is_some() {
+            sql += " WHERE closed=?1";
+        }
+
+        let mut stmt = connection.prepare(&sql)?;
+        
+        let query = if let Some(closed) = closed {
+            stmt.query((closed,))?
+        } else {
+            stmt.query(())?
+        };
+
+        let bills_result: Vec<BillSignature> = query.map(|x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?, x.get(5)?, x.get(6)?))).collect()?;
 
         for bill_result in bills_result {
-            let mut bill: Bill = bill_result?.try_into()?;
+            let mut bill: Bill = bill_result.try_into()?;
 
             bill.transactions = get_transactions_of_bill(&connection, bill.id)?;
             bills.push(bill);
@@ -397,24 +414,16 @@ impl FinanceManager for SqliteFinanceManager {
         let connection = self.connect().await;
 
         let bill_result: BillSignature = connection.query_row(
-            "SELECT id, name, description, value, value_currency FROM bill WHERE id=? ",
+            "SELECT id, name, description, value, value_currency, due_date, closed FROM bill WHERE id=? ",
             (id,),
-            |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?)),
+            |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?, x.get(5)?, x.get(6)?)),
         )?;
 
-        let transactions = get_transactions_of_bill(&connection, bill_result.0)?;
+        let mut bill: Bill = bill_result.try_into()?;
 
-        Ok(Some(Bill::new(
-            bill_result.0,
-            bill_result.1,
-            bill_result.2,
-            Currency::from_currency_id(
-                bill_result.4,
-                BigDecimal::from_f64(bill_result.3).unwrap(),
-            )?,
-            transactions,
-            None,
-        )))
+        bill.transactions = get_transactions_of_bill(&connection, bill.id)?;
+
+        Ok(Some(bill))
     }
 
     async fn delete_bill(&mut self, id: Id) -> Result<()> {

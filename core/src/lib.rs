@@ -137,6 +137,7 @@ pub struct Bill {
     pub value: Currency,
     pub transactions: HashMap<Id, Sign>,
     pub due_date: Option<DateTime>,
+    pub closed: bool,
 }
 
 impl std::fmt::Display for Bill {
@@ -165,6 +166,7 @@ impl Bill {
         value: Currency,
         transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
+        closed: bool,
     ) -> Self {
         Self {
             id,
@@ -173,6 +175,7 @@ impl Bill {
             value,
             transactions,
             due_date,
+            closed,
         }
     }
 }

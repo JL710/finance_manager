@@ -1,4 +1,5 @@
 use super::*;
+use bigdecimal::FromPrimitive;
 use time::macros::*;
 
 pub async fn create_asset_account_test<T: FinanceManager>(mut fm: T) {
@@ -261,6 +262,51 @@ pub async fn update_transaction_test<T: FinanceManager>(mut fm: T) {
     assert_eq!(fetched_transaction, transaction);
 }
 
+pub async fn create_bill_test<T: FinanceManager>(mut fm: T) {
+    let acc1 = fm
+        .create_asset_account(
+            "asset_acc".to_string(),
+            None,
+            None,
+            None,
+            Currency::default(),
+        )
+        .await
+        .unwrap();
+    let acc2 = fm
+        .create_book_checking_account("book_checking_acc".to_string(), None, None, None)
+        .await
+        .unwrap();
+    let transaction = fm
+        .create_transaction(
+            Currency::default(),
+            "t1".to_string(),
+            None,
+            acc1.id,
+            acc2.id,
+            None,
+            time::OffsetDateTime::now_utc(),
+            HashMap::default(),
+            HashMap::default(),
+        )
+        .await
+        .unwrap();
+    let due_date = time::OffsetDateTime::now_utc().replace_time(time::Time::MIDNIGHT);
+    let bill = fm
+        .create_bill(
+            "Name".to_string(),
+            Some("Description".to_string()),
+            Currency::Eur(bigdecimal::BigDecimal::from_f32(5.0).unwrap()),
+            HashMap::from([(transaction.id, Sign::Positive)]),
+            Some(due_date),
+            true,
+        )
+        .await
+        .unwrap();
+    let fetched_bill = fm.get_bill(&bill.id).await.unwrap().unwrap();
+    assert_eq!(bill, fetched_bill)
+}
+
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! unit_tests {
@@ -300,6 +346,11 @@ macro_rules! unit_tests {
         #[async_std::test]
         async fn update_transaction() {
             ($runner)(update_transaction_test).await;
+        }
+
+        #[async_std::test]
+        async fn create_bill() {
+            ($runner)(create_bill_test).await;
         }
     };
 }

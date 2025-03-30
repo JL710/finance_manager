@@ -64,11 +64,11 @@ where
         }
     }
 
-    pub async fn get_bills(&self) -> Result<Vec<Bill>> {
+    pub async fn get_bills(&self, closed: Option<bool>) -> Result<Vec<Bill>> {
         self.finance_manager
             .lock()
             .await
-            .get_bills()
+            .get_bills(closed)
             .await
             .context("Error while getting bills")
     }
@@ -89,6 +89,7 @@ where
         value: Currency,
         transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
+        closed: bool,
     ) -> Result<Bill> {
         let mut ids = Vec::with_capacity(transactions.len());
         for transaction in &transactions {
@@ -100,7 +101,7 @@ where
         self.finance_manager
             .lock()
             .await
-            .create_bill(name, description, value, transactions, due_date)
+            .create_bill(name, description, value, transactions, due_date, closed)
             .await
             .context("Error while creating bill")
     }
@@ -413,7 +414,7 @@ where
 
     pub async fn delete_transaction(&self, id: Id) -> Result<()> {
         async move {
-            for mut bill in self.get_bills().await? {
+            for mut bill in self.get_bills(None).await? {
                 if bill.transactions.remove(&id).is_some() {
                     self.update_bill(bill).await?
                 }
@@ -729,6 +730,7 @@ mod test {
                 Currency::default(),
                 HashMap::from([(t1.id, Sign::Positive)]),
                 None,
+                false,
             )
             .await
             .unwrap();
