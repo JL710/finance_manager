@@ -1124,7 +1124,7 @@ fn main() {
         .unwrap();
 }
 
-fn markdown<'a>(items: &'a Vec<widget::markdown::Item>) -> iced::Element<'a, ViewMessage> {
+fn markdown(items: &Vec<widget::markdown::Item>) -> iced::Element<ViewMessage> {
     widget::container(widget::scrollable(widget::column![
         widget::markdown(
             items,
