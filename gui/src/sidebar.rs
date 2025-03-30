@@ -94,15 +94,15 @@ impl Sidebar {
                 self.collapsed
             ),
             icon_menu_item(
-                "Transactions",
-                &self.svg_cache.send_fill,
-                Message::FilterTransactionView,
-                self.collapsed
-            ),
-            icon_menu_item(
                 "Bills",
                 &self.svg_cache.folder_fill,
                 Message::BillOverview,
+                self.collapsed
+            ),
+            icon_menu_item(
+                "Transactions",
+                &self.svg_cache.send_fill,
+                Message::FilterTransactionView,
                 self.collapsed
             ),
             icon_menu_item(

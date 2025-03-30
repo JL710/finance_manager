@@ -310,3 +310,37 @@ pub fn category_distribution_popup<Message: std::marker::Send + 'static>(
     })
     .discard()
 }
+
+pub fn large_round_plus_button<Message: Clone + 'static>(
+    on_pressed_maybe: Option<Message>,
+) -> iced::Element<'static, Message> {
+    widget::container(
+        widget::button(
+            widget::svg(widget::svg::Handle::from_memory(include_bytes!(
+                "../../assets/plus-circle-fill.svg"
+            )))
+            .width(iced::Shrink),
+        )
+        .style(|theme, status| {
+            let mut style = widget::button::success(theme, status);
+            style.border.radius = iced::border::Radius::new(100);
+            style
+        })
+        .padding(15)
+        .on_press_maybe(on_pressed_maybe),
+    )
+    .padding(15)
+    .into()
+}
+
+pub fn overlap_bottom_right<'a, Message: Clone + 'static>(
+    base: impl Into<iced::Element<'a, Message>>,
+    overlay: impl Into<iced::Element<'a, Message>>,
+) -> widget::Stack<'a, Message> {
+    widget::stack![
+        base.into(),
+        widget::container(overlay.into())
+            .align_right(iced::Fill)
+            .align_bottom(iced::Fill)
+    ]
+}

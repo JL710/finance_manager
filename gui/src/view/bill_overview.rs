@@ -80,26 +80,28 @@ impl View {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        components::spaced_column![
-            components::button::new("New", Some(Message::NewBill)),
+        components::overlap_bottom_right(
             components::table_view::table_view(&self.bill_table)
                 .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
-                .view(|bill, _| [
-                    components::link(bill.0.name.as_str())
-                        .on_press(Message::ViewBill(bill.0.id))
+                .view(|bill, _| {
+                    [
+                        components::link(bill.0.name.as_str())
+                            .on_press(Message::ViewBill(bill.0.id))
+                            .into(),
+                        widget::text!("{}€", bill.0.value.to_num_string()).into(),
+                        components::colored_currency_display(&bill.1),
+                        widget::text(
+                            bill.0
+                                .due_date
+                                .map_or(String::new(), components::date_time::to_date_string),
+                        )
                         .into(),
-                    widget::text!("{}€", bill.0.value.to_num_string()).into(),
-                    components::colored_currency_display(&bill.1),
-                    widget::text(
-                        bill.0
-                            .due_date
-                            .map_or(String::new(), components::date_time::to_date_string)
-                    )
-                    .into(),
-                    widget::text(bill.0.transactions.len()).into()
-                ])
+                        widget::text(bill.0.transactions.len()).into(),
+                    ]
+                })
                 .map(Message::BillTable),
-        ]
+            components::large_round_plus_button(Some(Message::NewBill)),
+        )
         .height(iced::Fill)
         .width(iced::Fill)
         .into()

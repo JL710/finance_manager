@@ -64,16 +64,17 @@ impl View {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        components::spaced_column![
-            components::button::new("New Category", Some(Message::NewCategory)),
-            iced::widget::horizontal_rule(10),
+        components::overlap_bottom_right(
             components::table_view::table_view(&self.category_table)
                 .headers(["Name".to_string()])
-                .view(|category, _| [components::link(category.name.as_str())
-                    .on_press(Message::ViewCategory(category.id))
-                    .into()])
+                .view(|category, _| {
+                    [components::link(category.name.as_str())
+                        .on_press(Message::ViewCategory(category.id))
+                        .into()]
+                })
                 .map(Message::CategoryTable),
-        ]
+            components::large_round_plus_button(Some(Message::NewCategory)),
+        )
         .height(iced::Fill)
         .width(iced::Fill)
         .into()

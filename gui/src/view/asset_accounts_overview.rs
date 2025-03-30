@@ -1,5 +1,3 @@
-use iced::widget;
-
 pub enum Action {
     None,
     CreateAssetAccount,
@@ -105,14 +103,10 @@ impl View {
             })
             .map(Message::TableView);
 
-        components::spaced_column![
-            widget::row![components::button::new(
-                "New Asset Account",
-                Some(Message::CreateAssetAccount)
-            )],
-            widget::horizontal_rule(10),
+        components::overlap_bottom_right(
             account_table,
-        ]
+            components::large_round_plus_button(Some(Message::CreateAssetAccount)),
+        )
         .height(iced::Fill)
         .into()
     }

@@ -1,5 +1,3 @@
-use iced::widget;
-
 pub enum Action {
     None,
     ViewAccount(fm_core::Id),
@@ -89,19 +87,20 @@ impl View {
     }
 
     pub fn view(&self) -> iced::Element<Message> {
-        components::spaced_column![
-            components::button::new("Create new account", Some(Message::New)),
-            widget::horizontal_rule(10),
+        components::overlap_bottom_right(
             components::table_view::table_view(&self.accounts_table)
                 .headers(["Account".to_string(), "Sum".to_string()])
-                .view(|(account, sum), _| [
-                    components::link(account.name.as_str())
-                        .on_press(Message::ViewAccount(account.id))
-                        .into(),
-                    components::colored_currency_display(sum),
-                ])
-                .map(Message::AccountTable)
-        ]
+                .view(|(account, sum), _| {
+                    [
+                        components::link(account.name.as_str())
+                            .on_press(Message::ViewAccount(account.id))
+                            .into(),
+                        components::colored_currency_display(sum),
+                    ]
+                })
+                .map(Message::AccountTable),
+            components::large_round_plus_button(Some(Message::New)),
+        )
         .height(iced::Fill)
         .width(iced::Fill)
         .into()

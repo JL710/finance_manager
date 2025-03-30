@@ -90,9 +90,7 @@ impl View {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        components::spaced_column![
-            components::button::new("Create Budget", Some(Message::CreateBudget)),
-            widget::horizontal_rule(10),
+        components::overlap_bottom_right(
             components::table_view::table_view(&self.budget_table)
                 .headers([
                     "Name".to_string(),
@@ -109,7 +107,8 @@ impl View {
                     ]
                 })
                 .map(Message::BudgetTable),
-        ]
+            components::large_round_plus_button(Some(Message::CreateBudget)),
+        )
         .height(iced::Fill)
         .into()
     }
