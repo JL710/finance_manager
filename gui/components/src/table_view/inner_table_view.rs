@@ -1,6 +1,10 @@
+use iced::advanced;
+
+#[derive(Debug)]
 struct State {
     column_widths: Option<Vec<f32>>,
     layout_id: isize,
+    scroll_state: crate::scrollable::State,
 }
 
 type HeaderElementPair<'a, Message, Theme, Renderer> = (
@@ -19,6 +23,7 @@ pub struct InnerTableView<
 > where
     Renderer: iced::advanced::Renderer,
 {
+    scrollable_id: Option<iced::advanced::widget::Id>,
     /// name and sort svg/button represents one header
     header_elements: Vec<HeaderElementPair<'a, Message, Theme, Renderer>>,
     elements: Vec<iced::Element<'a, Message, Theme, Renderer>>,
@@ -27,7 +32,6 @@ pub struct InnerTableView<
     column_max_is_weak: [bool; COLUMNS],
     row_spacing: f32,
     column_spacing: f32,
-    optimal_width: f32,
     cell_padding: iced::Padding,
     header_background_color: Box<dyn Fn(&Theme) -> iced::Color>,
     row_color: RowColorStyleFn<Theme>,
@@ -47,20 +51,19 @@ where
         column_max_is_weak: [bool; COLUMNS],
         row_spacing: f32,
         column_spacing: f32,
-        optimal_width: f32,
         cell_padding: iced::Padding,
         header_background_color: impl Fn(&Theme) -> iced::Color + 'static,
         row_color: impl Fn(&Theme, usize) -> iced::Color + 'static,
         layout_id: isize,
     ) -> Self {
         Self {
+            scrollable_id: None,
             header_elements,
             elements,
             max_column_sizes,
             column_max_is_weak,
             row_spacing,
             column_spacing,
-            optimal_width,
             cell_padding,
             header_background_color: Box::new(header_background_color),
             row_color: Box::new(row_color),
@@ -90,6 +93,11 @@ where
             children.push(element);
         }
         children
+    }
+
+    pub fn id(mut self, id: iced::advanced::widget::Id) -> Self {
+        self.scrollable_id = Some(id);
+        self
     }
 }
 
@@ -169,6 +177,7 @@ fn dynamic_cell_layout_size<
     Renderer: iced::advanced::Renderer,
 >(
     table: &InnerTableView<'_, Message, COLUMNS, Theme, Renderer>,
+    optimal_width: f32,
     renderer: &Renderer,
     states: &mut [iced::advanced::widget::Tree],
     reserved_space: f32,
@@ -194,8 +203,7 @@ fn dynamic_cell_layout_size<
         // if max is weak expand max_width if possible
         if weak_max {
             let space_left = (0.0_f32).max(
-                table.optimal_width
-                    - (reserved_space + column_widths.iter().flatten().sum::<f32>()),
+                optimal_width - (reserved_space + column_widths.iter().flatten().sum::<f32>()),
             );
             if space_left > 0.0 {
                 let spaced_needed = column_widths
@@ -240,7 +248,7 @@ fn dynamic_cell_layout_size<
     )
 }
 
-impl<Message, const COLUMNS: usize, Theme, Renderer>
+impl<Message, const COLUMNS: usize, Theme: crate::scrollable::Catalog, Renderer>
     iced::advanced::Widget<Message, Theme, Renderer>
     for InnerTableView<'_, Message, COLUMNS, Theme, Renderer>
 where
@@ -250,11 +258,12 @@ where
         iced::advanced::widget::tree::State::new(State {
             column_widths: None,
             layout_id: self.layout_id,
+            scroll_state: crate::scrollable::State::default(),
         })
     }
 
     fn size(&self) -> iced::Size<iced::Length> {
-        iced::Size::new(iced::Shrink, iced::Shrink)
+        iced::Size::new(iced::Fill, iced::Fill)
     }
 
     fn children(&self) -> Vec<iced::advanced::widget::Tree> {
@@ -265,17 +274,20 @@ where
     }
 
     fn diff(&self, tree: &mut iced::advanced::widget::Tree) {
-        let state = tree.state.downcast_mut::<State>();
+        if let iced::advanced::widget::tree::State::Some(state) = &mut tree.state {
+            let state: &mut State = state.downcast_mut().expect("Could not downcast state");
+            let column_widths_valid = if let Some(column_widths) = &mut state.column_widths {
+                column_widths.len() == COLUMNS
+            } else {
+                true
+            };
 
-        let column_widths_valid = if let Some(column_widths) = &mut state.column_widths {
-            column_widths.len() == COLUMNS
+            if !column_widths_valid || state.layout_id != self.layout_id {
+                state.column_widths = None;
+                state.layout_id = self.layout_id
+            }
         } else {
-            true
-        };
-
-        if !column_widths_valid || state.layout_id != self.layout_id {
-            state.column_widths = None;
-            state.layout_id = self.layout_id
+            tree.state = self.state();
         }
 
         tree.diff_children(&self.child_elements());
@@ -285,14 +297,15 @@ where
         &self,
         tree: &mut iced::advanced::widget::Tree,
         renderer: &Renderer,
-        _limits: &iced::advanced::layout::Limits,
+        limits: &iced::advanced::layout::Limits,
     ) -> iced::advanced::layout::Node {
         let state = tree.state.downcast_mut::<State>();
 
         let rows = self.elements.len() / COLUMNS;
-        let horizontal_padding_sum = (COLUMNS - 1) as f32 * self.column_spacing;
+        let horizontal_padding_spacing_sum = (COLUMNS - 1) as f32 * self.column_spacing
+            + COLUMNS as f32 * self.cell_padding.horizontal();
 
-        let mut child_layouts = Vec::with_capacity(COLUMNS * 2 + COLUMNS * rows);
+        let mut child_layouts = Vec::with_capacity(COLUMNS * 2 + COLUMNS * rows + 2);
 
         let column_widths = if let Some(col_widths) = state.column_widths.clone() {
             let mut child_state_iterator = tree.children.iter_mut();
@@ -345,9 +358,10 @@ where
 
             let (cell_layouts, element_column_widths) = dynamic_cell_layout_size(
                 self,
+                limits.max().width,
                 renderer,
                 &mut tree.children[self.header_elements.len() * 2..],
-                horizontal_padding_sum,
+                horizontal_padding_spacing_sum,
             );
             child_layouts.extend(cell_layouts);
 
@@ -389,7 +403,7 @@ where
                 column_widths[column_index] - layout_left.size().width - layout_right.size().width;
             layout_right.move_to_mut((
                 column_start_positions[column_index] + layout_left.size().width
-                // make a space between both as bit as possible
+                // make a space between both as big as possible
                 + space_between_them,
                 self.cell_padding.top,
             ));
@@ -398,6 +412,7 @@ where
                 .max(layout_left.size().height + self.cell_padding.vertical())
                 .max(layout_right.size().height + self.cell_padding.vertical())
         }
+        let header_height = total_height;
 
         // generate cell layouts
         for _ in 0..rows {
@@ -411,16 +426,22 @@ where
                 cell_layout.move_to_mut(iced::Point::new(column_start_positions[column_index], y));
             }
         }
+        total_height += self.cell_padding.bottom;
 
-        iced::advanced::layout::Node::with_children(
-            iced::Size::new(
-                horizontal_padding_sum
-                    + state.column_widths.as_ref().unwrap().iter().sum::<f32>()
-                    + COLUMNS as f32 * self.cell_padding.horizontal(),
-                total_height,
-            ),
-            child_layouts,
-        )
+        let inner_width = horizontal_padding_spacing_sum + column_widths.iter().sum::<f32>();
+        let header_node = advanced::layout::Node::new((inner_width, header_height).into());
+        let scrollable_node =
+            advanced::layout::Node::new((inner_width, total_height - header_height).into());
+        child_layouts.insert(0, scrollable_node);
+        child_layouts.insert(0, header_node);
+
+        crate::scrollable::update_state(
+            &mut state.scroll_state,
+            0.0f32.max(inner_width - limits.max().width),
+            0.0f32.max(total_height - limits.max().height - header_height),
+            iced::Size::new(inner_width, total_height - header_height),
+        );
+        iced::advanced::layout::Node::with_children(limits.max(), child_layouts)
     }
 
     fn draw(
@@ -439,16 +460,20 @@ where
             + COLUMNS as f32 * self.cell_padding.horizontal()
             + 0.0_f32.max((COLUMNS - 1) as f32) * self.column_spacing;
 
+        let mut child_layout_iterator = layout.children();
+        let header_layout = child_layout_iterator.next().unwrap();
+        let _scrollable_layout = child_layout_iterator.next().unwrap();
+
         let mut child_draw_todos = self
             .child_elements()
             .into_iter()
             .zip(&tree.children)
-            .zip(layout.children())
+            .zip(child_layout_iterator)
             .collect::<Vec<_>>();
 
         // draw heading
         let header_todos = pop_front_slice(&mut child_draw_todos, COLUMNS * 2);
-        let (_, row_bottom_y) = layouts_max(
+        let (row_bottom_x, row_bottom_y) = layouts_max(
             layout.position().x,
             layout.position().y,
             &header_todos.iter().map(|x| x.1).collect::<Vec<_>>(),
@@ -458,7 +483,7 @@ where
                 bounds: iced::Rectangle::new(
                     layout.position(),
                     (
-                        self.optimal_width.max(row_width), // use optimal width or max header x depending on what is larger
+                        layout.bounds().width,
                         row_bottom_y - layout.position().y + self.cell_padding.bottom,
                     )
                         .into(),
@@ -468,57 +493,103 @@ where
             },
             iced::Background::Color((self.header_background_color)(theme)),
         );
-        for ((child, state), child_layout) in header_todos {
-            child.as_widget().draw(
-                state,
-                renderer,
-                theme,
-                style,
-                child_layout,
-                cursor,
-                viewport,
-            );
-        }
+        let header_y_end = row_bottom_y + self.cell_padding.bottom;
+        let header_x_end = row_bottom_x + self.cell_padding.right;
+        renderer.with_layer(
+            header_layout
+                .bounds()
+                .intersection(&layout.bounds())
+                .unwrap(),
+            |renderer| {
+                renderer.with_translation(
+                    iced::Vector::new(state.scroll_state.translation().x, 0.0),
+                    |renderer| {
+                        for ((child, child_state), child_layout) in header_todos {
+                            child.as_widget().draw(
+                                child_state,
+                                renderer,
+                                theme,
+                                style,
+                                child_layout,
+                                if let iced::mouse::Cursor::Available(point) = cursor {
+                                    iced::mouse::Cursor::Available(
+                                        point
+                                            - iced::Vector::new(
+                                                state.scroll_state.translation().x,
+                                                0.0,
+                                            ),
+                                    )
+                                } else {
+                                    cursor
+                                },
+                                &(*viewport
+                                    - iced::Vector::new(state.scroll_state.translation().x, 0.0)),
+                            );
+                        }
+                    },
+                );
+            },
+        );
 
         // draw rows
         let mut row_index = 0;
-        while !child_draw_todos.is_empty() {
-            let y_cell_start = child_draw_todos[0].1.position().y;
-            let row_todos = pop_front_slice(&mut child_draw_todos, COLUMNS);
-            let (_, row_bottom_y) = layouts_max(
-                layout.position().x,
-                layout.position().y,
-                &row_todos.iter().map(|x| x.1).collect::<Vec<_>>(),
-            );
-            renderer.fill_quad(
-                iced::advanced::renderer::Quad {
-                    bounds: iced::Rectangle::new(
-                        (layout.position().x, y_cell_start - self.cell_padding.top).into(),
-                        (
-                            self.optimal_width.max(row_width), // use optimal width or max header x depending on what is larger
-                            row_bottom_y - y_cell_start + self.cell_padding.vertical(),
-                        )
-                            .into(),
-                    ),
-                    border: iced::Border::default(),
-                    shadow: iced::Shadow::default(),
-                },
-                iced::Background::Color((self.row_color)(theme, row_index)),
-            );
-            for ((child, state), child_layout) in row_todos {
-                child.as_widget().draw(
-                    state,
-                    renderer,
-                    theme,
-                    style,
-                    child_layout,
-                    cursor,
-                    viewport,
-                );
-            }
+        let row_layouts = child_draw_todos.iter().map(|x| x.1).collect::<Vec<_>>();
+        let rows_x_end = header_x_end
+            .max(crate::scrollable::x_start_end(&row_layouts).1 + self.cell_padding.right);
+        let rows_y_end = crate::scrollable::y_start_end(&row_layouts).1 + self.cell_padding.bottom;
+        crate::scrollable::draw(
+            &state.scroll_state,
+            renderer,
+            theme,
+            style,
+            cursor,
+            iced::Size::new(rows_x_end - layout.position().x, rows_y_end - header_y_end),
+            iced::Rectangle {
+                y: header_y_end,
+                height: layout.bounds().height - (header_y_end - layout.bounds().y),
+                ..layout.bounds()
+            },
+            viewport,
+            |renderer, viewport, cursor| {
+                while !child_draw_todos.is_empty() {
+                    let y_cell_start = child_draw_todos[0].1.position().y;
+                    let row_todos = pop_front_slice(&mut child_draw_todos, COLUMNS);
+                    let (_, row_bottom_y) = layouts_max(
+                        layout.position().x,
+                        layout.position().y,
+                        &row_todos.iter().map(|x| x.1).collect::<Vec<_>>(),
+                    );
+                    renderer.fill_quad(
+                        iced::advanced::renderer::Quad {
+                            bounds: iced::Rectangle::new(
+                                (layout.position().x, y_cell_start - self.cell_padding.top).into(),
+                                (
+                                    layout.bounds().width.max(row_width), // use optimal width or max header x depending on what is larger
+                                    row_bottom_y - y_cell_start + self.cell_padding.vertical(),
+                                )
+                                    .into(),
+                            ),
+                            border: iced::Border::default(),
+                            shadow: iced::Shadow::default(),
+                        },
+                        iced::Background::Color((self.row_color)(theme, row_index)),
+                    );
+                    for ((child, state), child_layout) in row_todos {
+                        child.as_widget().draw(
+                            state,
+                            renderer,
+                            theme,
+                            style,
+                            child_layout,
+                            cursor,
+                            viewport,
+                        );
+                    }
 
-            row_index += 1;
-        }
+                    row_index += 1;
+                }
+            },
+        );
     }
 
     fn operate(
@@ -528,11 +599,21 @@ where
         renderer: &Renderer,
         operation: &mut dyn iced::advanced::widget::Operation,
     ) {
+        let downcast_state: &mut State = state.state.downcast_mut();
+        let translation = downcast_state.scroll_state.translation();
+        operation.scrollable(
+            &mut downcast_state.scroll_state,
+            self.scrollable_id.as_ref(),
+            layout.bounds(),
+            layout.bounds(),
+            translation,
+        );
+
         operation.container(None, layout.bounds(), &mut |operation| {
             self.child_elements()
                 .into_iter()
                 .zip(&mut state.children)
-                .zip(layout.children())
+                .zip(layout.children().skip(2))
                 .for_each(|((child, state), layout)| {
                     child
                         .as_widget()
@@ -553,9 +634,62 @@ where
         viewport: &iced::Rectangle,
     ) -> iced::advanced::graphics::core::event::Status {
         let mut child_layouts = layout.children();
+        let header_layout = child_layouts.next().unwrap();
+        let _scrollable_layout = child_layouts.next().unwrap();
+        let downcast_state: &mut State = state.state.downcast_mut();
+        if crate::scrollable::scroll_grab_on_event(
+            &mut downcast_state.scroll_state,
+            event.clone(),
+            cursor,
+            layout
+                .bounds()
+                .shrink(iced::Padding::ZERO.top(header_layout.bounds().height)),
+        ) == iced::advanced::graphics::core::event::Status::Captured
+        {
+            return iced::advanced::graphics::core::event::Status::Captured;
+        }
+        if crate::scrollable::scroll_wheel_on_event(
+            &mut downcast_state.scroll_state,
+            event.clone(),
+            cursor,
+            layout.bounds(),
+        ) == iced::advanced::graphics::core::event::Status::Captured
+        {
+            return iced::advanced::graphics::core::event::Status::Captured;
+        }
         let mut child_states = state.children.iter_mut();
-        for element in self.child_elements_mut() {
-            if let iced::event::Status::Captured = element.as_widget_mut().on_event(
+        let mut child_elements = self.child_elements_mut().into_iter();
+        for _ in 0..(COLUMNS * 2) {
+            if let iced::event::Status::Captured =
+                child_elements.next().unwrap().as_widget_mut().on_event(
+                    child_states.next().unwrap(),
+                    event.clone(),
+                    child_layouts.next().unwrap(),
+                    if let iced::mouse::Cursor::Available(point) = cursor {
+                        iced::mouse::Cursor::Available(
+                            point
+                                - iced::Vector::new(
+                                    downcast_state.scroll_state.translation().x,
+                                    0.0,
+                                ),
+                        )
+                    } else {
+                        cursor
+                    },
+                    renderer,
+                    clipboard,
+                    shell,
+                    &(*viewport
+                        - iced::Vector::new(downcast_state.scroll_state.translation().x, 0.0)),
+                )
+            {
+                return iced::event::Status::Captured;
+            }
+        }
+        for element in child_elements {
+            if let iced::event::Status::Captured = crate::scrollable::on_event(
+                &downcast_state.scroll_state,
+                element.as_widget_mut(),
                 child_states.next().unwrap(),
                 event.clone(),
                 child_layouts.next().unwrap(),
@@ -580,17 +714,61 @@ where
         viewport: &iced::Rectangle,
         renderer: &Renderer,
     ) -> iced::advanced::mouse::Interaction {
-        self.child_elements()
-            .iter()
+        let downcast_state: &State = state.state.downcast_ref();
+
+        let mut child_layouts = layout.children();
+        let _header_layout = child_layouts.next().unwrap();
+        let _scrollable_layouts = child_layouts.next().unwrap();
+
+        let mut child_elements = self.child_elements();
+        let mut todos = child_elements
+            .iter_mut()
             .zip(&state.children)
-            .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child
-                    .as_widget()
-                    .mouse_interaction(state, layout, cursor, viewport, renderer)
+            .zip(child_layouts);
+
+        let header = todos
+            .by_ref()
+            .take(COLUMNS * 2)
+            .map(|((child, child_state), layout)| {
+                child.as_widget().mouse_interaction(
+                    child_state,
+                    layout,
+                    if let iced::mouse::Cursor::Available(point) = cursor {
+                        iced::mouse::Cursor::Available(
+                            point
+                                - iced::Vector::new(
+                                    downcast_state.scroll_state.translation().x,
+                                    0.0,
+                                ),
+                        )
+                    } else {
+                        cursor
+                    },
+                    &(*viewport
+                        - iced::Vector::new(downcast_state.scroll_state.translation().x, 0.0)),
+                    renderer,
+                )
             })
             .max()
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        let cells = todos
+            .by_ref()
+            .map(|((child, child_state), layout)| {
+                crate::scrollable::mouse_interaction(
+                    &downcast_state.scroll_state,
+                    child.as_widget(),
+                    child_state,
+                    layout,
+                    cursor,
+                    viewport,
+                    renderer,
+                )
+            })
+            .max()
+            .unwrap_or_default();
+
+        [header, cells].into_iter().max().unwrap_or_default()
     }
 
     fn overlay<'b>(
@@ -601,6 +779,8 @@ where
         translation: iced::Vector,
     ) -> Option<iced::advanced::overlay::Element<'b, Message, Theme, Renderer>> {
         let mut child_layouts = layout.children();
+        let _header_layout = child_layouts.next().unwrap();
+        let _scrollable_layout = child_layouts.next().unwrap();
         let mut child_states = state.children.iter_mut();
 
         let mut children = Vec::new();
@@ -628,7 +808,7 @@ fn pop_front_slice<T>(vector: &mut Vec<T>, count: usize) -> Vec<T> {
     result
 }
 
-impl<'a, Message: 'a, const COLUMNS: usize, Theme: 'a, Renderer: 'a>
+impl<'a, Message: 'a, const COLUMNS: usize, Theme: crate::scrollable::Catalog + 'a, Renderer: 'a>
     From<InnerTableView<'a, Message, COLUMNS, Theme, Renderer>>
     for iced::Element<'a, Message, Theme, Renderer>
 where

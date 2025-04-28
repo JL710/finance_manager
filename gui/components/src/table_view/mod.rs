@@ -246,82 +246,76 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
         to_row: impl Fn(&'a T, &'a C) -> [iced::Element<'a, Message>; COLUMNS] + 'a,
     ) -> iced::Element<'a, InnerMessage<Message>> {
         let headers = self.headers.clone().unwrap();
-        let table = iced::widget::responsive(move |size| {
-            let mut header_elements = Vec::new();
-            for (index, header) in headers.iter().enumerate() {
-                header_elements.push((
-                    iced::Element::new(widget::text(header.clone())),
-                    if self.state.sortable.contains(&index) {
-                        iced::Element::new(
-                            widget::button(
-                                widget::svg::Svg::new(if Some(index) == self.state.sort_column {
-                                    if self.state.sort_reverse {
-                                        icons::FILTER_CIRCLE_FILL.clone()
-                                    } else {
-                                        icons::FILTER_CIRCLE.clone()
-                                    }
+
+        let mut header_elements = Vec::new();
+        for (index, header) in headers.iter().enumerate() {
+            header_elements.push((
+                iced::Element::new(widget::text(header.clone())),
+                if self.state.sortable.contains(&index) {
+                    iced::Element::new(
+                        widget::button(
+                            widget::svg::Svg::new(if Some(index) == self.state.sort_column {
+                                if self.state.sort_reverse {
+                                    icons::FILTER_CIRCLE_FILL.clone()
                                 } else {
-                                    icons::FILTER.clone()
-                                })
-                                .content_fit(iced::ContentFit::Fill)
-                                .width(iced::Length::Shrink),
-                            )
-                            .padding(3)
-                            .on_press(InnerMessage::SortByColumn(index)),
+                                    icons::FILTER_CIRCLE.clone()
+                                }
+                            } else {
+                                icons::FILTER.clone()
+                            })
+                            .content_fit(iced::ContentFit::Fill)
+                            .width(iced::Length::Shrink),
                         )
-                    } else {
-                        iced::Element::new(widget::Space::new(0.0, 0.0))
+                        .padding(3)
+                        .on_press(InnerMessage::SortByColumn(index)),
+                    )
+                } else {
+                    iced::Element::new(widget::Space::new(0.0, 0.0))
+                },
+            ));
+        }
+
+        let mut cell_elements = Vec::new();
+        for item_index in (self.state.page * self.state.page_size)
+            ..(self
+                .state
+                .items
+                .len()
+                .min(self.state.page * self.state.page_size + self.state.page_size))
+        {
+            cell_elements.extend(
+                (to_row)(&self.state.items()[item_index], &self.state.context)
+                    .map(|element| element.map(|x| InnerMessage::OuterMessage(Box::new(x)))),
+            );
+        }
+
+        let table = iced::Element::new(
+            widget::container(
+                inner_table_view::InnerTableView::new(
+                    header_elements,
+                    cell_elements,
+                    self.max_column_sizes,
+                    self.column_max_is_weak,
+                    self.row_spacing,
+                    self.column_spacing,
+                    self.cell_padding,
+                    |theme: &iced::Theme| theme.extended_palette().background.strong.color,
+                    |theme: &iced::Theme, row: usize| {
+                        let factor = if row % 2 == 0 { 0.25 } else { 0.5 };
+                        let mut weak = theme.extended_palette().background.weak.color;
+                        let strong = theme.extended_palette().background.base.color;
+                        weak.r += (strong.r - weak.r) * factor;
+                        weak.g += (strong.g - weak.g) * factor;
+                        weak.b += (strong.b - weak.b) * factor;
+                        weak
                     },
-                ));
-            }
-
-            let mut cell_elements = Vec::new();
-            for item_index in (self.state.page * self.state.page_size)
-                ..(self
-                    .state
-                    .items
-                    .len()
-                    .min(self.state.page * self.state.page_size + self.state.page_size))
-            {
-                cell_elements.extend(
-                    (to_row)(&self.state.items()[item_index], &self.state.context)
-                        .map(|element| element.map(|x| InnerMessage::OuterMessage(Box::new(x)))),
-                );
-            }
-
-            iced::Element::new(
-                iced::widget::scrollable(
-                    widget::container(inner_table_view::InnerTableView::new(
-                        header_elements,
-                        cell_elements,
-                        self.max_column_sizes,
-                        self.column_max_is_weak,
-                        self.row_spacing,
-                        self.column_spacing,
-                        size.width,
-                        self.cell_padding,
-                        |theme: &iced::Theme| theme.extended_palette().background.strong.color,
-                        |theme: &iced::Theme, row: usize| {
-                            let factor = if row % 2 == 0 { 0.25 } else { 0.5 };
-                            let mut weak = theme.extended_palette().background.weak.color;
-                            let strong = theme.extended_palette().background.base.color;
-                            weak.r += (strong.r - weak.r) * factor;
-                            weak.g += (strong.g - weak.g) * factor;
-                            weak.b += (strong.b - weak.b) * factor;
-                            weak
-                        },
-                        self.state.inner_layout_id,
-                    ))
-                    .padding(iced::Padding::ZERO.bottom(10)),
+                    self.state.inner_layout_id,
                 )
-                .direction(iced::widget::scrollable::Direction::Both {
-                    horizontal: iced::widget::scrollable::Scrollbar::new(),
-                    vertical: iced::widget::scrollable::Scrollbar::new(),
-                })
-                .id(self.state.scrollable_id.clone())
-                .width(iced::Fill),
+                .id(self.state.scrollable_id.clone().into()),
             )
-        });
+            .padding(iced::Padding::ZERO.bottom(10))
+            .width(iced::Fill),
+        );
 
         widget::column![
             table,

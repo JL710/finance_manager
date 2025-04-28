@@ -4,6 +4,7 @@ pub use iced::{self, widget};
 pub mod button;
 pub mod currency_input;
 pub mod filter_component;
+mod scrollable;
 pub mod table_view;
 pub mod transaction_table;
 
