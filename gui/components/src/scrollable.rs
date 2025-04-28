@@ -409,30 +409,27 @@ fn calculate_status(
     mouse_drag_y: bool,
 ) -> Status {
     if let iced::mouse::Cursor::Available(position) = cursor {
+        if mouse_drag_y {
+            return Status::Dragged {
+                is_horizontal_scrollbar_dragged: false,
+                is_vertical_scrollbar_dragged: true,
+            };
+        } else if mouse_drag_x {
+            return Status::Dragged {
+                is_horizontal_scrollbar_dragged: true,
+                is_vertical_scrollbar_dragged: false,
+            };
+        }
         if vertical_scrollbar_bounds.contains(position) {
-            if mouse_drag_y {
-                return Status::Dragged {
-                    is_horizontal_scrollbar_dragged: false,
-                    is_vertical_scrollbar_dragged: true,
-                };
-            } else {
-                return Status::Hovered {
-                    is_horizontal_scrollbar_hovered: false,
-                    is_vertical_scrollbar_hovered: true,
-                };
-            }
+            return Status::Hovered {
+                is_horizontal_scrollbar_hovered: false,
+                is_vertical_scrollbar_hovered: true,
+            };
         } else if horizontal_scrollbar_bounds.contains(position) {
-            if mouse_drag_x {
-                return Status::Dragged {
-                    is_horizontal_scrollbar_dragged: true,
-                    is_vertical_scrollbar_dragged: false,
-                };
-            } else {
-                return Status::Hovered {
-                    is_horizontal_scrollbar_hovered: true,
-                    is_vertical_scrollbar_hovered: false,
-                };
-            }
+            return Status::Hovered {
+                is_horizontal_scrollbar_hovered: true,
+                is_vertical_scrollbar_hovered: false,
+            };
         }
     }
     Status::Active
