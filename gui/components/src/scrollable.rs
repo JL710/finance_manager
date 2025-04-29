@@ -44,7 +44,6 @@ pub struct State {
     scroll_y: f32,
     scroll_space_x: f32,
     scroll_space_y: f32,
-    inner_space: iced::Size,
     mouse_grabbed_at_x: Option<f32>,
     mouse_grabbed_at_y: Option<f32>,
     keyboard_modifiers: iced::keyboard::Modifiers,
@@ -228,15 +227,9 @@ pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
     });
 }
 
-pub fn update_state(
-    state: &mut State,
-    scroll_space_x: f32,
-    scroll_space_y: f32,
-    inner_size: iced::Size,
-) {
+pub fn update_state(state: &mut State, scroll_space_x: f32, scroll_space_y: f32) {
     state.scroll_space_y = scroll_space_y;
     state.scroll_space_x = scroll_space_x;
-    state.inner_space = inner_size;
 }
 
 pub fn mouse_interaction<Message, Renderer: advanced::Renderer, Theme>(
@@ -333,18 +326,15 @@ pub fn scroll_grab_on_event(
     event: iced::Event,
     cursor: advanced::mouse::Cursor,
     bounds: iced::Rectangle,
+    inner_size: iced::Size,
 ) -> advanced::graphics::core::event::Status {
     let scrollbar_bounds = scrollbar_bounds(
         bounds,
-        state.inner_space.width > bounds.width,
-        state.inner_space.height > bounds.height,
+        inner_size.width > bounds.width,
+        inner_size.height > bounds.height,
     );
-    let scroller_bounds = scroller_bounds(
-        state,
-        state.inner_space,
-        scrollbar_bounds.0,
-        scrollbar_bounds.1,
-    );
+    let scroller_bounds =
+        scroller_bounds(state, inner_size, scrollbar_bounds.0, scrollbar_bounds.1);
 
     // mouse drag movement
     if state.mouse_grabbed_at_x.is_some() || state.mouse_grabbed_at_y.is_some() {

@@ -439,7 +439,6 @@ where
             &mut state.scroll_state,
             0.0f32.max(inner_width - limits.max().width),
             0.0f32.max(total_height - limits.max().height - header_height),
-            iced::Size::new(inner_width, total_height - header_height),
         );
         iced::advanced::layout::Node::with_children(limits.max(), child_layouts)
     }
@@ -635,7 +634,7 @@ where
     ) -> iced::advanced::graphics::core::event::Status {
         let mut child_layouts = layout.children();
         let header_layout = child_layouts.next().unwrap();
-        let _scrollable_layout = child_layouts.next().unwrap();
+        let scrollable_layout = child_layouts.next().unwrap();
         let downcast_state: &mut State = state.state.downcast_mut();
         if crate::scrollable::scroll_grab_on_event(
             &mut downcast_state.scroll_state,
@@ -644,6 +643,7 @@ where
             layout
                 .bounds()
                 .shrink(iced::Padding::ZERO.top(header_layout.bounds().height)),
+            scrollable_layout.bounds().size(),
         ) == iced::advanced::graphics::core::event::Status::Captured
         {
             return iced::advanced::graphics::core::event::Status::Captured;
