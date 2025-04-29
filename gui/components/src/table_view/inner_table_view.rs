@@ -718,7 +718,7 @@ where
 
         let mut child_layouts = layout.children();
         let _header_layout = child_layouts.next().unwrap();
-        let _scrollable_layouts = child_layouts.next().unwrap();
+        let scrollable_layout = child_layouts.next().unwrap();
 
         let mut child_elements = self.child_elements();
         let mut todos = child_elements
@@ -754,12 +754,17 @@ where
 
         let cells = todos
             .by_ref()
-            .map(|((child, child_state), layout)| {
+            .map(|((child, child_state), child_layout)| {
                 crate::scrollable::mouse_interaction(
                     &downcast_state.scroll_state,
+                    scrollable_layout
+                        .bounds()
+                        .intersection(&layout.bounds())
+                        .unwrap(),
+                    scrollable_layout.bounds().size(),
                     child.as_widget(),
                     child_state,
-                    layout,
+                    child_layout,
                     cursor,
                     viewport,
                     renderer,

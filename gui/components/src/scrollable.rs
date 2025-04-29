@@ -232,15 +232,33 @@ pub fn update_state(state: &mut State, scroll_space_x: f32, scroll_space_y: f32)
     state.scroll_space_x = scroll_space_x;
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn mouse_interaction<Message, Renderer: advanced::Renderer, Theme>(
     state: &State,
+    outer_bounds: iced::Rectangle,
+    inner_size: iced::Size,
     widget: &dyn advanced::Widget<Message, Theme, Renderer>,
-    tree: &iced::advanced::widget::Tree,
-    layout: iced::advanced::Layout<'_>,
-    cursor: iced::advanced::mouse::Cursor,
+    tree: &advanced::widget::Tree,
+    layout: advanced::Layout<'_>,
+    cursor: advanced::mouse::Cursor,
     viewport: &iced::Rectangle,
     renderer: &Renderer,
-) -> iced::advanced::mouse::Interaction {
+) -> advanced::mouse::Interaction {
+    if state.mouse_grabbed_at_x.is_some() || state.mouse_grabbed_at_y.is_some() {
+        return advanced::mouse::Interaction::Idle;
+    } else if let iced::mouse::Cursor::Available(position) = cursor {
+        let scrollbar_bounds = scrollbar_bounds(
+            outer_bounds,
+            outer_bounds.height < inner_size.height,
+            outer_bounds.width < inner_size.width,
+        );
+        let scroller_bounds =
+            scroller_bounds(state, inner_size, scrollbar_bounds.0, scrollbar_bounds.1);
+        if scroller_bounds.0.contains(position) || scroller_bounds.1.contains(position) {
+            return advanced::mouse::Interaction::Idle;
+        }
+    }
+
     widget.mouse_interaction(
         tree,
         layout,
