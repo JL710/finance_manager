@@ -809,7 +809,10 @@ impl App {
                                 match current_view {
                                     View::Markdown(_heading, items) => markdown(items),
                                     View::License => {
-                                        widget::scrollable(include_str!("../../LICENSE")).into()
+                                        widget::scrollable(include_str!("../../LICENSE"))
+                                            .width(iced::Fill)
+                                            .height(iced::Fill)
+                                            .into()
                                     }
                                     View::BudgetOverview(view) => {
                                         view.view().map(ViewMessage::BudgetOverview)
