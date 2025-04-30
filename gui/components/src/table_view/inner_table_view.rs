@@ -435,11 +435,6 @@ where
         child_layouts.insert(0, scrollable_node);
         child_layouts.insert(0, header_node);
 
-        crate::scrollable::update_state(
-            &mut state.scroll_state,
-            0.0f32.max(inner_width - limits.max().width),
-            0.0f32.max(total_height - limits.max().height - header_height),
-        );
         iced::advanced::layout::Node::with_children(limits.max(), child_layouts)
     }
 
@@ -494,41 +489,60 @@ where
         );
         let header_y_end = row_bottom_y + self.cell_padding.bottom;
         let header_x_end = row_bottom_x + self.cell_padding.right;
-        renderer.with_layer(
-            header_layout
-                .bounds()
-                .intersection(&layout.bounds())
-                .unwrap(),
-            |renderer| {
-                renderer.with_translation(
-                    iced::Vector::new(state.scroll_state.translation().x, 0.0),
-                    |renderer| {
-                        for ((child, child_state), child_layout) in header_todos {
-                            child.as_widget().draw(
-                                child_state,
-                                renderer,
-                                theme,
-                                style,
-                                child_layout,
-                                if let iced::mouse::Cursor::Available(point) = cursor {
-                                    iced::mouse::Cursor::Available(
-                                        point
-                                            - iced::Vector::new(
-                                                state.scroll_state.translation().x,
-                                                0.0,
-                                            ),
-                                    )
-                                } else {
-                                    cursor
-                                },
-                                &(*viewport
-                                    - iced::Vector::new(state.scroll_state.translation().x, 0.0)),
-                            );
-                        }
-                    },
-                );
-            },
-        );
+        let header_outer_bounds = header_layout
+            .bounds()
+            .intersection(&layout.bounds())
+            .unwrap();
+        renderer.with_layer(header_outer_bounds, |renderer| {
+            renderer.with_translation(
+                iced::Vector::new(
+                    state
+                        .scroll_state
+                        .translation(header_outer_bounds.size(), header_layout.bounds().size())
+                        .x,
+                    0.0,
+                ),
+                |renderer| {
+                    for ((child, child_state), child_layout) in header_todos {
+                        child.as_widget().draw(
+                            child_state,
+                            renderer,
+                            theme,
+                            style,
+                            child_layout,
+                            if let iced::mouse::Cursor::Available(point) = cursor {
+                                iced::mouse::Cursor::Available(
+                                    point
+                                        - iced::Vector::new(
+                                            state
+                                                .scroll_state
+                                                .translation(
+                                                    header_outer_bounds.size(),
+                                                    header_layout.bounds().size(),
+                                                )
+                                                .x,
+                                            0.0,
+                                        ),
+                                )
+                            } else {
+                                cursor
+                            },
+                            &(*viewport
+                                - iced::Vector::new(
+                                    state
+                                        .scroll_state
+                                        .translation(
+                                            header_outer_bounds.size(),
+                                            header_layout.bounds().size(),
+                                        )
+                                        .x,
+                                    0.0,
+                                )),
+                        );
+                    }
+                },
+            );
+        });
 
         // draw rows
         let mut row_index = 0;
@@ -598,8 +612,19 @@ where
         renderer: &Renderer,
         operation: &mut dyn iced::advanced::widget::Operation,
     ) {
+        let mut layout_child_iterator = layout.children();
+        let _header_layout = layout_child_iterator.next().unwrap();
+        let scrollable_layout = layout_child_iterator.next().unwrap();
+
         let downcast_state: &mut State = state.state.downcast_mut();
-        let translation = downcast_state.scroll_state.translation();
+        let translation = downcast_state.scroll_state.translation(
+            layout
+                .bounds()
+                .intersection(&scrollable_layout.bounds())
+                .unwrap()
+                .size(),
+            scrollable_layout.bounds().size(),
+        );
         operation.scrollable(
             &mut downcast_state.scroll_state,
             self.scrollable_id.as_ref(),
@@ -612,7 +637,7 @@ where
             self.child_elements()
                 .into_iter()
                 .zip(&mut state.children)
-                .zip(layout.children().skip(2))
+                .zip(&mut layout_child_iterator)
                 .for_each(|((child, state), layout)| {
                     child
                         .as_widget()
@@ -653,10 +678,20 @@ where
             event.clone(),
             cursor,
             layout.bounds(),
+            scrollable_layout.bounds().size(),
         ) == iced::advanced::graphics::core::event::Status::Captured
         {
             return iced::advanced::graphics::core::event::Status::Captured;
         }
+
+        let outer_scrollable_size = scrollable_layout
+            .bounds()
+            .intersection(&layout.bounds())
+            .unwrap()
+            .size();
+        let translation = downcast_state
+            .scroll_state
+            .translation(outer_scrollable_size, scrollable_layout.bounds().size());
         let mut child_states = state.children.iter_mut();
         let mut child_elements = self.child_elements_mut().into_iter();
         for _ in 0..(COLUMNS * 2) {
@@ -667,11 +702,7 @@ where
                     child_layouts.next().unwrap(),
                     if let iced::mouse::Cursor::Available(point) = cursor {
                         iced::mouse::Cursor::Available(
-                            point
-                                - iced::Vector::new(
-                                    downcast_state.scroll_state.translation().x,
-                                    0.0,
-                                ),
+                            point - iced::Vector::new(translation.x, 0.0),
                         )
                     } else {
                         cursor
@@ -679,8 +710,7 @@ where
                     renderer,
                     clipboard,
                     shell,
-                    &(*viewport
-                        - iced::Vector::new(downcast_state.scroll_state.translation().x, 0.0)),
+                    &(*viewport - iced::Vector::new(translation.x, 0.0)),
                 )
             {
                 return iced::event::Status::Captured;
@@ -690,6 +720,8 @@ where
             if let iced::event::Status::Captured = crate::scrollable::on_event(
                 &downcast_state.scroll_state,
                 element.as_widget_mut(),
+                outer_scrollable_size,
+                scrollable_layout.bounds().size(),
                 child_states.next().unwrap(),
                 event.clone(),
                 child_layouts.next().unwrap(),
@@ -726,6 +758,15 @@ where
             .zip(&state.children)
             .zip(child_layouts);
 
+        let translation = downcast_state.scroll_state.translation(
+            scrollable_layout
+                .bounds()
+                .intersection(&layout.bounds())
+                .unwrap()
+                .size(),
+            scrollable_layout.bounds().size(),
+        );
+
         let header = todos
             .by_ref()
             .take(COLUMNS * 2)
@@ -735,17 +776,12 @@ where
                     layout,
                     if let iced::mouse::Cursor::Available(point) = cursor {
                         iced::mouse::Cursor::Available(
-                            point
-                                - iced::Vector::new(
-                                    downcast_state.scroll_state.translation().x,
-                                    0.0,
-                                ),
+                            point - iced::Vector::new(translation.x, 0.0),
                         )
                     } else {
                         cursor
                     },
-                    &(*viewport
-                        - iced::Vector::new(downcast_state.scroll_state.translation().x, 0.0)),
+                    &(*viewport - iced::Vector::new(translation.x, 0.0)),
                     renderer,
                 )
             })

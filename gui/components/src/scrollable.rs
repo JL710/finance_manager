@@ -1,5 +1,5 @@
-use iced::advanced;
-pub use iced::widget::scrollable::{Rail, Status};
+pub use iced::widget::scrollable::{AbsoluteOffset, Rail, Status};
+use iced::{Size, advanced, widget::scrollable::RelativeOffset};
 
 pub struct Style {
     pub vertical_rail: Rail,
@@ -38,64 +38,114 @@ impl Catalog for iced::Theme {
     }
 }
 
+#[derive(Debug, Clone)]
+enum Offset {
+    Relative(f32),
+    Absolute(f32),
+}
+
+impl Default for Offset {
+    fn default() -> Self {
+        Self::Relative(0.0)
+    }
+}
+
+impl Offset {
+    fn relative(&self, outer_size: f32, inner_size: f32) -> f32 {
+        match self {
+            Offset::Relative(relative) => *relative,
+            Offset::Absolute(absolute) => {
+                if outer_size >= inner_size {
+                    0.0
+                } else {
+                    absolute / (inner_size - outer_size)
+                }
+            }
+        }
+    }
+
+    fn absolute(&self, outer_size: f32, inner_size: f32) -> f32 {
+        match self {
+            Offset::Absolute(absolute) => *absolute,
+            Offset::Relative(relative) => relative * scroll_space(outer_size, inner_size),
+        }
+    }
+}
+
+fn scroll_space(outer_size: f32, inner_size: f32) -> f32 {
+    0.0f32.max(inner_size - outer_size)
+}
+
 #[derive(Default, Debug)]
 pub struct State {
-    scroll_x: f32,
-    scroll_y: f32,
-    scroll_space_x: f32,
-    scroll_space_y: f32,
+    scroll_x: Offset,
+    scroll_y: Offset,
     mouse_grabbed_at_x: Option<f32>,
     mouse_grabbed_at_y: Option<f32>,
     keyboard_modifiers: iced::keyboard::Modifiers,
 }
 
 impl State {
-    fn horizontal_scroll_factor(&self) -> f32 {
-        0.0f32.max(self.scroll_x / self.scroll_space_x)
+    fn horizontal_scroll_factor(&self, outer_size: f32, inner_size: f32) -> f32 {
+        self.scroll_x.relative(outer_size, inner_size)
     }
 
-    fn vertical_scroll_factor(&self) -> f32 {
-        0.0f32.max(self.scroll_y / self.scroll_space_y)
+    fn vertical_scroll_factor(&self, outer_size: f32, inner_size: f32) -> f32 {
+        self.scroll_y.relative(outer_size, inner_size)
     }
 
-    fn scroll_by(&mut self, x: f32, y: f32) {
-        self.set_absolute_position(self.scroll_x + x, self.scroll_y + y);
+    fn scroll_by(&mut self, offset: AbsoluteOffset, outer_size: Size, inner_size: Size) {
+        self.scroll_to(
+            AbsoluteOffset {
+                x: self.scroll_x.absolute(outer_size.width, inner_size.width) + offset.x,
+                y: self.scroll_y.absolute(outer_size.height, inner_size.height) + offset.y,
+            },
+            outer_size,
+            inner_size,
+        );
     }
 
-    fn set_absolute_position(&mut self, x: f32, y: f32) {
-        self.scroll_y = 0.0f32.max(self.scroll_space_y.min(y));
-        self.scroll_x = 0.0f32.max(self.scroll_space_x.min(x));
+    fn scroll_to(&mut self, offset: AbsoluteOffset, outer_size: Size, inner_size: Size) {
+        let scroll_space_x = scroll_space(outer_size.width, inner_size.width);
+        let scroll_space_y = scroll_space(outer_size.height, inner_size.height);
+        self.scroll_x = Offset::Absolute(offset.x.clamp(0.0, scroll_space_x));
+        self.scroll_y = Offset::Absolute(offset.y.clamp(0.0, scroll_space_y));
     }
 
-    fn set_relative_scroll(&mut self, x: f32, y: f32) {
-        if !(0.0..=1.0).contains(&x) || !(0.0..=1.0).contains(&y) {
-            panic!("relative scroll position can only be between 0.0 and 1.0")
-        }
-        self.scroll_x = self.scroll_space_x * x;
-        self.scroll_y = self.scroll_space_y * y;
+    fn snap_to(&mut self, offset: RelativeOffset) {
+        self.scroll_x = Offset::Relative(offset.x);
+        self.scroll_y = Offset::Relative(offset.y);
     }
 
-    pub fn translation(&self) -> iced::Vector {
-        iced::Vector::new(-self.scroll_x, -self.scroll_y)
+    pub fn translation(&self, outer_size: Size, inner_size: Size) -> iced::Vector {
+        let scroll_space_x = scroll_space(outer_size.width, inner_size.width);
+        let scroll_space_y = scroll_space(outer_size.height, inner_size.height);
+        let scroll_x =
+            scroll_space_x.min(self.scroll_x.absolute(outer_size.width, inner_size.width));
+        let scroll_y =
+            scroll_space_y.min(self.scroll_y.absolute(outer_size.height, inner_size.height));
+        iced::Vector::new(-scroll_x, -scroll_y)
     }
 }
 
 impl advanced::widget::operation::Scrollable for State {
     fn scroll_by(
         &mut self,
-        offset: iced::widget::scrollable::AbsoluteOffset,
-        _bounds: iced::Rectangle,
-        _content_bounds: iced::Rectangle,
+        offset: AbsoluteOffset,
+        bounds: iced::Rectangle,
+        content_bounds: iced::Rectangle,
     ) {
-        self.scroll_by(offset.x, offset.y);
+        self.scroll_by(offset, bounds.size(), content_bounds.size());
     }
 
-    fn scroll_to(&mut self, offset: iced::widget::scrollable::AbsoluteOffset) {
-        self.set_absolute_position(offset.x, offset.y);
+    fn scroll_to(&mut self, _offset: AbsoluteOffset) {
+        panic!(
+            "This is not supported yet. Iced does not offer the bounds in this widget operation yet."
+        );
     }
 
     fn snap_to(&mut self, offset: iced::widget::scrollable::RelativeOffset) {
-        self.set_relative_scroll(offset.x, offset.y);
+        self.snap_to(offset);
     }
 }
 
@@ -106,7 +156,7 @@ pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
     theme: &Theme,
     _style: &advanced::renderer::Style,
     cursor: advanced::mouse::Cursor,
-    inner_size: iced::Size,
+    inner_size: Size,
     outer_bounds: iced::Rectangle,
     viewport: &iced::Rectangle,
     draw_job: impl FnOnce(&mut Renderer, &iced::Rectangle, advanced::mouse::Cursor),
@@ -117,7 +167,7 @@ pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
     };
 
     // draw inner content
-    let translation = state.translation();
+    let translation = state.translation(outer_bounds.size(), inner_size);
     renderer.with_layer(visible_bounds, |renderer| {
         renderer.with_translation(translation, |renderer| {
             (draw_job)(
@@ -145,6 +195,7 @@ pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
     let (horizontal_scroller_bounds, vertical_scroller_bounds) = scroller_bounds(
         state,
         inner_size,
+        outer_bounds.size(),
         horizontal_scrollbar_bounds,
         vertical_scrollbar_bounds,
     );
@@ -227,16 +278,11 @@ pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
     });
 }
 
-pub fn update_state(state: &mut State, scroll_space_x: f32, scroll_space_y: f32) {
-    state.scroll_space_y = scroll_space_y;
-    state.scroll_space_x = scroll_space_x;
-}
-
 #[allow(clippy::too_many_arguments)]
 pub fn mouse_interaction<Message, Renderer: advanced::Renderer, Theme>(
     state: &State,
     outer_bounds: iced::Rectangle,
-    inner_size: iced::Size,
+    inner_size: Size,
     widget: &dyn advanced::Widget<Message, Theme, Renderer>,
     tree: &advanced::widget::Tree,
     layout: advanced::Layout<'_>,
@@ -252,8 +298,13 @@ pub fn mouse_interaction<Message, Renderer: advanced::Renderer, Theme>(
             outer_bounds.height < inner_size.height,
             outer_bounds.width < inner_size.width,
         );
-        let scroller_bounds =
-            scroller_bounds(state, inner_size, scrollbar_bounds.0, scrollbar_bounds.1);
+        let scroller_bounds = scroller_bounds(
+            state,
+            inner_size,
+            outer_bounds.size(),
+            scrollbar_bounds.0,
+            scrollbar_bounds.1,
+        );
         if scroller_bounds.0.contains(position) || scroller_bounds.1.contains(position) {
             return advanced::mouse::Interaction::Idle;
         }
@@ -263,11 +314,13 @@ pub fn mouse_interaction<Message, Renderer: advanced::Renderer, Theme>(
         tree,
         layout,
         if let iced::mouse::Cursor::Available(point) = cursor {
-            iced::mouse::Cursor::Available(point + state.translation() * -1.0)
+            iced::mouse::Cursor::Available(
+                point + state.translation(outer_bounds.size(), inner_size) * -1.0,
+            )
         } else {
             cursor
         },
-        &(*viewport + state.translation() * -1.0),
+        &(*viewport + state.translation(outer_bounds.size(), inner_size) * -1.0),
         renderer,
     )
 }
@@ -276,6 +329,8 @@ pub fn mouse_interaction<Message, Renderer: advanced::Renderer, Theme>(
 pub fn on_event<Message, Renderer: advanced::Renderer, Theme>(
     state: &State,
     widget: &mut dyn advanced::Widget<Message, Theme, Renderer>,
+    outer_size: Size,
+    inner_size: Size,
     tree: &mut advanced::widget::Tree,
     event: iced::Event,
     layout: advanced::Layout<'_>,
@@ -290,14 +345,14 @@ pub fn on_event<Message, Renderer: advanced::Renderer, Theme>(
         event,
         layout,
         if let iced::mouse::Cursor::Available(point) = cursor {
-            iced::mouse::Cursor::Available(point + state.translation() * -1.0)
+            iced::mouse::Cursor::Available(point + state.translation(outer_size, inner_size) * -1.0)
         } else {
             cursor
         },
         renderer,
         clipboard,
         shell,
-        &(*viewport - state.translation()),
+        &(*viewport - state.translation(outer_size, inner_size)),
     )
 }
 
@@ -305,10 +360,11 @@ pub fn scroll_wheel_on_event(
     state: &mut State,
     event: iced::Event,
     cursor: advanced::mouse::Cursor,
-    bounds: iced::Rectangle,
+    outer_bounds: iced::Rectangle,
+    inner_size: Size,
 ) -> advanced::graphics::core::event::Status {
     if let Some(position) = cursor.position() {
-        if !bounds.contains(position) {
+        if !outer_bounds.contains(position) {
             return advanced::graphics::core::event::Status::Ignored;
         }
     } else {
@@ -323,8 +379,7 @@ pub fn scroll_wheel_on_event(
             }
             y *= -30.0;
             x *= -30.0;
-            state.scroll_y = 0.0f32.max(state.scroll_space_y.min(state.scroll_y + y));
-            state.scroll_x = 0.0f32.max(state.scroll_space_x.min(state.scroll_x + x));
+            state.scroll_by(AbsoluteOffset { x, y }, outer_bounds.size(), inner_size);
             return advanced::graphics::core::event::Status::Captured;
         }
         iced::Event::Keyboard(keyboard_event) => {
@@ -344,35 +399,50 @@ pub fn scroll_grab_on_event(
     event: iced::Event,
     cursor: advanced::mouse::Cursor,
     bounds: iced::Rectangle,
-    inner_size: iced::Size,
+    inner_size: Size,
 ) -> advanced::graphics::core::event::Status {
     let scrollbar_bounds = scrollbar_bounds(
         bounds,
         inner_size.width > bounds.width,
         inner_size.height > bounds.height,
     );
-    let scroller_bounds =
-        scroller_bounds(state, inner_size, scrollbar_bounds.0, scrollbar_bounds.1);
+    let scroller_bounds = scroller_bounds(
+        state,
+        inner_size,
+        bounds.size(),
+        scrollbar_bounds.0,
+        scrollbar_bounds.1,
+    );
 
     // mouse drag movement
     if state.mouse_grabbed_at_x.is_some() || state.mouse_grabbed_at_y.is_some() {
         if let iced::Event::Mouse(iced::mouse::Event::CursorMoved { position }) = event {
             if let Some(x) = state.mouse_grabbed_at_x {
                 let diff = position.x - x;
+
                 state.scroll_by(
-                    state.scroll_space_x
-                        * (diff / (scrollbar_bounds.0.width - scroller_bounds.0.width)),
-                    0.0,
+                    AbsoluteOffset {
+                        x: scroll_space(bounds.size().width, inner_size.width)
+                            * (diff / (scrollbar_bounds.0.width - scroller_bounds.0.width)),
+                        y: 0.0,
+                    },
+                    bounds.size(),
+                    inner_size,
                 );
                 state.mouse_grabbed_at_x = Some(position.x);
                 return advanced::graphics::core::event::Status::Captured;
             }
             if let Some(y) = state.mouse_grabbed_at_y {
                 let diff = position.y - y;
+
                 state.scroll_by(
-                    0.0,
-                    state.scroll_space_y
-                        * (diff / (scrollbar_bounds.1.height - scroller_bounds.1.height)),
+                    AbsoluteOffset {
+                        x: 0.0,
+                        y: scroll_space(bounds.height, inner_size.height)
+                            * (diff / (scrollbar_bounds.1.height - scroller_bounds.1.height)),
+                    },
+                    bounds.size(),
+                    inner_size,
                 );
                 state.mouse_grabbed_at_y = Some(position.y);
                 return advanced::graphics::core::event::Status::Captured;
@@ -476,7 +546,8 @@ fn scrollbar_bounds(
 
 fn scroller_bounds(
     state: &State,
-    inner_size: iced::Size,
+    inner_size: Size,
+    outer_size: Size,
     horizontal_scrollbar_bounds: iced::Rectangle,
     vertical_scrollbar_bounds: iced::Rectangle,
 ) -> (iced::Rectangle, iced::Rectangle) {
@@ -484,7 +555,7 @@ fn scroller_bounds(
         {
             // horizontal scroller
             let (scroller_start, scroller_end) = scroller_position(
-                state.horizontal_scroll_factor(),
+                state.horizontal_scroll_factor(outer_size.width, inner_size.width),
                 horizontal_scrollbar_bounds.x,
                 horizontal_scrollbar_bounds.x + horizontal_scrollbar_bounds.width,
                 inner_size.width,
@@ -499,7 +570,7 @@ fn scroller_bounds(
         {
             // vertical scroller
             let (scroller_start, scroller_end) = scroller_position(
-                state.vertical_scroll_factor(),
+                state.vertical_scroll_factor(outer_size.height, inner_size.height),
                 vertical_scrollbar_bounds.y,
                 vertical_scrollbar_bounds.y + vertical_scrollbar_bounds.height,
                 inner_size.height,
