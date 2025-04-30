@@ -491,6 +491,44 @@ pub fn scroll_grab_on_event(
         } else if scroller_bounds.1.contains(clicked_position) {
             state.mouse_grabbed_at_y = Some(clicked_position.y);
             return advanced::graphics::core::event::Status::Captured;
+        } else if scrollbar_bounds.0.contains(clicked_position) {
+            // calculate smaller size -> the size that is relevant wor the click
+            let limited_size = scrollbar_bounds.0.shrink(
+                iced::Padding::ZERO
+                    .left(scroller_bounds.0.size().width / 2.0)
+                    .right(scroller_bounds.0.size().width / 2.0),
+            );
+            // calculate the new relative offset
+            let relative = (clicked_position.x.clamp(
+                limited_size.position().x,
+                limited_size.position().x + limited_size.width,
+            ) - limited_size.position().x)
+                / limited_size.width;
+            // set the new offset
+            state.snap_to(RelativeOffset {
+                x: relative,
+                y: state.vertical_scroll_factor(bounds.width, inner_size.width),
+            });
+            return advanced::graphics::core::event::Status::Captured;
+        } else if scrollbar_bounds.1.contains(clicked_position) {
+            // calculate smaller size -> the size that is relevant wor the click
+            let limited_size = scrollbar_bounds.1.shrink(
+                iced::Padding::ZERO
+                    .top(scroller_bounds.1.size().height / 2.0)
+                    .bottom(scroller_bounds.1.size().height / 2.0),
+            );
+            // calculate the new relative offset
+            let relative = (clicked_position.y.clamp(
+                limited_size.position().y,
+                limited_size.position().y + limited_size.height,
+            ) - limited_size.position().y)
+                / limited_size.height;
+            // set the new offset
+            state.snap_to(RelativeOffset {
+                x: state.horizontal_scroll_factor(bounds.height, inner_size.height),
+                y: relative,
+            });
+            return advanced::graphics::core::event::Status::Captured;
         }
     }
 
