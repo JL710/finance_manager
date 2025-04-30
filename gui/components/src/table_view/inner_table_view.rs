@@ -71,6 +71,26 @@ where
         }
     }
 
+    fn child_header_elements(&self) -> Vec<&iced::Element<'a, Message, Theme, Renderer>> {
+        let mut children = Vec::with_capacity(COLUMNS * 2);
+        for pair in &self.header_elements {
+            children.push(&pair.0);
+            children.push(&pair.1);
+        }
+        children
+    }
+
+    fn child_header_elements_mut(
+        &mut self,
+    ) -> Vec<&mut iced::Element<'a, Message, Theme, Renderer>> {
+        let mut children = Vec::with_capacity(COLUMNS * 2);
+        for pair in &mut self.header_elements {
+            children.push(&mut pair.0);
+            children.push(&mut pair.1);
+        }
+        children
+    }
+
     fn child_elements(&self) -> Vec<&iced::Element<'a, Message, Theme, Renderer>> {
         let mut children = Vec::with_capacity(self.header_elements.len() + self.elements.len());
         for header_element in &self.header_elements {
@@ -693,30 +713,25 @@ where
             .scroll_state
             .translation(outer_scrollable_size, scrollable_layout.bounds().size());
         let mut child_states = state.children.iter_mut();
-        let mut child_elements = self.child_elements_mut().into_iter();
-        for _ in 0..(COLUMNS * 2) {
-            if let iced::event::Status::Captured =
-                child_elements.next().unwrap().as_widget_mut().on_event(
-                    child_states.next().unwrap(),
-                    event.clone(),
-                    child_layouts.next().unwrap(),
-                    if let iced::mouse::Cursor::Available(point) = cursor {
-                        iced::mouse::Cursor::Available(
-                            point - iced::Vector::new(translation.x, 0.0),
-                        )
-                    } else {
-                        cursor
-                    },
-                    renderer,
-                    clipboard,
-                    shell,
-                    &(*viewport - iced::Vector::new(translation.x, 0.0)),
-                )
-            {
+        for header_element in self.child_header_elements_mut() {
+            if let iced::event::Status::Captured = header_element.as_widget_mut().on_event(
+                child_states.next().unwrap(),
+                event.clone(),
+                child_layouts.next().unwrap(),
+                if let iced::mouse::Cursor::Available(point) = cursor {
+                    iced::mouse::Cursor::Available(point - iced::Vector::new(translation.x, 0.0))
+                } else {
+                    cursor
+                },
+                renderer,
+                clipboard,
+                shell,
+                &(*viewport - iced::Vector::new(translation.x, 0.0)),
+            ) {
                 return iced::event::Status::Captured;
             }
         }
-        for element in child_elements {
+        for element in &mut self.elements {
             if let iced::event::Status::Captured = crate::scrollable::on_event(
                 &downcast_state.scroll_state,
                 element.as_widget_mut(),
@@ -752,11 +767,7 @@ where
         let _header_layout = child_layouts.next().unwrap();
         let scrollable_layout = child_layouts.next().unwrap();
 
-        let mut child_elements = self.child_elements();
-        let mut todos = child_elements
-            .iter_mut()
-            .zip(&state.children)
-            .zip(child_layouts);
+        let mut child_states = state.children.iter();
 
         let translation = downcast_state.scroll_state.translation(
             scrollable_layout
@@ -767,9 +778,11 @@ where
             scrollable_layout.bounds().size(),
         );
 
-        let header = todos
-            .by_ref()
-            .take(COLUMNS * 2)
+        let header = self
+            .child_header_elements()
+            .iter()
+            .zip(child_states.by_ref().take(COLUMNS * 2))
+            .zip(child_layouts.by_ref().take(COLUMNS * 2))
             .map(|((child, child_state), layout)| {
                 child.as_widget().mouse_interaction(
                     child_state,
@@ -788,8 +801,11 @@ where
             .max()
             .unwrap_or_default();
 
-        let cells = todos
-            .by_ref()
+        let cells = self
+            .elements
+            .iter()
+            .zip(child_states)
+            .zip(child_layouts)
             .map(|((child, child_state), child_layout)| {
                 crate::scrollable::mouse_interaction(
                     &downcast_state.scroll_state,
