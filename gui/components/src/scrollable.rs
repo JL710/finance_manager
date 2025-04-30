@@ -374,7 +374,7 @@ pub fn scroll_wheel_on_event(
         iced::Event::Mouse(iced::mouse::Event::WheelScrolled {
             delta: iced::mouse::ScrollDelta::Lines { mut y, mut x },
         }) => {
-            if state.keyboard_modifiers.shift() {
+            if state.keyboard_modifiers.shift() && !cfg!(target_os = "macos") {
                 (x, y) = (y, x);
             }
             y *= -30.0;
