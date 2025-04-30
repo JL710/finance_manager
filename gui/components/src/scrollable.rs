@@ -416,7 +416,16 @@ pub fn scroll_grab_on_event(
 
     // mouse drag movement
     if state.mouse_grabbed_at_x.is_some() || state.mouse_grabbed_at_y.is_some() {
-        if let iced::Event::Mouse(iced::mouse::Event::CursorMoved { position }) = event {
+        let new_position = if let iced::Event::Mouse(iced::mouse::Event::CursorMoved { position }) =
+            event
+        {
+            Some(position)
+        } else if let iced::Event::Touch(iced::touch::Event::FingerMoved { position, .. }) = event {
+            Some(position)
+        } else {
+            None
+        };
+        if let Some(position) = new_position {
             if let Some(x) = state.mouse_grabbed_at_x {
                 let diff = position.x - x;
 
@@ -451,31 +460,40 @@ pub fn scroll_grab_on_event(
     }
 
     if let iced::Event::Mouse(iced::mouse::Event::ButtonReleased(button)) = event {
-        if button == iced::mouse::Button::Left {
+        if button == iced::mouse::Button::Left
+            || matches!(
+                event,
+                iced::Event::Touch(iced::touch::Event::FingerLifted { .. })
+            )
+        {
             state.mouse_grabbed_at_x = None;
             state.mouse_grabbed_at_y = None;
         }
     }
 
-    let mouse_position = if let Some(position) = cursor.position() {
-        if !bounds.contains(position) {
-            return advanced::graphics::core::event::Status::Ignored;
-        }
-        position
-    } else {
-        return advanced::graphics::core::event::Status::Ignored;
-    };
+    let mut clicked_position = None;
     if let iced::Event::Mouse(iced::mouse::Event::ButtonPressed(button)) = event {
         if button == iced::mouse::Button::Left {
-            if scroller_bounds.0.contains(mouse_position) {
-                state.mouse_grabbed_at_x = Some(mouse_position.x);
-                return advanced::graphics::core::event::Status::Captured;
-            } else if scroller_bounds.1.contains(mouse_position) {
-                state.mouse_grabbed_at_y = Some(mouse_position.y);
-                return advanced::graphics::core::event::Status::Captured;
+            if let Some(position) = cursor.position() {
+                if bounds.contains(position) {
+                    clicked_position = Some(position);
+                }
             }
         }
+    } else if let iced::Event::Touch(iced::touch::Event::FingerPressed { position, .. }) = event {
+        clicked_position = Some(position);
     }
+
+    if let Some(clicked_position) = clicked_position {
+        if scroller_bounds.0.contains(clicked_position) {
+            state.mouse_grabbed_at_x = Some(clicked_position.x);
+            return advanced::graphics::core::event::Status::Captured;
+        } else if scroller_bounds.1.contains(clicked_position) {
+            state.mouse_grabbed_at_y = Some(clicked_position.y);
+            return advanced::graphics::core::event::Status::Captured;
+        }
+    }
+
     advanced::graphics::core::event::Status::Ignored
 }
 
