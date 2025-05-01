@@ -141,7 +141,7 @@ async fn migrate_db(connection: MutexGuard<'_, rusqlite::Connection>) -> Result<
         }
     } else {
         connection.execute(
-            "INSERT INTO database_info (tag, value) VALUES ('version', '0')",
+            "INSERT INTO database_info (tag, value) VALUES ('version', '1')",
             (),
         )?;
     }
