@@ -54,19 +54,13 @@ impl Offset {
     fn relative(&self, outer_size: f32, inner_size: f32) -> f32 {
         match self {
             Offset::Relative(relative) => *relative,
-            Offset::Absolute(absolute) => {
-                if outer_size >= inner_size {
-                    0.0
-                } else {
-                    absolute / (inner_size - outer_size)
-                }
-            }
+            Offset::Absolute(absolute) => (absolute / (inner_size - outer_size)).min(1.0).max(0.0),
         }
     }
 
     fn absolute(&self, outer_size: f32, inner_size: f32) -> f32 {
         match self {
-            Offset::Absolute(absolute) => *absolute,
+            Offset::Absolute(absolute) => absolute.min(inner_size - outer_size).max(0.0),
             Offset::Relative(relative) => relative * scroll_space(outer_size, inner_size),
         }
     }
@@ -95,21 +89,15 @@ impl State {
     }
 
     fn scroll_by(&mut self, offset: AbsoluteOffset, outer_size: Size, inner_size: Size) {
-        self.scroll_to(
-            AbsoluteOffset {
-                x: self.scroll_x.absolute(outer_size.width, inner_size.width) + offset.x,
-                y: self.scroll_y.absolute(outer_size.height, inner_size.height) + offset.y,
-            },
-            outer_size,
-            inner_size,
-        );
+        self.scroll_to(AbsoluteOffset {
+            x: self.scroll_x.absolute(outer_size.width, inner_size.width) + offset.x,
+            y: self.scroll_y.absolute(outer_size.height, inner_size.height) + offset.y,
+        });
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset, outer_size: Size, inner_size: Size) {
-        let scroll_space_x = scroll_space(outer_size.width, inner_size.width);
-        let scroll_space_y = scroll_space(outer_size.height, inner_size.height);
-        self.scroll_x = Offset::Absolute(offset.x.clamp(0.0, scroll_space_x));
-        self.scroll_y = Offset::Absolute(offset.y.clamp(0.0, scroll_space_y));
+    fn scroll_to(&mut self, offset: AbsoluteOffset) {
+        self.scroll_x = Offset::Absolute(offset.x);
+        self.scroll_y = Offset::Absolute(offset.y);
     }
 
     fn snap_to(&mut self, offset: RelativeOffset) {
@@ -118,12 +106,8 @@ impl State {
     }
 
     pub fn translation(&self, outer_size: Size, inner_size: Size) -> iced::Vector {
-        let scroll_space_x = scroll_space(outer_size.width, inner_size.width);
-        let scroll_space_y = scroll_space(outer_size.height, inner_size.height);
-        let scroll_x =
-            scroll_space_x.min(self.scroll_x.absolute(outer_size.width, inner_size.width));
-        let scroll_y =
-            scroll_space_y.min(self.scroll_y.absolute(outer_size.height, inner_size.height));
+        let scroll_x = self.scroll_x.absolute(outer_size.width, inner_size.width);
+        let scroll_y = self.scroll_y.absolute(outer_size.height, inner_size.height);
         iced::Vector::new(-scroll_x, -scroll_y)
     }
 }
@@ -138,10 +122,8 @@ impl advanced::widget::operation::Scrollable for State {
         self.scroll_by(offset, bounds.size(), content_bounds.size());
     }
 
-    fn scroll_to(&mut self, _offset: AbsoluteOffset) {
-        panic!(
-            "This is not supported yet. Iced does not offer the bounds in this widget operation yet."
-        );
+    fn scroll_to(&mut self, offset: AbsoluteOffset) {
+        self.scroll_to(offset);
     }
 
     fn snap_to(&mut self, offset: iced::widget::scrollable::RelativeOffset) {
