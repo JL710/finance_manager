@@ -1055,16 +1055,17 @@ fn main() {
                 #[cfg(feature = "native")]
                 fm_core::FMController::with_finance_manager(
                     finance_managers::FinanceManagers::Sqlite(
-                        if let Ok(fm) = fm_core::managers::SqliteFinanceManager::new(
+                        match fm_core::managers::SqliteFinanceManager::new(
                             loaded_settings.finance_manager.sqlite_path.clone(),
                         ) {
-                            fm
-                        } else {
-                            rfd::MessageDialog::new()
-                                .set_title("Invalid SQLite Path")
-                                .set_description("The provided SQLite path is invalid.")
-                                .show();
-                            panic!("Invalid SQLite Path")
+                            Ok(fm) => fm,
+                            Err(error) => {
+                                rfd::MessageDialog::new()
+                                    .set_title("Invalid SQLite Path")
+                                    .set_description(error::error_chain_string(error))
+                                    .show();
+                                panic!("Invalid SQLite Path")
+                            }
                         },
                     ),
                 )
