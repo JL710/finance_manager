@@ -535,6 +535,24 @@ pub fn scroll_grab_on_event(
     advanced::graphics::core::event::Status::Ignored
 }
 
+pub fn overlay<'b, Message, Theme, Renderer: advanced::Renderer>(
+    state: &State,
+    outer_size: Size,
+    inner_size: Size,
+    widget: &'b mut dyn advanced::Widget<Message, Theme, Renderer>,
+    widget_state: &'b mut advanced::widget::Tree,
+    layout: advanced::Layout<'_>,
+    renderer: &Renderer,
+    translation: iced::Vector,
+) -> Option<advanced::overlay::Element<'b, Message, Theme, Renderer>> {
+    widget.overlay(
+        widget_state,
+        layout,
+        renderer,
+        translation + state.translation(outer_size, inner_size),
+    )
+}
+
 fn calculate_status(
     vertical_scrollbar_bounds: iced::Rectangle,
     horizontal_scrollbar_bounds: iced::Rectangle,

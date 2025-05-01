@@ -837,12 +837,16 @@ where
     ) -> Option<iced::advanced::overlay::Element<'b, Message, Theme, Renderer>> {
         let mut child_layouts = layout.children();
         let _header_layout = child_layouts.next().unwrap();
-        let _scrollable_layout = child_layouts.next().unwrap();
+        let scrollable_layout = child_layouts.next().unwrap();
         let mut child_states = state.children.iter_mut();
 
         let mut children = Vec::new();
         for element in self.child_elements_mut() {
-            if let Some(overlay_element) = element.as_widget_mut().overlay(
+            if let Some(overlay_element) = crate::scrollable::overlay(
+                &state.state.downcast_mut::<State>().scroll_state,
+                layout.bounds().size(),
+                scrollable_layout.bounds().size(),
+                element.as_widget_mut(),
                 child_states.next().unwrap(),
                 child_layouts.next().unwrap(),
                 renderer,
