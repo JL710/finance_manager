@@ -60,3 +60,6 @@ trunk serve --no-default-features
 
 ## Installing
 Use the commands from the `Run the GUI` section and replace `cargo run` with `cargo install`.
+
+## Removing
+Besides of a local database in the destination of your desire one settings file is placed in `~/.fm_gui_settings.json`.
