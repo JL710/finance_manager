@@ -1,11 +1,17 @@
 use iced::widget;
 use iced::widget::button::Catalog;
 
+pub enum SvgPosition {
+    Left,
+    Right,
+}
+
 pub struct SvgButton<'a, Message> {
     svg: widget::svg::Handle,
     content: iced::Element<'a, Message>,
     on_press: Option<Message>,
     class: <iced::Theme as Catalog>::Class<'a>,
+    svg_position: SvgPosition,
 }
 
 impl<'a, Message: 'a + Clone> SvgButton<'a, Message> {
@@ -15,7 +21,13 @@ impl<'a, Message: 'a + Clone> SvgButton<'a, Message> {
             content: content.into(),
             on_press: None,
             class: <iced::Theme as Catalog>::default(),
+            svg_position: SvgPosition::Left,
         }
+    }
+
+    pub fn svg_position(mut self, svg_position: SvgPosition) -> Self {
+        self.svg_position = svg_position;
+        self
     }
 
     pub fn on_press(mut self, message: Message) -> Self {
@@ -37,10 +49,15 @@ impl<'a, Message: 'a + Clone> SvgButton<'a, Message> {
     }
 
     pub fn view(self) -> iced::Element<'a, Message> {
-        widget::button(super::spal_row![
-            widget::svg::Svg::new(self.svg).width(iced::Shrink),
-            self.content
-        ])
+        let svg = widget::svg::Svg::new(self.svg).width(iced::Shrink);
+        widget::button(match self.svg_position {
+            SvgPosition::Left => {
+                super::spal_row![svg, self.content]
+            }
+            SvgPosition::Right => {
+                super::spal_row![self.content, svg,]
+            }
+        })
         .on_press_maybe(self.on_press)
         .class(self.class)
         .into()
@@ -94,6 +111,27 @@ pub fn new<'a, Message: Clone + 'a>(
 ) -> iced::Element<'a, Message> {
     SvgButton::new(icons::PLUS_SQUARE_FILL.clone(), content)
         .on_press_maybe(message)
+        .into()
+}
+
+pub fn back<'a, Message: Clone + 'a>(
+    content: &'a str,
+    message: Option<Message>,
+) -> iced::Element<'a, Message> {
+    SvgButton::new(icons::ARROW_LEFT.clone(), content)
+        .on_press_maybe(message)
+        .style(widget::button::secondary)
+        .into()
+}
+
+pub fn next<'a, Message: Clone + 'a>(
+    content: &'a str,
+    message: Option<Message>,
+) -> iced::Element<'a, Message> {
+    SvgButton::new(icons::ARROW_RIGHT.clone(), content)
+        .on_press_maybe(message)
+        .style(widget::button::secondary)
+        .svg_position(SvgPosition::Right)
         .into()
 }
 

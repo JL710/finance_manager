@@ -87,19 +87,15 @@ impl View {
         components::overlap_bottom_right(
             components::spaced_column![
                 if self.closed {
-                    widget::row![
-                        widget::button(components::spal_row![
-                            icons::arrow_left(),
-                            "Back to Unclosed"
-                        ])
-                        .on_press(Message::BackToUnclosed)
-                    ]
+                    iced::Element::from(components::button::back(
+                        "Back to Unclosed",
+                        Some(Message::BackToUnclosed),
+                    ))
                 } else {
-                    widget::row![
+                    iced::Element::new(widget::row![
                         widget::horizontal_space(),
-                        widget::button(components::spal_row!["Closed Bills", icons::arrow_right()])
-                            .on_press(Message::ViewClosed)
-                    ]
+                        components::button::next("Closed Bills", Some(Message::ViewClosed))
+                    ])
                 },
                 if self.closed {
                     "Closed Bills:"
