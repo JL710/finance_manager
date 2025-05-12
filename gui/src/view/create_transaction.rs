@@ -75,6 +75,8 @@ enum Message {
     InitializeFromExisting(Box<InitExisting>),
     TransactionCreated(fm_core::Id),
     Cancel,
+    ToggleMetadataEditor,
+    MetadataEditorMessage(components::key_value_editor::Message),
 }
 
 #[derive(Debug)]
@@ -90,10 +92,11 @@ pub struct View {
     budget_state: widget::combo_box::State<fm_core::Budget>,
     budget_input: Option<(fm_core::Budget, fm_core::Sign)>,
     date_input: date_time_input::State,
-    metadata: std::collections::HashMap<String, String>,
+    metadata_editor: components::key_value_editor::KeyValueEditor,
     available_categories: Vec<fm_core::Category>,
     selected_categories: Vec<(fm_core::Id, fm_core::Sign)>,
     submitted: bool,
+    metadata_editor_open: bool,
 }
 
 impl View {
@@ -113,7 +116,8 @@ impl View {
                 budget_state: widget::combo_box::State::new(Vec::new()),
                 budget_input: None,
                 date_input: date_time_input::State::default(),
-                metadata: std::collections::HashMap::new(),
+                metadata_editor: components::key_value_editor::KeyValueEditor::default(),
+                metadata_editor_open: false,
                 selected_categories: Vec::new(),
                 available_categories: Vec::new(),
                 submitted: false,
@@ -297,8 +301,9 @@ impl View {
                     .map(|x| (x, init_existing.transaction.budget.unwrap().1));
                 self.budget_state = widget::combo_box::State::new(init_existing.budgets);
                 self.date_input = date_time_input::State::new(Some(init_existing.transaction.date));
-                self.metadata
-                    .clone_from(&init_existing.transaction.metadata);
+                self.metadata_editor = components::key_value_editor::KeyValueEditor::from(
+                    init_existing.transaction.metadata,
+                );
                 self.available_categories = init_existing.available_categories;
                 self.available_categories.sort();
                 self.selected_categories = init_existing
@@ -315,6 +320,12 @@ impl View {
                     return Action::Cancel;
                 }
             }
+            Message::ToggleMetadataEditor => {
+                self.metadata_editor_open = !self.metadata_editor_open;
+            }
+            Message::MetadataEditorMessage(m) => {
+                self.metadata_editor.update(m);
+            }
         }
         Action::None
     }
@@ -324,117 +335,132 @@ impl View {
             return "Loading...".into();
         }
 
-        let mut categories = components::spaced_column![];
-        for category in &self.available_categories {
-            let selected = self.selected_categories.iter().find(|x| x.0 == category.id);
-            categories = categories.push(components::spal_row![
-                widget::checkbox(&category.name, selected.is_some())
-                    .on_toggle(move |_| { Message::SelectCategory(category.id) }),
-                widget::checkbox(
-                    "Negative",
-                    if let Some(s) = selected {
-                        s.1 == fm_core::Sign::Negative
-                    } else {
-                        false
-                    }
-                )
-                .on_toggle_maybe(selected.map(|s| |_| {
-                    Message::ChangeSelectedCategorySign(
-                        category.id,
-                        if s.1 == fm_core::Sign::Negative {
-                            fm_core::Sign::Positive
+        let editing_pane = if self.metadata_editor_open {
+            iced::Element::new(components::spaced_column![
+                components::button::back("Back", Some(Message::ToggleMetadataEditor)),
+                self.metadata_editor
+                    .view()
+                    .map(Message::MetadataEditorMessage)
+            ])
+        } else {
+            let mut categories = components::spaced_column![];
+            for category in &self.available_categories {
+                let selected = self.selected_categories.iter().find(|x| x.0 == category.id);
+                categories = categories.push(components::spal_row![
+                    widget::checkbox(&category.name, selected.is_some())
+                        .on_toggle(move |_| { Message::SelectCategory(category.id) }),
+                    widget::checkbox(
+                        "Negative",
+                        if let Some(s) = selected {
+                            s.1 == fm_core::Sign::Negative
                         } else {
-                            fm_core::Sign::Negative
-                        },
+                            false
+                        }
                     )
-                }))
-            ]);
-        }
+                    .on_toggle_maybe(selected.map(|s| |_| {
+                        Message::ChangeSelectedCategorySign(
+                            category.id,
+                            if s.1 == fm_core::Sign::Negative {
+                                fm_core::Sign::Positive
+                            } else {
+                                fm_core::Sign::Negative
+                            },
+                        )
+                    }))
+                ]);
+            }
 
-        let source_acc_style = if let Some(acc) = &self.source_input {
-            match acc {
-                SelectedAccount::Account(_) => style::text_input_success,
-                SelectedAccount::New(_) => style::text_input_primary,
-            }
-        } else {
-            style::text_input_danger
-        };
-        let destination_acc_style = if let Some(acc) = &self.destination_input {
-            match acc {
-                SelectedAccount::Account(_) => style::text_input_success,
-                SelectedAccount::New(_) => style::text_input_primary,
-            }
-        } else {
-            style::text_input_danger
+            let source_acc_style = if let Some(acc) = &self.source_input {
+                match acc {
+                    SelectedAccount::Account(_) => style::text_input_success,
+                    SelectedAccount::New(_) => style::text_input_primary,
+                }
+            } else {
+                style::text_input_danger
+            };
+            let destination_acc_style = if let Some(acc) = &self.destination_input {
+                match acc {
+                    SelectedAccount::Account(_) => style::text_input_success,
+                    SelectedAccount::New(_) => style::text_input_primary,
+                }
+            } else {
+                style::text_input_danger
+            };
+
+            iced::Element::new(components::spaced_column![
+                components::spal_row![
+                    "Amount: ",
+                    components::currency_input::currency_input(&self.amount_input, true)
+                        .view()
+                        .map(Message::AmountInput),
+                ]
+                .width(iced::Fill),
+                components::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
+                components::spaced_row![
+                    "Description",
+                    widget::text_editor(&self.description_input)
+                        .on_action(Message::DescriptionInput)
+                ],
+                components::spal_row![
+                    "Date: ",
+                    date_time_input::date_time_input(&self.date_input, true)
+                        .view()
+                        .map(Message::DateInput)
+                ]
+                .width(iced::Fill),
+                components::spal_row![
+                    "Source",
+                    widget::ComboBox::new(
+                        &self.source_state,
+                        "Source",
+                        self.source_input.as_ref(),
+                        Message::SourceSelected
+                    )
+                    .on_input(Message::SourceInput)
+                    .input_style(source_acc_style)
+                ],
+                components::spal_row![
+                    "Destination",
+                    widget::ComboBox::new(
+                        &self.destination_state,
+                        "Destination",
+                        self.destination_input.as_ref(),
+                        Message::DestinationSelected
+                    )
+                    .on_input(Message::DestinationInput)
+                    .input_style(destination_acc_style)
+                ],
+                components::spal_row![
+                    "Budget",
+                    widget::ComboBox::new(
+                        &self.budget_state,
+                        "Budget",
+                        self.budget_input.as_ref().map(|x| &x.0),
+                        Message::BudgetSelected
+                    ),
+                    widget::checkbox(
+                        "Negative",
+                        self.budget_input
+                            .as_ref()
+                            .is_some_and(|x| x.1 == fm_core::Sign::Negative)
+                    )
+                    .on_toggle_maybe(if self.budget_input.is_some() {
+                        Some(Message::BudgetSignChange)
+                    } else {
+                        None
+                    }),
+                    widget::button("X").on_press(Message::ClearBudget)
+                ]
+                .align_y(iced::Center),
+                widget::horizontal_rule(10),
+                "Categories:",
+                categories,
+                widget::button("Metadata").on_press(Message::ToggleMetadataEditor)
+            ])
         };
 
         iced::Element::new(widget::scrollable(components::spaced_column![
-            components::spal_row![
-                "Amount: ",
-                components::currency_input::currency_input(&self.amount_input, true)
-                    .view()
-                    .map(Message::AmountInput),
-            ]
-            .width(iced::Fill),
-            components::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
-            components::spaced_row![
-                "Description",
-                widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
-            ],
-            components::spal_row![
-                "Date: ",
-                date_time_input::date_time_input(&self.date_input, true)
-                    .view()
-                    .map(Message::DateInput)
-            ]
-            .width(iced::Fill),
-            components::spal_row![
-                "Source",
-                widget::ComboBox::new(
-                    &self.source_state,
-                    "Source",
-                    self.source_input.as_ref(),
-                    Message::SourceSelected
-                )
-                .on_input(Message::SourceInput)
-                .input_style(source_acc_style)
-            ],
-            components::spal_row![
-                "Destination",
-                widget::ComboBox::new(
-                    &self.destination_state,
-                    "Destination",
-                    self.destination_input.as_ref(),
-                    Message::DestinationSelected
-                )
-                .on_input(Message::DestinationInput)
-                .input_style(destination_acc_style)
-            ],
-            components::spal_row![
-                "Budget",
-                widget::ComboBox::new(
-                    &self.budget_state,
-                    "Budget",
-                    self.budget_input.as_ref().map(|x| &x.0),
-                    Message::BudgetSelected
-                ),
-                widget::checkbox(
-                    "Negative",
-                    self.budget_input
-                        .as_ref()
-                        .is_some_and(|x| x.1 == fm_core::Sign::Negative)
-                )
-                .on_toggle_maybe(if self.budget_input.is_some() {
-                    Some(Message::BudgetSignChange)
-                } else {
-                    None
-                }),
-                widget::button("X").on_press(Message::ClearBudget)
-            ]
-            .align_y(iced::Center),
-            widget::horizontal_rule(10),
-            "Categories:",
-            categories,
+            editing_pane,
             widget::horizontal_rule(10),
             components::submit_cancel_row(
                 if self.submittable() {
@@ -499,7 +525,8 @@ impl View {
             .as_ref()
             .map(|budget| (budget.0.id, budget.1));
         let date = self.date_input.datetime().unwrap();
-        let metadata = self.metadata.clone();
+        let metadata =
+            std::collections::HashMap::from_iter(self.metadata_editor.pairs().into_iter());
         let mut categories =
             std::collections::HashMap::with_capacity(self.selected_categories.len());
         for (id, sign) in &self.selected_categories {
