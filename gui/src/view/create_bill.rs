@@ -76,7 +76,16 @@ impl View {
                             _ => std::cmp::Ordering::Equal,
                         },
                         2 => a.0.title.cmp(&b.0.title),
-                        3 => a.0.amount().cmp(b.0.amount()),
+                        3 => if a.1 == fm_core::Sign::Positive {
+                            a.0.amount().clone()
+                        } else {
+                            a.0.amount().negative()
+                        }
+                        .cmp(&if b.1 == fm_core::Sign::Positive {
+                            b.0.amount().clone()
+                        } else {
+                            b.0.amount().negative()
+                        }),
                         4 => a.0.date.cmp(&b.0.date),
                         5 => a.0.source.cmp(&b.0.source),
                         6 => a.0.destination.cmp(&b.0.destination),
@@ -265,11 +274,18 @@ impl View {
                     .find(|(x, _)| x.id == transaction_id)
                     .unwrap()
                     .1 = sign;
-                self.transaction_table.set_items(self.transactions.clone());
+                self.transaction_table.edit_items(|items| {
+                    items
+                        .iter_mut()
+                        .find(|(x, _)| x.id == transaction_id)
+                        .unwrap()
+                        .1 = sign
+                });
             }
             Message::RemoveTransaction(transaction_id) => {
                 self.transactions.retain(|x| x.0.id != transaction_id);
-                self.transaction_table.set_items(self.transactions.clone());
+                self.transaction_table
+                    .edit_items(|transactions| transactions.retain(|x| x.0.id != transaction_id));
             }
             Message::AddTransaction(m) => {
                 if let Some(add_transaction) = &mut self.add_transaction {
@@ -519,7 +535,8 @@ mod add_transaction {
                 Message::AddTransaction(transaction) => {
                     self.ignored_transactions.push(transaction.id);
                     self.transactions.retain(|x| x.id != transaction.id);
-                    self.table.set_items(self.transactions.clone());
+                    self.table
+                        .edit_items(|items| items.retain(|x| x.id != transaction.id));
                     Action::AddTransactions(vec![transaction])
                 }
                 Message::AddAllTransactions => {

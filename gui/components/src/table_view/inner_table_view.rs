@@ -697,7 +697,9 @@ where
             &mut downcast_state.scroll_state,
             event.clone(),
             cursor,
-            layout.bounds(),
+            layout
+                .bounds()
+                .shrink(iced::Padding::ZERO.top(header_layout.bounds().height)),
             scrollable_layout.bounds().size(),
         ) == iced::advanced::graphics::core::event::Status::Captured
         {

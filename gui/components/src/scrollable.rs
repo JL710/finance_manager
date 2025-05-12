@@ -54,13 +54,13 @@ impl Offset {
     fn relative(&self, size: f32, content_size: f32) -> f32 {
         match self {
             Offset::Relative(relative) => *relative,
-            Offset::Absolute(absolute) => (absolute / (content_size - size)).min(1.0).max(0.0),
+            Offset::Absolute(absolute) => (absolute / (content_size - size)).clamp(0.0, 1.0),
         }
     }
 
     fn absolute(&self, size: f32, content_size: f32) -> f32 {
         match self {
-            Offset::Absolute(absolute) => absolute.min(content_size - size).max(0.0),
+            Offset::Absolute(absolute) => absolute.clamp(0.0, (content_size - size).max(0.0)),
             Offset::Relative(relative) => relative * scroll_space(size, content_size),
         }
     }

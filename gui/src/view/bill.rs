@@ -119,7 +119,16 @@ impl View {
                                 .unwrap_or_default()
                                 .cmp(&b.0.description.clone().unwrap_or_default())
                         }
-                        3 => a.0.amount().cmp(b.0.amount()),
+                        3 => if a.1 == fm_core::Sign::Positive {
+                            a.0.amount().clone()
+                        } else {
+                            a.0.amount().negative()
+                        }
+                        .cmp(&if b.1 == fm_core::Sign::Positive {
+                            b.0.amount().clone()
+                        } else {
+                            b.0.amount().negative()
+                        }),
                         4 => a.0.date.cmp(&b.0.date),
                         5 => a.0.source.cmp(&b.0.source),
                         6 => a.0.destination.cmp(&b.0.destination),
