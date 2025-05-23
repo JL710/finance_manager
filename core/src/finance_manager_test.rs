@@ -163,6 +163,7 @@ pub mod timespan_test {
         Transaction,
         crate::account::Account,
         Budget,
+        Category,
     ) {
         let acc1 = fm
             .create_asset_account(
@@ -202,6 +203,9 @@ pub mod timespan_test {
             .await
             .unwrap();
 
+        let category1 = fm.create_category("category1".to_string()).await.unwrap();
+        let category2 = fm.create_category("category2".to_string()).await.unwrap();
+
         let t0 = fm
             .create_transaction(
                 Currency::default(),
@@ -212,7 +216,7 @@ pub mod timespan_test {
                 Some((budget2.id, Sign::Positive)),
                 time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(9:30)),
                 HashMap::default(),
-                HashMap::default(),
+                HashMap::from([(category2.id, Sign::Positive)]),
             )
             .await
             .unwrap();
@@ -240,7 +244,10 @@ pub mod timespan_test {
                 Some((budget1.id, Sign::Positive)),
                 time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:30)),
                 HashMap::default(),
-                HashMap::default(),
+                HashMap::from([
+                    (category1.id, Sign::Positive),
+                    (category2.id, Sign::Negative),
+                ]),
             )
             .await
             .unwrap();
@@ -254,7 +261,7 @@ pub mod timespan_test {
                 Some((budget1.id, Sign::Positive)),
                 time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(11:30)),
                 HashMap::default(),
-                HashMap::default(),
+                HashMap::from([(category1.id, Sign::Negative)]),
             )
             .await
             .unwrap();
@@ -268,7 +275,7 @@ pub mod timespan_test {
                 Some((budget1.id, Sign::Positive)),
                 time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(12:50)),
                 HashMap::default(),
-                HashMap::default(),
+                HashMap::from([(category1.id, Sign::Positive)]),
             )
             .await
             .unwrap();
@@ -296,11 +303,89 @@ pub mod timespan_test {
                 Some((budget2.id, Sign::Positive)),
                 time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(13:50)),
                 HashMap::default(),
-                HashMap::default(),
+                HashMap::from([(category2.id, Sign::Positive)]),
             )
             .await
             .unwrap();
-        (t0, t1, t2, t3, t4, t5, t6, acc2.into(), budget1)
+        (t0, t1, t2, t3, t4, t5, t6, acc2.into(), budget1, category1)
+    }
+
+    pub mod get_transactions_of_category {
+        use super::*;
+
+        pub async fn start_end_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_category(
+                    objects.9.id,
+                    (
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:30),
+                        )),
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:50),
+                        )),
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 1);
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+        }
+
+        pub async fn start_none_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_category(
+                    objects.9.id,
+                    (
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:50),
+                        )),
+                        None,
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 2);
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+            assert!(result.iter().any(|x| x.id == objects.4.id));
+        }
+
+        pub async fn none_end_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_category(
+                    objects.9.id,
+                    (
+                        None,
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(11:50),
+                        )),
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 2);
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+        }
+
+        pub async fn none_none_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_category(objects.9.id, (None, None))
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 3);
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+            assert!(result.iter().any(|x| x.id == objects.4.id));
+        }
     }
 
     pub mod get_transactions_of_budget {
@@ -699,6 +784,31 @@ macro_rules! unit_tests {
         mod get_transactions_of_budget {
             use super::test_runner;
             use $crate::finance_manager_test::timespan_test::get_transactions_of_budget::*;
+
+            #[async_std::test]
+            async fn start_end() {
+                ($runner)(start_end_test).await;
+            }
+
+            #[async_std::test]
+            async fn start_none() {
+                ($runner)(start_none_test).await;
+            }
+
+            #[async_std::test]
+            async fn none_end() {
+                ($runner)(none_end_test).await;
+            }
+
+            #[async_std::test]
+            async fn none_none() {
+                ($runner)(none_none_test).await;
+            }
+        }
+
+        mod get_transactions_of_category {
+            use super::test_runner;
+            use $crate::finance_manager_test::timespan_test::get_transactions_of_category::*;
 
             #[async_std::test]
             async fn start_end() {
