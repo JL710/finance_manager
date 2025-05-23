@@ -148,12 +148,19 @@ pub async fn delete_budget_test<T: FinanceManager>(mut fm: T) {
     );
 }
 
-pub mod get_transactions_timespan_test {
+pub mod timespan_test {
     use super::*;
 
     async fn generate_transactions<T: FinanceManager>(
         fm: &mut T,
-    ) -> (Transaction, Transaction, Transaction) {
+    ) -> (
+        Transaction,
+        Transaction,
+        Transaction,
+        Transaction,
+        Transaction,
+        crate::account::Account,
+    ) {
         let acc1 = fm
             .create_asset_account(
                 "asset_acc".to_string(),
@@ -165,10 +172,28 @@ pub mod get_transactions_timespan_test {
             .await
             .unwrap();
         let acc2 = fm
-            .create_book_checking_account("book_checking_acc".to_string(), None, None, None)
+            .create_book_checking_account("book_checking_acc2".to_string(), None, None, None)
+            .await
+            .unwrap();
+        let acc3 = fm
+            .create_book_checking_account("book_checking_acc3".to_string(), None, None, None)
             .await
             .unwrap();
 
+        let t0 = fm
+            .create_transaction(
+                Currency::default(),
+                "t0".to_string(),
+                None,
+                acc1.id,
+                acc3.id,
+                None,
+                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(9:30)),
+                HashMap::default(),
+                HashMap::default(),
+            )
+            .await
+            .unwrap();
         let t1 = fm
             .create_transaction(
                 Currency::default(),
@@ -211,69 +236,169 @@ pub mod get_transactions_timespan_test {
             )
             .await
             .unwrap();
-        (t1, t2, t3)
-    }
-
-    pub async fn start_end_test<T: FinanceManager>(mut fm: T) {
-        let transactions = generate_transactions(&mut fm).await;
-        let result = fm
-            .get_transactions_in_timespan((
-                Some(time::OffsetDateTime::new_utc(
-                    date!(2024 - 01 - 01),
-                    time!(10:30),
-                )),
-                Some(time::OffsetDateTime::new_utc(
-                    date!(2024 - 01 - 01),
-                    time!(10:50),
-                )),
-            ))
-            .await
-            .unwrap();
-        assert_eq!(result.len(), 1);
-        assert!(result.iter().any(|x| x.id == transactions.0.id));
-    }
-
-    pub async fn start_none_test<T: FinanceManager>(mut fm: T) {
-        let transactions = generate_transactions(&mut fm).await;
-        let result = fm
-            .get_transactions_in_timespan((
-                Some(time::OffsetDateTime::new_utc(
-                    date!(2024 - 01 - 01),
-                    time!(10:50),
-                )),
+        let t4 = fm
+            .create_transaction(
+                Currency::default(),
+                "t4".to_string(),
                 None,
-            ))
-            .await
-            .unwrap();
-        assert_eq!(result.len(), 2);
-        assert!(result.iter().any(|x| x.id == transactions.1.id));
-        assert!(result.iter().any(|x| x.id == transactions.2.id));
-    }
-
-    pub async fn none_end_test<T: FinanceManager>(mut fm: T) {
-        let transactions = generate_transactions(&mut fm).await;
-        let result = fm
-            .get_transactions_in_timespan((
+                acc1.id,
+                acc3.id,
                 None,
-                Some(time::OffsetDateTime::new_utc(
-                    date!(2024 - 01 - 01),
-                    time!(11:50),
-                )),
-            ))
+                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(13:50)),
+                HashMap::default(),
+                HashMap::default(),
+            )
             .await
             .unwrap();
-        assert_eq!(result.len(), 2);
-        assert!(result.iter().any(|x| x.id == transactions.0.id));
-        assert!(result.iter().any(|x| x.id == transactions.1.id));
+        (t0, t1, t2, t3, t4, acc2.into())
     }
 
-    pub async fn none_none_test<T: FinanceManager>(mut fm: T) {
-        let transactions = generate_transactions(&mut fm).await;
-        let result = fm.get_transactions_in_timespan((None, None)).await.unwrap();
-        assert_eq!(result.len(), 3);
-        assert!(result.iter().any(|x| x.id == transactions.0.id));
-        assert!(result.iter().any(|x| x.id == transactions.1.id));
-        assert!(result.iter().any(|x| x.id == transactions.2.id));
+    pub mod get_transactions_of_account {
+        use super::*;
+
+        pub async fn start_end_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_account(
+                    *objects.5.id(),
+                    (
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:30),
+                        )),
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:50),
+                        )),
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 1);
+            assert!(result.iter().any(|x| x.id == objects.1.id));
+        }
+
+        pub async fn start_none_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_account(
+                    *objects.5.id(),
+                    (
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:50),
+                        )),
+                        None,
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 2);
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+        }
+
+        pub async fn none_end_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_account(
+                    *objects.5.id(),
+                    (
+                        None,
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(11:50),
+                        )),
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 2);
+            assert!(result.iter().any(|x| x.id == objects.1.id));
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+        }
+
+        pub async fn none_none_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_account(*objects.5.id(), (None, None))
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 3);
+            assert!(result.iter().any(|x| x.id == objects.1.id));
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+        }
+    }
+
+    pub mod get_transactions_in_timespan {
+        use super::*;
+
+        pub async fn start_end_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_in_timespan((
+                    Some(time::OffsetDateTime::new_utc(
+                        date!(2024 - 01 - 01),
+                        time!(10:30),
+                    )),
+                    Some(time::OffsetDateTime::new_utc(
+                        date!(2024 - 01 - 01),
+                        time!(10:50),
+                    )),
+                ))
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 1);
+            assert!(result.iter().any(|x| x.id == objects.1.id));
+        }
+
+        pub async fn start_none_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_in_timespan((
+                    Some(time::OffsetDateTime::new_utc(
+                        date!(2024 - 01 - 01),
+                        time!(10:50),
+                    )),
+                    None,
+                ))
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 3);
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+            assert!(result.iter().any(|x| x.id == objects.4.id));
+        }
+
+        pub async fn none_end_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_in_timespan((
+                    None,
+                    Some(time::OffsetDateTime::new_utc(
+                        date!(2024 - 01 - 01),
+                        time!(11:50),
+                    )),
+                ))
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 3);
+            assert!(result.iter().any(|x| x.id == objects.0.id));
+            assert!(result.iter().any(|x| x.id == objects.1.id));
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+        }
+
+        pub async fn none_none_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm.get_transactions_in_timespan((None, None)).await.unwrap();
+            assert_eq!(result.len(), 5);
+            assert!(result.iter().any(|x| x.id == objects.0.id));
+            assert!(result.iter().any(|x| x.id == objects.1.id));
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+            assert!(result.iter().any(|x| x.id == objects.4.id));
+        }
     }
 }
 
@@ -389,28 +514,53 @@ macro_rules! unit_tests {
             ($runner)(delete_budget_test).await;
         }
 
-        mod get_transactions_timespan {
+        mod get_transactions_in_timespan {
             use super::test_runner;
-            use $crate::finance_manager_test::get_transactions_timespan_test;
+            use $crate::finance_manager_test::timespan_test::get_transactions_in_timespan::*;
 
             #[async_std::test]
             async fn start_end() {
-                ($runner)(get_transactions_timespan_test::start_end_test).await;
+                ($runner)(start_end_test).await;
             }
 
             #[async_std::test]
             async fn start_none() {
-                ($runner)(get_transactions_timespan_test::start_none_test).await;
+                ($runner)(start_none_test).await;
             }
 
             #[async_std::test]
             async fn none_end() {
-                ($runner)(get_transactions_timespan_test::none_end_test).await;
+                ($runner)(none_end_test).await;
             }
 
             #[async_std::test]
             async fn none_none() {
-                ($runner)(get_transactions_timespan_test::none_none_test).await;
+                ($runner)(none_none_test).await;
+            }
+        }
+
+        mod get_transactions_of_account {
+            use super::test_runner;
+            use $crate::finance_manager_test::timespan_test::get_transactions_of_account::*;
+
+            #[async_std::test]
+            async fn start_end() {
+                ($runner)(start_end_test).await;
+            }
+
+            #[async_std::test]
+            async fn start_none() {
+                ($runner)(start_none_test).await;
+            }
+
+            #[async_std::test]
+            async fn none_end() {
+                ($runner)(none_end_test).await;
+            }
+
+            #[async_std::test]
+            async fn none_none() {
+                ($runner)(none_none_test).await;
             }
         }
 
