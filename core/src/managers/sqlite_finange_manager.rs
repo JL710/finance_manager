@@ -3,50 +3,44 @@ use crate::account::AssetAccount;
 use crate::*;
 use anyhow::{Context, Result};
 use bigdecimal::{BigDecimal, FromPrimitive};
-use rusqlite::{OptionalExtension, fallible_iterator::FallibleIterator};
+use rusqlite::OptionalExtension;
 
 use async_std::sync::{Mutex, MutexGuard};
+use const_format::formatc;
 use std::sync::Arc;
-
-type TransactionSignature = (
-    Id,
-    f64,
-    i32,
-    String,
-    Option<String>,
-    Id,
-    Id,
-    Option<Id>,
-    Option<bool>,
-    i64,
-    String,
-);
 
 const TRANSACTION_FIELDS: &str = "id, amount_value, currency, title, description, source_id, destination_id, budget, budget_sign, timestamp, metadata";
 
-impl TryInto<Transaction> for TransactionSignature {
+impl TryFrom<&rusqlite::Row<'_>> for Transaction {
     type Error = anyhow::Error;
 
-    fn try_into(self) -> Result<Transaction> {
+    /// Expects the rows content to be [`TRANSACTION_FIELDS`]
+    fn try_from(value: &rusqlite::Row<'_>) -> Result<Transaction> {
+        let budget_id = value.get::<usize, Option<u64>>(7)?;
+        let budget_sign = value.get::<usize, Option<bool>>(8)?;
+
         Transaction::new(
-            self.0,
-            Currency::from_currency_id(self.2, BigDecimal::from_f64(self.1).unwrap())?,
-            self.3,
-            self.4,
-            self.5,
-            self.6,
-            self.7.map(|x| {
+            value.get(0)?,
+            Currency::from_currency_id(
+                value.get(2)?,
+                BigDecimal::from_f64(value.get(1)?).unwrap(),
+            )?,
+            value.get(3)?,
+            value.get(4)?,
+            value.get(5)?,
+            value.get(6)?,
+            budget_id.map(|x| {
                 (
                     x,
-                    if self.8.unwrap() {
+                    if budget_sign.unwrap() {
                         Sign::Positive
                     } else {
                         Sign::Negative
                     },
                 )
             }),
-            DateTime::from_unix_timestamp(self.9).unwrap(),
-            serde_json::from_str(&self.10)?,
+            DateTime::from_unix_timestamp(value.get(9)?).unwrap(),
+            serde_json::from_str(&value.get::<usize, String>(10)?)?,
             HashMap::new(),
         )
     }
@@ -85,36 +79,47 @@ impl TryFrom<RecurringSignature> for budget::Recurring {
     }
 }
 
-type BudgetSignature = (Id, String, Option<String>, f64, i32, i32, i64, Option<i64>);
+const BUDGET_FIELDS: &str =
+    "id, name, description, value, currency, timespan_type, timespan_field1, timespan_field2";
 
-impl TryFrom<BudgetSignature> for Budget {
+impl TryFrom<&rusqlite::Row<'_>> for Budget {
     type Error = anyhow::Error;
 
-    fn try_from(value: BudgetSignature) -> std::result::Result<Self, Self::Error> {
+    /// Expects the rows content to be [`BUDGET_FIELDS`]
+    fn try_from(value: &rusqlite::Row<'_>) -> Result<Self> {
         Ok(Budget::new(
-            value.0,
-            value.1,
-            value.2,
-            Currency::from_currency_id(value.4, BigDecimal::from_f64(value.3).unwrap())?,
-            budget::Recurring::try_from((value.5, value.6, value.7))?,
+            value.get(0)?,
+            value.get(1)?,
+            value.get(2)?,
+            Currency::from_currency_id(
+                value.get(4)?,
+                BigDecimal::from_f64(value.get(3)?).unwrap(),
+            )?,
+            budget::Recurring::try_from((value.get(5)?, value.get(6)?, value.get(7)?))?,
         ))
     }
 }
 
-type BillSignature = (Id, String, Option<String>, f64, i32, Option<i64>, bool);
+const BILL_FIELDS: &str = "id, name, description, value, value_currency, due_date, closed";
 
-impl TryInto<Bill> for BillSignature {
+impl TryFrom<&rusqlite::Row<'_>> for Bill {
     type Error = anyhow::Error;
 
-    fn try_into(self) -> Result<Bill> {
+    /// Expects the rows content to be [`BILL_FIELDS`]
+    fn try_from(value: &rusqlite::Row<'_>) -> std::result::Result<Self, Self::Error> {
         Ok(Bill::new(
-            self.0,
-            self.1,
-            self.2,
-            Currency::from_currency_id(self.4, BigDecimal::from_f64(self.3).unwrap())?,
+            value.get(0)?,
+            value.get(1)?,
+            value.get(2)?,
+            Currency::from_currency_id(
+                value.get(4)?,
+                BigDecimal::from_f64(value.get(3)?).unwrap(),
+            )?,
             HashMap::new(),
-            if let Some(timestamp) = self.5 {Some(time::OffsetDateTime::from_unix_timestamp(timestamp).unwrap())} else {None},
-            self.6
+            value
+                .get::<usize, Option<i64>>(5)?
+                .map(|timestamp| time::OffsetDateTime::from_unix_timestamp(timestamp).unwrap()),
+            value.get(6)?,
         ))
     }
 }
@@ -133,7 +138,10 @@ async fn migrate_db(connection: MutexGuard<'_, rusqlite::Connection>) -> Result<
     if let Some(version) = version_result {
         match version {
             0 => {
-                connection.execute("ALTER TABLE bill ADD closed BOOLEAN NOT NULL DEFAULT false;", ())?;
+                connection.execute(
+                    "ALTER TABLE bill ADD closed BOOLEAN NOT NULL DEFAULT false;",
+                    (),
+                )?;
                 connection.execute("UPDATE database_info SET value=1 WHERE tag='version'", ())?;
             }
             1 => {}
@@ -230,12 +238,12 @@ impl FinanceManager for SqliteFinanceManager {
         connection.execute(
             "UPDATE asset_account SET name=?1, notes=?2, iban=?3, bic=?4, offset_value=?5, offset_currency=?6 WHERE id=?7",
             (
-                &account.name, 
-                &account.note, 
-                account.iban.clone().map(|x| x.electronic_str().to_owned()), 
-                account.bic.as_ref().map(|x|x.to_string()), 
-                account.offset.get_eur_num(), 
-                account.offset.get_currency_id(), 
+                &account.name,
+                &account.note,
+                account.iban.clone().map(|x| x.electronic_str().to_owned()),
+                account.bic.as_ref().map(|x|x.to_string()),
+                account.offset.get_eur_num(),
+                account.offset.get_currency_id(),
                 asset_account_id
             ),
         )?;
@@ -285,7 +293,7 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn update_book_checking_account(
         &mut self,
-        account: account::BookCheckingAccount
+        account: account::BookCheckingAccount,
     ) -> Result<account::BookCheckingAccount> {
         let connection = self.connect().await;
         let account_id = get_book_checking_account_id(&connection, account.id)?;
@@ -309,7 +317,7 @@ impl FinanceManager for SqliteFinanceManager {
         value: Currency,
         transactions: HashMap<Id, Sign>,
         due_date: Option<DateTime>,
-        closed: bool
+        closed: bool,
     ) -> Result<Bill> {
         let connection = self.connect().await;
 
@@ -344,7 +352,7 @@ impl FinanceManager for SqliteFinanceManager {
             value,
             transactions,
             due_date,
-            closed
+            closed,
         ))
     }
 
@@ -385,24 +393,23 @@ impl FinanceManager for SqliteFinanceManager {
 
         let mut bills = Vec::new();
 
-        let mut sql = "SELECT id, name, description, value, value_currency, due_date, closed FROM bill".to_string();
+        let mut sql = String::from(formatc!("SELECT {} FROM bill", BILL_FIELDS));
         if closed.is_some() {
             sql += " WHERE closed=?1";
         }
 
         let mut stmt = connection.prepare(&sql)?;
-        
-        let query = if let Some(closed) = closed {
+
+        let rows = if let Some(closed) = closed {
             stmt.query((closed,))?
         } else {
             stmt.query(())?
         };
 
-        let bills_result: Vec<BillSignature> = query.map(|x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?, x.get(5)?, x.get(6)?))).collect()?;
+        let bills_result: Vec<Result<Bill>> = rows.and_then(|x| x.try_into()).collect();
 
         for bill_result in bills_result {
-            let mut bill: Bill = bill_result.try_into()?;
-
+            let mut bill: Bill = bill_result?;
             bill.transactions = get_transactions_of_bill(&connection, bill.id)?;
             bills.push(bill);
         }
@@ -413,13 +420,11 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_bill(&self, id: &Id) -> Result<Option<Bill>> {
         let connection = self.connect().await;
 
-        let bill_result: BillSignature = connection.query_row(
-            "SELECT id, name, description, value, value_currency, due_date, closed FROM bill WHERE id=? ",
+        let mut bill: Bill = connection.query_row_and_then(
+            formatc!("SELECT {} FROM bill WHERE id=?", BILL_FIELDS),
             (id,),
-            |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?, x.get(3)?, x.get(4)?, x.get(5)?, x.get(6)?)),
+            |row| row.try_into(),
         )?;
-
-        let mut bill: Bill = bill_result.try_into()?;
 
         bill.transactions = get_transactions_of_bill(&connection, bill.id)?;
 
@@ -460,30 +465,14 @@ impl FinanceManager for SqliteFinanceManager {
 
     async fn get_transaction(&self, id: Id) -> Result<Option<Transaction>> {
         let connection = self.connect().await;
-        let result: TransactionSignature = connection.query_row(
-            format!(
+        let mut transaction: Transaction = connection.query_row_and_then(
+            formatc!(
                 "SELECT {} FROM transactions WHERE id=?1",
                 TRANSACTION_FIELDS
-            )
-            .as_str(),
+            ),
             (&id,),
-            |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get(3)?,
-                    row.get(4)?,
-                    row.get(5)?,
-                    row.get(6)?,
-                    row.get(7)?,
-                    row.get(8)?,
-                    row.get(9)?,
-                    row.get(10)?,
-                ))
-            },
+            |row| row.try_into(),
         )?;
-        let mut transaction: Transaction = result.try_into()?;
         transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
             .iter()
             .map(|x| (x.0.id, x.1))
@@ -498,52 +487,17 @@ impl FinanceManager for SqliteFinanceManager {
     ) -> Result<Vec<Transaction>> {
         let connection = self.connect().await;
 
-        macro_rules! transaction_query {
-            ($sql:expr, $params:expr) => {
-                connection
-                    .prepare($sql)?
-                    .query_map($params, |row| {
-                        Ok((
-                            row.get(0)?,
-                            row.get(1)?,
-                            row.get(2)?,
-                            row.get(3)?,
-                            row.get(4)?,
-                            row.get(5)?,
-                            row.get(6)?,
-                            row.get(7)?,
-                            row.get(8)?,
-                            row.get(9)?,
-                            row.get(10)?,
-                        ))
-                    })?
-                    .collect()
-            };
-        }
-
-        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
-            (None, None) => transaction_query!(
-                format!("SELECT {} FROM transactions WHERE source_id=?1 OR destination_id=?2", TRANSACTION_FIELDS).as_str(),
-                (account, account)
-            ),
-            (Some(start), None) => transaction_query!(
-                format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3", TRANSACTION_FIELDS).as_str(),
-                (account, account, start.unix_timestamp())
-            ),
-            (None, Some(end)) => transaction_query!(
-                format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp <= ?3", TRANSACTION_FIELDS).as_str(),
-                (account, account, end.unix_timestamp())
-            ),
-            (Some(start), Some(end)) => transaction_query!(
-                format!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3 AND timestamp <= ?4", TRANSACTION_FIELDS).as_str(),
-                (account, account, start.unix_timestamp(), end.unix_timestamp())
-            )
+        let result: Vec<Result<Transaction>> = match timespan {
+            (None, None) => connection.prepare(formatc!("SELECT {} FROM transactions WHERE source_id=?1 OR destination_id=?2", TRANSACTION_FIELDS))?.query_and_then((account, account), |row| row.try_into())?.collect(), 
+            (Some(start), None) => connection.prepare(formatc!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3", TRANSACTION_FIELDS))?.query_and_then((account, account, start.unix_timestamp()), |row| row.try_into())?.collect(),
+            (None, Some(end)) => connection.prepare(formatc!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp <= ?3", TRANSACTION_FIELDS))?.query_and_then((account, account, end.unix_timestamp()), |row| row.try_into())?.collect(),
+            (Some(start), Some(end)) => connection.prepare(formatc!("SELECT {} FROM transactions WHERE (source_id=?1 OR destination_id=?2) AND timestamp >= ?3 AND timestamp <= ?4", TRANSACTION_FIELDS))?.query_and_then((account, account, start.unix_timestamp(), end.unix_timestamp()), |row| row.try_into())?.collect() 
         };
 
         let mut transactions: Vec<Transaction> = Vec::new();
 
-        for row in result {
-            let mut transaction: Transaction = row?.try_into()?;
+        for transaction in result {
+            let mut transaction = transaction?;
             transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (x.0.id, x.1))
@@ -682,17 +636,16 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_budgets(&self) -> Result<Vec<Budget>> {
         let connection = self.connect().await;
 
-        let results: Vec<std::result::Result<BudgetSignature, rusqlite::Error>> = connection.prepare(
-            "SELECT id, name, description, value, currency, timespan_type, timespan_field1, timespan_field2 FROM budget"
-            )?.
-            query_map((), |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?)))?
+        let results: Vec<Result<Budget>> = connection
+            .prepare(formatc!("SELECT {} FROM budget", BUDGET_FIELDS))?
+            .query_and_then((), |row| row.try_into())?
             .collect();
 
         let mut budgets = Vec::new();
 
-        for row in results {
-            let row = row?;
-            budgets.push(row.try_into()?);
+        for budget in results.into_iter() {
+            let budget = budget?;
+            budgets.push(budget);
         }
         Ok(budgets)
     }
@@ -700,14 +653,13 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_budget(&self, id: Id) -> Result<Option<Budget>> {
         let connection = self.connect().await;
 
-        let result: Option<BudgetSignature> = connection.query_row(
-            "SELECT id, name, description, value, currency, timespan_type, timespan_field1, timespan_field2 FROM budget WHERE id=?1", 
-            (&id,),
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?))
-        ).optional()?;
+        let result = connection
+            .prepare(formatc!("SELECT {} FROM budget WHERE id=?1", BUDGET_FIELDS))?
+            .query_and_then((&id,), |rows| rows.try_into())?
+            .next();
 
         if let Some(x) = result {
-            Ok(Some(x.try_into()?))
+            Ok(Some(x?))
         } else {
             Ok(None)
         }
@@ -759,52 +711,17 @@ impl FinanceManager for SqliteFinanceManager {
     ) -> Result<Vec<Transaction>> {
         let connection = self.connect().await;
 
-        macro_rules! transaction_query {
-            ($sql:expr, $params:expr) => {
-                connection
-                    .prepare($sql)?
-                    .query_map($params, |row| {
-                        Ok((
-                            row.get(0)?,
-                            row.get(1)?,
-                            row.get(2)?,
-                            row.get(3)?,
-                            row.get(4)?,
-                            row.get(5)?,
-                            row.get(6)?,
-                            row.get(7)?,
-                            row.get(8)?,
-                            row.get(9)?,
-                            row.get(10)?,
-                        ))
-                    })?
-                    .collect()
-            };
-        }
-
-        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
-            (None, None) => transaction_query!(
-                format!("SELECT {} FROM transactions WHERE budget=?1", TRANSACTION_FIELDS).as_str(),
-                (id,)
-            ),
-            (Some(start), None) => transaction_query!(
-                format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp >= ?2", TRANSACTION_FIELDS).as_str(),
-                (id, start.unix_timestamp())
-            ),
-            (None, Some(end)) => transaction_query!(
-                format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp <= ?2", TRANSACTION_FIELDS).as_str(),
-                (id, end.unix_timestamp())
-            ),
-            (Some(start), Some(end)) => transaction_query!(
-                format!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp >= ?2 AND timestamp <= ?3", TRANSACTION_FIELDS).as_str(),
-                (id, start.unix_timestamp(), end.unix_timestamp())
-            )
+        let result: Vec<Result<Transaction>> = match timespan {
+            (None, None) => connection.prepare(formatc!("SELECT {} FROM transactions WHERE budget=?1", TRANSACTION_FIELDS))?.query_and_then((id,), |row| row.try_into())?.collect(),
+            (Some(start), None) => connection.prepare(formatc!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp >= ?2", TRANSACTION_FIELDS))?.query_and_then((id, start.unix_timestamp()), |row| row.try_into())?.collect(),
+            (None, Some(end)) => connection.prepare(formatc!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp <= ?2", TRANSACTION_FIELDS))?.query_and_then((id, end.unix_timestamp()), |row| row.try_into())?.collect(),
+            (Some(start), Some(end)) => connection.prepare(formatc!("SELECT {} FROM transactions WHERE budget=?1 AND timestamp >= ?2 AND timestamp <= ?3", TRANSACTION_FIELDS))?.query_and_then((id, start.unix_timestamp(), end.unix_timestamp()), |row| row.try_into())?.collect()
         };
 
         let mut transactions: Vec<Transaction> = Vec::new();
 
-        for row in result {
-            let mut transaction: Transaction = row?.try_into()?;
+        for transaction in result {
+            let mut transaction = transaction?;
             transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (x.0.id, x.1))
@@ -838,65 +755,41 @@ impl FinanceManager for SqliteFinanceManager {
     async fn get_transactions_in_timespan(&self, timespan: Timespan) -> Result<Vec<Transaction>> {
         let connection = self.connect().await;
 
-        macro_rules! transaction_query {
-            ($sql:expr, $params:expr) => {
-                connection
-                    .prepare($sql)?
-                    .query_map($params, |row| {
-                        Ok((
-                            row.get(0)?,
-                            row.get(1)?,
-                            row.get(2)?,
-                            row.get(3)?,
-                            row.get(4)?,
-                            row.get(5)?,
-                            row.get(6)?,
-                            row.get(7)?,
-                            row.get(8)?,
-                            row.get(9)?,
-                            row.get(10)?,
-                        ))
-                    })?
-                    .collect()
-            };
-        }
-
-        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan
-        {
-            (None, None) => transaction_query!(
-                format!("SELECT {} FROM transactions", TRANSACTION_FIELDS).as_str(),
-                ()
-            ),
-            (Some(start), None) => transaction_query!(
-                format!(
+        let result: Vec<Result<Transaction>> = match timespan {
+            (None, None) => connection
+                .prepare(formatc!("SELECT {} FROM transactions", TRANSACTION_FIELDS))?
+                .query_and_then((), |row| row.try_into())?
+                .collect(),
+            (Some(start), None) => connection
+                .prepare(formatc!(
                     "SELECT {} FROM transactions WHERE timestamp >= ?1",
                     TRANSACTION_FIELDS
-                )
-                .as_str(),
-                (start.unix_timestamp(),)
-            ),
-            (None, Some(end)) => transaction_query!(
-                format!(
+                ))?
+                .query_and_then((start.unix_timestamp(),), |row| row.try_into())?
+                .collect(),
+
+            (None, Some(end)) => connection
+                .prepare(formatc!(
                     "SELECT {} FROM transactions WHERE timestamp <= ?1",
                     TRANSACTION_FIELDS
-                )
-                .as_str(),
-                (end.unix_timestamp(),)
-            ),
-            (Some(start), Some(end)) => transaction_query!(
-                format!(
+                ))?
+                .query_and_then((end.unix_timestamp(),), |row| row.try_into())?
+                .collect(),
+            (Some(start), Some(end)) => connection
+                .prepare(formatc!(
                     "SELECT {} FROM transactions WHERE timestamp >= ?1 AND timestamp <= ?2",
                     TRANSACTION_FIELDS
-                )
-                .as_str(),
-                (start.unix_timestamp(), end.unix_timestamp())
-            ),
+                ))?
+                .query_and_then((start.unix_timestamp(), end.unix_timestamp()), |row| {
+                    row.try_into()
+                })?
+                .collect(),
         };
 
         let mut transactions: Vec<Transaction> = Vec::new();
 
-        for row in result {
-            let mut transaction: Transaction = row?.try_into()?;
+        for transaction in result {
+            let mut transaction = transaction?;
             transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (x.0.id, x.1))
@@ -958,64 +851,29 @@ impl FinanceManager for SqliteFinanceManager {
     ) -> Result<Vec<Transaction>> {
         let connection = self.connect().await;
 
-        macro_rules! transaction_query {
-            ($sql:expr, $params:expr) => {
-                connection
-                    .prepare($sql)?
-                    .query_map($params, |row| {
-                        Ok((
-                            row.get(0)?,
-                            row.get(1)?,
-                            row.get(2)?,
-                            row.get(3)?,
-                            row.get(4)?,
-                            row.get(5)?,
-                            row.get(6)?,
-                            row.get(7)?,
-                            row.get(8)?,
-                            row.get(9)?,
-                            row.get(10)?,
-                        ))
-                    })?
-                    .collect()
-            };
-        }
-
-        let result: Vec<std::result::Result<TransactionSignature, rusqlite::Error>> = match timespan {
-            (None, None) => transaction_query!(
-                format!(
+        let result: Vec<Result<Transaction>> = match timespan {
+            (None, None) => connection.prepare(formatc!(
                     "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE category_id=?1",
                     TRANSACTION_FIELDS
-                ).as_str(),
-                (&id,)
-            ),
-            (Some(start), None) => transaction_query!(
-                format!(
+                ))?.query_and_then((&id,), |row| row.try_into())?.collect(),
+            (Some(start), None) => connection.prepare(formatc!(
                     "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND category_id=?2",
                     TRANSACTION_FIELDS
-                ).as_str(),
-                (start.unix_timestamp(), &id)
-            ),
-            (None, Some(end)) => transaction_query!(
-                format!(
+                ))?.query_and_then((start.unix_timestamp(), &id), |row| row.try_into())?.collect(),
+            (None, Some(end)) => connection.prepare(formatc!(
                     "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp <= ?1  AND category_id=?2",
                     TRANSACTION_FIELDS
-                ).as_str(),
-                (end.unix_timestamp(), &id)
-            ),
-            (Some(start), Some(end)) => transaction_query!(
-                format!(
+                ))?.query_and_then((end.unix_timestamp(), &id), |row| row.try_into())?.collect(),
+            (Some(start), Some(end)) => connection.prepare(formatc!(
                     "SELECT {} FROM transactions INNER JOIN transaction_category ON transaction_id = id WHERE timestamp >= ?1 AND timestamp <= ?2  AND category_id=?3",
                     TRANSACTION_FIELDS
-                ).as_str(),
-                (start.unix_timestamp(), end.unix_timestamp(), &id)
-            )
+                ))?.query_and_then((start.unix_timestamp(), end.unix_timestamp(), &id), |row| row.try_into())?.collect()
         };
 
         let mut transactions: Vec<Transaction> = Vec::new();
 
-        for row in result {
-            let mut transaction: Transaction = row?.try_into()?;
+        for transaction in result {
+            let mut transaction = transaction?;
             transaction.categories = get_categories_of_transaction(&connection, transaction.id)?
                 .iter()
                 .map(|x| (x.0.id, x.1))

@@ -7,7 +7,7 @@ edition = "2024"
 
 [features]
 default = ["sqlite", "ram", "test"]
-sqlite = ["dep:rusqlite", "dep:serde_json"]
+sqlite = ["dep:rusqlite", "dep:serde_json", "dep:const_format"]
 ram = ["dep:uuid"]
 test = ["time/macros"]
 
@@ -25,6 +25,7 @@ async-std = { version = "1.12.0" }
 thiserror = "1.0.63"
 time = { version = "0.3.36", features = ["serde", "local-offset"] }
 tz-rs = "0.6.14"
+const_format = { version = "0.2.34", features = ["fmt"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 uuid = { version = "1.8.0", features = ["v4", "js"], optional = true }

@@ -228,9 +228,9 @@ pub fn transactions_category_distribution(transactions: Vec<Transaction>) -> Has
                 split.insert(*category.0, Currency::default());
             }
             if category.1 == &Sign::Positive {
-                *split.get_mut(&category.0).unwrap() += transaction.amount();
+                *split.get_mut(category.0).unwrap() += transaction.amount();
             } else {
-                *split.get_mut(&category.0).unwrap() -= transaction.amount();
+                *split.get_mut(category.0).unwrap() -= transaction.amount();
             }
         }
     }
