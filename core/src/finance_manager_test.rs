@@ -159,7 +159,10 @@ pub mod timespan_test {
         Transaction,
         Transaction,
         Transaction,
+        Transaction,
+        Transaction,
         crate::account::Account,
+        Budget,
     ) {
         let acc1 = fm
             .create_asset_account(
@@ -180,6 +183,25 @@ pub mod timespan_test {
             .await
             .unwrap();
 
+        let budget1 = fm
+            .create_budget(
+                "budget1".to_string(),
+                None,
+                Currency::default(),
+                budget::Recurring::DayInMonth(1),
+            )
+            .await
+            .unwrap();
+        let budget2 = fm
+            .create_budget(
+                "budget1".to_string(),
+                None,
+                Currency::default(),
+                budget::Recurring::DayInMonth(1),
+            )
+            .await
+            .unwrap();
+
         let t0 = fm
             .create_transaction(
                 Currency::default(),
@@ -187,7 +209,7 @@ pub mod timespan_test {
                 None,
                 acc1.id,
                 acc3.id,
-                None,
+                Some((budget2.id, Sign::Positive)),
                 time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(9:30)),
                 HashMap::default(),
                 HashMap::default(),
@@ -200,9 +222,9 @@ pub mod timespan_test {
                 "t1".to_string(),
                 None,
                 acc1.id,
-                acc2.id,
+                acc3.id,
                 None,
-                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:30)),
+                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(9:30)),
                 HashMap::default(),
                 HashMap::default(),
             )
@@ -215,8 +237,8 @@ pub mod timespan_test {
                 None,
                 acc1.id,
                 acc2.id,
-                None,
-                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(11:30)),
+                Some((budget1.id, Sign::Positive)),
+                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(10:30)),
                 HashMap::default(),
                 HashMap::default(),
             )
@@ -229,8 +251,8 @@ pub mod timespan_test {
                 None,
                 acc1.id,
                 acc2.id,
-                None,
-                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(12:50)),
+                Some((budget1.id, Sign::Positive)),
+                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(11:30)),
                 HashMap::default(),
                 HashMap::default(),
             )
@@ -242,6 +264,20 @@ pub mod timespan_test {
                 "t4".to_string(),
                 None,
                 acc1.id,
+                acc2.id,
+                Some((budget1.id, Sign::Positive)),
+                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(12:50)),
+                HashMap::default(),
+                HashMap::default(),
+            )
+            .await
+            .unwrap();
+        let t5 = fm
+            .create_transaction(
+                Currency::default(),
+                "t5".to_string(),
+                None,
+                acc1.id,
                 acc3.id,
                 None,
                 time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(13:50)),
@@ -250,17 +286,31 @@ pub mod timespan_test {
             )
             .await
             .unwrap();
-        (t0, t1, t2, t3, t4, acc2.into())
+        let t6 = fm
+            .create_transaction(
+                Currency::default(),
+                "t6".to_string(),
+                None,
+                acc1.id,
+                acc3.id,
+                Some((budget2.id, Sign::Positive)),
+                time::OffsetDateTime::new_utc(date!(2024 - 01 - 01), time!(13:50)),
+                HashMap::default(),
+                HashMap::default(),
+            )
+            .await
+            .unwrap();
+        (t0, t1, t2, t3, t4, t5, t6, acc2.into(), budget1)
     }
 
-    pub mod get_transactions_of_account {
+    pub mod get_transactions_of_budget {
         use super::*;
 
         pub async fn start_end_test<T: FinanceManager>(mut fm: T) {
             let objects = generate_transactions(&mut fm).await;
             let result = fm
-                .get_transactions_of_account(
-                    *objects.5.id(),
+                .get_transactions_of_budget(
+                    objects.8.id,
                     (
                         Some(time::OffsetDateTime::new_utc(
                             date!(2024 - 01 - 01),
@@ -275,14 +325,14 @@ pub mod timespan_test {
                 .await
                 .unwrap();
             assert_eq!(result.len(), 1);
-            assert!(result.iter().any(|x| x.id == objects.1.id));
+            assert!(result.iter().any(|x| x.id == objects.2.id));
         }
 
         pub async fn start_none_test<T: FinanceManager>(mut fm: T) {
             let objects = generate_transactions(&mut fm).await;
             let result = fm
-                .get_transactions_of_account(
-                    *objects.5.id(),
+                .get_transactions_of_budget(
+                    objects.8.id,
                     (
                         Some(time::OffsetDateTime::new_utc(
                             date!(2024 - 01 - 01),
@@ -294,15 +344,15 @@ pub mod timespan_test {
                 .await
                 .unwrap();
             assert_eq!(result.len(), 2);
-            assert!(result.iter().any(|x| x.id == objects.2.id));
             assert!(result.iter().any(|x| x.id == objects.3.id));
+            assert!(result.iter().any(|x| x.id == objects.4.id));
         }
 
         pub async fn none_end_test<T: FinanceManager>(mut fm: T) {
             let objects = generate_transactions(&mut fm).await;
             let result = fm
-                .get_transactions_of_account(
-                    *objects.5.id(),
+                .get_transactions_of_budget(
+                    objects.8.id,
                     (
                         None,
                         Some(time::OffsetDateTime::new_utc(
@@ -314,20 +364,98 @@ pub mod timespan_test {
                 .await
                 .unwrap();
             assert_eq!(result.len(), 2);
-            assert!(result.iter().any(|x| x.id == objects.1.id));
             assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
         }
 
         pub async fn none_none_test<T: FinanceManager>(mut fm: T) {
             let objects = generate_transactions(&mut fm).await;
             let result = fm
-                .get_transactions_of_account(*objects.5.id(), (None, None))
+                .get_transactions_of_budget(objects.8.id, (None, None))
                 .await
                 .unwrap();
             assert_eq!(result.len(), 3);
-            assert!(result.iter().any(|x| x.id == objects.1.id));
             assert!(result.iter().any(|x| x.id == objects.2.id));
             assert!(result.iter().any(|x| x.id == objects.3.id));
+            assert!(result.iter().any(|x| x.id == objects.4.id));
+        }
+    }
+
+    pub mod get_transactions_of_account {
+        use super::*;
+
+        pub async fn start_end_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_account(
+                    *objects.7.id(),
+                    (
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:30),
+                        )),
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:50),
+                        )),
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 1);
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+        }
+
+        pub async fn start_none_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_account(
+                    *objects.7.id(),
+                    (
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(10:50),
+                        )),
+                        None,
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 2);
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+            assert!(result.iter().any(|x| x.id == objects.4.id));
+        }
+
+        pub async fn none_end_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_account(
+                    *objects.7.id(),
+                    (
+                        None,
+                        Some(time::OffsetDateTime::new_utc(
+                            date!(2024 - 01 - 01),
+                            time!(11:50),
+                        )),
+                    ),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 2);
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+        }
+
+        pub async fn none_none_test<T: FinanceManager>(mut fm: T) {
+            let objects = generate_transactions(&mut fm).await;
+            let result = fm
+                .get_transactions_of_account(*objects.7.id(), (None, None))
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 3);
+            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
+            assert!(result.iter().any(|x| x.id == objects.4.id));
         }
     }
 
@@ -350,7 +478,7 @@ pub mod timespan_test {
                 .await
                 .unwrap();
             assert_eq!(result.len(), 1);
-            assert!(result.iter().any(|x| x.id == objects.1.id));
+            assert!(result.iter().any(|x| x.id == objects.2.id));
         }
 
         pub async fn start_none_test<T: FinanceManager>(mut fm: T) {
@@ -365,10 +493,11 @@ pub mod timespan_test {
                 ))
                 .await
                 .unwrap();
-            assert_eq!(result.len(), 3);
-            assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert_eq!(result.len(), 4);
             assert!(result.iter().any(|x| x.id == objects.3.id));
             assert!(result.iter().any(|x| x.id == objects.4.id));
+            assert!(result.iter().any(|x| x.id == objects.5.id));
+            assert!(result.iter().any(|x| x.id == objects.6.id));
         }
 
         pub async fn none_end_test<T: FinanceManager>(mut fm: T) {
@@ -383,21 +512,24 @@ pub mod timespan_test {
                 ))
                 .await
                 .unwrap();
-            assert_eq!(result.len(), 3);
+            assert_eq!(result.len(), 4);
             assert!(result.iter().any(|x| x.id == objects.0.id));
             assert!(result.iter().any(|x| x.id == objects.1.id));
             assert!(result.iter().any(|x| x.id == objects.2.id));
+            assert!(result.iter().any(|x| x.id == objects.3.id));
         }
 
         pub async fn none_none_test<T: FinanceManager>(mut fm: T) {
             let objects = generate_transactions(&mut fm).await;
             let result = fm.get_transactions_in_timespan((None, None)).await.unwrap();
-            assert_eq!(result.len(), 5);
+            assert_eq!(result.len(), 7);
             assert!(result.iter().any(|x| x.id == objects.0.id));
             assert!(result.iter().any(|x| x.id == objects.1.id));
             assert!(result.iter().any(|x| x.id == objects.2.id));
             assert!(result.iter().any(|x| x.id == objects.3.id));
             assert!(result.iter().any(|x| x.id == objects.4.id));
+            assert!(result.iter().any(|x| x.id == objects.5.id));
+            assert!(result.iter().any(|x| x.id == objects.6.id));
         }
     }
 }
@@ -542,6 +674,31 @@ macro_rules! unit_tests {
         mod get_transactions_of_account {
             use super::test_runner;
             use $crate::finance_manager_test::timespan_test::get_transactions_of_account::*;
+
+            #[async_std::test]
+            async fn start_end() {
+                ($runner)(start_end_test).await;
+            }
+
+            #[async_std::test]
+            async fn start_none() {
+                ($runner)(start_none_test).await;
+            }
+
+            #[async_std::test]
+            async fn none_end() {
+                ($runner)(none_end_test).await;
+            }
+
+            #[async_std::test]
+            async fn none_none() {
+                ($runner)(none_none_test).await;
+            }
+        }
+
+        mod get_transactions_of_budget {
+            use super::test_runner;
+            use $crate::finance_manager_test::timespan_test::get_transactions_of_budget::*;
 
             #[async_std::test]
             async fn start_end() {
