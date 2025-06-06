@@ -206,7 +206,6 @@ impl View {
             }
 
             iced::Element::new(widget::column![
-                components::heading("Transaction", components::HeadingLevel::H1),
                 widget::row![
                     column,
                     widget::Space::with_width(iced::Length::Fill),
