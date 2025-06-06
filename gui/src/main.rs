@@ -1092,6 +1092,9 @@ fn main() {
             icon: Some(icons::FM_LOGO_WINDOW_ICON.clone()),
             ..Default::default()
         })
+        .font(include_bytes!("../fonts/FiraSans-Regular.ttf"))
+        .font(include_bytes!("../fonts/FiraSans-Bold.ttf"))
+        .default_font(iced::Font::with_name("Fira Sans"))
         .run_with(|| (app, iced::Task::none()))
         .unwrap();
 }
