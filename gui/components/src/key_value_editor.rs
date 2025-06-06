@@ -91,6 +91,6 @@ impl From<std::collections::HashMap<String, String>> for KeyValueEditor {
 
 impl From<KeyValueEditor> for std::collections::HashMap<String, String> {
     fn from(value: KeyValueEditor) -> Self {
-        std::collections::HashMap::from_iter(value.pairs().into_iter())
+        std::collections::HashMap::from_iter(value.pairs())
     }
 }

@@ -77,7 +77,7 @@ enum Message {
     TransactionCreated(fm_core::Id),
     Cancel,
     ToggleMetadataEditor,
-    MetadataEditorMessage(components::key_value_editor::Message),
+    MetadataEditor(components::key_value_editor::Message),
 }
 
 #[derive(Debug)]
@@ -338,7 +338,7 @@ impl View {
             Message::ToggleMetadataEditor => {
                 self.metadata_editor_open = !self.metadata_editor_open;
             }
-            Message::MetadataEditorMessage(m) => {
+            Message::MetadataEditor(m) => {
                 self.metadata_editor.update(m);
             }
         }
@@ -353,9 +353,7 @@ impl View {
         let editing_pane = if self.metadata_editor_open {
             iced::Element::new(components::spaced_column![
                 components::button::back("Back", Some(Message::ToggleMetadataEditor)),
-                self.metadata_editor
-                    .view()
-                    .map(Message::MetadataEditorMessage)
+                self.metadata_editor.view().map(Message::MetadataEditor)
             ])
         } else {
             let mut categories = components::spaced_column![];
@@ -540,8 +538,7 @@ impl View {
             .as_ref()
             .map(|budget| (budget.0.id, budget.1));
         let date = self.date_input.datetime().unwrap();
-        let metadata =
-            std::collections::HashMap::from_iter(self.metadata_editor.pairs().into_iter());
+        let metadata = std::collections::HashMap::from_iter(self.metadata_editor.pairs());
         let mut categories =
             std::collections::HashMap::with_capacity(self.selected_categories.len());
         for (id, sign) in &self.selected_categories {

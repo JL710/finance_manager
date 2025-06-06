@@ -517,6 +517,7 @@ pub fn scroll_grab_on_event(
     advanced::graphics::core::event::Status::Ignored
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn overlay<'b, Message, Theme, Renderer: advanced::Renderer>(
     state: &State,
     size: Size,
