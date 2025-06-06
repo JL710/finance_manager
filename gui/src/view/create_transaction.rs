@@ -2,6 +2,7 @@ use anyhow::Context;
 use components::date_time::date_time_input;
 use fm_core;
 use iced::widget;
+use itertools::Itertools;
 
 #[derive(Debug, Clone, PartialEq)]
 enum SelectedAccount {
@@ -253,7 +254,10 @@ impl View {
                 }
             }
             Message::Initialize(init) => {
-                let (budgets, accounts, categories) = *init;
+                let (mut budgets, mut accounts, mut categories) = *init;
+                budgets.sort_by(|a, b| a.name.cmp(&b.name));
+                accounts.sort_by(|a, b| a.name().cmp(b.name()));
+                categories.sort_by(|a, b| a.name.cmp(&b.name));
                 self.budget_state = widget::combo_box::State::new(budgets);
                 self.available_categories = categories;
                 self.source_state = widget::combo_box::State::new(
@@ -285,6 +289,7 @@ impl View {
                     init_existing
                         .accounts
                         .iter()
+                        .sorted_by(|a, b| a.name().cmp(b.name()))
                         .map(|acc| SelectedAccount::Account(acc.clone()))
                         .collect(),
                 );
@@ -293,19 +298,29 @@ impl View {
                     init_existing
                         .accounts
                         .iter()
+                        .sorted_by(|a, b| a.name().cmp(b.name()))
                         .map(|acc| SelectedAccount::Account(acc.clone()))
                         .collect(),
                 );
                 self.budget_input = init_existing
                     .budget
                     .map(|x| (x, init_existing.transaction.budget.unwrap().1));
-                self.budget_state = widget::combo_box::State::new(init_existing.budgets);
+                self.budget_state = widget::combo_box::State::new(
+                    init_existing
+                        .budgets
+                        .into_iter()
+                        .sorted_by(|a, b| a.name.cmp(&b.name))
+                        .collect(),
+                );
                 self.date_input = date_time_input::State::new(Some(init_existing.transaction.date));
                 self.metadata_editor = components::key_value_editor::KeyValueEditor::from(
                     init_existing.transaction.metadata,
                 );
-                self.available_categories = init_existing.available_categories;
-                self.available_categories.sort();
+                self.available_categories = init_existing
+                    .available_categories
+                    .into_iter()
+                    .sorted_by(|a, b| a.name.cmp(&b.name))
+                    .collect();
                 self.selected_categories = init_existing
                     .transaction
                     .categories

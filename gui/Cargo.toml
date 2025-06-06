@@ -31,6 +31,7 @@ clap = { version = "4.5.11", features = ["derive"] }
 serde_json = { version = "1.0.127", optional = true }
 dirs = "5.0.1"
 serde = { version = "1.0.217", features = ["derive"] }
+itertools = "0.14.0"
 
 [workspace.dependencies]
 iced = { version = "0.1.0", path = "../iced-dynamic", package = "iced-dynamic" }
