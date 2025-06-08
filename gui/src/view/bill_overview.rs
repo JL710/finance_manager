@@ -111,11 +111,9 @@ impl View {
                                 .into(),
                             widget::text!("{}€", bill.0.value.to_num_string()).into(),
                             components::colored_currency_display(&bill.1),
-                            widget::text(
-                                bill.0
-                                    .due_date
-                                    .map_or(String::new(), components::date_time::to_date_string),
-                            )
+                            widget::text(bill.0.due_date.map_or(String::new(), |x| {
+                                components::date_time::to_date_string(x.date())
+                            }))
                             .into(),
                             widget::text(bill.0.transactions.len()).into(),
                         ]

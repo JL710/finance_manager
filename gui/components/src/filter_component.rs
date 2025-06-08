@@ -68,8 +68,10 @@ impl FilterComponent {
     }
 
     pub fn set_filter(&mut self, new_filter: fm_core::transaction_filter::TransactionFilter) {
-        self.default_transaction_input =
-            date_span_input::State::new(Some(new_filter.default_timespan));
+        self.default_transaction_input = date_span_input::State::new(Some((
+            new_filter.default_timespan.0.map(|x| x.date()),
+            new_filter.default_timespan.1.map(|x| x.date()),
+        )));
 
         fn set_inputs<
             T: Clone + std::fmt::Debug + std::fmt::Display + 'static,
@@ -136,11 +138,26 @@ impl FilterComponent {
         self
     }
 
-    pub fn update(&mut self, message: InnerMessage) -> Action {
+    pub fn update(&mut self, message: InnerMessage, utc_offset: time::UtcOffset) -> Action {
         match message {
             InnerMessage::Submit => {
                 let mut filter = fm_core::transaction_filter::TransactionFilter {
-                    default_timespan: self.default_transaction_input.timespan(),
+                    default_timespan: (
+                        self.default_transaction_input.timespan().0.map(|date| {
+                            time::OffsetDateTime::new_in_offset(
+                                date,
+                                time::Time::from_hms(0, 0, 0).unwrap(),
+                                utc_offset,
+                            )
+                        }),
+                        self.default_transaction_input.timespan().1.map(|date| {
+                            time::OffsetDateTime::new_in_offset(
+                                date,
+                                time::Time::from_hms(23, 59, 59).unwrap(),
+                                utc_offset,
+                            )
+                        }),
+                    ),
                     ..Default::default()
                 };
                 for bill_entry in &self.bill_filter_entries {
@@ -419,7 +436,18 @@ mod filter_entry {
                     None
                 },
                 options,
-                timespan_input: date_span_input::State::new(filter.timespan),
+                timespan_input: date_span_input::State::new(filter.timespan.map(
+                    |mapped_timespan| {
+                        (
+                            mapped_timespan
+                                .0
+                                .map(|offset_date_time| offset_date_time.date()),
+                            mapped_timespan
+                                .1
+                                .map(|offset_date_time| offset_date_time.date()),
+                        )
+                    },
+                )),
                 filter,
                 t_to_id: Box::new(t_to_id),
             }

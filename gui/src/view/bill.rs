@@ -229,10 +229,11 @@ impl View {
                             widget::text!("Amount: {}€", bill.value.to_num_string()),
                             widget::text!(
                                 "Due Date: {}",
-                                bill.due_date.map_or(
-                                    String::new(),
-                                    components::date_time::to_date_time_string
-                                )
+                                bill.due_date.map_or(String::new(), |x| {
+                                    components::date_time::to_date_time_string(
+                                        time::PrimitiveDateTime::new(x.date(), x.time()),
+                                    )
+                                })
                             ),
                             components::spal_row![
                                 "Sum: ",
@@ -273,8 +274,10 @@ impl View {
                                     &transaction.amount().negative(),
                                 )
                             },
-                            widget::text(components::date_time::to_date_string(transaction.date))
-                                .into(),
+                            widget::text(components::date_time::to_date_string(
+                                transaction.date.date()
+                            ))
+                            .into(),
                             widget::text(
                                 accounts
                                     .iter()

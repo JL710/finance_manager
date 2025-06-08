@@ -1,5 +1,6 @@
 use super::Shift;
 use iced::widget;
+use time::Date;
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -9,7 +10,7 @@ pub enum Action {
     ToggleDropdown,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct State {
     start: super::date_input::State,
     end: super::date_input::State,
@@ -17,7 +18,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(timespan: Option<fm_core::Timespan>) -> Self {
+    pub fn new(timespan: Option<(Option<Date>, Option<Date>)>) -> Self {
         Self {
             start: super::date_input::State::new(if let Some(t) = timespan { t.0 } else { None }),
             end: super::date_input::State::new(if let Some(t) = timespan { t.1 } else { None }),
@@ -25,15 +26,8 @@ impl State {
         }
     }
 
-    pub fn timespan(&self) -> fm_core::Timespan {
-        (
-            self.start
-                .date()
-                .map(|x| x.replace_time(time::Time::from_hms(0, 0, 0).unwrap())),
-            self.end
-                .date()
-                .map(|x| x.replace_time(time::Time::from_hms(23, 59, 59).unwrap())),
-        )
+    pub fn timespan(&self) -> (Option<time::Date>, Option<Date>) {
+        (self.start.date(), self.end.date())
     }
 
     pub fn perform(&mut self, action: Action) {
@@ -46,12 +40,12 @@ impl State {
             }
             Action::Shift { shift, positive } => {
                 if let Some(before) = self.start.date() {
-                    self.start = super::date_input::State::new(Some(super::apply_shift(
+                    self.start = super::date_input::State::new(Some(super::apply_date_shift(
                         before, shift, positive,
                     )));
                 }
                 if let Some(before) = self.end.date() {
-                    self.end = super::date_input::State::new(Some(super::apply_shift(
+                    self.end = super::date_input::State::new(Some(super::apply_date_shift(
                         before, shift, positive,
                     )));
                 }

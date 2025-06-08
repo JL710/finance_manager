@@ -112,7 +112,7 @@ pub fn heading<'a, Message: 'a>(
     .into()
 }
 
-fn parse_number(input: &str) -> Option<f64> {
+pub fn parse_number(input: &str) -> Option<f64> {
     let input = input
         .replace(",", ".")
         .chars()

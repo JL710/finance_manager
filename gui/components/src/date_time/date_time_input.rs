@@ -13,9 +13,9 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(default: Option<time::OffsetDateTime>) -> Self {
+    pub fn new(default: Option<time::PrimitiveDateTime>) -> Self {
         Self {
-            date_input: date_input::State::new(default),
+            date_input: date_input::State::new(default.map(|x| x.date())),
             time_input: time_input::State::new(default.map(|default| default.time())),
         }
     }
@@ -27,10 +27,10 @@ impl State {
         }
     }
 
-    pub fn datetime(&self) -> Option<time::OffsetDateTime> {
+    pub fn datetime(&self) -> Option<time::PrimitiveDateTime> {
         if let Some(date) = self.date_input.date() {
             if let Some(time) = self.time_input.time() {
-                return Some(date.replace_time(time));
+                return Some(time::PrimitiveDateTime::new(date, time));
             }
         }
         None

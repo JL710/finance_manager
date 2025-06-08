@@ -161,7 +161,9 @@ impl View {
                     .on_press(Message::ViewAccount(*destination.id())),
                 widget::text!(
                     "Date: {}",
-                    components::date_time::to_date_time_string(transaction.date)
+                    components::date_time::to_date_time_string(
+                        components::date_time::offset_to_primitive(transaction.date)
+                    )
                 ),
             ];
 

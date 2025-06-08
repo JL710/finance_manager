@@ -263,7 +263,8 @@ impl TransactionTable {
                         link(transaction.title.as_str())
                             .on_press(Message::ViewTransaction(transaction.id))
                             .into(),
-                        widget::text(super::date_time::to_date_string(transaction.date)).into(),
+                        widget::text(super::date_time::to_date_string(transaction.date.date()))
+                            .into(),
                         match (self.amount_positive)(transaction.clone()) {
                             Some(true) => colored_currency_display(transaction.amount()),
                             Some(false) => {

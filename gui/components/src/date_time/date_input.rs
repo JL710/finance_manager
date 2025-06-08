@@ -4,12 +4,12 @@ use iced::widget;
 #[derive(Default, Debug, Clone)]
 pub struct State {
     value: String,
-    default_value: Option<fm_core::DateTime>,
+    default_value: Option<time::Date>,
     drop_down: bool,
 }
 
 impl State {
-    pub fn new(value: Option<fm_core::DateTime>) -> Self {
+    pub fn new(value: Option<time::Date>) -> Self {
         Self {
             value: if let Some(date) = value {
                 super::to_date_string(date)
@@ -29,15 +29,15 @@ impl State {
         }
     }
 
-    pub fn default_value(&mut self, value: Option<fm_core::DateTime>) {
+    pub fn default_value(&mut self, value: Option<time::Date>) {
         self.default_value = value;
     }
 
     /// Will return the user input as datetime if possible or default datetime if given.
     ///
     /// The time will be set o 12:00.
-    pub fn date(&self) -> Option<fm_core::DateTime> {
-        super::parse_date_str(&self.value, 12, 0, 0).map_or(self.default_value, Some)
+    pub fn date(&self) -> Option<time::Date> {
+        super::parse_date_str(&self.value).map_or(self.default_value, Some)
     }
 
     fn raw_input(&self) -> &str {
@@ -57,7 +57,8 @@ impl State {
             Action::ToggleDropdown => self.drop_down = !self.drop_down,
             Action::DateShift { shift, positive } => {
                 if let Some(before) = self.date() {
-                    self.value = super::to_date_string(super::apply_shift(before, shift, positive))
+                    self.value =
+                        super::to_date_string(super::apply_date_shift(before, shift, positive))
                 }
             }
         }

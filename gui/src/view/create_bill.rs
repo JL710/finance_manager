@@ -163,6 +163,7 @@ impl View {
         &mut self,
         message: Message,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> Action {
         match message {
             Message::ClosedInput(new_value) => {
@@ -190,8 +191,10 @@ impl View {
                         &bill.description.unwrap_or_default(),
                     );
                     self.value = components::currency_input::State::new(bill.value);
-                    self.due_date_input =
-                        components::date_time::date_time_input::State::new(bill.due_date);
+                    self.due_date_input = components::date_time::date_time_input::State::new(
+                        bill.due_date
+                            .map(components::date_time::offset_to_primitive),
+                    );
                     self.closed = bill.closed;
                 }
                 self.transactions = transactions.clone();
@@ -240,7 +243,9 @@ impl View {
                                 description,
                                 value,
                                 transactions,
-                                due_date,
+                                due_date: due_date.map(|x| {
+                                    components::date_time::primitive_to_offset(x, utc_offset)
+                                }),
                                 closed,
                             })
                             .await?;
@@ -249,7 +254,16 @@ impl View {
                 } else {
                     return Action::Task(error::failing_task(async move {
                         let bill = finance_controller
-                            .create_bill(name, description, value, transactions, due_date, closed)
+                            .create_bill(
+                                name,
+                                description,
+                                value,
+                                transactions,
+                                due_date.map(|x| {
+                                    components::date_time::primitive_to_offset(x, utc_offset)
+                                }),
+                                closed,
+                            )
                             .await?;
                         Ok(Message::BillCreated(bill.id))
                     }));
@@ -289,7 +303,7 @@ impl View {
             }
             Message::AddTransaction(m) => {
                 if let Some(add_transaction) = &mut self.add_transaction {
-                    match add_transaction.update(m, finance_controller) {
+                    match add_transaction.update(m, finance_controller, utc_offset) {
                         add_transaction::Action::Escape => {
                             self.add_transaction = None;
                         }
@@ -309,7 +323,7 @@ impl View {
             }
             Message::TransactionTable(inner) => match self.transaction_table.perform(inner) {
                 components::table_view::Action::OuterMessage(m) => {
-                    return self.update(m, finance_controller);
+                    return self.update(m, finance_controller, utc_offset);
                 }
                 components::table_view::Action::Task(task) => {
                     return Action::Task(task.map(Message::TransactionTable));
@@ -379,8 +393,10 @@ impl View {
                                     transaction.amount().clone()
                                 }),
                             ),
-                            widget::text(components::date_time::to_date_string(transaction.date))
-                                .into(),
+                            widget::text(components::date_time::to_date_string(
+                                transaction.date.date(),
+                            ))
+                            .into(),
                             widget::text(
                                 accounts
                                     .iter()
@@ -511,12 +527,13 @@ mod add_transaction {
             &mut self,
             message: Message,
             finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+            utc_offset: time::UtcOffset,
         ) -> Action {
             match message {
                 Message::Back => Action::Escape,
                 Message::FilterComponent(m) => {
                     if let Some(filter) = &mut self.filter {
-                        match filter.update(m) {
+                        match filter.update(m, utc_offset) {
                             components::filter_component::Action::Submit(submitted_filter) => {
                                 self.filter = None;
                                 return Action::Task(error::failing_task(async move {
@@ -562,7 +579,7 @@ mod add_transaction {
                 }
                 Message::Table(inner) => match self.table.perform(inner) {
                     components::table_view::Action::OuterMessage(m) => {
-                        self.update(m, finance_controller)
+                        self.update(m, finance_controller, utc_offset)
                     }
                     components::table_view::Action::Task(task) => {
                         Action::Task(task.map(Message::Table))
@@ -611,7 +628,8 @@ mod add_transaction {
                                 ),
                                 widget::text(x.title.as_str()).into(),
                                 widget::text(x.amount().to_num_string()).into(),
-                                widget::text(components::date_time::to_date_string(x.date)).into(),
+                                widget::text(components::date_time::to_date_string(x.date.date()))
+                                    .into(),
                                 widget::text(
                                     accounts
                                         .iter()

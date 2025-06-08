@@ -17,12 +17,14 @@ pub enum Message {
     #[cfg(feature = "native")]
     StartSQLiteNewFileSelector,
     FmChoice(crate::settings::SelectedFinanceManager),
+    TimeZoneInput(String),
     Save,
 }
 
 #[derive(Debug, Clone)]
 pub struct View {
     settings: crate::settings::Settings,
+    time_zone_input: String,
     unsaved: bool,
 }
 
@@ -30,6 +32,7 @@ impl View {
     pub fn new(settings: crate::settings::Settings) -> (Self, iced::Task<Message>) {
         (
             Self {
+                time_zone_input: settings.utc_seconds_offset.to_string(),
                 settings,
                 unsaved: false,
             },
@@ -90,81 +93,122 @@ impl View {
                 self.unsaved = false;
                 return Action::ApplySettings(self.settings.clone());
             }
+            Message::TimeZoneInput(value) => {
+                self.time_zone_input = value;
+                if let Some(number) = components::parse_number(&self.time_zone_input) {
+                    self.settings.utc_seconds_offset = number as i32;
+                    self.unsaved = true;
+                }
+            }
         }
         Action::None
     }
 
+    fn time_zone_input_valid(&self) -> bool {
+        !self.time_zone_input.is_empty()
+            && components::parse_number(&self.time_zone_input).is_some()
+    }
+
     pub fn view(&self) -> iced::Element<Message> {
-        let mut col = components::spaced_column![fm_settings_view(
-            widget::radio(
-                "Server",
-                crate::settings::SelectedFinanceManager::Server,
-                Some(self.settings.finance_manager.selected_finance_manager),
-                Message::FmChoice
-            ),
-            components::spaced_column![
-                components::labeled_entry(
-                    "API URL:",
-                    &self.settings.finance_manager.server_url,
-                    Message::ChangeAPIUrl,
-                    false
-                ),
-                components::labeled_entry(
-                    "API Token:",
-                    &self.settings.finance_manager.server_token,
-                    Message::ChangeAPIToken,
-                    false
-                ),
+        components::spaced_column![
+            components::spaced_row![
+                "Finance Manager",
+                components::spaced_column![
+                    widget::horizontal_rule(10),
+                    fm_settings_view(&self.settings),
+                ]
             ],
-        )];
-
-        #[cfg(feature = "native")]
-        {
-            let valid_path = valid_sqlite_path(&self.settings.finance_manager.sqlite_path);
-            col = col.push(widget::Rule::horizontal(10));
-            col = col.push(fm_settings_view(
-                widget::radio(
-                    "Sqlite",
-                    crate::settings::SelectedFinanceManager::SQLite,
-                    Some(self.settings.finance_manager.selected_finance_manager),
-                    Message::FmChoice,
-                ),
-                components::spaced_row![
-                    "Sqlite Path:",
-                    widget::text_input::TextInput::new(
-                        "Sqlite Path",
-                        &self.settings.finance_manager.sqlite_path
-                    )
-                    .on_input(Message::ChangeSqlitePath)
-                    .style(if valid_path {
-                        style::text_input_success
-                    } else {
-                        style::text_input_danger
-                    }),
-                    widget::button("Select File").on_press(Message::StartSQLiteFileSelector),
-                    widget::button("New").on_press(Message::StartSQLiteNewFileSelector),
-                ],
-            ));
-        }
-
-        col.push(widget::Rule::horizontal(10))
-            .push(widget::radio(
-                "Ram",
-                crate::settings::SelectedFinanceManager::Ram,
-                Some(self.settings.finance_manager.selected_finance_manager),
-                Message::FmChoice,
-            ))
-            .push(widget::vertical_space())
-            .push(components::button::submit(if self.unsaved {
+            components::spaced_row![
+                "Timezone",
+                components::spaced_column![
+                    widget::horizontal_rule(10),
+                    components::spal_row![
+                        "Offset seconds from UTC",
+                        widget::text_input("", &self.time_zone_input)
+                            .style(if self.time_zone_input_valid() {
+                                style::text_input_success
+                            } else {
+                                style::text_input_danger
+                            })
+                            .on_input(Message::TimeZoneInput)
+                    ],
+                ]
+            ],
+            widget::vertical_space(),
+            components::button::submit(if self.unsaved {
                 Some(Message::Save)
             } else {
                 None
-            }))
-            .into()
+            })
+        ]
+        .into()
     }
 }
 
-fn fm_settings_view<'a>(
+fn fm_settings_view(settings: &crate::settings::Settings) -> iced::Element<'_, Message> {
+    let mut col = components::spaced_column![fm_radio_helper(
+        widget::radio(
+            "Server",
+            crate::settings::SelectedFinanceManager::Server,
+            Some(settings.finance_manager.selected_finance_manager),
+            Message::FmChoice
+        ),
+        components::spaced_column![
+            components::labeled_entry(
+                "API URL:",
+                &settings.finance_manager.server_url,
+                Message::ChangeAPIUrl,
+                false
+            ),
+            components::labeled_entry(
+                "API Token:",
+                &settings.finance_manager.server_token,
+                Message::ChangeAPIToken,
+                false
+            ),
+        ],
+    )];
+
+    #[cfg(feature = "native")]
+    {
+        let valid_path = valid_sqlite_path(&settings.finance_manager.sqlite_path);
+        col = col.push(widget::Rule::horizontal(10));
+        col = col.push(fm_radio_helper(
+            widget::radio(
+                "Sqlite",
+                crate::settings::SelectedFinanceManager::SQLite,
+                Some(settings.finance_manager.selected_finance_manager),
+                Message::FmChoice,
+            ),
+            components::spaced_row![
+                "Sqlite Path:",
+                widget::text_input::TextInput::new(
+                    "Sqlite Path",
+                    &settings.finance_manager.sqlite_path
+                )
+                .on_input(Message::ChangeSqlitePath)
+                .style(if valid_path {
+                    style::text_input_success
+                } else {
+                    style::text_input_danger
+                }),
+                widget::button("Select File").on_press(Message::StartSQLiteFileSelector),
+                widget::button("New").on_press(Message::StartSQLiteNewFileSelector),
+            ],
+        ));
+    }
+
+    col.push(widget::Rule::horizontal(10))
+        .push(widget::radio(
+            "Ram",
+            crate::settings::SelectedFinanceManager::Ram,
+            Some(settings.finance_manager.selected_finance_manager),
+            Message::FmChoice,
+        ))
+        .into()
+}
+
+fn fm_radio_helper<'a>(
     radio: impl Into<iced::Element<'a, Message>>,
     settings: impl Into<iced::Element<'a, Message>>,
 ) -> iced::Element<'a, Message> {

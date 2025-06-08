@@ -115,6 +115,7 @@ impl View {
         &mut self,
         message: MessageContainer,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> Action {
         match message.0 {
             Message::Initialize(init) => {
@@ -170,7 +171,10 @@ impl View {
                 Action::Task(
                     error::failing_task(async move {
                         let transactions = finance_controller
-                            .get_transactions_of_account(account_id, timespan)
+                            .get_transactions_of_account(
+                                account_id,
+                                components::date_time::date_span_to_time_span(timespan, utc_offset),
+                            )
                             .await
                             .context(format!(
                                 "Error while fetching transactions of account {}.",

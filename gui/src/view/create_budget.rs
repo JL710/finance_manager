@@ -93,6 +93,7 @@ impl View {
         &mut self,
         message: Message,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> Action {
         match message {
             Message::Cancel => {
@@ -134,7 +135,8 @@ impl View {
                 let name_input = self.name_input.clone();
                 let description_input = self.description_input.text();
                 let value_input = self.value_input.clone();
-                let recurring_inputs = (&self.recurring_input).try_into();
+                let recurring_inputs =
+                    recurring_input::try_recurring_from_state(&self.recurring_input, utc_offset);
                 return Action::Task(error::failing_task(async move {
                     let budget = match option_id {
                         Some(id) => {
@@ -225,7 +227,8 @@ impl View {
 
     fn generate_recurring_view(&self) -> iced::Element<'_, Message> {
         let input_correct =
-            TryInto::<fm_core::budget::Recurring>::try_into(&self.recurring_input).is_ok();
+            recurring_input::try_recurring_from_state(&self.recurring_input, time::UtcOffset::UTC) // just make up a utc offset because it does not matter for validation
+                .is_ok();
 
         widget::column![
             widget::Text::new("Recurring"),
@@ -261,7 +264,9 @@ impl View {
             return false;
         }
         // check if the recurring inputs are valid
-        if TryInto::<fm_core::budget::Recurring>::try_into(&self.recurring_input).is_err() {
+        if recurring_input::try_recurring_from_state(&self.recurring_input, time::UtcOffset::UTC) // just make up a utc offset because it does not matter for validation
+            .is_err()
+        {
             return false;
         }
         true
@@ -269,7 +274,7 @@ impl View {
 }
 
 mod recurring_input {
-    use anyhow::Context;
+    use anyhow::{Context, Result};
     use components::date_time::date_time_input;
     use iced::widget;
 
@@ -340,9 +345,12 @@ mod recurring_input {
         fn from(value: fm_core::budget::Recurring) -> Self {
             match value {
                 fm_core::budget::Recurring::DayInMonth(day) => State::DayInMonth(day.to_string()),
-                fm_core::budget::Recurring::Days(start, days) => {
-                    State::Days(date_time_input::State::new(Some(start)), days.to_string())
-                }
+                fm_core::budget::Recurring::Days(start, days) => State::Days(
+                    date_time_input::State::new(Some(components::date_time::offset_to_primitive(
+                        start,
+                    ))),
+                    days.to_string(),
+                ),
                 fm_core::budget::Recurring::Yearly(month, day) => {
                     State::Yearly(month.to_string(), day.to_string())
                 }
@@ -350,39 +358,41 @@ mod recurring_input {
         }
     }
 
-    impl TryFrom<&State> for fm_core::budget::Recurring {
-        type Error = anyhow::Error;
-
-        fn try_from(value: &State) -> Result<Self, Self::Error> {
-            match value {
-                State::Days(start, days) => {
-                    let days = days.parse()?;
-                    if days > 500 {
-                        anyhow::bail!("Days cannot be more than 31");
-                    }
-                    Ok(fm_core::budget::Recurring::Days(
-                        start.datetime().context("Could not parse date time")?,
-                        days,
-                    ))
+    pub fn try_recurring_from_state(
+        state: &State,
+        utc_offset: time::UtcOffset,
+    ) -> Result<fm_core::budget::Recurring> {
+        match state {
+            State::Days(start, days) => {
+                let days = days.parse()?;
+                if days > 500 {
+                    anyhow::bail!("Days cannot be more than 31");
                 }
-                State::DayInMonth(day) => {
-                    let day = day.parse()?;
-                    if day > 31 {
-                        anyhow::bail!("Days cannot be more than 31");
-                    }
-                    Ok(fm_core::budget::Recurring::DayInMonth(day))
+                Ok(fm_core::budget::Recurring::Days(
+                    start
+                        .datetime()
+                        .map(|x| components::date_time::primitive_to_offset(x, utc_offset))
+                        .context("Could not parse date time")?,
+                    days,
+                ))
+            }
+            State::DayInMonth(day) => {
+                let day = day.parse()?;
+                if day > 31 {
+                    anyhow::bail!("Days cannot be more than 31");
                 }
-                State::Yearly(month, day) => {
-                    let month = month.parse()?;
-                    if month > 12 {
-                        anyhow::bail!("Month cannot be more than 12");
-                    }
-                    let day = day.parse()?;
-                    if day > 31 {
-                        anyhow::bail!("Day cannot be more than 31");
-                    }
-                    Ok(fm_core::budget::Recurring::Yearly(month, day))
+                Ok(fm_core::budget::Recurring::DayInMonth(day))
+            }
+            State::Yearly(month, day) => {
+                let month = month.parse()?;
+                if month > 12 {
+                    anyhow::bail!("Month cannot be more than 12");
                 }
+                let day = day.parse()?;
+                if day > 31 {
+                    anyhow::bail!("Day cannot be more than 31");
+                }
+                Ok(fm_core::budget::Recurring::Yearly(month, day))
             }
         }
     }

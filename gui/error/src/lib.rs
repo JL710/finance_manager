@@ -25,6 +25,15 @@ pub async fn error_popup(description: String) {
         .await;
 }
 
+pub fn blocking_error_popup(description: String) {
+    rfd::MessageDialog::new()
+        .set_buttons(rfd::MessageButtons::Ok)
+        .set_title("An Error has occurred")
+        .set_level(rfd::MessageLevel::Error)
+        .set_description(description)
+        .show();
+}
+
 pub async fn async_popup_wrapper<T>(fut: impl Future<Output = Result<T>>) -> Option<T> {
     match fut.await {
         Err(error) => {

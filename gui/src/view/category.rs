@@ -93,6 +93,7 @@ impl View {
         &mut self,
         message: Message,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> Action {
         match message {
             Message::Delete => {
@@ -137,7 +138,10 @@ impl View {
 
                     Action::Task(error::failing_task(async move {
                         let transactions = finance_controller
-                            .get_transactions_of_category(id, timespan)
+                            .get_transactions_of_category(
+                                id,
+                                components::date_time::date_span_to_time_span(timespan, utc_offset),
+                            )
                             .await?;
                         let accounts = finance_controller
                             .get_accounts_hash_map()
@@ -162,7 +166,10 @@ impl View {
                             transaction_tuples.push((transaction, from_account, to_account));
                         }
                         let values = finance_controller
-                            .get_relative_category_values(id, timespan)
+                            .get_relative_category_values(
+                                id,
+                                components::date_time::date_span_to_time_span(timespan, utc_offset),
+                            )
                             .await?;
                         let categories = finance_controller.get_categories().await?;
                         let budgets = finance_controller.get_budgets().await?;

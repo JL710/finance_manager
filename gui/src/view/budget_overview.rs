@@ -1,7 +1,5 @@
 use iced::widget;
 
-use anyhow::Context;
-
 pub enum Action {
     None,
     ViewBudget(fm_core::Id),
@@ -40,6 +38,7 @@ impl View {
 
     pub fn fetch(
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> (Self, iced::Task<Message>) {
         (
             View::new(Vec::new()),
@@ -49,12 +48,7 @@ impl View {
 
                 for budget in budgets {
                     let current_value = finance_controller
-                        .get_budget_value(
-                            &budget,
-                            0,
-                            fm_core::get_local_timezone()
-                                .context("Error while trying to get local timezone")?,
-                        )
+                        .get_budget_value(&budget, 0, utc_offset)
                         .await?;
                     tuples.push((budget, current_value));
                 }

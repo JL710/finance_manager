@@ -80,6 +80,7 @@ impl View {
         &mut self,
         message: Message,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> Action {
         match message {
             Message::Initialize {
@@ -137,7 +138,7 @@ impl View {
             }
             Message::FilterComponent(m) => {
                 if let Some(component) = &mut self.change_filter {
-                    match component.update(*m) {
+                    match component.update(*m, utc_offset) {
                         components::filter_component::Action::Submit(new_filter) => {
                             self.filter = new_filter.clone();
                             self.change_filter = None;

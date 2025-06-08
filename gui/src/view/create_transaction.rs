@@ -183,13 +183,14 @@ impl View {
         &mut self,
         message: MessageContainer,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> Action {
         match message.0 {
             Message::TransactionCreated(id) => return Action::TransactionCreated(id),
             Message::Submit => {
                 self.submitted = true;
                 return Action::Task(
-                    self.submit_command(finance_controller)
+                    self.submit_command(finance_controller, utc_offset)
                         .map(|x| Message::TransactionCreated(x.id))
                         .map(MessageContainer),
                 );
@@ -312,7 +313,9 @@ impl View {
                         .sorted_by(|a, b| a.name.cmp(&b.name))
                         .collect(),
                 );
-                self.date_input = date_time_input::State::new(Some(init_existing.transaction.date));
+                self.date_input = date_time_input::State::new(Some(
+                    components::date_time::offset_to_primitive(init_existing.transaction.date),
+                ));
                 self.metadata_editor = components::key_value_editor::KeyValueEditor::from(
                     init_existing.transaction.metadata,
                 );
@@ -522,6 +525,7 @@ impl View {
     fn submit_command(
         &self,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> iced::Task<fm_core::Transaction> {
         let option_id = self.id;
         let amount = self.amount_input.currency().unwrap();
@@ -576,7 +580,7 @@ impl View {
                             source_id,
                             destination_id,
                             budget,
-                            date,
+                            components::date_time::primitive_to_offset(date, utc_offset),
                             metadata,
                             categories,
                         )?)
@@ -591,7 +595,7 @@ impl View {
                             source_id,
                             destination_id,
                             budget,
-                            date,
+                            components::date_time::primitive_to_offset(date, utc_offset),
                             metadata,
                             categories,
                         )

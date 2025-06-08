@@ -62,11 +62,12 @@ impl View {
         )>,
         categories: Vec<fm_core::Category>,
         offset: i32,
+        utc_offset: time::UtcOffset,
     ) -> Result<Self> {
         let timespan = fm_core::budget::calculate_budget_timespan(
             &budget,
             offset,
-            fm_core::DateTime::now_utc().to_offset(fm_core::get_local_timezone()?),
+            fm_core::DateTime::now_utc().to_offset(utc_offset),
         )?;
         Ok(Self::Loaded {
             budget: budget.clone(),
@@ -86,11 +87,17 @@ impl View {
         id: fm_core::Id,
         offset: i32,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
-            error::failing_task(Self::initial_message(finance_controller, id, offset))
-                .map(MessageContainer),
+            error::failing_task(Self::initial_message(
+                finance_controller,
+                id,
+                offset,
+                utc_offset,
+            ))
+            .map(MessageContainer),
         )
     }
 
@@ -98,6 +105,7 @@ impl View {
         &mut self,
         message: MessageContainer,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
     ) -> Action {
         match message.0 {
             Message::Initialize(init) => {
@@ -107,6 +115,7 @@ impl View {
                     init.transactions,
                     init.categories,
                     init.offset,
+                    utc_offset,
                 ) {
                     Err(error) => {
                         return Action::Task(
@@ -161,6 +170,7 @@ impl View {
                             finance_controller,
                             budget.id,
                             *offset + 1,
+                            utc_offset,
                         ))
                         .map(MessageContainer),
                     )
@@ -175,6 +185,7 @@ impl View {
                             finance_controller,
                             budget.id,
                             *offset - 1,
+                            utc_offset,
                         ))
                         .map(MessageContainer),
                     )
@@ -241,8 +252,12 @@ impl View {
                 widget::text!("Offset: {}", offset),
                 widget::text!(
                     "Time Span: {} - {}",
-                    components::date_time::to_date_time_string(time_span.0.unwrap()),
-                    components::date_time::to_date_time_string(time_span.1.unwrap())
+                    components::date_time::to_date_time_string(
+                        components::date_time::offset_to_primitive(time_span.0.unwrap())
+                    ),
+                    components::date_time::to_date_time_string(
+                        components::date_time::offset_to_primitive(time_span.1.unwrap())
+                    )
                 ),
                 widget::button(">").on_press(Message::IncreaseOffset),
                 widget::Space::with_width(iced::Length::Fill),
@@ -288,24 +303,17 @@ impl View {
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         id: fm_core::Id,
         offset: i32,
+        utc_offset: time::UtcOffset,
     ) -> Result<Message> {
         let budget = finance_controller
             .get_budget(id)
             .await?
             .context(format!("Could not find budget {}", id))?;
         let transactions = finance_controller
-            .get_budget_transactions(
-                &budget,
-                offset,
-                fm_core::get_local_timezone().context("Error while getting local timezone")?,
-            )
+            .get_budget_transactions(&budget, offset, utc_offset)
             .await?;
         let current_value = finance_controller
-            .get_budget_value(
-                &budget,
-                offset,
-                fm_core::get_local_timezone().context("Error while getting local timezone")?,
-            )
+            .get_budget_value(&budget, offset, utc_offset)
             .await?;
 
         let mut transaction_tuples = Vec::new();

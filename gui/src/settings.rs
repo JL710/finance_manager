@@ -17,9 +17,19 @@ pub enum SelectedFinanceManager {
     Server,
 }
 
-#[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
     pub finance_manager: FinanceManager,
+    pub utc_seconds_offset: i32,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            finance_manager: FinanceManager::default(),
+            utc_seconds_offset: fm_core::get_local_timezone().map_or(0, |x| x.whole_seconds()),
+        }
+    }
 }
 
 fn get_settings_path() -> std::path::PathBuf {
@@ -33,9 +43,7 @@ pub fn read_settings() -> Result<Settings> {
         Ok(file) => file,
         Err(err) => {
             if err.kind() == std::io::ErrorKind::NotFound {
-                return Ok(Settings {
-                    finance_manager: FinanceManager::default(),
-                });
+                return Ok(Settings::default());
             } else {
                 return Err(err.into());
             }
