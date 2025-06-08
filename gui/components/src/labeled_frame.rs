@@ -3,6 +3,7 @@ use iced::advanced;
 
 pub struct Style {
     pub color: iced::Background,
+    pub radius: iced::border::Radius,
 }
 
 pub trait Catalog {
@@ -21,6 +22,7 @@ impl Catalog for iced::Theme {
     fn default<'a>() -> Self::Class<'a> {
         Box::new(|theme| Style {
             color: iced::Background::Color(theme.palette().primary),
+            radius: iced::border::Radius::default(),
         })
     }
 
@@ -214,6 +216,7 @@ where
         let title_layout = layout.children().next().unwrap();
         let top_line_y =
             title_layout.position().y + (title_layout.bounds().height - self.stroke_width) / 2.0;
+        // left line
         renderer.fill_quad(
             advanced::renderer::Quad {
                 bounds: iced::Rectangle {
@@ -224,11 +227,17 @@ where
                         - self.outset
                         - (top_line_y - layout.position().y),
                 },
-                border: iced::Border::default(),
+                border: iced::Border {
+                    radius: iced::border::Radius::default()
+                        .top_left(style.radius.top_left)
+                        .bottom_left(style.radius.bottom_left),
+                    ..Default::default()
+                },
                 shadow: iced::Shadow::default(),
             },
             style.color,
         );
+        // right line
         renderer.fill_quad(
             advanced::renderer::Quad {
                 bounds: iced::Rectangle {
@@ -241,11 +250,17 @@ where
                         - self.outset
                         - (top_line_y - layout.position().y),
                 },
-                border: iced::Border::default(),
+                border: iced::Border {
+                    radius: iced::border::Radius::default()
+                        .top_right(style.radius.top_right)
+                        .bottom_right(style.radius.bottom_right),
+                    ..Default::default()
+                },
                 shadow: iced::Shadow::default(),
             },
             style.color,
         );
+        // bottom line
         renderer.fill_quad(
             advanced::renderer::Quad {
                 bounds: iced::Rectangle {
@@ -256,11 +271,17 @@ where
                     width: layout.bounds().width - self.outset * 2.0,
                     height: self.stroke_width,
                 },
-                border: iced::Border::default(),
+                border: iced::Border {
+                    radius: iced::border::Radius::default()
+                        .bottom_right(style.radius.top_right)
+                        .bottom_left(style.radius.top_left),
+                    ..Default::default()
+                },
                 shadow: iced::Shadow::default(),
             },
             style.color,
         );
+        // top line left
         renderer.fill_quad(
             advanced::renderer::Quad {
                 bounds: iced::Rectangle {
@@ -271,11 +292,15 @@ where
                         - self.horizontal_title_padding,
                     height: self.stroke_width,
                 },
-                border: iced::Border::default(),
+                border: iced::Border {
+                    radius: iced::border::Radius::default().top_left(style.radius.top_left),
+                    ..Default::default()
+                },
                 shadow: iced::Shadow::default(),
             },
             style.color,
         );
+        // top line right
         renderer.fill_quad(
             advanced::renderer::Quad {
                 bounds: iced::Rectangle {
@@ -288,7 +313,10 @@ where
                         - self.horizontal_title_padding,
                     height: self.stroke_width,
                 },
-                border: iced::Border::default(),
+                border: iced::Border {
+                    radius: iced::border::Radius::default().top_right(style.radius.top_right),
+                    ..Default::default()
+                },
                 shadow: iced::Shadow::default(),
             },
             style.color,
@@ -405,7 +433,7 @@ where
 }
 
 pub fn secondary_weak(theme: &iced::Theme) -> Style {
-    Style {
-        color: iced::Background::Color(theme.extended_palette().secondary.weak.color),
-    }
+    let mut style = (<iced::Theme as Catalog>::default())(theme);
+    style.color = iced::Background::Color(theme.extended_palette().secondary.weak.color);
+    style
 }
