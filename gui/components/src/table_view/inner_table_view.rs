@@ -512,7 +512,12 @@ where
         let header_outer_bounds = header_layout
             .bounds()
             .intersection(&layout.bounds())
-            .unwrap();
+            .unwrap_or(iced::Rectangle {
+                width: 0.0,
+                height: 0.0,
+                x: header_layout.position().x,
+                y: header_layout.position().y,
+            });
         renderer.with_layer(header_outer_bounds, |renderer| {
             renderer.with_translation(
                 iced::Vector::new(
@@ -709,7 +714,12 @@ where
         let outer_scrollable_size = scrollable_layout
             .bounds()
             .intersection(&layout.bounds())
-            .unwrap()
+            .unwrap_or(iced::Rectangle {
+                width: 0.0,
+                height: 0.0,
+                x: scrollable_layout.position().x,
+                y: scrollable_layout.position().y,
+            })
             .size();
         let translation = downcast_state
             .scroll_state
@@ -775,7 +785,12 @@ where
             scrollable_layout
                 .bounds()
                 .intersection(&layout.bounds())
-                .unwrap()
+                .unwrap_or(iced::Rectangle {
+                    width: 0.0,
+                    height: 0.0,
+                    x: scrollable_layout.position().x,
+                    y: scrollable_layout.position().y,
+                })
                 .size(),
             scrollable_layout.bounds().size(),
         );
@@ -814,7 +829,12 @@ where
                     scrollable_layout
                         .bounds()
                         .intersection(&layout.bounds())
-                        .unwrap(),
+                        .unwrap_or(iced::Rectangle {
+                            width: 0.0,
+                            height: 0.0,
+                            x: scrollable_layout.position().x,
+                            y: scrollable_layout.position().y,
+                        }),
                     scrollable_layout.bounds().size(),
                     child.as_widget(),
                     child_state,
