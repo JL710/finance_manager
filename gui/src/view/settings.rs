@@ -111,29 +111,24 @@ impl View {
 
     pub fn view(&self) -> iced::Element<Message> {
         components::spaced_column![
-            components::spaced_row![
-                "Finance Manager",
-                components::spaced_column![
-                    widget::horizontal_rule(10),
-                    fm_settings_view(&self.settings),
-                ]
-            ],
-            components::spaced_row![
-                "Timezone",
-                components::spaced_column![
-                    widget::horizontal_rule(10),
-                    components::spal_row![
-                        "Offset seconds from UTC",
-                        widget::text_input("", &self.time_zone_input)
-                            .style(if self.time_zone_input_valid() {
-                                style::text_input_success
-                            } else {
-                                style::text_input_danger
-                            })
-                            .on_input(Message::TimeZoneInput)
-                    ],
-                ]
-            ],
+            widget::scrollable(components::spaced_column![
+                components::labeled_frame::LabeledFrame::new(
+                    "Finance Manager",
+                    fm_settings_view(&self.settings)
+                )
+                .style(components::labeled_frame::secondary_weak),
+                components::labeled_frame::LabeledFrame::new(
+                    "Timezone",
+                    widget::text_input("", &self.time_zone_input)
+                        .style(if self.time_zone_input_valid() {
+                            style::text_input_success
+                        } else {
+                            style::text_input_danger
+                        })
+                        .on_input(Message::TimeZoneInput)
+                )
+                .style(components::labeled_frame::secondary_weak),
+            ]),
             widget::vertical_space(),
             components::button::submit(if self.unsaved {
                 Some(Message::Save)
