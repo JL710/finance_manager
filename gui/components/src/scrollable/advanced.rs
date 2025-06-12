@@ -1,5 +1,7 @@
-pub use iced::widget::scrollable::{AbsoluteOffset, Rail, Status};
-use iced::{Size, advanced, widget::scrollable::RelativeOffset};
+use iced::Size;
+use iced::advanced;
+use iced::advanced::layout::{Limits, Node};
+pub use iced::widget::scrollable::{AbsoluteOffset, Rail, RelativeOffset, Status};
 
 pub struct Style {
     pub vertical_rail: Rail,
@@ -38,6 +40,24 @@ impl Catalog for iced::Theme {
     }
 }
 
+#[derive(Default, Debug, Clone, Copy)]
+pub enum Direction {
+    #[default]
+    Vertical,
+    Horizontal,
+    Both,
+}
+
+impl Direction {
+    pub fn vertical(&self) -> bool {
+        !matches!(self, Self::Horizontal)
+    }
+
+    pub fn horizontal(&self) -> bool {
+        !matches!(self, Self::Vertical)
+    }
+}
+
 #[derive(Debug, Clone)]
 enum Offset {
     Relative(f32),
@@ -51,14 +71,20 @@ impl Default for Offset {
 }
 
 impl Offset {
-    fn relative(&self, size: f32, content_size: f32) -> f32 {
+    fn relative(&self, mut size: f32, content_size: f32, scrollbar: bool) -> f32 {
+        if scrollbar {
+            size = (size - SCROLLBAR_THICKNESS).max(0.0)
+        }
         match self {
             Offset::Relative(relative) => *relative,
             Offset::Absolute(absolute) => (absolute / (content_size - size)).clamp(0.0, 1.0),
         }
     }
 
-    fn absolute(&self, size: f32, content_size: f32) -> f32 {
+    fn absolute(&self, mut size: f32, content_size: f32, scrollbar: bool) -> f32 {
+        if scrollbar {
+            size = (size - SCROLLBAR_THICKNESS).max(0.0)
+        }
         match self {
             Offset::Absolute(absolute) => absolute.clamp(0.0, (content_size - size).max(0.0)),
             Offset::Relative(relative) => relative * scroll_space(size, content_size),
@@ -77,37 +103,106 @@ pub struct State {
     mouse_grabbed_at_x: Option<f32>,
     mouse_grabbed_at_y: Option<f32>,
     keyboard_modifiers: iced::keyboard::Modifiers,
+    direction: Direction,
 }
 
 impl State {
+    pub fn new(direction: Direction) -> Self {
+        Self {
+            direction,
+            ..Default::default()
+        }
+    }
+
+    pub fn direction(&mut self, direction: Direction) {
+        self.direction = direction;
+        if !direction.horizontal() {
+            self.offset_x = Offset::Relative(0.0);
+            self.mouse_grabbed_at_x = None;
+        }
+        if !direction.horizontal() {
+            self.offset_y = Offset::Relative(0.0);
+            self.mouse_grabbed_at_y = None;
+        }
+    }
+
     fn horizontal_scroll_factor(&self, size: f32, content_size: f32) -> f32 {
-        self.offset_x.relative(size, content_size)
+        self.offset_x.relative(
+            size,
+            content_size,
+            self.direction.horizontal() && size < content_size,
+        )
     }
 
     fn vertical_scroll_factor(&self, size: f32, content_size: f32) -> f32 {
-        self.offset_y.relative(size, content_size)
+        self.offset_y.relative(
+            size,
+            content_size,
+            self.direction.vertical() && size < content_size,
+        )
     }
 
-    fn scroll_by(&mut self, offset: AbsoluteOffset, size: Size, content_size: Size) {
-        self.scroll_to(AbsoluteOffset {
-            x: self.offset_x.absolute(size.width, content_size.width) + offset.x,
-            y: self.offset_y.absolute(size.height, content_size.height) + offset.y,
-        });
+    pub fn scroll_by_x(&mut self, absolute_x: f32, size: f32, content_size: f32) {
+        self.scroll_to_x(
+            self.offset_x.absolute(
+                size,
+                content_size,
+                self.direction.horizontal() && size < content_size,
+            ) + absolute_x,
+        );
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        self.offset_x = Offset::Absolute(offset.x);
-        self.offset_y = Offset::Absolute(offset.y);
+    pub fn scroll_by_y(&mut self, absolute_y: f32, size: f32, content_size: f32) {
+        self.scroll_to_y(
+            self.offset_y.absolute(
+                size,
+                content_size,
+                self.direction.vertical() && size < content_size,
+            ) + absolute_y,
+        );
     }
 
-    fn snap_to(&mut self, offset: RelativeOffset) {
-        self.offset_x = Offset::Relative(offset.x);
-        self.offset_y = Offset::Relative(offset.y);
+    pub fn scroll_by(&mut self, offset: AbsoluteOffset, size: Size, content_size: Size) {
+        self.scroll_by_x(offset.x, size.width, content_size.width);
+        self.scroll_by_y(offset.y, size.height, content_size.height);
+    }
+
+    pub fn scroll_to_x(&mut self, absolute_x: f32) {
+        self.offset_x = Offset::Absolute(absolute_x)
+    }
+    pub fn scroll_to_y(&mut self, absolute_y: f32) {
+        self.offset_y = Offset::Absolute(absolute_y)
+    }
+
+    pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
+        self.scroll_to_x(offset.x);
+        self.scroll_to_y(offset.y);
+    }
+
+    pub fn snap_to_x(&mut self, relative_x: f32) {
+        self.offset_x = Offset::Relative(relative_x);
+    }
+
+    pub fn snap_to_y(&mut self, relative_y: f32) {
+        self.offset_y = Offset::Relative(relative_y);
+    }
+
+    pub fn snap_to(&mut self, offset: RelativeOffset) {
+        self.snap_to_x(offset.x);
+        self.snap_to_y(offset.y);
     }
 
     pub fn translation(&self, size: Size, content_size: Size) -> iced::Vector {
-        let scroll_x = self.offset_x.absolute(size.width, content_size.width);
-        let scroll_y = self.offset_y.absolute(size.height, content_size.height);
+        let scroll_x = self.offset_x.absolute(
+            size.width,
+            content_size.width,
+            self.direction.horizontal() && size.width < content_size.width,
+        );
+        let scroll_y = self.offset_y.absolute(
+            size.height,
+            content_size.height,
+            self.direction.vertical() && size.height < content_size.height,
+        );
         iced::Vector::new(-scroll_x, -scroll_y)
     }
 }
@@ -131,12 +226,91 @@ impl advanced::widget::operation::Scrollable for State {
     }
 }
 
+pub fn layout(
+    direction: Direction,
+    limits: Limits,
+    mut content_layout: impl FnMut(Limits) -> advanced::layout::Node,
+) -> advanced::layout::Node {
+    fn max_height(limits: Limits, max_height: f32) -> Limits {
+        let mut max_size = limits.max();
+        max_size.height = max_height;
+        Limits::new(limits.min(), max_size)
+    }
+
+    fn max_width(limits: Limits, max_width: f32) -> Limits {
+        let mut max_size = limits.max();
+        max_size.width = max_width;
+        Limits::new(limits.min(), max_size)
+    }
+
+    match direction {
+        Direction::Both => {
+            let child_layout = content_layout(Limits::new(Size::ZERO, Size::INFINITY));
+            Node::with_children(
+                Size::new(
+                    child_layout.size().width.min(limits.max().width),
+                    child_layout.size().height.min(limits.max().height),
+                ),
+                vec![child_layout],
+            )
+        }
+        Direction::Vertical => {
+            let first_layout = content_layout(max_height(limits, f32::INFINITY));
+            if first_layout.bounds().height > limits.max().height {
+                let child_layout = content_layout(max_width(
+                    max_height(limits, f32::INFINITY),
+                    limits.max().width - SCROLLBAR_THICKNESS,
+                ));
+                Node::with_children(
+                    Size::new(
+                        (child_layout.size().width + SCROLLBAR_THICKNESS).min(limits.max().width),
+                        child_layout.size().height.min(limits.max().height),
+                    ),
+                    vec![child_layout],
+                )
+            } else {
+                Node::with_children(
+                    Size::new(
+                        (first_layout.size().width).min(limits.max().width),
+                        first_layout.size().height.min(limits.max().height),
+                    ),
+                    vec![first_layout],
+                )
+            }
+        }
+        Direction::Horizontal => {
+            let first_layout = content_layout(max_width(limits, f32::INFINITY));
+            if first_layout.bounds().width > limits.max().width {
+                let child_layout = content_layout(max_height(
+                    max_width(limits, f32::INFINITY),
+                    limits.max().height - SCROLLBAR_THICKNESS,
+                ));
+                Node::with_children(
+                    Size::new(
+                        child_layout.size().width.min(limits.max().width),
+                        (child_layout.size().height + SCROLLBAR_THICKNESS).min(limits.max().height),
+                    ),
+                    vec![child_layout],
+                )
+            } else {
+                Node::with_children(
+                    Size::new(
+                        (first_layout.size().width).min(limits.max().width),
+                        first_layout.size().height.min(limits.max().height),
+                    ),
+                    vec![first_layout],
+                )
+            }
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
     state: &State,
+    style: &Theme::Class<'_>,
     renderer: &mut Renderer,
     theme: &Theme,
-    _style: &advanced::renderer::Style,
     cursor: advanced::mouse::Cursor,
     content_size: Size,
     bounds: iced::Rectangle,
@@ -169,8 +343,8 @@ pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
         });
     });
 
-    let horizontal_scrollbar = content_size.width > bounds.width;
-    let vertical_scrollbar = content_size.height > bounds.height;
+    let horizontal_scrollbar = content_size.width > bounds.width && state.direction.horizontal();
+    let vertical_scrollbar = content_size.height > bounds.height && state.direction.vertical();
 
     let (horizontal_scrollbar_bounds, vertical_scrollbar_bounds) =
         scrollbar_bounds(bounds, horizontal_scrollbar, vertical_scrollbar);
@@ -183,7 +357,7 @@ pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
     );
 
     let style = theme.style(
-        &<Theme as Catalog>::default(),
+        style,
         calculate_status(
             vertical_scrollbar_bounds,
             horizontal_scrollbar_bounds,
@@ -277,8 +451,8 @@ pub fn mouse_interaction<Message, Renderer: advanced::Renderer, Theme>(
     } else if let iced::mouse::Cursor::Available(position) = cursor {
         let scrollbar_bounds = scrollbar_bounds(
             bounds,
-            bounds.height < content_size.height,
             bounds.width < content_size.width,
+            bounds.height < content_size.height,
         );
         let scroller_bounds = scroller_bounds(
             state,
@@ -467,14 +641,14 @@ pub fn scroll_grab_on_event(
     }
 
     if let Some(clicked_position) = clicked_position {
-        if scroller_bounds.0.contains(clicked_position) {
+        if state.direction.horizontal() && scroller_bounds.0.contains(clicked_position) {
             state.mouse_grabbed_at_x = Some(clicked_position.x);
             return advanced::graphics::core::event::Status::Captured;
-        } else if scroller_bounds.1.contains(clicked_position) {
+        } else if state.direction.vertical() && scroller_bounds.1.contains(clicked_position) {
             state.mouse_grabbed_at_y = Some(clicked_position.y);
             return advanced::graphics::core::event::Status::Captured;
-        } else if scrollbar_bounds.0.contains(clicked_position) {
-            // calculate smaller size -> the size that is relevant wor the click
+        } else if state.direction.horizontal() && scrollbar_bounds.0.contains(clicked_position) {
+            // calculate smaller size -> the size that is relevant for the click
             let limited_size = scrollbar_bounds.0.shrink(
                 iced::Padding::ZERO
                     .left(scroller_bounds.0.size().width / 2.0)
@@ -492,7 +666,7 @@ pub fn scroll_grab_on_event(
                 y: state.vertical_scroll_factor(bounds.width, content_size.width),
             });
             return advanced::graphics::core::event::Status::Captured;
-        } else if scrollbar_bounds.1.contains(clicked_position) {
+        } else if state.direction.vertical() && scrollbar_bounds.1.contains(clicked_position) {
             // calculate smaller size -> the size that is relevant wor the click
             let limited_size = scrollbar_bounds.1.shrink(
                 iced::Padding::ZERO
@@ -572,16 +746,16 @@ fn calculate_status(
 
 fn scrollbar_bounds(
     bounds: iced::Rectangle,
-    vertical_scrollbar: bool,
     horizontal_scrollbar: bool,
+    vertical_scrollbar: bool,
 ) -> (iced::Rectangle, iced::Rectangle) {
     (
         iced::Rectangle {
             x: bounds.x,
             y: bounds.y + bounds.height - SCROLLBAR_THICKNESS,
             width: bounds.width
-                + if vertical_scrollbar {
-                    -SCROLLBAR_THICKNESS
+                - if vertical_scrollbar {
+                    SCROLLBAR_THICKNESS
                 } else {
                     0.0
                 },
@@ -592,8 +766,8 @@ fn scrollbar_bounds(
             y: bounds.y,
             width: SCROLLBAR_THICKNESS,
             height: bounds.height
-                + if horizontal_scrollbar {
-                    -SCROLLBAR_THICKNESS
+                - if horizontal_scrollbar {
+                    SCROLLBAR_THICKNESS
                 } else {
                     0.0
                 },

@@ -4,7 +4,7 @@ use iced::advanced;
 struct State {
     column_widths: Option<Vec<f32>>,
     layout_id: isize,
-    scroll_state: crate::scrollable::State,
+    scroll_state: crate::scrollable::advanced::State,
 }
 
 type HeaderElementPair<'a, Message, Theme, Renderer> = (
@@ -268,7 +268,7 @@ fn dynamic_cell_layout_size<
     )
 }
 
-impl<Message, const COLUMNS: usize, Theme: crate::scrollable::Catalog, Renderer>
+impl<Message, const COLUMNS: usize, Theme: crate::scrollable::advanced::Catalog, Renderer>
     iced::advanced::Widget<Message, Theme, Renderer>
     for InnerTableView<'_, Message, COLUMNS, Theme, Renderer>
 where
@@ -278,7 +278,9 @@ where
         iced::advanced::widget::tree::State::new(State {
             column_widths: None,
             layout_id: self.layout_id,
-            scroll_state: crate::scrollable::State::default(),
+            scroll_state: crate::scrollable::advanced::State::new(
+                crate::scrollable::Direction::Both,
+            ),
         })
     }
 
@@ -572,14 +574,16 @@ where
         // draw rows
         let mut row_index = 0;
         let row_layouts = child_draw_todos.iter().map(|x| x.1).collect::<Vec<_>>();
-        let rows_x_end = header_x_end
-            .max(crate::scrollable::x_start_end(&row_layouts).1 + self.cell_padding.right);
-        let rows_y_end = crate::scrollable::y_start_end(&row_layouts).1 + self.cell_padding.bottom;
-        crate::scrollable::draw(
+        let rows_x_end = header_x_end.max(
+            crate::scrollable::advanced::x_start_end(&row_layouts).1 + self.cell_padding.right,
+        );
+        let rows_y_end =
+            crate::scrollable::advanced::y_start_end(&row_layouts).1 + self.cell_padding.bottom;
+        crate::scrollable::advanced::draw(
             &state.scroll_state,
+            &<Theme as crate::scrollable::Catalog>::default(),
             renderer,
             theme,
-            style,
             cursor,
             iced::Size::new(rows_x_end - layout.position().x, rows_y_end - header_y_end),
             iced::Rectangle {
@@ -686,7 +690,7 @@ where
         let header_layout = child_layouts.next().unwrap();
         let scrollable_layout = child_layouts.next().unwrap();
         let downcast_state: &mut State = state.state.downcast_mut();
-        if crate::scrollable::scroll_grab_on_event(
+        if crate::scrollable::advanced::scroll_grab_on_event(
             &mut downcast_state.scroll_state,
             event.clone(),
             cursor,
@@ -698,7 +702,7 @@ where
         {
             return iced::advanced::graphics::core::event::Status::Captured;
         }
-        if crate::scrollable::scroll_wheel_on_event(
+        if crate::scrollable::advanced::scroll_wheel_on_event(
             &mut downcast_state.scroll_state,
             event.clone(),
             cursor,
@@ -744,7 +748,7 @@ where
             }
         }
         for element in &mut self.elements {
-            if let iced::event::Status::Captured = crate::scrollable::on_event(
+            if let iced::event::Status::Captured = crate::scrollable::advanced::on_event(
                 &downcast_state.scroll_state,
                 element.as_widget_mut(),
                 outer_scrollable_size,
@@ -824,7 +828,7 @@ where
             .zip(child_states)
             .zip(child_layouts)
             .map(|((child, child_state), child_layout)| {
-                crate::scrollable::mouse_interaction(
+                crate::scrollable::advanced::mouse_interaction(
                     &downcast_state.scroll_state,
                     scrollable_layout
                         .bounds()
@@ -864,7 +868,7 @@ where
 
         let mut children = Vec::new();
         for element in self.child_elements_mut() {
-            if let Some(overlay_element) = crate::scrollable::overlay(
+            if let Some(overlay_element) = crate::scrollable::advanced::overlay(
                 &state.state.downcast_mut::<State>().scroll_state,
                 layout.bounds().size(),
                 scrollable_layout.bounds().size(),
@@ -891,8 +895,13 @@ fn pop_front_slice<T>(vector: &mut Vec<T>, count: usize) -> Vec<T> {
     result
 }
 
-impl<'a, Message: 'a, const COLUMNS: usize, Theme: crate::scrollable::Catalog + 'a, Renderer: 'a>
-    From<InnerTableView<'a, Message, COLUMNS, Theme, Renderer>>
+impl<
+    'a,
+    Message: 'a,
+    const COLUMNS: usize,
+    Theme: crate::scrollable::advanced::Catalog + 'a,
+    Renderer: 'a,
+> From<InnerTableView<'a, Message, COLUMNS, Theme, Renderer>>
     for iced::Element<'a, Message, Theme, Renderer>
 where
     Renderer: iced::advanced::Renderer,
