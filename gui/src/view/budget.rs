@@ -276,8 +276,6 @@ impl View {
                         widget::row![
                             components::spaced_column![
                                 widget::text!("Name: {}", &budget.name),
-                                widget::text!("Total Value: {}", budget.total_value),
-                                widget::text!("Current Value: {}", current_value),
                                 widget::text!("Recurring: {}", budget.timespan)
                             ],
                             widget::horizontal_space(),
@@ -285,11 +283,24 @@ impl View {
                                 .on_press(Message::CategoryDistribution)
                         ]
                     ],
-                    widget::progress_bar(
-                        0.0..=budget.total_value.get_eur_num() as f32,
-                        current_value.get_eur_num() as f32
-                    ),
-                    transaction_table.view().map(Message::TransactionTable)
+                    widget::stack([
+                        iced::Element::new(widget::progress_bar(
+                            0.0..=budget.total_value.get_eur_num() as f32,
+                            current_value.get_eur_num() as f32
+                        )),
+                        widget::container(widget::text!(
+                            "{}/{}",
+                            current_value,
+                            budget.total_value
+                        ))
+                        .center(iced::Fill)
+                        .into()
+                    ]),
+                    components::LabeledFrame::new(
+                        "Transactions",
+                        transaction_table.view().map(Message::TransactionTable)
+                    )
+                    .width(iced::Fill)
                 ]
                 .height(iced::Fill),
             )

@@ -364,8 +364,8 @@ impl View {
             ]
             .width(iced::Length::Fill),
             widget::checkbox("Closed", self.closed).on_toggle(Message::ClosedInput),
-            "Transactions:",
-            widget::container(
+            components::LabeledFrame::new(
+                "Transactions",
                 components::table_view::table_view(&self.transaction_table)
                     .headers(["", "", "Title", "Amount", "Date", "Source", "Destination"])
                     .view(|(transaction, sign), accounts| {
@@ -417,6 +417,7 @@ impl View {
                     })
                     .map(Message::TransactionTable)
             )
+            .width(iced::Fill)
             .height(iced::Fill),
             widget::button("Add Transaction").on_press(Message::AddTransactionToggle),
             components::submit_cancel_row(

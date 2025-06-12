@@ -217,8 +217,8 @@ impl View {
                         components::button::new("New Bill", Some(Message::NewBill))
                     ]
                 ],
-                widget::horizontal_rule(10),
-                widget::scrollable(category_column)
+                components::LabeledFrame::new("Categories", widget::scrollable(category_column))
+                    .width(iced::Fill)
             ])
             .map(MessageContainer)
         } else {

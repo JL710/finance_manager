@@ -468,9 +468,7 @@ impl View {
                     widget::button("X").on_press(Message::ClearBudget)
                 ]
                 .align_y(iced::Center),
-                widget::horizontal_rule(10),
-                "Categories:",
-                categories,
+                components::LabeledFrame::new("Categories", categories).width(iced::Fill),
                 widget::button("Metadata").on_press(Message::ToggleMetadataEditor)
             ])
         };

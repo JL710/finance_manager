@@ -116,7 +116,7 @@ impl View {
                     "Finance Manager",
                     fm_settings_view(&self.settings)
                 )
-                .style(components::labeled_frame::secondary_weak),
+                .width(iced::Fill),
                 components::labeled_frame::LabeledFrame::new(
                     "Timezone",
                     widget::text_input("", &self.time_zone_input)
@@ -127,7 +127,7 @@ impl View {
                         })
                         .on_input(Message::TimeZoneInput)
                 )
-                .style(components::labeled_frame::secondary_weak),
+                .width(iced::Fill),
             ]),
             widget::vertical_space(),
             components::button::submit(if self.unsaved {

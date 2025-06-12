@@ -21,7 +21,7 @@ impl Catalog for iced::Theme {
 
     fn default<'a>() -> Self::Class<'a> {
         Box::new(|theme| Style {
-            color: iced::Background::Color(theme.palette().primary),
+            color: iced::Background::Color(theme.extended_palette().secondary.weak.color),
             radius: iced::border::Radius::default(),
         })
     }
@@ -122,6 +122,7 @@ where
         renderer: &Renderer,
         limits: &advanced::layout::Limits,
     ) -> advanced::layout::Node {
+        let limits = (*limits).height(self.height).width(self.width).loose();
         let title_layout = self
             .title
             .as_widget()
@@ -166,17 +167,22 @@ where
                 self.outset + self.inset + self.stroke_width,
                 (self.outset + self.inset + self.stroke_width).max(title_layout.bounds().height),
             ]);
+
         advanced::layout::Node::with_children(
-            iced::Size::new(
-                (content_layout.size().width
-                    + (self.outset + self.inset + self.stroke_width) * 2.0)
-                    .max(
-                        title_layout.size().width
-                            + (self.outset + self.inset + self.stroke_width) * 4.0,
-                    ),
-                content_layout.bounds().y
-                    + content_layout.size().height
-                    + (self.outset + self.inset + self.stroke_width),
+            limits.resolve(
+                self.width,
+                self.height,
+                iced::Size::new(
+                    (content_layout.size().width
+                        + (self.outset + self.inset + self.stroke_width) * 2.0)
+                        .max(
+                            title_layout.size().width
+                                + (self.outset + self.inset + self.stroke_width) * 4.0,
+                        ),
+                    content_layout.bounds().y
+                        + content_layout.size().height
+                        + (self.outset + self.inset + self.stroke_width),
+                ),
             ),
             vec![title_layout, content_layout],
         )
@@ -430,10 +436,4 @@ where
     fn from(value: LabeledFrame<'a, Message, Theme, Renderer>) -> Self {
         iced::Element::new(value)
     }
-}
-
-pub fn secondary_weak(theme: &iced::Theme) -> Style {
-    let mut style = (<iced::Theme as Catalog>::default())(theme);
-    style.color = iced::Background::Color(theme.extended_palette().secondary.weak.color);
-    style
 }

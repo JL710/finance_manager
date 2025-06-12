@@ -348,11 +348,15 @@ fn asset_account_view<'a>(
                 components::button::delete(Some(Message::Delete))
             ]
         ],
-        widget::horizontal_rule(10),
-        date_span_input::date_span_input(timespan_input)
-            .view()
-            .map(Message::ChangeTransactionTimespan),
-        transaction_table.view().map(Message::TransactionTable),
+        components::LabeledFrame::new(
+            "Transactions",
+            components::spaced_column![
+                date_span_input::date_span_input(timespan_input)
+                    .view()
+                    .map(Message::ChangeTransactionTimespan),
+                transaction_table.view().map(Message::TransactionTable),
+            ]
+        )
     ]
     .height(iced::Fill)
     .into()
@@ -395,11 +399,16 @@ fn book_checking_account_view<'a>(
                 components::button::delete(Some(Message::Delete))
             ]
         ],
-        widget::horizontal_rule(10),
-        date_span_input::date_span_input(timespan_input)
-            .view()
-            .map(Message::ChangeTransactionTimespan),
-        transaction_table.view().map(Message::TransactionTable),
+        components::LabeledFrame::new(
+            "Transactions",
+            components::spaced_column![
+                date_span_input::date_span_input(timespan_input)
+                    .view()
+                    .map(Message::ChangeTransactionTimespan),
+                transaction_table.view().map(Message::TransactionTable),
+            ]
+        )
+        .width(iced::Fill),
     ]
     .height(iced::Fill)
     .into()

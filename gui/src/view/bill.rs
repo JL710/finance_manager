@@ -249,53 +249,59 @@ impl View {
                             components::button::delete(Some(Message::Delete))
                         ]
                     ],
-                    widget::horizontal_rule(10),
-                    components::table_view::table_view(transaction_table)
-                        .headers([
-                            "Negative",
-                            "Title",
-                            "Description",
-                            "Amount",
-                            "Date",
-                            "Source",
-                            "Destination"
-                        ])
-                        .view(|(transaction, sign), accounts| [
-                            widget::checkbox("Positive", *sign == fm_core::Sign::Positive).into(),
-                            components::link(transaction.title.as_str())
-                                .on_press(Message::ViewTransaction(transaction.id))
-                                .into(),
-                            widget::text(transaction.description.clone().unwrap_or(String::new()))
-                                .into(),
-                            if *sign == fm_core::Sign::Positive {
-                                components::colored_currency_display(transaction.amount())
-                            } else {
-                                components::colored_currency_display(
-                                    &transaction.amount().negative(),
+                    components::LabeledFrame::new(
+                        "Transactions",
+                        components::table_view::table_view(transaction_table)
+                            .headers([
+                                "Negative",
+                                "Title",
+                                "Description",
+                                "Amount",
+                                "Date",
+                                "Source",
+                                "Destination"
+                            ])
+                            .view(|(transaction, sign), accounts| [
+                                widget::checkbox("Positive", *sign == fm_core::Sign::Positive)
+                                    .into(),
+                                components::link(transaction.title.as_str())
+                                    .on_press(Message::ViewTransaction(transaction.id))
+                                    .into(),
+                                widget::text(
+                                    transaction.description.clone().unwrap_or(String::new())
                                 )
-                            },
-                            widget::text(components::date_time::to_date_string(
-                                transaction.date.date()
-                            ))
-                            .into(),
-                            widget::text(
-                                accounts
-                                    .iter()
-                                    .find(|acc| *acc.id() == transaction.source)
-                                    .unwrap()
-                                    .name(),
-                            )
-                            .into(),
-                            widget::text(
-                                accounts
-                                    .iter()
-                                    .find(|acc| *acc.id() == transaction.destination)
-                                    .unwrap()
-                                    .name(),
-                            )
-                            .into(),
-                        ])
-                        .map(Message::TransactionTable),
+                                .into(),
+                                if *sign == fm_core::Sign::Positive {
+                                    components::colored_currency_display(transaction.amount())
+                                } else {
+                                    components::colored_currency_display(
+                                        &transaction.amount().negative(),
+                                    )
+                                },
+                                widget::text(components::date_time::to_date_string(
+                                    transaction.date.date()
+                                ))
+                                .into(),
+                                widget::text(
+                                    accounts
+                                        .iter()
+                                        .find(|acc| *acc.id() == transaction.source)
+                                        .unwrap()
+                                        .name(),
+                                )
+                                .into(),
+                                widget::text(
+                                    accounts
+                                        .iter()
+                                        .find(|acc| *acc.id() == transaction.destination)
+                                        .unwrap()
+                                        .name(),
+                                )
+                                .into(),
+                            ])
+                            .map(Message::TransactionTable),
+                    )
+                    .width(iced::Fill)
                 ]
                 .height(iced::Fill),
             )
