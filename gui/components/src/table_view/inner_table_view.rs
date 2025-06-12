@@ -280,6 +280,8 @@ where
             layout_id: self.layout_id,
             scroll_state: crate::scrollable::advanced::State::new(
                 crate::scrollable::Direction::Both,
+                crate::scrollable::Placement::default(),
+                crate::scrollable::Placement::default(),
             ),
         })
     }

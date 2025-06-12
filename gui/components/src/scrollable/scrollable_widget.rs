@@ -6,6 +6,8 @@ pub struct Scrollable<'a, Message> {
     height: iced::Length,
     direction: super::advanced::Direction,
     class: <iced::Theme as super::Catalog>::Class<'a>,
+    vertical_scrollbar_placement: super::Placement,
+    horizontal_scrollbar_placement: super::Placement,
 }
 
 impl<'a, Message> Scrollable<'a, Message> {
@@ -16,9 +18,19 @@ impl<'a, Message> Scrollable<'a, Message> {
             height: iced::Shrink,
             direction: super::advanced::Direction::Vertical,
             class: <iced::Theme as super::Catalog>::default(),
+            vertical_scrollbar_placement: super::Placement::default(),
+            horizontal_scrollbar_placement: super::Placement::default(),
         }
     }
+    pub fn vertical_scrollbar_placement(mut self, placement: super::Placement) -> Self {
+        self.vertical_scrollbar_placement = placement;
+        self
+    }
 
+    pub fn horizontal_scrollbar_placement(mut self, placement: super::Placement) -> Self {
+        self.horizontal_scrollbar_placement = placement;
+        self
+    }
     pub fn width(mut self, width: iced::Length) -> Self {
         self.width = width;
         self
@@ -48,7 +60,11 @@ impl<Message> iced::advanced::Widget<Message, iced::Theme, iced::Renderer>
     }
 
     fn state(&self) -> advanced::widget::tree::State {
-        advanced::widget::tree::State::Some(Box::new(super::advanced::State::new(self.direction)))
+        advanced::widget::tree::State::Some(Box::new(super::advanced::State::new(
+            self.direction,
+            self.horizontal_scrollbar_placement,
+            self.vertical_scrollbar_placement,
+        )))
     }
 
     fn size(&self) -> iced::Size<iced::Length> {
@@ -109,6 +125,8 @@ impl<Message> iced::advanced::Widget<Message, iced::Theme, iced::Renderer>
         if let advanced::widget::tree::State::Some(state) = &mut tree.state {
             let state: &mut super::advanced::State = state.downcast_mut().unwrap();
             state.direction(self.direction);
+            state.horizontal_scrollbar_placement(self.horizontal_scrollbar_placement);
+            state.vertical_scrollbar_placement(self.vertical_scrollbar_placement);
         } else {
             tree.state = self.state();
         }

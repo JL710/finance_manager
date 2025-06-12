@@ -96,6 +96,13 @@ fn scroll_space(size: f32, content_size: f32) -> f32 {
     0.0f32.max(content_size - size)
 }
 
+#[derive(Default, Clone, Copy, Debug)]
+pub enum Placement {
+    Start,
+    #[default]
+    End,
+}
+
 #[derive(Default, Debug)]
 pub struct State {
     offset_x: Offset,
@@ -104,14 +111,30 @@ pub struct State {
     mouse_grabbed_at_y: Option<f32>,
     keyboard_modifiers: iced::keyboard::Modifiers,
     direction: Direction,
+    vertical_scrollbar_placement: Placement,
+    horizontal_scrollbar_placement: Placement,
 }
 
 impl State {
-    pub fn new(direction: Direction) -> Self {
+    pub fn new(
+        direction: Direction,
+        horizontal_scrollbar_placement: Placement,
+        vertical_scrollbar_placement: Placement,
+    ) -> Self {
         Self {
             direction,
+            vertical_scrollbar_placement,
+            horizontal_scrollbar_placement,
             ..Default::default()
         }
+    }
+
+    pub fn vertical_scrollbar_placement(&mut self, placement: Placement) {
+        self.vertical_scrollbar_placement = placement;
+    }
+
+    pub fn horizontal_scrollbar_placement(&mut self, placement: Placement) {
+        self.horizontal_scrollbar_placement = placement;
     }
 
     pub fn direction(&mut self, direction: Direction) {
@@ -120,7 +143,7 @@ impl State {
             self.offset_x = Offset::Relative(0.0);
             self.mouse_grabbed_at_x = None;
         }
-        if !direction.horizontal() {
+        if !direction.vertical() {
             self.offset_y = Offset::Relative(0.0);
             self.mouse_grabbed_at_y = None;
         }
@@ -193,16 +216,26 @@ impl State {
     }
 
     pub fn translation(&self, size: Size, content_size: Size) -> iced::Vector {
-        let scroll_x = self.offset_x.absolute(
-            size.width,
-            content_size.width,
-            self.direction.horizontal() && size.width < content_size.width,
-        );
-        let scroll_y = self.offset_y.absolute(
-            size.height,
-            content_size.height,
-            self.direction.vertical() && size.height < content_size.height,
-        );
+        let horizontal_scroll = self.direction.horizontal() && size.width < content_size.width;
+        let vertical_scroll = self.direction.vertical() && size.height < content_size.height;
+        let scroll_x = self
+            .offset_x
+            .absolute(size.width, content_size.width, horizontal_scroll)
+            - if vertical_scroll && matches!(self.vertical_scrollbar_placement, Placement::Start) {
+                SCROLLBAR_THICKNESS
+            } else {
+                0.0
+            };
+        let scroll_y = self
+            .offset_y
+            .absolute(size.height, content_size.height, vertical_scroll)
+            - if horizontal_scroll
+                && matches!(self.horizontal_scrollbar_placement, Placement::Start)
+            {
+                SCROLLBAR_THICKNESS
+            } else {
+                0.0
+            };
         iced::Vector::new(-scroll_x, -scroll_y)
     }
 }
@@ -346,8 +379,13 @@ pub fn draw<Theme: Catalog, Renderer: advanced::Renderer>(
     let horizontal_scrollbar = content_size.width > bounds.width && state.direction.horizontal();
     let vertical_scrollbar = content_size.height > bounds.height && state.direction.vertical();
 
-    let (horizontal_scrollbar_bounds, vertical_scrollbar_bounds) =
-        scrollbar_bounds(bounds, horizontal_scrollbar, vertical_scrollbar);
+    let (horizontal_scrollbar_bounds, vertical_scrollbar_bounds) = scrollbar_bounds(
+        bounds,
+        horizontal_scrollbar,
+        state.horizontal_scrollbar_placement,
+        vertical_scrollbar,
+        state.vertical_scrollbar_placement,
+    );
     let (horizontal_scroller_bounds, vertical_scroller_bounds) = scroller_bounds(
         state,
         content_size,
@@ -452,7 +490,9 @@ pub fn mouse_interaction<Message, Renderer: advanced::Renderer, Theme>(
         let scrollbar_bounds = scrollbar_bounds(
             bounds,
             bounds.width < content_size.width,
+            state.horizontal_scrollbar_placement,
             bounds.height < content_size.height,
+            state.vertical_scrollbar_placement,
         );
         let scroller_bounds = scroller_bounds(
             state,
@@ -560,7 +600,9 @@ pub fn scroll_grab_on_event(
     let scrollbar_bounds = scrollbar_bounds(
         bounds,
         content_size.width > bounds.width,
+        state.horizontal_scrollbar_placement,
         content_size.height > bounds.height,
+        state.vertical_scrollbar_placement,
     );
     let scroller_bounds = scroller_bounds(
         state,
@@ -747,12 +789,25 @@ fn calculate_status(
 fn scrollbar_bounds(
     bounds: iced::Rectangle,
     horizontal_scrollbar: bool,
+    horizontal_scrollbar_placement: Placement,
     vertical_scrollbar: bool,
+    vertical_scrollbar_placement: Placement,
 ) -> (iced::Rectangle, iced::Rectangle) {
     (
         iced::Rectangle {
-            x: bounds.x,
-            y: bounds.y + bounds.height - SCROLLBAR_THICKNESS,
+            x: bounds.x
+                + if vertical_scrollbar && matches!(vertical_scrollbar_placement, Placement::Start)
+                {
+                    SCROLLBAR_THICKNESS
+                } else {
+                    0.0
+                },
+            y: bounds.y
+                + if matches!(horizontal_scrollbar_placement, Placement::End) {
+                    bounds.height - SCROLLBAR_THICKNESS
+                } else {
+                    0.0
+                },
             width: bounds.width
                 - if vertical_scrollbar {
                     SCROLLBAR_THICKNESS
@@ -762,8 +817,20 @@ fn scrollbar_bounds(
             height: SCROLLBAR_THICKNESS,
         },
         iced::Rectangle {
-            x: bounds.x + bounds.width - SCROLLBAR_THICKNESS,
-            y: bounds.y,
+            x: bounds.x
+                + if matches!(vertical_scrollbar_placement, Placement::End) {
+                    bounds.width - SCROLLBAR_THICKNESS
+                } else {
+                    0.0
+                },
+            y: bounds.y
+                + if horizontal_scrollbar
+                    && matches!(horizontal_scrollbar_placement, Placement::Start)
+                {
+                    SCROLLBAR_THICKNESS
+                } else {
+                    0.0
+                },
             width: SCROLLBAR_THICKNESS,
             height: bounds.height
                 - if horizontal_scrollbar {
