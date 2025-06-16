@@ -21,10 +21,10 @@ pub enum Message {
     Save,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct View {
     settings: crate::settings::Settings,
-    time_zone_input: String,
+    time_zone_input: components::ValidationTextInput,
     unsaved: bool,
 }
 
@@ -32,7 +32,18 @@ impl View {
     pub fn new(settings: crate::settings::Settings) -> (Self, iced::Task<Message>) {
         (
             Self {
-                time_zone_input: settings.utc_seconds_offset.to_string(),
+                time_zone_input: components::ValidationTextInput::new(
+                    settings.utc_seconds_offset.to_string(),
+                    |content| {
+                        if content.is_empty() {
+                            Some("empty input".to_string())
+                        } else if components::parse_number(content).is_none() {
+                            Some("invalid number".to_string())
+                        } else {
+                            None
+                        }
+                    },
+                ),
                 settings,
                 unsaved: false,
             },
@@ -94,8 +105,8 @@ impl View {
                 return Action::ApplySettings(self.settings.clone());
             }
             Message::TimeZoneInput(value) => {
-                self.time_zone_input = value;
-                if let Some(number) = components::parse_number(&self.time_zone_input) {
+                self.time_zone_input.set_content(value);
+                if let Some(number) = components::parse_number(self.time_zone_input.value()) {
                     self.settings.utc_seconds_offset = number as i32;
                     self.unsaved = true;
                 }
@@ -104,9 +115,8 @@ impl View {
         Action::None
     }
 
-    fn time_zone_input_valid(&self) -> bool {
-        !self.time_zone_input.is_empty()
-            && components::parse_number(&self.time_zone_input).is_some()
+    fn savable(&self) -> bool {
+        self.time_zone_input.is_valid()
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
@@ -119,18 +129,12 @@ impl View {
                 .width(iced::Fill),
                 components::labeled_frame::LabeledFrame::new(
                     "Timezone",
-                    widget::text_input("", &self.time_zone_input)
-                        .style(if self.time_zone_input_valid() {
-                            style::text_input_success
-                        } else {
-                            style::text_input_danger
-                        })
-                        .on_input(Message::TimeZoneInput)
+                    self.time_zone_input.view("", Some(Message::TimeZoneInput)),
                 )
                 .width(iced::Fill),
             ]),
             widget::vertical_space(),
-            components::button::submit(if self.unsaved {
+            components::button::submit(if self.unsaved && self.savable() {
                 Some(Message::Save)
             } else {
                 None
