@@ -2,7 +2,7 @@ use fm_core;
 use iced::widget;
 
 use anyhow::{Context, Result};
-
+use components::ValidationTextInput;
 use recurring_input::recurring_input;
 
 pub enum Action {
@@ -17,7 +17,7 @@ pub enum Action {
 pub enum Message {
     NameInput(String),
     DescriptionInput(widget::text_editor::Action),
-    ValueInput(String),
+    ValueInput(components::currency_input::Action),
     RecurringPickList(String),
     RecurringInput(recurring_input::Action),
     Submit,
@@ -29,9 +29,9 @@ pub enum Message {
 #[derive(Debug)]
 pub struct View {
     id: Option<fm_core::Id>,
-    name_input: String,
+    name_input: ValidationTextInput,
     description_input: widget::text_editor::Content,
-    value_input: String,
+    value_input: components::CurrencyInput,
     recurring_input: recurring_input::State,
     recurring_state: Option<String>,
     submitted: bool,
@@ -41,9 +41,9 @@ impl Default for View {
     fn default() -> Self {
         Self {
             id: None,
-            name_input: String::new(),
+            name_input: ValidationTextInput::default().required(true),
             description_input: widget::text_editor::Content::default(),
-            value_input: String::new(),
+            value_input: components::CurrencyInput::default(),
             recurring_input: recurring_input::State::Days(
                 components::date_time::date_time_input::State::default(),
                 String::new(),
@@ -58,11 +58,11 @@ impl View {
     pub fn from_budget(budget: fm_core::Budget) -> Result<Self> {
         Ok(Self {
             id: Some(budget.id),
-            name_input: budget.name,
+            name_input: ValidationTextInput::new(budget.name).required(true),
             description_input: widget::text_editor::Content::with_text(
                 &budget.description.unwrap_or_default(),
             ),
-            value_input: budget.total_value.to_num_string(),
+            value_input: components::CurrencyInput::new(budget.total_value, true),
             recurring_input: recurring_input::State::from(budget.timespan.clone()),
             recurring_state: match budget.timespan {
                 fm_core::budget::Recurring::Days(_, _) => Some("Days".to_string()),
@@ -121,20 +121,20 @@ impl View {
                 }
             }
             Message::NameInput(name) => {
-                self.name_input = name;
+                self.name_input.edit_content(name);
             }
             Message::DescriptionInput(action) => {
                 self.description_input.perform(action);
             }
-            Message::ValueInput(value) => {
-                self.value_input = value;
+            Message::ValueInput(action) => {
+                self.value_input.perform(action);
             }
             Message::Submit => {
                 self.submitted = true;
                 let option_id = self.id;
-                let name_input = self.name_input.clone();
+                let name_input = self.name_input.value().clone();
                 let description_input = self.description_input.text();
-                let value_input = self.value_input.clone();
+                let value = self.value_input.currency();
                 let recurring_inputs =
                     recurring_input::try_recurring_from_state(&self.recurring_input, utc_offset);
                 return Action::Task(error::failing_task(async move {
@@ -149,7 +149,7 @@ impl View {
                                     } else {
                                         Some(description_input)
                                     },
-                                    fm_core::Currency::from(value_input.parse::<f64>()?),
+                                    value.unwrap(),
                                     recurring_inputs.context(
                                         "Error while converting recurring input into timespan",
                                     )?,
@@ -165,7 +165,7 @@ impl View {
                                     } else {
                                         Some(description_input)
                                     },
-                                    fm_core::Currency::from(value_input.parse::<f64>()?),
+                                    value.unwrap(),
                                     recurring_inputs.context(
                                         "Error while converting recurring input into timespan",
                                     )?,
@@ -206,12 +206,12 @@ impl View {
         }
 
         widget::scrollable(components::spaced_column![
-            components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+            components::labeled_entry("Name", "", &self.name_input, Some(Message::NameInput)),
             components::spaced_row![
                 "Description",
                 widget::text_editor(&self.description_input).on_action(Message::DescriptionInput)
             ],
-            components::labeled_entry("Value", &self.value_input, Message::ValueInput, true),
+            components::spal_row!["Value: ", self.value_input.view().map(Message::ValueInput)],
             self.generate_recurring_view(),
             components::submit_cancel_row(
                 if self.submittable() {
@@ -257,10 +257,10 @@ impl View {
     }
 
     fn submittable(&self) -> bool {
-        if self.name_input.is_empty() {
+        if !self.name_input.is_valid() {
             return false;
         }
-        if self.value_input.parse::<f64>().is_err() {
+        if self.value_input.currency().is_none() {
             return false;
         }
         // check if the recurring inputs are valid

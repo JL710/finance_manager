@@ -1,4 +1,5 @@
 use anyhow::Context;
+use components::ValidationTextInput;
 use fm_core;
 use iced::widget;
 
@@ -26,10 +27,10 @@ pub enum Message {
 #[derive(Debug)]
 pub struct View {
     id: Option<fm_core::Id>,
-    name_input: String,
+    name_input: ValidationTextInput,
     note_input: widget::text_editor::Content,
-    iban_input: String,
-    bic_input: String,
+    iban_input: ValidationTextInput,
+    bic_input: ValidationTextInput,
     offset_input: components::CurrencyInput,
     submitted: bool,
 }
@@ -39,10 +40,10 @@ impl std::default::Default for View {
         Self {
             offset_input: components::CurrencyInput::new(fm_core::Currency::from(0.0), true),
             id: None,
-            name_input: String::new(),
+            name_input: ValidationTextInput::new(String::default()).required(true),
             note_input: widget::text_editor::Content::default(),
-            iban_input: String::new(),
-            bic_input: String::new(),
+            iban_input: ValidationTextInput::new(String::default()),
+            bic_input: ValidationTextInput::new(String::default()),
             submitted: false,
         }
     }
@@ -86,36 +87,38 @@ impl View {
             }
             Message::Initialize(account) => {
                 self.id = Some(account.id);
-                self.name_input = account.name;
+                self.name_input.set_content(account.name);
                 self.note_input =
                     widget::text_editor::Content::with_text(&account.note.unwrap_or_default());
-                self.iban_input = account.iban.map_or(String::new(), |iban| iban.to_string());
-                self.bic_input = account.bic.map(|x| x.to_string()).unwrap_or_default();
+                self.iban_input
+                    .set_content(account.iban.map_or(String::new(), |iban| iban.to_string()));
+                self.bic_input
+                    .set_content(account.bic.map(|x| x.to_string()).unwrap_or_default());
                 self.offset_input.set_value(account.offset);
             }
             Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
-            Message::NameInput(input) => self.name_input = input,
+            Message::NameInput(input) => self.name_input.edit_content(input),
             Message::NoteInput(input) => self.note_input.perform(input),
-            Message::IbanInput(input) => self.iban_input = input,
-            Message::BicInput(input) => self.bic_input = input,
+            Message::IbanInput(input) => self.iban_input.edit_content(input),
+            Message::BicInput(input) => self.bic_input.edit_content(input),
             Message::OffsetInput(action) => self.offset_input.perform(action),
             Message::Submit => {
                 self.submitted = true;
-                let name = self.name_input.clone();
+                let name = self.name_input.value().clone();
                 let note = if self.note_input.text().trim().is_empty() {
                     None
                 } else {
                     Some(self.note_input.text())
                 };
-                let iban = if self.iban_input.is_empty() {
+                let iban = if self.iban_input.value().is_empty() {
                     None
                 } else {
-                    Some(self.iban_input.parse().unwrap())
+                    Some(self.iban_input.value().parse().unwrap())
                 };
-                let bic = if self.bic_input.is_empty() {
+                let bic = if self.bic_input.value().is_empty() {
                     None
                 } else {
-                    Some(self.bic_input.clone())
+                    Some(self.bic_input.value().clone())
                 };
                 let offset = self.offset_input.currency().unwrap();
                 let id = self.id;
@@ -149,13 +152,13 @@ impl View {
         }
 
         widget::scrollable(components::spaced_column![
-            components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+            components::labeled_entry("Name", "", &self.name_input, Some(Message::NameInput)),
             components::spaced_row![
                 "Notes",
                 widget::text_editor(&self.note_input).on_action(Message::NoteInput)
             ],
-            components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-            components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+            components::labeled_entry("IBAN", "", &self.iban_input, Some(Message::IbanInput)),
+            components::labeled_entry("BIC", "", &self.bic_input, Some(Message::BicInput)),
             components::spal_row!["Offset", self.offset_input.view().map(Message::OffsetInput),]
                 .width(iced::Fill),
             components::submit_cancel_row(
@@ -171,12 +174,6 @@ impl View {
     }
 
     fn can_submit(&self) -> bool {
-        if self.name_input.is_empty() {
-            return false;
-        }
-        if self.offset_input.currency().is_none() {
-            return false;
-        }
-        true
+        self.name_input.is_valid() && self.offset_input.currency().is_some()
     }
 }

@@ -1,5 +1,6 @@
 use anyhow::Context;
 
+use components::ValidationTextInput;
 use components::date_time::date_time_input;
 use iced::widget;
 
@@ -36,7 +37,7 @@ pub enum Message {
 #[derive(Debug)]
 pub struct View {
     id: Option<fm_core::Id>,
-    name_input: String,
+    name_input: ValidationTextInput,
     description_input: widget::text_editor::Content,
     value: components::CurrencyInput,
     due_date_input: date_time_input::State,
@@ -55,7 +56,7 @@ impl View {
     fn default() -> Self {
         Self {
             id: None,
-            name_input: String::new(),
+            name_input: ValidationTextInput::new(String::new()).required(true),
             description_input: widget::text_editor::Content::default(),
             value: components::CurrencyInput::default(),
             due_date_input: date_time_input::State::default(),
@@ -186,7 +187,7 @@ impl View {
             } => {
                 if let Some(bill) = existing_bill {
                     self.id = Some(bill.id);
-                    bill.name.clone_into(&mut self.name_input);
+                    self.name_input.set_content(bill.name);
                     self.description_input = widget::text_editor::Content::with_text(
                         &bill.description.unwrap_or_default(),
                     );
@@ -206,7 +207,7 @@ impl View {
                 self.due_date_input.perform(action);
             }
             Message::NameInputChanged(name) => {
-                self.name_input = name;
+                self.name_input.edit_content(name);
             }
             Message::ValueChanged(action) => {
                 self.value.perform(action);
@@ -220,7 +221,7 @@ impl View {
                 }
                 self.submitted = true;
                 let id_option = self.id;
-                let name = self.name_input.clone();
+                let name = self.name_input.value().clone();
                 let description = if self.description_input.text().trim().is_empty() {
                     None
                 } else {
@@ -340,7 +341,12 @@ impl View {
         }
 
         components::spaced_column![
-            components::labeled_entry("Name", &self.name_input, Message::NameInputChanged, true),
+            components::labeled_entry(
+                "Name",
+                "",
+                &self.name_input,
+                Some(Message::NameInputChanged)
+            ),
             components::spaced_row![
                 "Description: ",
                 widget::container(widget::scrollable(
@@ -429,7 +435,7 @@ impl View {
     }
 
     fn submittable(&self) -> bool {
-        !self.name_input.is_empty() && self.value.currency().is_some()
+        !self.name_input.is_valid() && self.value.currency().is_some()
     }
 }
 

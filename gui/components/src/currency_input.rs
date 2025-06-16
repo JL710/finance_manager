@@ -19,29 +19,26 @@ impl Default for CurrencyInput {
 impl CurrencyInput {
     pub fn new(value: fm_core::Currency, required: bool) -> Self {
         Self {
-            value: crate::ValidationTextInput::new(value.to_num_string(), move |content| {
-                if !required && content.is_empty() {
-                    None
-                } else if content.is_empty() {
-                    Some("empty input".to_string())
-                } else if super::parse_number(content).is_none() {
-                    Some("invalid number".to_string())
-                } else {
-                    None
-                }
-            }),
+            value: crate::ValidationTextInput::new(value.to_num_string())
+                .validation(move |content| {
+                    if super::parse_number(content).is_none() {
+                        Some("invalid number".to_string())
+                    } else {
+                        None
+                    }
+                })
+                .required(required),
         }
     }
 
     pub fn clear(&mut self) {
         self.value.set_content(String::new());
-        self.value.input_changed(false);
     }
 
     pub fn perform(&mut self, action: Action) {
         match action {
             Action::Input(input) => {
-                self.value.set_content(input);
+                self.value.edit_content(input);
             }
         }
     }
@@ -52,7 +49,6 @@ impl CurrencyInput {
 
     pub fn set_value(&mut self, new_value: fm_core::Currency) {
         self.value.set_content(new_value.to_num_string());
-        self.value.input_changed(false);
     }
 
     pub fn view(&self) -> iced::Element<'_, Action> {

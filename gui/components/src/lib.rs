@@ -20,20 +20,11 @@ pub use transaction_table::TransactionTable;
 
 pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,
-    content: &str,
-    message: impl Fn(String) -> Message + 'a,
-    required: bool,
+    place_holder: &'a str,
+    input: &'a ValidationTextInput,
+    on_input: Option<impl Fn(String) -> Message + 'a>,
 ) -> iced::Element<'a, Message> {
-    let mut input = widget::text_input(name, content).on_input(message);
-    if required {
-        if content.is_empty() {
-            input = input.style(style::text_input_danger);
-        } else {
-            input = input.style(style::text_input_success);
-        }
-    }
-
-    spal_row![name, input].into()
+    spal_row![name, input.view(place_holder, on_input)].into()
 }
 
 pub fn colored_currency_display<Message>(

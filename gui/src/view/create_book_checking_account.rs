@@ -1,8 +1,8 @@
 use fm_core;
 
-use iced::widget;
-
 use anyhow::Context;
+use components::ValidationTextInput;
+use iced::widget;
 
 pub enum Action {
     None,
@@ -24,14 +24,27 @@ pub enum Message {
     Cancel,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct View {
     id: Option<fm_core::Id>,
-    name_input: String,
+    name_input: ValidationTextInput,
     note_input: widget::text_editor::Content,
-    iban_input: String,
-    bic_input: String,
+    iban_input: ValidationTextInput,
+    bic_input: ValidationTextInput,
     submitted: bool,
+}
+
+impl Default for View {
+    fn default() -> Self {
+        Self {
+            id: None,
+            name_input: ValidationTextInput::default().required(true),
+            note_input: widget::text_editor::Content::default(),
+            iban_input: ValidationTextInput::default(),
+            bic_input: ValidationTextInput::default(),
+            submitted: false,
+        }
+    }
 }
 
 impl View {
@@ -64,33 +77,35 @@ impl View {
             Message::AccountCreated(id) => return Action::AccountCreated(id),
             Message::Initialize(account) => {
                 self.id = Some(account.id);
-                self.name_input = account.name;
+                self.name_input.set_content(account.name);
                 self.note_input =
                     widget::text_editor::Content::with_text(&account.note.unwrap_or_default());
-                self.iban_input = account.iban.map_or(String::new(), |iban| iban.to_string());
-                self.bic_input = account.bic.map_or(String::new(), |bic| bic.to_string());
+                self.iban_input
+                    .set_content(account.iban.map_or(String::new(), |iban| iban.to_string()));
+                self.bic_input
+                    .set_content(account.bic.map_or(String::new(), |bic| bic.to_string()));
             }
-            Message::NameInput(input) => self.name_input = input,
+            Message::NameInput(input) => self.name_input.edit_content(input),
             Message::NoteInput(action) => self.note_input.perform(action),
-            Message::IbanInput(input) => self.iban_input = input,
-            Message::BicInput(input) => self.bic_input = input,
+            Message::IbanInput(input) => self.iban_input.edit_content(input),
+            Message::BicInput(input) => self.bic_input.edit_content(input),
             Message::Submit => {
                 self.submitted = true;
-                let name = self.name_input.clone();
+                let name = self.name_input.value().clone();
                 let note = if self.note_input.text().trim().is_empty() {
                     None
                 } else {
                     Some(self.note_input.text())
                 };
-                let iban = if self.iban_input.is_empty() {
+                let iban = if self.iban_input.value().is_empty() {
                     None
                 } else {
-                    Some(self.iban_input.parse().unwrap())
+                    Some(self.iban_input.value().parse().unwrap())
                 };
-                let bic = if self.bic_input.is_empty() {
+                let bic = if self.bic_input.value().is_empty() {
                     None
                 } else {
-                    Some(self.bic_input.clone())
+                    Some(self.bic_input.value().clone())
                 };
                 let id = self.id;
                 return Action::Task(error::failing_task(async move {
@@ -131,13 +146,13 @@ impl View {
         }
 
         widget::scrollable(components::spaced_column![
-            components::labeled_entry("Name", &self.name_input, Message::NameInput, true),
+            components::labeled_entry("Name", "", &self.name_input, Some(Message::NameInput)),
             components::spaced_row![
                 "Notes",
                 widget::text_editor(&self.note_input).on_action(Message::NoteInput)
             ],
-            components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
-            components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
+            components::labeled_entry("IBAN", "", &self.iban_input, Some(Message::IbanInput)),
+            components::labeled_entry("BIC", "", &self.bic_input, Some(Message::BicInput)),
             components::submit_cancel_row(
                 if self.can_submit() {
                     Some(Message::Submit)
@@ -151,9 +166,6 @@ impl View {
     }
 
     fn can_submit(&self) -> bool {
-        if self.name_input.is_empty() {
-            return false;
-        }
-        true
+        self.name_input.is_valid()
     }
 }

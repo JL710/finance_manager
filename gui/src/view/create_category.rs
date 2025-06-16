@@ -17,18 +17,28 @@ pub enum Message {
     Cancel,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug)]
 pub struct View {
     id: Option<fm_core::Id>,
-    name: String,
+    name: components::ValidationTextInput,
     submitted: bool,
+}
+
+impl Default for View {
+    fn default() -> Self {
+        Self {
+            id: None,
+            name: components::ValidationTextInput::default().required(true),
+            submitted: false,
+        }
+    }
 }
 
 impl View {
     pub fn new(id: Option<fm_core::Id>, name: String) -> Self {
         Self {
             id,
-            name,
+            name: components::ValidationTextInput::new(name).required(true),
             submitted: false,
         }
     }
@@ -65,17 +75,17 @@ impl View {
             Message::CategoryCreated(id) => Action::CategoryCreated(id),
             Message::Initialize(category) => {
                 self.id = Some(category.id);
-                self.name = category.name;
+                self.name.set_content(category.name);
                 Action::None
             }
             Message::NameInput(content) => {
-                self.name = content;
+                self.name.edit_content(content);
                 Action::None
             }
             Message::Submit => {
                 self.submitted = true;
                 let id = self.id;
-                let name = self.name.clone();
+                let name = self.name.value().clone();
                 Action::Task(error::failing_task(async move {
                     if let Some(id) = id {
                         Ok(Message::CategoryCreated(
@@ -96,7 +106,7 @@ impl View {
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         components::spaced_column![
-            components::labeled_entry("Name", &self.name, Message::NameInput, true),
+            components::labeled_entry("Name", "", &self.name, Some(Message::NameInput)),
             components::submit_cancel_row(
                 if self.is_submittable() {
                     Some(Message::Submit)
@@ -110,6 +120,6 @@ impl View {
     }
 
     fn is_submittable(&self) -> bool {
-        !self.name.is_empty()
+        self.name.is_valid()
     }
 }

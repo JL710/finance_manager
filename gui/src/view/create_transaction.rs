@@ -84,7 +84,7 @@ enum Message {
 pub struct View {
     id: Option<fm_core::Id>,
     amount_input: components::CurrencyInput,
-    title_input: String,
+    title_input: components::ValidationTextInput,
     description_input: widget::text_editor::Content,
     source_input: Option<SelectedAccount>,
     source_state: widget::combo_box::State<SelectedAccount>,
@@ -108,7 +108,7 @@ impl View {
             Self {
                 id: None,
                 amount_input: components::CurrencyInput::default(),
-                title_input: String::new(),
+                title_input: components::ValidationTextInput::new(String::default()).required(true),
                 description_input: widget::text_editor::Content::new(),
                 source_input: None,
                 source_state: widget::combo_box::State::new(Vec::new()),
@@ -198,7 +198,7 @@ impl View {
             Message::AmountInput(action) => {
                 self.amount_input.perform(action);
             }
-            Message::TitleInput(content) => self.title_input = content,
+            Message::TitleInput(content) => self.title_input.edit_content(content),
             Message::DescriptionInput(action) => self.description_input.perform(action),
             Message::DateInput(action) => self.date_input.perform(action),
             Message::SourceInput(content) => {
@@ -280,7 +280,7 @@ impl View {
                 self.amount_input
                     .set_value(init_existing.transaction.amount().clone());
                 self.title_input
-                    .clone_from(&init_existing.transaction.title);
+                    .set_content(init_existing.transaction.title);
                 self.description_input = widget::text_editor::Content::with_text(
                     &init_existing.transaction.description.unwrap_or_default(),
                 );
@@ -408,7 +408,12 @@ impl View {
                     self.amount_input.view().map(Message::AmountInput),
                 ]
                 .width(iced::Fill),
-                components::labeled_entry("Title", &self.title_input, Message::TitleInput, true),
+                components::labeled_entry(
+                    "Title",
+                    "",
+                    &self.title_input,
+                    Some(Message::TitleInput)
+                ),
                 components::spaced_row![
                     "Description",
                     widget::text_editor(&self.description_input)
@@ -487,7 +492,7 @@ impl View {
 
     fn submittable(&self) -> bool {
         // check if title is given
-        if self.title_input.is_empty() {
+        if !self.title_input.is_valid() {
             return false;
         }
         // check if amount is a valid currency
@@ -524,7 +529,7 @@ impl View {
     ) -> iced::Task<fm_core::Transaction> {
         let option_id = self.id;
         let amount = self.amount_input.currency().unwrap();
-        let title = self.title_input.clone();
+        let title = self.title_input.value().clone();
         let description = if self.description_input.text().trim().is_empty() {
             None
         } else {
