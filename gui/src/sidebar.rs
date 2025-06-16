@@ -54,7 +54,7 @@ impl Sidebar {
         }
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         components::spaced_column![
             widget::button(
                 widget::Svg::new(icons::LIST.clone())

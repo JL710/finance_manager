@@ -191,7 +191,7 @@ impl View {
         Action::None
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         components::spaced_column![
             "Filter Transactions",
             iced::widget::row![

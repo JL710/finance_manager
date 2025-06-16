@@ -109,7 +109,7 @@ impl View {
             && components::parse_number(&self.time_zone_input).is_some()
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         components::spaced_column![
             widget::scrollable(components::spaced_column![
                 components::labeled_frame::LabeledFrame::new(

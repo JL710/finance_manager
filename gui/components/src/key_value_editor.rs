@@ -59,7 +59,7 @@ impl KeyValueEditor {
         }
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         let mut column = super::spaced_column!();
         for (index, pair) in self.inputs.iter().enumerate() {
             column = column.push(super::spal_row![

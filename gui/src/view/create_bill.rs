@@ -334,7 +334,7 @@ impl View {
         Action::None
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         if let Some(add_transaction) = &self.add_transaction {
             return add_transaction.view().map(Message::AddTransaction);
         }
@@ -598,7 +598,7 @@ mod add_transaction {
             }
         }
 
-        pub fn view(&self) -> iced::Element<Message> {
+        pub fn view(&self) -> iced::Element<'_, Message> {
             components::spaced_column![
                 components::spal_row![
                     widget::button("< Back").on_press(Message::Back),

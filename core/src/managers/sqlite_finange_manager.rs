@@ -170,7 +170,7 @@ impl SqliteFinanceManager {
         Ok(())
     }
 
-    async fn connect(&self) -> async_std::sync::MutexGuard<rusqlite::Connection> {
+    async fn connect(&self) -> async_std::sync::MutexGuard<'_, rusqlite::Connection> {
         self.connection.lock().await
     }
 

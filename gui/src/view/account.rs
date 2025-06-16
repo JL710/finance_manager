@@ -177,8 +177,7 @@ impl View {
                             )
                             .await
                             .context(format!(
-                                "Error while fetching transactions of account {}.",
-                                account_id
+                                "Error while fetching transactions of account {account_id}."
                             ))?;
                         let accounts = finance_controller
                             .get_accounts_hash_map()

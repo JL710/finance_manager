@@ -21,9 +21,9 @@ impl std::fmt::Display for SelectedAccount {
         match self {
             SelectedAccount::Account(account) => match account {
                 fm_core::account::Account::AssetAccount(acc) => write!(f, "{}", acc.name),
-                fm_core::account::Account::BookCheckingAccount(acc) => write!(f, "{}", acc),
+                fm_core::account::Account::BookCheckingAccount(acc) => write!(f, "{acc}"),
             },
-            SelectedAccount::New(name) => write!(f, "{}", name),
+            SelectedAccount::New(name) => write!(f, "{name}"),
         }
     }
 }
@@ -145,7 +145,7 @@ impl View {
                 let transaction = finance_controller
                     .get_transaction(transaction_id)
                     .await?
-                    .context(format!("Could not find transaction {}", transaction_id))?;
+                    .context(format!("Could not find transaction {transaction_id}"))?;
                 let source = finance_controller
                     .get_account(transaction.source)
                     .await?
@@ -503,15 +503,15 @@ impl View {
             return false;
         }
         // check if source and destination are valid
-        if let Some(source_input) = &self.source_input {
-            if let Some(destination_input) = &self.destination_input {
-                // check if both are new
-                if source_input.is_new() && destination_input.is_new() {
-                    return false;
-                }
-                if source_input == destination_input {
-                    return false;
-                }
+        if let Some(source_input) = &self.source_input
+            && let Some(destination_input) = &self.destination_input
+        {
+            // check if both are new
+            if source_input.is_new() && destination_input.is_new() {
+                return false;
+            }
+            if source_input == destination_input {
+                return false;
             }
         }
         true

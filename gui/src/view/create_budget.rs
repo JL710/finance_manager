@@ -83,7 +83,7 @@ impl View {
                 let budget = finance_controller
                     .get_budget(id)
                     .await?
-                    .context(format!("Could not find budget {}", id))?;
+                    .context(format!("Could not find budget {id}"))?;
                 Ok(Message::Initialize(Some(budget)))
             }),
         )
@@ -335,8 +335,8 @@ mod recurring_input {
                         })
                     )
                 }
-                State::DayInMonth(day) => write!(f, "Every month on the {}th", day),
-                State::Yearly(month, day) => write!(f, "Every year on the {}th of {}", day, month),
+                State::DayInMonth(day) => write!(f, "Every month on the {day}th"),
+                State::Yearly(month, day) => write!(f, "Every year on the {day}th of {month}"),
             }
         }
     }

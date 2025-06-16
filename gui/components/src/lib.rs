@@ -276,7 +276,7 @@ pub fn category_distribution_popup<Message: std::marker::Send + 'static>(
 
         let mut displayed_text = String::new();
         if let Some(additional_description) = additional_description {
-            displayed_text += &format!("{}\n\n", additional_description);
+            displayed_text += &format!("{additional_description}\n\n");
         }
         for (category_id, value) in category_distribution {
             displayed_text += &format!(

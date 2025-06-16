@@ -74,7 +74,7 @@ impl View {
                 let category = finance_controller
                     .get_category(category_id)
                     .await?
-                    .context(format!("Category {} not found", category_id))?;
+                    .context(format!("Category {category_id} not found"))?;
 
                 let categories = finance_controller.get_categories().await?;
                 let budgets = finance_controller.get_budgets().await?;

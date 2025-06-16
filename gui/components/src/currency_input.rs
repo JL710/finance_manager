@@ -24,7 +24,7 @@ impl CurrencyInput {
                     None
                 } else if content.is_empty() {
                     Some("empty input".to_string())
-                } else if let None = super::parse_number(content) {
+                } else if super::parse_number(content).is_none() {
                     Some("invalid number".to_string())
                 } else {
                     None
@@ -55,7 +55,7 @@ impl CurrencyInput {
         self.value.input_changed(false);
     }
 
-    pub fn view(&self) -> iced::Element<Action> {
+    pub fn view(&self) -> iced::Element<'_, Action> {
         super::spal_row![self.value.view("Value", Some(Action::Input)), "€",]
             .align_y(iced::Alignment::Center)
             .into()

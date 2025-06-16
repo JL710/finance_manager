@@ -86,7 +86,7 @@ impl View {
         }
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         components::overlap_bottom_right(
             components::table_view::table_view(&self.accounts_table)
                 .headers(["Account".to_string(), "Sum".to_string()])

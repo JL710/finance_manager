@@ -657,27 +657,24 @@ pub fn scroll_grab_on_event(
         }
     }
 
-    if let iced::Event::Mouse(iced::mouse::Event::ButtonReleased(button)) = event {
-        if button == iced::mouse::Button::Left
+    if let iced::Event::Mouse(iced::mouse::Event::ButtonReleased(button)) = event
+        && (button == iced::mouse::Button::Left
             || matches!(
                 event,
                 iced::Event::Touch(iced::touch::Event::FingerLifted { .. })
-            )
-        {
-            state.mouse_grabbed_at_x = None;
-            state.mouse_grabbed_at_y = None;
-        }
+            ))
+    {
+        state.mouse_grabbed_at_x = None;
+        state.mouse_grabbed_at_y = None;
     }
 
     let mut clicked_position = None;
-    if let iced::Event::Mouse(iced::mouse::Event::ButtonPressed(button)) = event {
-        if button == iced::mouse::Button::Left {
-            if let Some(position) = cursor.position() {
-                if bounds.contains(position) {
-                    clicked_position = Some(position);
-                }
-            }
-        }
+    if let iced::Event::Mouse(iced::mouse::Event::ButtonPressed(button)) = event
+        && button == iced::mouse::Button::Left
+        && let Some(position) = cursor.position()
+        && bounds.contains(position)
+    {
+        clicked_position = Some(position);
     } else if let iced::Event::Touch(iced::touch::Event::FingerPressed { position, .. }) = event {
         clicked_position = Some(position);
     }

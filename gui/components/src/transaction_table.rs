@@ -241,7 +241,7 @@ impl TransactionTable {
         }
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         let table = crate::table_view::table_view(&self.transaction_table)
             .headers([
                 "Title",

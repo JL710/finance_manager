@@ -45,7 +45,7 @@ impl View {
                 let account = finance_controller
                     .get_account(account_id)
                     .await?
-                    .context(format!("Could not find account {}", account_id))?;
+                    .context(format!("Could not find account {account_id}"))?;
                 if let fm_core::account::Account::BookCheckingAccount(acc) = account {
                     Ok(Message::Initialize(acc))
                 } else {
@@ -125,7 +125,7 @@ impl View {
         Action::None
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         if self.submitted {
             return "Loading...".into();
         }

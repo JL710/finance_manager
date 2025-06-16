@@ -50,7 +50,7 @@ enum View {
 impl std::fmt::Display for View {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Markdown(title, _) => write!(f, "{}", title),
+            Self::Markdown(title, _) => write!(f, "{title}"),
             Self::License => write!(f, "License"),
             Self::BudgetOverview(_) => write!(f, "Budget Overview"),
             Self::CreateAssetAccount(_) => write!(f, "Create Asset Account"),
@@ -639,7 +639,7 @@ enum ViewMessage {
 #[derive(Debug, Clone)]
 enum AppMessage {
     Ignore,
-    PaneViewMessage(widget::pane_grid::Pane, ViewMessage),
+    PaneViewMessage(widget::pane_grid::Pane, Box<ViewMessage>),
     PaneDragged(widget::pane_grid::DragEvent),
     PaneResize(widget::pane_grid::ResizeEvent),
     PaneSplit(widget::pane_grid::Axis, widget::pane_grid::Pane),
@@ -706,7 +706,7 @@ impl App {
                     .get_mut(self.focused_pane)
                     .unwrap()
                     .category_overview(self.finance_controller.clone())
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                    .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
             }
             AppMessage::SwitchToFilterTransactionView => {
                 let pane = self.focused_pane;
@@ -715,7 +715,7 @@ impl App {
                     .get_mut(self.focused_pane)
                     .unwrap()
                     .transaction_filter(self.finance_controller.clone())
-                    .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                    .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
             }
             AppMessage::SideBarMessage(m) => match self.side_bar.update(m) {
                 sidebar::Action::None => {}
@@ -730,7 +730,7 @@ impl App {
                             time::UtcOffset::from_whole_seconds(self.settings.utc_seconds_offset)
                                 .unwrap(),
                         )
-                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
 
                 sidebar::Action::CreateTransaction => {
@@ -740,7 +740,7 @@ impl App {
                         .get_mut(self.focused_pane)
                         .unwrap()
                         .transaction_create(self.finance_controller.clone(), None)
-                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
 
                 sidebar::Action::SwitchToAssetAccountView => {
@@ -750,7 +750,7 @@ impl App {
                         .get_mut(self.focused_pane)
                         .unwrap()
                         .asset_account_overview(self.finance_controller.clone())
-                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
 
                 sidebar::Action::SwitchToCategoryOverview => {
@@ -760,7 +760,7 @@ impl App {
                         .get_mut(self.focused_pane)
                         .unwrap()
                         .category_overview(self.finance_controller.clone())
-                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
 
                 sidebar::Action::SwitchToBookCheckingAccountOverview => {
@@ -770,7 +770,7 @@ impl App {
                         .get_mut(self.focused_pane)
                         .unwrap()
                         .book_checking_account_overview(self.finance_controller.clone())
-                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
 
                 sidebar::Action::SwitchToSettingsView => {
@@ -779,7 +779,7 @@ impl App {
                     let pane = self.focused_pane;
                     return task
                         .map(ViewMessage::Settings)
-                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
 
                 sidebar::Action::SwitchToFilterTransactionView => {
@@ -789,7 +789,7 @@ impl App {
                         .get_mut(self.focused_pane)
                         .unwrap()
                         .transaction_filter(self.finance_controller.clone())
-                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
                 sidebar::Action::SwitchToBillOverview => {
                     let pane = self.focused_pane;
@@ -798,7 +798,7 @@ impl App {
                         .get_mut(self.focused_pane)
                         .unwrap()
                         .bill_overview(self.finance_controller.clone())
-                        .map(move |x| AppMessage::PaneViewMessage(pane, x));
+                        .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
                 sidebar::Action::SwitchToLicense => {
                     *self.pane_grid.get_mut(self.focused_pane).unwrap() = View::License;
@@ -848,11 +848,11 @@ impl App {
                         time::UtcOffset::from_whole_seconds(self.settings.utc_seconds_offset)
                             .unwrap(),
                         current_view,
-                        view_message,
+                        *view_message,
                     ) {
                         ViewAction::AppTask(task) => return task,
                         ViewAction::ViewTask(task) => {
-                            return task.map(move |m| AppMessage::PaneViewMessage(pane, m));
+                            return task.map(move |m| AppMessage::PaneViewMessage(pane, m.into()));
                         }
                         ViewAction::ApplySettings(new_settings) => {
                             return self.apply_settings(new_settings, Some(pane));
@@ -866,7 +866,7 @@ impl App {
         iced::Task::none()
     }
 
-    fn view(&self) -> iced::Element<AppMessage> {
+    fn view(&self) -> iced::Element<'_, AppMessage> {
         static PANE_BORDER_RADIUS: u16 = 5;
 
         iced::widget::row![
@@ -931,7 +931,7 @@ impl App {
                                     }
                                     View::Bill(view) => view.view().map(ViewMessage::Bill),
                                 }
-                                .map(move |m| AppMessage::PaneViewMessage(pane, m)),
+                                .map(move |m| AppMessage::PaneViewMessage(pane, m.into())),
                             )
                             .padding(style::PADDING)
                             .style(move |theme: &iced::Theme| {
@@ -1032,12 +1032,11 @@ impl App {
                 ) {
                     Ok(x) => Some(x),
                     Err(_) => {
-                        if let Some(pane) = pane {
-                            if let View::Settings(settings_view) =
+                        if let Some(pane) = pane
+                            && let View::Settings(settings_view) =
                                 self.pane_grid.get_mut(pane).unwrap()
-                            {
-                                settings_view.set_unsaved();
-                            }
+                        {
+                            settings_view.set_unsaved();
                         }
                         rfd::MessageDialog::new()
                             .set_title("Invalid SQLite Path")
@@ -1178,7 +1177,7 @@ fn main() {
         .unwrap();
 }
 
-fn markdown(items: &Vec<widget::markdown::Item>) -> iced::Element<ViewMessage> {
+fn markdown(items: &Vec<widget::markdown::Item>) -> iced::Element<'_, ViewMessage> {
     widget::container(widget::scrollable(widget::column![
         widget::markdown(
             items,

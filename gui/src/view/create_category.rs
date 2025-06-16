@@ -43,7 +43,7 @@ impl View {
                 let category = finance_controller
                     .get_category(id)
                     .await?
-                    .context(format!("Could not find category {}", id))?;
+                    .context(format!("Could not find category {id}"))?;
                 Ok(Message::Initialize(category))
             }),
         )
@@ -94,7 +94,7 @@ impl View {
         }
     }
 
-    pub fn view(&self) -> iced::Element<Message> {
+    pub fn view(&self) -> iced::Element<'_, Message> {
         components::spaced_column![
             components::labeled_entry("Name", &self.name, Message::NameInput, true),
             components::submit_cancel_row(

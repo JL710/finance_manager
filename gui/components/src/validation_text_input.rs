@@ -1,8 +1,10 @@
 use iced::widget;
 
+type ValidationFn = Box<dyn Fn(&String) -> Option<String>>;
+
 pub struct ValidationTextInput {
     content: String,
-    validation: Box<dyn Fn(&String) -> Option<String>>,
+    validation: ValidationFn,
     /// If this is some there the current content is invalid else it is valid
     error_message: Option<String>,
     input_changed: bool,

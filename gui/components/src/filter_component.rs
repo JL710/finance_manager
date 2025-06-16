@@ -290,7 +290,7 @@ impl FilterComponent {
         Action::None
     }
 
-    pub fn view(&self) -> iced::Element<InnerMessage> {
+    pub fn view(&self) -> iced::Element<'_, InnerMessage> {
         widget::container(super::spaced_column![
             // default timespan
             super::spal_row![
@@ -483,7 +483,7 @@ mod filter_entry {
             Action::None
         }
 
-        pub fn view(&self) -> iced::Element<MessageContainer<T>> {
+        pub fn view(&self) -> iced::Element<'_, MessageContainer<T>> {
             iced::Element::new(
                 widget::row![
                     widget::checkbox("Negate", self.filter.negated).on_toggle(Message::Negate),

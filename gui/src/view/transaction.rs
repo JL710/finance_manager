@@ -59,7 +59,7 @@ impl View {
                 let transaction = finance_controller
                     .get_transaction(id)
                     .await?
-                    .context(format!("Could not find transaction {}", id))?;
+                    .context(format!("Could not find transaction {id}"))?;
                 let source = finance_controller
                     .get_account(transaction.source)
                     .await?

@@ -9,7 +9,7 @@ pub fn error_chain_string(error: anyhow::Error) -> String {
     message += &format!("Error: {}\n", chain_iter.next().unwrap());
 
     for err in chain_iter {
-        message += &format!("\nCaused by:\n\t{}", err);
+        message += &format!("\nCaused by:\n\t{err}");
     }
 
     message

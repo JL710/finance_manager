@@ -32,7 +32,7 @@ enum Message {
     IncreaseOffset,
     DecreaseOffset,
     Initialize(Box<Init>),
-    TransactionTable(components::transaction_table::Message),
+    TransactionTable(Box<components::transaction_table::Message>),
     Delete,
     Deleted,
     CategoryDistribution,
@@ -198,7 +198,7 @@ impl View {
                     transaction_table, ..
                 } = self
                 {
-                    match transaction_table.update(msg, finance_controller) {
+                    match transaction_table.update(*msg, finance_controller) {
                         components::transaction_table::Action::None => Action::None,
                         components::transaction_table::Action::ViewTransaction(id) => {
                             Action::ViewTransaction(id)
@@ -206,9 +206,10 @@ impl View {
                         components::transaction_table::Action::ViewAccount(id) => {
                             Action::ViewAccount(id)
                         }
-                        components::transaction_table::Action::Task(task) => {
-                            Action::Task(task.map(Message::TransactionTable).map(MessageContainer))
-                        }
+                        components::transaction_table::Action::Task(task) => Action::Task(
+                            task.map(|x| Message::TransactionTable(x.into()))
+                                .map(MessageContainer),
+                        ),
                     }
                 } else {
                     Action::None
@@ -298,7 +299,9 @@ impl View {
                     ]),
                     components::LabeledFrame::new(
                         "Transactions",
-                        transaction_table.view().map(Message::TransactionTable)
+                        transaction_table
+                            .view()
+                            .map(|x| Message::TransactionTable(x.into()))
                     )
                     .width(iced::Fill)
                 ]
@@ -319,7 +322,7 @@ impl View {
         let budget = finance_controller
             .get_budget(id)
             .await?
-            .context(format!("Could not find budget {}", id))?;
+            .context(format!("Could not find budget {id}"))?;
         let transactions = finance_controller
             .get_budget_transactions(&budget, offset, utc_offset)
             .await?;

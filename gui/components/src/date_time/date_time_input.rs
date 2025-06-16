@@ -28,10 +28,10 @@ impl State {
     }
 
     pub fn datetime(&self) -> Option<time::PrimitiveDateTime> {
-        if let Some(date) = self.date_input.date() {
-            if let Some(time) = self.time_input.time() {
-                return Some(time::PrimitiveDateTime::new(date, time));
-            }
+        if let Some(date) = self.date_input.date()
+            && let Some(time) = self.time_input.time()
+        {
+            return Some(time::PrimitiveDateTime::new(date, time));
         }
         None
     }

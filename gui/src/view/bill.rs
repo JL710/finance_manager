@@ -56,7 +56,7 @@ impl View {
                 let bill = finance_controller
                     .get_bill(&id)
                     .await?
-                    .context(format!("Could not find bill {}", id))?;
+                    .context(format!("Could not find bill {id}"))?;
 
                 let bill_sum = finance_controller.get_bill_sum(&bill).await?;
 
@@ -65,7 +65,7 @@ impl View {
                     let transaction = finance_controller
                         .get_transaction(*transaction_id)
                         .await?
-                        .context(format!("Could not find transaction {}", transaction_id))?;
+                        .context(format!("Could not find transaction {transaction_id}"))?;
                     transactions.push((transaction, *sign));
                 }
                 let accounts = finance_controller.get_accounts().await?;
@@ -207,7 +207,7 @@ impl View {
         }
     }
 
-    pub fn view(&self) -> iced::Element<MessageContainer> {
+    pub fn view(&self) -> iced::Element<'_, MessageContainer> {
         if let Self::Loaded {
             bill,
             bill_sum,
