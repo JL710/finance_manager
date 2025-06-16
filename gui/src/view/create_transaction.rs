@@ -83,7 +83,7 @@ enum Message {
 #[derive(Debug)]
 pub struct View {
     id: Option<fm_core::Id>,
-    amount_input: components::currency_input::State,
+    amount_input: components::CurrencyInput,
     title_input: String,
     description_input: widget::text_editor::Content,
     source_input: Option<SelectedAccount>,
@@ -107,7 +107,7 @@ impl View {
         (
             Self {
                 id: None,
-                amount_input: components::currency_input::State::default(),
+                amount_input: components::CurrencyInput::default(),
                 title_input: String::new(),
                 description_input: widget::text_editor::Content::new(),
                 source_input: None,
@@ -277,9 +277,8 @@ impl View {
             Message::InitializeFromExisting(init) => {
                 let init_existing = *init;
                 self.id = Some(init_existing.transaction.id);
-                self.amount_input = components::currency_input::State::new(
-                    init_existing.transaction.amount().clone(),
-                );
+                self.amount_input
+                    .set_value(init_existing.transaction.amount().clone());
                 self.title_input
                     .clone_from(&init_existing.transaction.title);
                 self.description_input = widget::text_editor::Content::with_text(
@@ -406,9 +405,7 @@ impl View {
             iced::Element::new(components::spaced_column![
                 components::spal_row![
                     "Amount: ",
-                    components::currency_input::currency_input(&self.amount_input, true)
-                        .view()
-                        .map(Message::AmountInput),
+                    self.amount_input.view().map(Message::AmountInput),
                 ]
                 .width(iced::Fill),
                 components::labeled_entry("Title", &self.title_input, Message::TitleInput, true),

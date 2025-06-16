@@ -3,65 +3,61 @@ pub enum Action {
     Input(String),
 }
 
-#[derive(Default, Clone, Debug)]
-pub struct State {
-    value: String,
+#[derive(Debug)]
+pub struct CurrencyInput {
+    value: crate::ValidationTextInput,
 }
 
-impl State {
-    pub fn new(value: fm_core::Currency) -> Self {
+impl Default for CurrencyInput {
+    fn default() -> Self {
+        let mut new = Self::new(fm_core::Currency::default(), true);
+        new.clear();
+        new
+    }
+}
+
+impl CurrencyInput {
+    pub fn new(value: fm_core::Currency, required: bool) -> Self {
         Self {
-            value: value.to_num_string(),
+            value: crate::ValidationTextInput::new(value.to_num_string(), move |content| {
+                if !required && content.is_empty() {
+                    None
+                } else if content.is_empty() {
+                    Some("empty input".to_string())
+                } else if let None = super::parse_number(content) {
+                    Some("invalid number".to_string())
+                } else {
+                    None
+                }
+            }),
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.value.set_content(String::new());
+        self.value.input_changed(false);
     }
 
     pub fn perform(&mut self, action: Action) {
         match action {
             Action::Input(input) => {
-                self.value = input;
+                self.value.set_content(input);
             }
         }
     }
 
     pub fn currency(&self) -> Option<fm_core::Currency> {
-        super::parse_number(&self.value).map(fm_core::Currency::from)
-    }
-}
-
-pub struct CurrencyInput<'a> {
-    required: bool,
-    state: &'a State,
-}
-
-impl<'a> CurrencyInput<'a> {
-    pub fn new(state: &'a State, required: bool) -> Self {
-        Self { state, required }
+        super::parse_number(self.value.value()).map(fm_core::Currency::from)
     }
 
-    pub fn view(self) -> iced::Element<'a, Action> {
-        let wrong = (!self.state.value.is_empty()
-            && super::parse_number(&self.state.value).is_none())
-            || (self.required && self.state.value.is_empty());
-
-        super::spal_row![
-            iced::widget::text_input("Value", &self.state.value)
-                .on_input(Action::Input)
-                .style(move |theme: &iced::Theme, status| {
-                    let mut original = iced::widget::text_input::default(theme, status);
-                    if wrong {
-                        original.border.color = theme.palette().danger;
-                    } else if self.required {
-                        original.border.color = theme.palette().success;
-                    }
-                    original
-                }),
-            "€",
-        ]
-        .align_y(iced::Alignment::Center)
-        .into()
+    pub fn set_value(&mut self, new_value: fm_core::Currency) {
+        self.value.set_content(new_value.to_num_string());
+        self.value.input_changed(false);
     }
-}
 
-pub fn currency_input(state: &State, required: bool) -> CurrencyInput<'_> {
-    CurrencyInput::new(state, required)
+    pub fn view(&self) -> iced::Element<Action> {
+        super::spal_row![self.value.view("Value", Some(Action::Input)), "€",]
+            .align_y(iced::Alignment::Center)
+            .into()
+    }
 }

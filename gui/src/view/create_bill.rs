@@ -38,7 +38,7 @@ pub struct View {
     id: Option<fm_core::Id>,
     name_input: String,
     description_input: widget::text_editor::Content,
-    value: components::currency_input::State,
+    value: components::CurrencyInput,
     due_date_input: date_time_input::State,
     closed: bool,
     transactions: Vec<(fm_core::Transaction, fm_core::Sign)>,
@@ -57,7 +57,7 @@ impl View {
             id: None,
             name_input: String::new(),
             description_input: widget::text_editor::Content::default(),
-            value: components::currency_input::State::default(),
+            value: components::CurrencyInput::default(),
             due_date_input: date_time_input::State::default(),
             closed: false,
             transactions: Vec::new(),
@@ -190,7 +190,7 @@ impl View {
                     self.description_input = widget::text_editor::Content::with_text(
                         &bill.description.unwrap_or_default(),
                     );
-                    self.value = components::currency_input::State::new(bill.value);
+                    self.value.set_value(bill.value);
                     self.due_date_input = components::date_time::date_time_input::State::new(
                         bill.due_date
                             .map(components::date_time::offset_to_primitive),
@@ -349,13 +349,8 @@ impl View {
                 ))
                 .max_height(200)
             ],
-            components::spal_row![
-                "Value: ",
-                components::currency_input::currency_input(&self.value, true)
-                    .view()
-                    .map(Message::ValueChanged),
-            ]
-            .width(iced::Length::Fill),
+            components::spal_row!["Value: ", self.value.view().map(Message::ValueChanged),]
+                .width(iced::Length::Fill),
             components::spal_row![
                 "Due Date: ",
                 date_time_input::date_time_input(&self.due_date_input, false)

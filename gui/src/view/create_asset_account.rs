@@ -30,14 +30,14 @@ pub struct View {
     note_input: widget::text_editor::Content,
     iban_input: String,
     bic_input: String,
-    offset_input: components::currency_input::State,
+    offset_input: components::CurrencyInput,
     submitted: bool,
 }
 
 impl std::default::Default for View {
     fn default() -> Self {
         Self {
-            offset_input: components::currency_input::State::new(fm_core::Currency::from(0.0)),
+            offset_input: components::CurrencyInput::new(fm_core::Currency::from(0.0), true),
             id: None,
             name_input: String::new(),
             note_input: widget::text_editor::Content::default(),
@@ -91,7 +91,7 @@ impl View {
                     widget::text_editor::Content::with_text(&account.note.unwrap_or_default());
                 self.iban_input = account.iban.map_or(String::new(), |iban| iban.to_string());
                 self.bic_input = account.bic.map(|x| x.to_string()).unwrap_or_default();
-                self.offset_input = components::currency_input::State::new(account.offset);
+                self.offset_input.set_value(account.offset);
             }
             Message::AssetAccountCreated(id) => return Action::AssetAccountCreated(id),
             Message::NameInput(input) => self.name_input = input,
@@ -156,13 +156,8 @@ impl View {
             ],
             components::labeled_entry("IBAN", &self.iban_input, Message::IbanInput, false),
             components::labeled_entry("BIC", &self.bic_input, Message::BicInput, false),
-            components::spal_row![
-                "Offset",
-                components::currency_input::currency_input(&self.offset_input, true)
-                    .view()
-                    .map(Message::OffsetInput),
-            ]
-            .width(iced::Fill),
+            components::spal_row!["Offset", self.offset_input.view().map(Message::OffsetInput),]
+                .width(iced::Fill),
             components::submit_cancel_row(
                 if self.can_submit() {
                     Some(Message::Submit)

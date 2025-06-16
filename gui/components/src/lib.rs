@@ -3,6 +3,7 @@ pub use iced::{self, widget};
 
 pub mod button;
 pub mod currency_input;
+pub use currency_input::CurrencyInput;
 pub mod filter_component;
 pub mod key_value_editor;
 pub mod labeled_frame;
@@ -10,6 +11,8 @@ pub use labeled_frame::LabeledFrame;
 pub mod scrollable;
 pub mod table_view;
 pub mod transaction_table;
+mod validation_text_input;
+pub use validation_text_input::ValidationTextInput;
 
 pub mod date_time;
 
