@@ -301,7 +301,7 @@ impl<'a, T, C, const COLUMNS: usize> TableView<'a, T, C, COLUMNS> {
                     self.cell_padding,
                     |theme: &iced::Theme| theme.extended_palette().background.strong.color,
                     |theme: &iced::Theme, row: usize| {
-                        let factor = if row % 2 == 0 { 0.25 } else { 0.5 };
+                        let factor = if row.is_multiple_of(2) { 0.25 } else { 0.5 };
                         let mut weak = theme.extended_palette().background.weak.color;
                         let strong = theme.extended_palette().background.base.color;
                         weak.r += (strong.r - weak.r) * factor;

@@ -452,10 +452,14 @@ where
         }
         total_height += self.cell_padding.bottom;
 
-        let inner_width = horizontal_padding_spacing_sum + column_widths.iter().sum::<f32>();
+        let inner_width = limits
+            .max()
+            .width
+            .max(horizontal_padding_spacing_sum + column_widths.iter().sum::<f32>());
         let header_node = advanced::layout::Node::new((inner_width, header_height).into());
         let scrollable_node =
-            advanced::layout::Node::new((inner_width, total_height - header_height).into());
+            advanced::layout::Node::new((inner_width, total_height - header_height).into())
+                .move_to((0.0, header_height));
         child_layouts.insert(0, scrollable_node);
         child_layouts.insert(0, header_node);
 
@@ -474,13 +478,9 @@ where
     ) {
         let state = tree.state.downcast_ref::<State>();
 
-        let row_width = state.column_widths.as_ref().unwrap().iter().sum::<f32>()
-            + COLUMNS as f32 * self.cell_padding.horizontal()
-            + 0.0_f32.max((COLUMNS - 1) as f32) * self.column_spacing;
-
         let mut child_layout_iterator = layout.children();
         let header_layout = child_layout_iterator.next().unwrap();
-        let _scrollable_layout = child_layout_iterator.next().unwrap();
+        let scrollable_layout = child_layout_iterator.next().unwrap();
 
         let mut child_draw_todos = self
             .child_elements()
@@ -491,28 +491,17 @@ where
 
         // draw heading
         let header_todos = pop_front_slice(&mut child_draw_todos, COLUMNS * 2);
-        let (row_bottom_x, row_bottom_y) = layouts_max(
-            layout.position().x,
-            layout.position().y,
-            &header_todos.iter().map(|x| x.1).collect::<Vec<_>>(),
-        );
         renderer.fill_quad(
             iced::advanced::renderer::Quad {
                 bounds: iced::Rectangle::new(
                     layout.position(),
-                    (
-                        layout.bounds().width,
-                        row_bottom_y - layout.position().y + self.cell_padding.bottom,
-                    )
-                        .into(),
+                    (layout.bounds().width, header_layout.bounds().size().height).into(),
                 ),
                 border: iced::Border::default(),
                 shadow: iced::Shadow::default(),
             },
             iced::Background::Color((self.header_background_color)(theme)),
         );
-        let header_y_end = row_bottom_y + self.cell_padding.bottom;
-        let header_x_end = row_bottom_x + self.cell_padding.right;
         let header_outer_bounds = header_layout
             .bounds()
             .intersection(&layout.bounds())
@@ -575,24 +564,17 @@ where
 
         // draw rows
         let mut row_index = 0;
-        let row_layouts = child_draw_todos.iter().map(|x| x.1).collect::<Vec<_>>();
-        let rows_x_end = header_x_end.max(
-            crate::scrollable::advanced::x_start_end(&row_layouts).1 + self.cell_padding.right,
-        );
-        let rows_y_end =
-            crate::scrollable::advanced::y_start_end(&row_layouts).1 + self.cell_padding.bottom;
         crate::scrollable::advanced::draw(
             &state.scroll_state,
             &<Theme as crate::scrollable::Catalog>::default(),
             renderer,
             theme,
             cursor,
-            iced::Size::new(rows_x_end - layout.position().x, rows_y_end - header_y_end),
-            iced::Rectangle {
-                y: header_y_end,
-                height: layout.bounds().height - (header_y_end - layout.bounds().y),
-                ..layout.bounds()
-            },
+            scrollable_layout.bounds().size(),
+            layout
+                .bounds()
+                .intersection(&scrollable_layout.bounds())
+                .unwrap(),
             viewport,
             |renderer, viewport, cursor| {
                 while !child_draw_todos.is_empty() {
@@ -608,7 +590,7 @@ where
                             bounds: iced::Rectangle::new(
                                 (layout.position().x, y_cell_start - self.cell_padding.top).into(),
                                 (
-                                    layout.bounds().width.max(row_width), // use optimal width or max header x depending on what is larger
+                                    layout.bounds().width,
                                     row_bottom_y - y_cell_start + self.cell_padding.vertical(),
                                 )
                                     .into(),
