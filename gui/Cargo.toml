@@ -48,4 +48,4 @@ time = { version = "0.3.36", features = [
     "parsing",
     "wasm-bindgen",
 ] }
-rfd = "0.14.1"
+rfd = "0.15.4"
