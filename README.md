@@ -62,4 +62,4 @@ trunk serve --no-default-features
 Use the commands from the `Run the GUI` section and replace `cargo run` with `cargo install`.
 
 ## Removing
-Besides of a local database in the destination of your desire one settings file is placed in `~/.fm_gui_settings.json`.
+Besides of a local database in the destination of your desire one settings file is placed in `~/.config/finance_manager/fm_gui_settings.json`.

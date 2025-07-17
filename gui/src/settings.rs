@@ -33,7 +33,11 @@ impl Default for Settings {
 }
 
 fn get_settings_path() -> std::path::PathBuf {
-    dirs::home_dir().unwrap().join(".fm_gui_settings.json")
+    get_config_path().join("fm_gui_settings.json")
+}
+
+fn get_config_path() -> std::path::PathBuf {
+    dirs::config_dir().unwrap().join("finance_manager")
 }
 
 #[cfg(feature = "native")]
@@ -65,6 +69,10 @@ pub fn read_settings() -> Result<Settings> {
 #[cfg(feature = "native")]
 pub async fn write_settings(settings: Settings) -> Result<()> {
     async_std::task::spawn_blocking(move || {
+        if !get_config_path().exists() {
+            std::fs::create_dir(get_config_path())?;
+        }
+
         let mut file = std::fs::File::create(get_settings_path())?;
         file.write_all(serde_json::to_value(settings)?.to_string().as_bytes())?;
 
