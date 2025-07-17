@@ -50,7 +50,8 @@ time = { version = "0.3.36", features = [
     "wasm-bindgen",
 ] }
 rfd = "0.15.4"
-iced_aw = { git = "https://github.com/iced-rs/iced_aw.git", rev = "4617423f3749f62b2fc51ecc13cec7871bbbab25", features = [
+iced_aw = { git = "https://github.com/iced-rs/iced_aw.git", rev = "75b4c677d5a2081405577a3e08077303b8a5f57a", features = [
     "drop_down",
     "labeled_frame",
+    "custom_layout",
 ], default-features = false }

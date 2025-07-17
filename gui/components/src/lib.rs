@@ -11,7 +11,6 @@ pub mod table_view;
 pub mod transaction_table;
 mod validation_text_input;
 pub use validation_text_input::ValidationTextInput;
-mod custom_layout;
 mod three_split_row;
 pub use three_split_row::three_split_row;
 

@@ -4,7 +4,7 @@ pub fn three_split_row<'a, Message: 'a>(
     right: impl Into<iced::Element<'a, Message>>,
     alignment: iced::alignment::Vertical,
 ) -> iced::Element<'a, Message> {
-    crate::custom_layout::CustomLayout::new(
+    iced_aw::widgets::CustomLayout::new(
         vec![left.into(), middle.into(), right.into()],
         move |elements, states, renderer, limits| {
             let mut middle_layout =
