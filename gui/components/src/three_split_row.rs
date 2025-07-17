@@ -57,6 +57,7 @@ pub fn three_split_row<'a, Message: 'a>(
             )
         },
     )
+    .width(iced::Fill)
     .into()
 }
 

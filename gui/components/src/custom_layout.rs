@@ -1,12 +1,19 @@
-use iced::advanced::{Widget, widget::Tree};
+use iced::advanced::Widget;
+
+#[allow(unused_imports)]
+pub use iced::advanced::{
+    Renderer,
+    layout::{Limits, Node},
+    widget::Tree,
+};
 
 type LayoutFn<'a, Message, Theme, Renderer> = Box<
     dyn Fn(
         &Vec<iced::Element<'a, Message, Theme, Renderer>>,
-        &mut Vec<iced::advanced::widget::Tree>,
+        &mut Vec<Tree>,
         &Renderer,
-        &iced::advanced::layout::Limits,
-    ) -> iced::advanced::layout::Node,
+        &Limits,
+    ) -> Node,
 >;
 
 pub struct CustomLayout<'a, Message, Theme, Renderer> {
@@ -23,10 +30,10 @@ impl<'b, Message, Theme, Renderer: iced::advanced::Renderer>
         elements: Vec<iced::Element<'b, Message, Theme, Renderer>>,
         layout: impl Fn(
             &Vec<iced::Element<'b, Message, Theme, Renderer>>,
-            &mut Vec<iced::advanced::widget::Tree>,
+            &mut Vec<Tree>,
             &Renderer,
-            &iced::advanced::layout::Limits,
-        ) -> iced::advanced::layout::Node
+            &Limits,
+        ) -> Node
         + 'static,
     ) -> Self {
         Self {
@@ -55,18 +62,13 @@ impl<'b, Message, Theme, Renderer: iced::advanced::Renderer> Widget<Message, The
         iced::Size::new(self.width, self.height)
     }
 
-    fn layout(
-        &self,
-        tree: &mut iced::advanced::widget::Tree,
-        renderer: &Renderer,
-        limits: &iced::advanced::layout::Limits,
-    ) -> iced::advanced::layout::Node {
+    fn layout(&self, tree: &mut Tree, renderer: &Renderer, limits: &Limits) -> Node {
         (self.layout)(&self.elements, &mut tree.children, renderer, limits)
     }
 
     fn draw(
         &self,
-        tree: &iced::advanced::widget::Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         style: &iced::advanced::renderer::Style,
@@ -85,7 +87,7 @@ impl<'b, Message, Theme, Renderer: iced::advanced::Renderer> Widget<Message, The
             });
     }
 
-    fn children(&self) -> Vec<iced::advanced::widget::Tree> {
+    fn children(&self) -> Vec<Tree> {
         self.elements.iter().map(|x| Tree::new(x)).collect()
     }
 
