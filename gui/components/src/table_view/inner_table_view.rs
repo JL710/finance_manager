@@ -590,7 +590,7 @@ where
                             bounds: iced::Rectangle::new(
                                 (layout.position().x, y_cell_start - self.cell_padding.top).into(),
                                 (
-                                    layout.bounds().width,
+                                    layout.bounds().width.max(scrollable_layout.bounds().width),
                                     row_bottom_y - y_cell_start + self.cell_padding.vertical(),
                                 )
                                     .into(),
