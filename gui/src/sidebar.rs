@@ -55,73 +55,82 @@ impl Sidebar {
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
-        components::spaced_column![
-            widget::button(
-                widget::Svg::new(icons::LIST.clone())
-                    .style(|theme: &iced::Theme, _| widget::svg::Style {
-                        color: Some(theme.palette().primary)
-                    })
-                    .width(iced::Shrink)
-            )
-            .on_press(Message::ToggleCollapse)
-            .style(widget::button::text),
-            icon_menu_item(
-                "AssetAccounts",
-                icons::BANK2.clone(),
-                Message::AssetAccountView,
-                self.collapsed
-            ),
-            icon_menu_item(
-                "BookCheckingAccounts",
-                icons::CASH.clone(),
-                Message::BookCheckingAccountOverview,
-                self.collapsed
-            ),
-            icon_menu_item(
-                "Budgets",
-                icons::PIGGY_BANK_FILL.clone(),
-                Message::BudgetOverview,
-                self.collapsed
-            ),
-            icon_menu_item(
-                "Categories",
-                icons::BOOKMARK_FILL.clone(),
-                Message::CategoryOverview,
-                self.collapsed
-            ),
-            icon_menu_item(
-                "Bills",
-                icons::FOLDER_FILL.clone(),
-                Message::BillOverview,
-                self.collapsed
-            ),
-            icon_menu_item(
-                "Transactions",
-                icons::SEND_FILL.clone(),
-                Message::FilterTransactionView,
-                self.collapsed
-            ),
-            icon_menu_item(
-                "Create Transaction",
-                icons::PLUS_CIRCLE_FILL.clone(),
-                Message::CreateTransaction,
-                self.collapsed
-            ),
-            widget::vertical_space(),
-            icon_menu_item(
-                "Settings",
-                icons::GEAR_FILL.clone(),
-                Message::SettingsView,
-                self.collapsed
-            ),
-            icon_menu_item(
-                "License",
-                icons::BOOK_FILL.clone(),
-                Message::License,
-                self.collapsed
-            ),
-        ]
-        .align_x(iced::Alignment::Start)
+        widget::container(
+            components::spaced_column![
+                widget::button(
+                    widget::Svg::new(icons::LIST.clone())
+                        .style(|theme: &iced::Theme, _| widget::svg::Style {
+                            color: Some(theme.palette().primary)
+                        })
+                        .width(iced::Shrink)
+                )
+                .on_press(Message::ToggleCollapse)
+                .style(widget::button::text),
+                icon_menu_item(
+                    "AssetAccounts",
+                    icons::BANK2.clone(),
+                    Message::AssetAccountView,
+                    self.collapsed
+                ),
+                icon_menu_item(
+                    "BookCheckingAccounts",
+                    icons::CASH.clone(),
+                    Message::BookCheckingAccountOverview,
+                    self.collapsed
+                ),
+                icon_menu_item(
+                    "Budgets",
+                    icons::PIGGY_BANK_FILL.clone(),
+                    Message::BudgetOverview,
+                    self.collapsed
+                ),
+                icon_menu_item(
+                    "Categories",
+                    icons::BOOKMARK_FILL.clone(),
+                    Message::CategoryOverview,
+                    self.collapsed
+                ),
+                icon_menu_item(
+                    "Bills",
+                    icons::FOLDER_FILL.clone(),
+                    Message::BillOverview,
+                    self.collapsed
+                ),
+                icon_menu_item(
+                    "Transactions",
+                    icons::SEND_FILL.clone(),
+                    Message::FilterTransactionView,
+                    self.collapsed
+                ),
+                icon_menu_item(
+                    "Create Transaction",
+                    icons::PLUS_CIRCLE_FILL.clone(),
+                    Message::CreateTransaction,
+                    self.collapsed
+                ),
+                widget::vertical_space(),
+                icon_menu_item(
+                    "Settings",
+                    icons::GEAR_FILL.clone(),
+                    Message::SettingsView,
+                    self.collapsed
+                ),
+                icon_menu_item(
+                    "License",
+                    icons::BOOK_FILL.clone(),
+                    Message::License,
+                    self.collapsed
+                ),
+            ]
+            .align_x(iced::Alignment::Start),
+        )
+        .style(|theme| {
+            let mut color = theme.extended_palette().background.base.color;
+            color.r -= 0.05;
+            color.g -= 0.05;
+            color.b -= 0.05;
+            widget::container::background(color)
+        })
         .into()
     }
 }
