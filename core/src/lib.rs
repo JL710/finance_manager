@@ -29,6 +29,9 @@ pub use transaction::Transaction;
 pub mod budget;
 pub use budget::Budget;
 
+mod demo_data;
+pub use demo_data::generate_demo_data;
+
 #[cfg(target_arch = "wasm32")]
 pub trait MaybeSend {}
 
@@ -92,7 +95,7 @@ impl PartialEq for Category {
 
 impl PartialOrd for Category {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.name.cmp(&other.name))
+        Some(self.cmp(other))
     }
 }
 

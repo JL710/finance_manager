@@ -5,6 +5,7 @@ use iced::widget;
 pub enum Action {
     None,
     ApplySettings(crate::settings::Settings),
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
@@ -19,6 +20,7 @@ pub enum Message {
     StartSQLiteNewFileSelector,
     FmChoice(crate::settings::SelectedFinanceManager),
     TimeZoneInput(String),
+    CreateDemoData,
     Save,
 }
 
@@ -61,7 +63,7 @@ impl View {
     pub fn update(
         &mut self,
         message: Message,
-        _finance_controller: fm_core::FMController<FinanceManagers>,
+        finance_controller: fm_core::FMController<FinanceManagers>,
     ) -> Action {
         match message {
             Message::ChangeAPIUrl(url) => {
@@ -114,6 +116,40 @@ impl View {
                     self.unsaved = true;
                 }
             }
+            Message::CreateDemoData => {
+                return Action::Task(
+                    error::failing_task(async {
+                        let result = rfd::AsyncMessageDialog::new()
+                            .set_title("Create Demo Data")
+                            .set_description(
+                                "Creating Demo Data can not be undone! \
+                                Make sure you are in an environment where that is not a problem.",
+                            )
+                            .set_buttons(rfd::MessageButtons::OkCancel)
+                            .set_level(rfd::MessageLevel::Warning)
+                            .show()
+                            .await;
+
+                        if result == rfd::MessageDialogResult::Ok {
+                            let generate_result =
+                                fm_core::generate_demo_data(finance_controller).await;
+                            if generate_result.is_err() {
+                                return generate_result;
+                            } else {
+                                rfd::AsyncMessageDialog::new()
+                                    .set_buttons(rfd::MessageButtons::Ok)
+                                    .set_title("Success")
+                                    .set_description("Successfully created demo data")
+                                    .set_level(rfd::MessageLevel::Info)
+                                    .show()
+                                    .await;
+                            }
+                        }
+                        Ok(())
+                    })
+                    .discard(),
+                );
+            }
         }
         Action::None
     }
@@ -133,6 +169,11 @@ impl View {
                 components::labeled_frame::LabeledFrame::new(
                     "Timezone",
                     self.time_zone_input.view("", Some(Message::TimeZoneInput)),
+                )
+                .width(iced::Fill),
+                components::labeled_frame::LabeledFrame::new(
+                    "Demo Data",
+                    widget::button("Create Demo Data").on_press(Message::CreateDemoData),
                 )
                 .width(iced::Fill),
             ]),

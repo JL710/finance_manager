@@ -535,6 +535,9 @@ fn view_update(
                 view::settings::Action::ApplySettings(new_settings) => {
                     ViewAction::ApplySettings(new_settings)
                 }
+                view::settings::Action::Task(task) => {
+                    ViewAction::ViewTask(task.map(ViewMessage::Settings))
+                }
             }
         }
         ViewMessage::FilterTransaction(m) => {
