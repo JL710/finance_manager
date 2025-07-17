@@ -5,7 +5,7 @@ use anyhow::Result;
 pub enum Recurring {
     /// start time and days
     Days(DateTime, usize),
-    /// i.e. 3. of each month
+    /// i.e. 3. of each month (first day is 1)
     DayInMonth(u8),
     /// month and day
     Yearly(u8, u8),
@@ -14,9 +14,9 @@ pub enum Recurring {
 impl std::fmt::Display for Recurring {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Yearly(month, day) => write!(f, "Yearly on {}.{}", day, month),
-            Self::DayInMonth(day) => write!(f, "Day in month {}", day),
-            Self::Days(date, days) => write!(f, "Every {} days starting from {}", days, date),
+            Self::Yearly(month, day) => write!(f, "Yearly on {day}.{month}"),
+            Self::DayInMonth(day) => write!(f, "Day in month {day}"),
+            Self::Days(date, days) => write!(f, "Every {days} days starting from {date}"),
         }
     }
 }

@@ -79,7 +79,7 @@ where
             .await
             .get_bill(id)
             .await
-            .context(format!("Error while getting bill {}", id))
+            .context(format!("Error while getting bill {id}"))
     }
 
     pub async fn create_bill(
@@ -112,7 +112,7 @@ where
             .await
             .delete_bill(id)
             .await
-            .context(format!("Error while deleting bill with id {}", id))
+            .context(format!("Error while deleting bill with id {id}"))
     }
 
     pub async fn update_bill(&self, bill: Bill) -> Result<()> {
@@ -129,7 +129,7 @@ where
             .await
             .update_bill(bill)
             .await
-            .context(format!("Error while updating bill with id {}", bill_id))
+            .context(format!("Error while updating bill with id {bill_id}"))
     }
 
     pub async fn get_filtered_transactions(
@@ -170,7 +170,7 @@ where
             .await
             .update_asset_account(account)
             .await
-            .context(format!("Error while updating asset account {}", acc_id))
+            .context(format!("Error while updating asset account {acc_id}"))
     }
 
     /// Deletes an account.
@@ -225,7 +225,7 @@ where
             .await
             .get_account(id)
             .await
-            .context(format!("Error while deleting account with id {}", id))
+            .context(format!("Error while deleting account with id {id}"))
     }
 
     pub async fn get_account_sum<'a>(
@@ -253,7 +253,7 @@ where
             .await
             .get_transaction(id)
             .await
-            .context(format!("Error while getting transaction with id {}", id))
+            .context(format!("Error while getting transaction with id {id}"))
     }
 
     pub async fn get_transactions_of_account(
@@ -326,7 +326,7 @@ where
                 .await
         }
         .await
-        .context(format!("Error while updating transaction with id {}", t_id))
+        .context(format!("Error while updating transaction with id {t_id}"))
     }
 
     pub async fn create_book_checking_account(
@@ -355,8 +355,7 @@ where
             .update_book_checking_account(account)
             .await
             .context(format!(
-                "Error while updating book checking account with id {}",
-                acc_id
+                "Error while updating book checking account with id {acc_id}"
             ))
     }
 
@@ -381,7 +380,7 @@ where
             .await
             .delete_budget(id)
             .await
-            .context(format!("Error while deleting budget with id {}", id))
+            .context(format!("Error while deleting budget with id {id}"))
     }
 
     pub async fn update_budget(&self, budget: Budget) -> Result<Budget> {
@@ -391,7 +390,7 @@ where
             .await
             .update_budget(budget)
             .await
-            .context(format!("Error while updating budget with id {}", budget_id))
+            .context(format!("Error while updating budget with id {budget_id}"))
     }
 
     pub async fn get_budgets(&self) -> Result<Vec<Budget>> {
@@ -409,7 +408,7 @@ where
             .await
             .get_budget(id)
             .await
-            .context(format!("Error while getting budget with id {}", id))
+            .context(format!("Error while getting budget with id {id}"))
     }
 
     pub async fn delete_transaction(&self, id: Id) -> Result<()> {
@@ -427,7 +426,7 @@ where
                 .context("underlying finance manager error")
         }
         .await
-        .context(format!("Error while deleting transaction with id {}", id))
+        .context(format!("Error while deleting transaction with id {id}"))
     }
 
     pub async fn get_transactions_in_timespan(
@@ -462,8 +461,7 @@ where
             .get_transactions_of_budget(id, timespan)
             .await
             .context(format!(
-                "Error while getting transactions of budget with id {}",
-                id
+                "Error while getting transactions of budget with id {id}"
             ))
     }
 
@@ -545,7 +543,7 @@ where
             .await
             .get_category(id)
             .await
-            .context(format!("Error while getting category with id {}", id))
+            .context(format!("Error while getting category with id {id}"))
     }
 
     pub async fn create_category(&self, name: String) -> Result<Category> {
@@ -565,8 +563,7 @@ where
             .update_category(category)
             .await
             .context(format!(
-                "Error while updating category with id {}",
-                category_id
+                "Error while updating category with id {category_id}"
             ))
     }
 
@@ -576,7 +573,7 @@ where
             .await
             .delete_category(id)
             .await
-            .context(format!("Error while deleting category with id {}", id))
+            .context(format!("Error while deleting category with id {id}"))
     }
 
     pub async fn get_transactions_of_category(
@@ -590,8 +587,7 @@ where
             .get_transactions_of_category(id, timespan)
             .await
             .context(format!(
-                "Error while getting transactions of category with id {} in timespan {:?}",
-                id, timespan
+                "Error while getting transactions of category with id {id} in timespan {timespan:?}",
             ))
     }
 
@@ -607,8 +603,7 @@ where
             self.get_transactions_of_category(id, timespan)
                 .await
                 .context(format!(
-                    "Error while getting transactions of category with id {} in timespan {:?}",
-                    id, timespan
+                    "Error while getting transactions of category with id {id} in timespan {timespan:?}"
                 ))?,
             |transaction| {
                 *transaction
@@ -631,14 +626,12 @@ where
             .get_transaction(id)
             .await
             .context(format!(
-                "Error while updating categories for transaction with id {}",
-                id
+                "Error while updating categories for transaction with id {id}"
             ))?
             .unwrap();
         transaction.categories = categories;
         self.update_transaction(transaction).await.context(format!(
-            "Error while updating categories for transaction with id {}",
-            id
+            "Error while updating categories for transaction with id {id}"
         ))
     }
 }

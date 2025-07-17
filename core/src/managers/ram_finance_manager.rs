@@ -170,15 +170,15 @@ impl FinanceManager for RamFinanceManager {
                 if !transaction.connection_with_account(account_id) {
                     return false;
                 }
-                if let Some(begin) = timespan.0 {
-                    if transaction.date < begin {
-                        return false;
-                    }
+                if let Some(begin) = timespan.0
+                    && transaction.date < begin
+                {
+                    return false;
                 }
-                if let Some(end) = timespan.1 {
-                    if transaction.date > end {
-                        return false;
-                    }
+                if let Some(end) = timespan.1
+                    && transaction.date > end
+                {
+                    return false;
                 }
                 true
             })
@@ -308,15 +308,15 @@ impl FinanceManager for RamFinanceManager {
                 } else {
                     return false;
                 }
-                if let Some(begin) = timespan.0 {
-                    if transaction.date < begin {
-                        return false;
-                    }
+                if let Some(begin) = timespan.0
+                    && transaction.date < begin
+                {
+                    return false;
                 }
-                if let Some(end) = timespan.1 {
-                    if transaction.date > end {
-                        return false;
-                    }
+                if let Some(end) = timespan.1
+                    && transaction.date > end
+                {
+                    return false;
                 }
                 true
             })

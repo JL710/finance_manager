@@ -20,8 +20,8 @@ impl AccountId {
 impl std::fmt::Display for AccountId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AccountId::Iban(iban) => write!(f, "{}", iban),
-            AccountId::Other(other) => write!(f, "{}", other),
+            AccountId::Iban(iban) => write!(f, "{iban}"),
+            AccountId::Other(other) => write!(f, "{other}"),
         }
     }
 }

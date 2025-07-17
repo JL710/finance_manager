@@ -77,7 +77,7 @@ fn big_decimal_to_string(decimal: &BigDecimal) -> String {
 
     let mut pre_decimal_part = String::new();
     for c in splits[0].chars().rev().enumerate() {
-        if c.0 % 3 == 0 {
+        if c.0.is_multiple_of(3) {
             pre_decimal_part += " ";
         }
         pre_decimal_part += &c.1.to_string();

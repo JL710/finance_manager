@@ -118,10 +118,12 @@ impl TransactionFilter {
 
             // check start
             if let Some(timespan_start) = timespan.0 {
-                if start.is_none() {
+                if let Some(start) = start {
+                    if start < timespan_start {
+                        timespan.0 = Some(start);
+                    }
+                } else {
                     timespan.0 = None;
-                } else if start.unwrap() < timespan_start {
-                    timespan.0 = start;
                 }
             } else if let Some(start) = start {
                 timespan.0 = Some(start);
@@ -129,10 +131,12 @@ impl TransactionFilter {
 
             // check end
             if let Some(timespan_end) = timespan.1 {
-                if end.is_none() {
+                if let Some(end) = end {
+                    if end > timespan_end {
+                        timespan.1 = Some(end);
+                    }
+                } else {
                     timespan.1 = None;
-                } else if end.unwrap() > timespan_end {
-                    timespan.1 = end;
                 }
             } else if let Some(end) = end {
                 timespan.1 = Some(end);
