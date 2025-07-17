@@ -85,22 +85,21 @@ impl View {
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         components::overlap_bottom_right(
-            components::spaced_column![
+            components::back_prev_container(
                 if self.closed {
-                    iced::Element::from(components::button::back(
-                        "Back to Unclosed",
-                        Some(Message::BackToUnclosed),
-                    ))
+                    "Closed Bills"
                 } else {
-                    iced::Element::new(widget::row![
-                        widget::horizontal_space(),
-                        components::button::next("Closed Bills", Some(Message::ViewClosed))
-                    ])
+                    "Unclosed Bills"
                 },
                 if self.closed {
-                    "Closed Bills:"
+                    Some(("Back to Unclosed", Some(Message::BackToUnclosed)))
                 } else {
-                    "Unclosed Bills:"
+                    None
+                },
+                if !self.closed {
+                    Some(("Closed Bills", Some(Message::ViewClosed)))
+                } else {
+                    None
                 },
                 components::table_view::table_view(&self.bill_table)
                     .headers(["Name", "Value", "Sum", "Due Date", "Transaction"])
@@ -119,7 +118,7 @@ impl View {
                         ]
                     })
                     .map(Message::BillTable),
-            ],
+            ),
             components::button::large_round_plus_button(Some(Message::NewBill)),
         )
         .height(iced::Fill)

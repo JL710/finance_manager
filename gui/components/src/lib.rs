@@ -13,6 +13,9 @@ pub mod table_view;
 pub mod transaction_table;
 mod validation_text_input;
 pub use validation_text_input::ValidationTextInput;
+mod custom_layout;
+mod three_split_row;
+pub use three_split_row::three_split_row;
 
 pub mod date_time;
 
@@ -304,4 +307,37 @@ pub fn overlap_bottom_right<'a, Message: Clone + 'static>(
             .align_right(iced::Fill)
             .align_bottom(iced::Fill)
     ]
+}
+
+pub fn back_prev_container<'a, Message: 'a + Clone>(
+    title: &'a str,
+    prev: Option<(&'a str, Option<Message>)>,
+    next: Option<(&'a str, Option<Message>)>,
+    content: iced::Element<'a, Message>,
+) -> iced::Element<'a, Message> {
+    let left = if let Some(prev) = prev {
+        button::back(prev.0, prev.1)
+    } else {
+        iced::Element::new(iced::widget::Space::new(0.0, 0.0))
+    };
+    let right = if let Some(next) = next {
+        button::next(next.0, next.1)
+    } else {
+        iced::Element::new(iced::widget::Space::new(0.0, 0.0))
+    };
+    spaced_column![
+        widget::container(three_split_row(
+            left,
+            title,
+            right,
+            iced::alignment::Vertical::Center
+        ))
+        .padding(10.0)
+        .style(|theme| widget::container::background(
+            theme.extended_palette().secondary.weak.color
+        )),
+        widget::horizontal_rule(5.0),
+        content
+    ]
+    .into()
 }
