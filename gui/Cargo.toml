@@ -20,6 +20,7 @@ fm_core.workspace = true
 time.workspace = true
 error.workspace = true
 icons.workspace = true
+iced_aw.workspace = true
 
 fm_server = { path = "../server", features = [
     "client",
@@ -49,3 +50,7 @@ time = { version = "0.3.36", features = [
     "wasm-bindgen",
 ] }
 rfd = "0.15.4"
+iced_aw = { git = "https://github.com/iced-rs/iced_aw.git", rev = "4617423f3749f62b2fc51ecc13cec7871bbbab25", features = [
+    "drop_down",
+    "labeled_frame",
+], default-features = false }

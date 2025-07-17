@@ -1,6 +1,7 @@
 use anyhow::Context;
 use components::date_time::date_span_input;
 use iced::widget;
+use iced_aw::widget::LabeledFrame;
 use std::sync::Arc;
 
 pub enum AccountType {
@@ -347,7 +348,7 @@ fn asset_account_view<'a>(
                 components::button::delete(Some(Message::Delete))
             ]
         ],
-        components::LabeledFrame::new(
+        LabeledFrame::new(
             "Transactions",
             components::spaced_column![
                 date_span_input::date_span_input(timespan_input)
@@ -398,7 +399,7 @@ fn book_checking_account_view<'a>(
                 components::button::delete(Some(Message::Delete))
             ]
         ],
-        components::LabeledFrame::new(
+        LabeledFrame::new(
             "Transactions",
             components::spaced_column![
                 date_span_input::date_span_input(timespan_input)

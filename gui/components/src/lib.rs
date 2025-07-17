@@ -6,8 +6,6 @@ pub mod currency_input;
 pub use currency_input::CurrencyInput;
 pub mod filter_component;
 pub mod key_value_editor;
-pub mod labeled_frame;
-pub use labeled_frame::LabeledFrame;
 pub mod scrollable;
 pub mod table_view;
 pub mod transaction_table;

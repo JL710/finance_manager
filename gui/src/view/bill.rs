@@ -1,5 +1,6 @@
 use anyhow::Context;
 use iced::widget;
+use iced_aw::widget::LabeledFrame;
 
 pub enum Action {
     None,
@@ -249,7 +250,7 @@ impl View {
                             components::button::delete(Some(Message::Delete))
                         ]
                     ],
-                    components::LabeledFrame::new(
+                    LabeledFrame::new(
                         "Transactions",
                         components::table_view::table_view(transaction_table)
                             .headers([

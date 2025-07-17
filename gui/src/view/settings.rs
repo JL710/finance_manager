@@ -1,6 +1,7 @@
 use crate::finance_managers::FinanceManagers;
 use components::ValidationTextInput;
 use iced::widget;
+use iced_aw::widget::LabeledFrame;
 
 pub enum Action {
     None,
@@ -161,17 +162,14 @@ impl View {
     pub fn view(&self) -> iced::Element<'_, Message> {
         components::spaced_column![
             widget::scrollable(components::spaced_column![
-                components::labeled_frame::LabeledFrame::new(
-                    "Finance Manager",
-                    self.fm_settings_view(&self.settings)
-                )
-                .width(iced::Fill),
-                components::labeled_frame::LabeledFrame::new(
+                LabeledFrame::new("Finance Manager", self.fm_settings_view(&self.settings))
+                    .width(iced::Fill),
+                LabeledFrame::new(
                     "Timezone",
                     self.time_zone_input.view("", Some(Message::TimeZoneInput)),
                 )
                 .width(iced::Fill),
-                components::labeled_frame::LabeledFrame::new(
+                LabeledFrame::new(
                     "Demo Data",
                     widget::button("Create Demo Data").on_press(Message::CreateDemoData),
                 )

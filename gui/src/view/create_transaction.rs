@@ -2,6 +2,7 @@ use anyhow::Context;
 use components::date_time::date_time_input;
 use fm_core;
 use iced::widget;
+use iced_aw::widget::LabeledFrame;
 use itertools::Itertools;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -470,7 +471,7 @@ impl View {
                     widget::button("X").on_press(Message::ClearBudget)
                 ]
                 .align_y(iced::Center),
-                components::LabeledFrame::new("Categories", categories).width(iced::Fill),
+                LabeledFrame::new("Categories", categories).width(iced::Fill),
                 widget::button("Metadata").on_press(Message::ToggleMetadataEditor)
             ])
         };

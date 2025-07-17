@@ -1,4 +1,5 @@
 use anyhow::Context;
+use iced_aw::widget::LabeledFrame;
 
 use components::ValidationTextInput;
 use components::date_time::date_time_input;
@@ -365,7 +366,7 @@ impl View {
             ]
             .width(iced::Length::Fill),
             widget::checkbox("Closed", self.closed).on_toggle(Message::ClosedInput),
-            components::LabeledFrame::new(
+            LabeledFrame::new(
                 "Transactions",
                 components::table_view::table_view(&self.transaction_table)
                     .headers(["", "", "Title", "Amount", "Date", "Source", "Destination"])

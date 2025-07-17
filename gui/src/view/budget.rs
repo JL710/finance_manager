@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use iced::widget;
+use iced_aw::widget::LabeledFrame;
 
 pub enum Action {
     None,
@@ -297,7 +298,7 @@ impl View {
                         .center(iced::Fill)
                         .into()
                     ]),
-                    components::LabeledFrame::new(
+                    LabeledFrame::new(
                         "Transactions",
                         transaction_table
                             .view()

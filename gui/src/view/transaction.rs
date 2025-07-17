@@ -1,5 +1,6 @@
 use anyhow::Context;
 use iced::widget;
+use iced_aw::widget::LabeledFrame;
 
 #[derive(Debug, Clone)]
 struct Init {
@@ -217,7 +218,7 @@ impl View {
                         components::button::new("New Bill", Some(Message::NewBill))
                     ]
                 ],
-                components::LabeledFrame::new("Categories", widget::scrollable(category_column))
+                LabeledFrame::new("Categories", widget::scrollable(category_column))
                     .width(iced::Fill)
             ])
             .map(MessageContainer)
