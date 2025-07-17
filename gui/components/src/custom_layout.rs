@@ -1,17 +1,19 @@
 use iced::advanced::{Widget, widget::Tree};
 
+type LayoutFn<'a, Message, Theme, Renderer> = Box<
+    dyn Fn(
+        &Vec<iced::Element<'a, Message, Theme, Renderer>>,
+        &mut Vec<iced::advanced::widget::Tree>,
+        &Renderer,
+        &iced::advanced::layout::Limits,
+    ) -> iced::advanced::layout::Node,
+>;
+
 pub struct CustomLayout<'a, Message, Theme, Renderer> {
     elements: Vec<iced::Element<'a, Message, Theme, Renderer>>,
     width: iced::Length,
     height: iced::Length,
-    layout: Box<
-        dyn Fn(
-            &Vec<iced::Element<'a, Message, Theme, Renderer>>,
-            &mut Vec<iced::advanced::widget::Tree>,
-            &Renderer,
-            &iced::advanced::layout::Limits,
-        ) -> iced::advanced::layout::Node,
-    >,
+    layout: LayoutFn<'a, Message, Theme, Renderer>,
 }
 
 impl<'b, Message, Theme, Renderer: iced::advanced::Renderer>
