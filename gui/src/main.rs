@@ -994,7 +994,7 @@ impl App {
                                 style.border.radius = style.border.radius.top(PANE_BORDER_RADIUS);
                                 style
                             })
-                            .padding(style::PADDING),
+                            .padding(5.0),
                         )
                     }
                 )
@@ -1201,7 +1201,8 @@ fn pane_grid_control_buttons(svg: widget::svg::Handle) -> widget::Button<'static
             .style(|theme: &iced::Theme, _| widget::svg::Style {
                 color: Some(theme.palette().text),
             })
-            .width(iced::Shrink),
+            .width(13.0)
+            .height(13.0),
     )
     .style(widget::button::secondary)
 }
