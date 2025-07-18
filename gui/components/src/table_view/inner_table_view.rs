@@ -671,7 +671,7 @@ where
         viewport: &iced::Rectangle,
     ) -> iced::advanced::graphics::core::event::Status {
         let mut child_layouts = layout.children();
-        let header_layout = child_layouts.next().unwrap();
+        let _header_layout = child_layouts.next().unwrap();
         let scrollable_layout = child_layouts.next().unwrap();
         let downcast_state: &mut State = state.state.downcast_mut();
         let outer_scrollable_bounds = scrollable_layout

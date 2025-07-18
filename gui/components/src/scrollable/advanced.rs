@@ -220,7 +220,7 @@ impl State {
         let vertical_scroll = self.direction.vertical() && size.height < content_size.height;
         let scroll_x = self
             .offset_x
-            .absolute(size.width, content_size.width, horizontal_scroll)
+            .absolute(size.width, content_size.width, vertical_scroll)
             - if vertical_scroll && matches!(self.vertical_scrollbar_placement, Placement::Start) {
                 SCROLLBAR_THICKNESS
             } else {
@@ -228,7 +228,7 @@ impl State {
             };
         let scroll_y = self
             .offset_y
-            .absolute(size.height, content_size.height, vertical_scroll)
+            .absolute(size.height, content_size.height, horizontal_scroll)
             - if horizontal_scroll
                 && matches!(self.horizontal_scrollbar_placement, Placement::Start)
             {
