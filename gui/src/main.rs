@@ -651,7 +651,7 @@ enum AppMessage {
     PaneClicked(widget::pane_grid::Pane),
     PaneClose(widget::pane_grid::Pane),
     PaneRestore,
-    SideBarMessage(sidebar::Message),
+    SidebarMessage(sidebar::Message),
     SwitchToFilterTransactionView,
     SwitchToCategoryOverview,
 }
@@ -664,26 +664,6 @@ pub struct App {
     settings: settings::Settings,
 }
 
-impl Default for App {
-    fn default() -> Self {
-        let finance_manager =
-            fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Ram(
-                fm_core::managers::RamFinanceManager::new(()).unwrap(),
-            ));
-        let (pane_grid, focused_pane) = widget::pane_grid::State::new(View::Markdown(
-            "Finance Manager".to_string(),
-            widget::markdown::parse(include_str!("view/tutorial.md")).collect(),
-        ));
-        App {
-            pane_grid,
-            focused_pane,
-            finance_controller: finance_manager,
-            side_bar: sidebar::Sidebar::new(false),
-            settings: settings::Settings::default(),
-        }
-    }
-}
-
 enum ViewAction {
     AppTask(iced::Task<AppMessage>),
     ViewTask(iced::Task<ViewMessage>),
@@ -692,12 +672,22 @@ enum ViewAction {
 }
 
 impl App {
-    fn new(finance_controller: Fm, settings: settings::Settings) -> Self {
-        App {
-            finance_controller,
-            settings,
-            ..Default::default()
-        }
+    fn new(finance_controller: Fm, settings: settings::Settings) -> (Self, iced::Task<AppMessage>) {
+        let (sidebar_state, sidebar_task) = sidebar::Sidebar::new();
+        let (pane_grid, focused_pane) = widget::pane_grid::State::new(View::Markdown(
+            "Finance Manager".to_string(),
+            widget::markdown::parse(include_str!("view/tutorial.md")).collect(),
+        ));
+        (
+            App {
+                finance_controller,
+                settings,
+                side_bar: sidebar_state,
+                pane_grid,
+                focused_pane,
+            },
+            sidebar_task.map(AppMessage::SidebarMessage),
+        )
     }
 
     fn update(&mut self, message: AppMessage) -> iced::Task<AppMessage> {
@@ -721,8 +711,8 @@ impl App {
                     .transaction_filter(self.finance_controller.clone())
                     .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
             }
-            AppMessage::SideBarMessage(m) => match self.side_bar.update(m) {
-                sidebar::Action::None => {}
+            AppMessage::SidebarMessage(m) => match self.side_bar.update(m) {
+                sidebar::Action::Task(task) => return task.map(AppMessage::SidebarMessage),
                 sidebar::Action::SwitchToBudgetOverview => {
                     let pane = self.focused_pane;
                     return self
@@ -736,7 +726,6 @@ impl App {
                         )
                         .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
-
                 sidebar::Action::CreateTransaction => {
                     let pane = self.focused_pane;
                     return self
@@ -746,7 +735,6 @@ impl App {
                         .transaction_create(self.finance_controller.clone(), None)
                         .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
-
                 sidebar::Action::SwitchToAssetAccountView => {
                     let pane = self.focused_pane;
                     return self
@@ -756,7 +744,6 @@ impl App {
                         .asset_account_overview(self.finance_controller.clone())
                         .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
-
                 sidebar::Action::SwitchToCategoryOverview => {
                     let pane = self.focused_pane;
                     return self
@@ -766,7 +753,6 @@ impl App {
                         .category_overview(self.finance_controller.clone())
                         .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
-
                 sidebar::Action::SwitchToBookCheckingAccountOverview => {
                     let pane = self.focused_pane;
                     return self
@@ -776,7 +762,6 @@ impl App {
                         .book_checking_account_overview(self.finance_controller.clone())
                         .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
-
                 sidebar::Action::SwitchToSettingsView => {
                     let (view, task) = view::settings::View::new(self.settings.clone());
                     *self.pane_grid.get_mut(self.focused_pane).unwrap() = View::Settings(view);
@@ -785,7 +770,6 @@ impl App {
                         .map(ViewMessage::Settings)
                         .map(move |x| AppMessage::PaneViewMessage(pane, x.into()));
                 }
-
                 sidebar::Action::SwitchToFilterTransactionView => {
                     let pane = self.focused_pane;
                     return self
@@ -874,7 +858,7 @@ impl App {
         static PANE_BORDER_RADIUS: u16 = 5;
 
         iced::widget::row![
-            self.side_bar.view().map(AppMessage::SideBarMessage),
+            self.side_bar.view().map(AppMessage::SidebarMessage),
             iced::widget::vertical_rule(5),
             iced::widget::container(
                 widget::pane_grid::PaneGrid::new(
@@ -1124,7 +1108,7 @@ fn main() {
         }
     };
 
-    let app = App::new(
+    let (app, initial_task) = App::new(
         match loaded_settings.finance_manager.selected_finance_manager {
             settings::SelectedFinanceManager::Ram => {
                 fm_core::FMController::with_finance_manager(finance_managers::FinanceManagers::Ram(
@@ -1177,7 +1161,7 @@ fn main() {
         .font(include_bytes!("../fonts/FiraSans-Regular.ttf"))
         .font(include_bytes!("../fonts/FiraSans-Bold.ttf"))
         .default_font(iced::Font::with_name("Fira Sans"))
-        .run_with(|| (app, iced::Task::none()))
+        .run_with(|| (app, initial_task))
         .unwrap();
 }
 

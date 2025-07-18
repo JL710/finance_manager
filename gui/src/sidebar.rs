@@ -1,7 +1,7 @@
+use anyhow::{Context, Result};
 use iced::widget;
 
 pub enum Action {
-    None,
     SwitchToAssetAccountView,
     SwitchToBookCheckingAccountOverview,
     SwitchToBudgetOverview,
@@ -11,11 +11,12 @@ pub enum Action {
     SwitchToLicense,
     SwitchToBillOverview,
     CreateTransaction,
+    Task(iced::Task<Message>),
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    ToggleCollapse,
+    Collapse(bool),
     AssetAccountView,
     BookCheckingAccountOverview,
     BudgetOverview,
@@ -32,15 +33,18 @@ pub struct Sidebar {
 }
 
 impl Sidebar {
-    pub fn new(collapsed: bool) -> Self {
-        Self { collapsed }
+    pub fn new() -> (Self, iced::Task<Message>) {
+        (
+            Self { collapsed: false },
+            error::failing_task(read_collapsed_config()).map(Message::Collapse),
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         match message {
-            Message::ToggleCollapse => {
-                self.collapsed = !self.collapsed;
-                Action::None
+            Message::Collapse(collapse) => {
+                self.collapsed = collapse;
+                Action::Task(error::failing_task(write_collapsed_config(self.collapsed)).discard())
             }
             Message::AssetAccountView => Action::SwitchToAssetAccountView,
             Message::BookCheckingAccountOverview => Action::SwitchToBookCheckingAccountOverview,
@@ -64,7 +68,7 @@ impl Sidebar {
                         })
                         .width(iced::Shrink)
                 )
-                .on_press(Message::ToggleCollapse)
+                .on_press(Message::Collapse(!self.collapsed))
                 .style(widget::button::text),
                 icon_menu_item(
                     "AssetAccounts",
@@ -173,4 +177,26 @@ fn icon_menu_item<'a, M: Clone + 'a>(
         .on_press(message)
         .into()
     }
+}
+
+pub async fn read_collapsed_config() -> Result<bool> {
+    if let Some(conf) = crate::config::read_config("sidebar").await? {
+        Ok(conf
+            .as_object()
+            .context("could nof get config as object")?
+            .get("collapsed")
+            .context("invalid key collapsed")?
+            .as_bool()
+            .context("expected bool for collapsed")?)
+    } else {
+        Ok(false)
+    }
+}
+
+pub async fn write_collapsed_config(collapsed: bool) -> Result<()> {
+    crate::config::write_config(
+        serde_json::value::Map::from_iter([("collapsed".to_string(), collapsed.into())]).into(),
+        "sidebar",
+    )
+    .await
 }
