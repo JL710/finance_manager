@@ -674,13 +674,21 @@ where
         let header_layout = child_layouts.next().unwrap();
         let scrollable_layout = child_layouts.next().unwrap();
         let downcast_state: &mut State = state.state.downcast_mut();
+        let outer_scrollable_bounds = scrollable_layout
+            .bounds()
+            .intersection(&layout.bounds())
+            .unwrap_or(iced::Rectangle {
+                width: 0.0,
+                height: 0.0,
+                x: scrollable_layout.position().x,
+                y: scrollable_layout.position().y,
+            });
+
         if crate::scrollable::advanced::scroll_grab_on_event(
             &mut downcast_state.scroll_state,
             event.clone(),
             cursor,
-            layout
-                .bounds()
-                .shrink(iced::Padding::ZERO.top(header_layout.bounds().height)),
+            outer_scrollable_bounds,
             scrollable_layout.bounds().size(),
         ) == iced::advanced::graphics::core::event::Status::Captured
         {
@@ -690,28 +698,16 @@ where
             &mut downcast_state.scroll_state,
             event.clone(),
             cursor,
-            layout
-                .bounds()
-                .shrink(iced::Padding::ZERO.top(header_layout.bounds().height)),
+            outer_scrollable_bounds,
             scrollable_layout.bounds().size(),
         ) == iced::advanced::graphics::core::event::Status::Captured
         {
             return iced::advanced::graphics::core::event::Status::Captured;
         }
-
-        let outer_scrollable_size = scrollable_layout
-            .bounds()
-            .intersection(&layout.bounds())
-            .unwrap_or(iced::Rectangle {
-                width: 0.0,
-                height: 0.0,
-                x: scrollable_layout.position().x,
-                y: scrollable_layout.position().y,
-            })
-            .size();
-        let translation = downcast_state
-            .scroll_state
-            .translation(outer_scrollable_size, scrollable_layout.bounds().size());
+        let translation = downcast_state.scroll_state.translation(
+            outer_scrollable_bounds.size(),
+            scrollable_layout.bounds().size(),
+        );
         let mut child_states = state.children.iter_mut();
         for header_element in self.child_header_elements_mut() {
             if let iced::event::Status::Captured = header_element.as_widget_mut().on_event(
@@ -735,7 +731,7 @@ where
             if let iced::event::Status::Captured = crate::scrollable::advanced::on_event(
                 &downcast_state.scroll_state,
                 element.as_widget_mut(),
-                outer_scrollable_size,
+                outer_scrollable_bounds.size(),
                 scrollable_layout.bounds().size(),
                 child_states.next().unwrap(),
                 event.clone(),
