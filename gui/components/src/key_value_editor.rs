@@ -52,7 +52,7 @@ impl KeyValueEditor {
                     .push((String::new(), widget::text_editor::Content::default()));
             }
             Message::DeletePair(index) => {
-                if index > self.inputs.len() - 1 {
+                if index < self.inputs.len() {
                     self.inputs.remove(index);
                 }
             }
