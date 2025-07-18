@@ -1,3 +1,4 @@
+mod config;
 mod finance_managers;
 mod settings;
 mod sidebar;
@@ -1114,7 +1115,7 @@ fn main() {
             .init();
     }
 
-    let loaded_settings = match settings::read_settings() {
+    let loaded_settings = match async_std::task::block_on(settings::read_settings()) {
         Ok(loaded_setting) => loaded_setting,
         Err(err) => {
             let error_message = error::error_chain_string(err);

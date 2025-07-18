@@ -1,5 +1,6 @@
 use anyhow::Result;
-use std::io::{Read, Write};
+
+const CONFIG_NAME: &str = "settings";
 
 #[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FinanceManager {
@@ -32,56 +33,14 @@ impl Default for Settings {
     }
 }
 
-fn get_settings_path() -> std::path::PathBuf {
-    get_config_path().join("fm_gui_settings.json")
+pub async fn read_settings() -> Result<Settings> {
+    if let Some(conf) = crate::config::read_config(CONFIG_NAME).await? {
+        Ok(serde_json::from_value(conf)?)
+    } else {
+        Ok(Settings::default())
+    }
 }
 
-fn get_config_path() -> std::path::PathBuf {
-    dirs::config_dir().unwrap().join("finance_manager")
-}
-
-#[cfg(feature = "native")]
-pub fn read_settings() -> Result<Settings> {
-    let mut content = String::new();
-    let mut file = match std::fs::File::open(get_settings_path()) {
-        Ok(file) => file,
-        Err(err) => {
-            if err.kind() == std::io::ErrorKind::NotFound {
-                return Ok(Settings::default());
-            } else {
-                return Err(err.into());
-            }
-        }
-    };
-
-    file.read_to_string(&mut content)?;
-
-    Ok(serde_json::from_str(&content)?)
-}
-
-#[cfg(not(feature = "native"))]
-pub fn read_settings() -> Result<Settings> {
-    Ok(Settings {
-        finance_manager: FinanceManager::default(),
-    })
-}
-
-#[cfg(feature = "native")]
 pub async fn write_settings(settings: Settings) -> Result<()> {
-    async_std::task::spawn_blocking(move || {
-        if !get_config_path().exists() {
-            std::fs::create_dir(get_config_path())?;
-        }
-
-        let mut file = std::fs::File::create(get_settings_path())?;
-        file.write_all(serde_json::to_value(settings)?.to_string().as_bytes())?;
-
-        Ok(())
-    })
-    .await
-}
-
-#[cfg(not(feature = "native"))]
-pub async fn write_settings(settings: Settings) -> Result<()> {
-    Ok(())
+    crate::config::write_config(serde_json::to_value(settings)?, CONFIG_NAME).await
 }
