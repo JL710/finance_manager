@@ -68,10 +68,12 @@ impl View {
     ) -> Action {
         match message {
             Message::ChangeAPIUrl(url) => {
+                self.api_url.edit_content(url.clone());
                 self.settings.finance_manager.server_url = url;
                 self.unsaved = true;
             }
             Message::ChangeAPIToken(token) => {
+                self.api_token.edit_content(token.clone());
                 self.settings.finance_manager.server_token = token;
                 self.unsaved = true;
             }
