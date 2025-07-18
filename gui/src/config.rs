@@ -48,7 +48,7 @@ pub async fn write_config(value: serde_json::Value, config_name: &'static str) -
         check_create_config_dir()?;
 
         let mut file = std::fs::File::create(get_config_file(config_name))?;
-        file.write_all(value.to_string().as_bytes())?;
+        file.write_all(serde_json::to_string_pretty(&value)?.as_bytes())?;
 
         Ok(())
     })
