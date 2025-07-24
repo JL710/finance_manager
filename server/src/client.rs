@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::collections::HashMap;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Client {
     url: String,
     token: String,

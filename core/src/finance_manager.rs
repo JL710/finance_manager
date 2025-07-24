@@ -1,7 +1,7 @@
 use super::*;
 use std::future::Future;
 
-pub trait FinanceManager: Send + Clone + Sized {
+pub trait FinanceManager: Send + Clone + Sized + std::fmt::Debug {
     type Flags;
 
     fn new(flags: Self::Flags) -> Result<Self>;

@@ -156,7 +156,7 @@ async fn migrate_db(connection: MutexGuard<'_, rusqlite::Connection>) -> Result<
     Ok(())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SqliteFinanceManager {
     path: String,
     connection: Arc<Mutex<rusqlite::Connection>>,
