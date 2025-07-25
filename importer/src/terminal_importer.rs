@@ -31,31 +31,6 @@ async fn do_action(
     while let Some(action) = actions.pop() {
         match action {
             Action::None => {}
-            Action::TransactionCreated(transaction) => {
-                let source = finance_controller
-                    .get_account(transaction.source)
-                    .await
-                    .unwrap()
-                    .unwrap();
-                let destination = finance_controller
-                    .get_account(transaction.destination)
-                    .await
-                    .unwrap()
-                    .unwrap();
-                println!(
-                    "Title: {}\nDescription: {}\nValue: {}\nDate: {}\n\nSource: \n{}\n\nDestination: \n{}\n",
-                    transaction.title,
-                    transaction.description.as_ref().unwrap_or(&String::new()),
-                    transaction.amount(),
-                    transaction
-                        .date
-                        .to_offset(fm_core::get_local_timezone().unwrap())
-                        .format(&time::format_description::parse("[day].[month].[year]")?)?,
-                    format_account(&source),
-                    format_account(&destination)
-                );
-                break;
-            }
             Action::TransactionExists(mut transaction_exists) => {
                 decide_object_exists(
                     &mut transaction_exists,

@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
-use std::io::{BufRead, BufReader};
+use fm_core::bigdecimal::FromPrimitive;
+use std::io::{BufRead, Cursor};
 
 enum IterOption {
     Ignored,
@@ -7,40 +8,46 @@ enum IterOption {
 }
 
 #[allow(clippy::type_complexity)]
-pub struct CSVParser<'a> {
-    data: BufReader<&'a [u8]>,
+pub struct CSVParser {
+    data: Cursor<Vec<u8>>,
     format_name: String,
-    ignore_entry: Box<dyn Fn(&csv::StringRecord) -> bool>,
-    title: Box<dyn Fn(&csv::StringRecord) -> String>,
-    value: Box<dyn Fn(&csv::StringRecord) -> fm_core::Currency>,
-    description: Box<dyn Fn(&csv::StringRecord) -> String>,
-    source_iban: Box<dyn Fn(&csv::StringRecord) -> String>,
-    source_name: Box<dyn Fn(&csv::StringRecord) -> Option<String>>,
-    source_bic: Box<dyn Fn(&csv::StringRecord) -> Option<String>>,
-    other_iban: Box<dyn Fn(&csv::StringRecord) -> String>,
-    other_name: Box<dyn Fn(&csv::StringRecord) -> Option<String>>,
-    other_bic: Box<dyn Fn(&csv::StringRecord) -> Option<String>>,
-    date: Box<dyn Fn(&csv::StringRecord) -> fm_core::DateTime>,
+    ignore_entry: Box<dyn Fn(&csv::StringRecord) -> bool + Send + Sync>,
+    title: Box<dyn Fn(&csv::StringRecord) -> String + Send + Sync>,
+    value: Box<dyn Fn(&csv::StringRecord) -> fm_core::Currency + Send + Sync>,
+    description: Box<dyn Fn(&csv::StringRecord) -> String + Send + Sync>,
+    source_iban: Box<dyn Fn(&csv::StringRecord) -> String + Send + Sync>,
+    source_name: Box<dyn Fn(&csv::StringRecord) -> Option<String> + Send + Sync>,
+    source_bic: Box<dyn Fn(&csv::StringRecord) -> Option<String> + Send + Sync>,
+    other_iban: Box<dyn Fn(&csv::StringRecord) -> String + Send + Sync>,
+    other_name: Box<dyn Fn(&csv::StringRecord) -> Option<String> + Send + Sync>,
+    other_bic: Box<dyn Fn(&csv::StringRecord) -> Option<String> + Send + Sync>,
+    date: Box<dyn Fn(&csv::StringRecord) -> fm_core::DateTime + Send + Sync>,
     delimiter: u8,
 }
 
-impl<'a> CSVParser<'a> {
+impl std::fmt::Debug for CSVParser {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "format_name: {}", self.format_name)
+    }
+}
+
+impl CSVParser {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        data: BufReader<&'a [u8]>,
+        data: Cursor<Vec<u8>>,
         format_name: String,
         delimiter: u8,
-        ignore_entry: impl Fn(&csv::StringRecord) -> bool + 'static,
-        title: impl Fn(&csv::StringRecord) -> String + 'static,
-        value: impl Fn(&csv::StringRecord) -> fm_core::Currency + 'static,
-        description: impl Fn(&csv::StringRecord) -> String + 'static,
-        source_iban: impl Fn(&csv::StringRecord) -> String + 'static,
-        source_name: impl Fn(&csv::StringRecord) -> Option<String> + 'static,
-        source_bic: impl Fn(&csv::StringRecord) -> Option<String> + 'static,
-        other_iban: impl Fn(&csv::StringRecord) -> String + 'static,
-        other_name: impl Fn(&csv::StringRecord) -> Option<String> + 'static,
-        other_bic: impl Fn(&csv::StringRecord) -> Option<String> + 'static,
-        date: impl Fn(&csv::StringRecord) -> fm_core::DateTime + 'static,
+        ignore_entry: impl Fn(&csv::StringRecord) -> bool + Send + Sync + 'static,
+        title: impl Fn(&csv::StringRecord) -> String + Send + Sync + 'static,
+        value: impl Fn(&csv::StringRecord) -> fm_core::Currency + Send + Sync + 'static,
+        description: impl Fn(&csv::StringRecord) -> String + Send + Sync + 'static,
+        source_iban: impl Fn(&csv::StringRecord) -> String + Send + Sync + 'static,
+        source_name: impl Fn(&csv::StringRecord) -> Option<String> + Send + Sync + 'static,
+        source_bic: impl Fn(&csv::StringRecord) -> Option<String> + Send + Sync + 'static,
+        other_iban: impl Fn(&csv::StringRecord) -> String + Send + Sync + 'static,
+        other_name: impl Fn(&csv::StringRecord) -> Option<String> + Send + Sync + 'static,
+        other_bic: impl Fn(&csv::StringRecord) -> Option<String> + Send + Sync + 'static,
+        date: impl Fn(&csv::StringRecord) -> fm_core::DateTime + Send + Sync + 'static,
     ) -> Result<Self> {
         // skip the first line because it is the header
         let mut data = data;
@@ -74,7 +81,6 @@ impl<'a> CSVParser<'a> {
             .trim_end_matches('\r')
             .trim_end_matches('\n')
             .to_string();
-
         let record = if let Some(r) = csv::ReaderBuilder::new()
             .has_headers(false)
             .delimiter(self.delimiter)
@@ -110,7 +116,6 @@ impl<'a> CSVParser<'a> {
                 (self.other_bic)(&record),
             )
         };
-
         let (destination_iban, destination_name, destination_bic) = if value.get_eur_num() < 0.0 {
             (
                 (self.other_iban)(&record),
@@ -124,7 +129,6 @@ impl<'a> CSVParser<'a> {
                 (self.source_bic)(&record),
             )
         };
-
         Ok(Some(IterOption::Entry(Box::new(
             super::TransactionEntry::new(
                 raw,
@@ -151,7 +155,7 @@ impl<'a> CSVParser<'a> {
     }
 }
 
-impl super::Parser for CSVParser<'_> {
+impl super::Parser for CSVParser {
     async fn next_entry(&mut self) -> Result<Option<crate::TransactionEntry>> {
         loop {
             match self.next().await? {
@@ -167,7 +171,13 @@ impl super::Parser for CSVParser<'_> {
     }
 }
 
-pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
+pub fn csv_camt_v2_data(source_path: String) -> Vec<u8> {
+    let data = std::fs::read(&source_path).unwrap();
+    let as_utf8 = encoding_rs::ISO_8859_15.decode(&data).0.into_owned();
+    as_utf8.into_bytes()
+}
+
+pub fn csv_camt_v2_parser(utf8_data: Vec<u8>) -> Result<CSVParser> {
     pub fn parse_to_datetime(date: &str) -> anyhow::Result<fm_core::DateTime> {
         let mut parsed = time::parsing::Parsed::new();
         parsed.parse_items(
@@ -189,7 +199,7 @@ pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
     }
 
     CSVParser::new(
-        data,
+        Cursor::new(utf8_data),
         "CSV_CAMT_V2".to_string(),
         b';',
         |record| record.get(16).unwrap() != "Umsatz gebucht",
@@ -198,13 +208,18 @@ pub fn csv_camt_v2_parser(data: BufReader<&[u8]>) -> Result<CSVParser> {
             if record.get(15).unwrap() != "EUR" {
                 panic!("Currency is not EUR");
             }
-            record
-                .get(14)
+            fm_core::Currency::Eur(
+                fm_core::bigdecimal::BigDecimal::from_f64(
+                    record
+                        .get(14)
+                        .unwrap()
+                        .replace(',', ".")
+                        .parse::<f64>()
+                        .unwrap(),
+                )
                 .unwrap()
-                .replace(',', ".")
-                .parse::<f64>()
-                .unwrap()
-                .into()
+                .round(2),
+            )
         },
         |record| format!("{}\n{}", record.get(4).unwrap(), record.get(11).unwrap()),
         |record| record.get(0).unwrap().to_string(),

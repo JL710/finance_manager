@@ -1,5 +1,3 @@
-use std::io::BufReader;
-
 use anyhow::{Context, Result};
 use csv_parser::CSVParser;
 use fm_core::FinanceManager;
@@ -41,16 +39,16 @@ impl AccountEntry {
 
 #[derive(Debug, Clone)]
 pub struct TransactionEntry {
-    raw_data: String,
-    title: String,
-    description: String,
-    // Must be positive!
-    value: fm_core::Currency,
-    source_entry: AccountEntry,
-    destination_entry: AccountEntry,
-    date: fm_core::DateTime,
-    source_account: Option<fm_core::account::Account>,
-    destination_account: Option<fm_core::account::Account>,
+    pub raw_data: String,
+    pub title: String,
+    pub description: String,
+    /// Must be positive!
+    pub value: fm_core::Currency,
+    pub source_entry: AccountEntry,
+    pub destination_entry: AccountEntry,
+    pub date: fm_core::DateTime,
+    pub source_account: Option<fm_core::account::Account>,
+    pub destination_account: Option<fm_core::account::Account>,
 }
 
 impl TransactionEntry {
@@ -86,7 +84,6 @@ pub mod action {
     #[derive(Clone, Debug)]
     pub enum Action {
         None,
-        TransactionCreated(fm_core::Transaction),
         TransactionExists(ObjectExists<fm_core::Transaction>),
         SourceAccountExists(ObjectExists<fm_core::account::Account>),
         DestinationAccountExists(ObjectExists<fm_core::account::Account>),
@@ -155,13 +152,15 @@ pub mod action {
     }
 }
 
-pub trait Parser {
-    fn next_entry(&mut self)
-    -> impl std::future::Future<Output = Result<Option<TransactionEntry>>>;
+pub trait Parser: std::fmt::Debug {
+    fn next_entry(
+        &mut self,
+    ) -> impl std::future::Future<Output = Result<Option<TransactionEntry>>> + fm_core::MaybeSend;
 
     fn format_name(&self) -> &str;
 }
 
+#[derive(Debug)]
 pub struct Importer<FM: fm_core::FinanceManager + 'static, P: Parser> {
     parser: P,
     fm_controller: fm_core::FMController<FM>,
@@ -229,9 +228,6 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
     pub async fn perform(&mut self, processed_action: action::Action) -> Result<action::Action> {
         match processed_action {
             action::Action::None => return Ok(action::Action::None),
-            action::Action::TransactionCreated(_) => {
-                return Ok(action::Action::None);
-            }
             action::Action::TransactionExists(object_exists) => {
                 if object_exists.selected_object().is_some() {
                     return Ok(action::Action::None);
@@ -557,7 +553,7 @@ enum AccountExistsResult {
 }
 
 pub async fn csv_camt_v2_importer<FM: FinanceManager>(
-    data: BufReader<&[u8]>,
+    data: Vec<u8>,
     fm_controller: fm_core::FMController<FM>,
 ) -> Result<Importer<FM, CSVParser>> {
     Importer::new(csv_parser::csv_camt_v2_parser(data)?, fm_controller).await
