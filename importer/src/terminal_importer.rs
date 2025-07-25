@@ -114,7 +114,7 @@ async fn decide_object_exists<T: Clone, F, FM: fm_core::FinanceManager + 'static
 where
     F: std::future::Future<Output = Result<String>>,
 {
-    println!("---------\n{}", prompt);
+    println!("---------\n{prompt}");
     println!(
         "You are making the decision for the following transaction:\n{}",
         format_transaction_entry(object_exists.transaction_entry())?
@@ -142,7 +142,7 @@ where
             object_exists.select_object(Some(
                 object_exists.possible_objects()[input as usize].clone(),
             ));
-            println!("Selected option {}.", input);
+            println!("Selected option {input}.");
             return Ok(());
         } else {
             println!("Invalid input. Please try again.");

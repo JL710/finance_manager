@@ -429,14 +429,12 @@ impl<FM: fm_core::FinanceManager, P: Parser> Importer<FM, P> {
 
         for transaction in &self.cached_transactions {
             // check for importer specific fields
-            if let Some(parser_content) = transaction.metadata.get(METADATA_RAW_CONTENT) {
-                if let Some(import_format) = transaction.metadata.get(METADATA_IMPORT_FORMAT) {
-                    if *parser_content == transaction_entry.raw_data
-                        && *import_format == format_name
-                    {
-                        return Ok(Some(action::Action::None));
-                    }
-                }
+            if let Some(parser_content) = transaction.metadata.get(METADATA_RAW_CONTENT)
+                && let Some(import_format) = transaction.metadata.get(METADATA_IMPORT_FORMAT)
+                && *parser_content == transaction_entry.raw_data
+                && *import_format == format_name
+            {
+                return Ok(Some(action::Action::None));
             }
 
             let source_acc = match accounts.iter().find(|a| *a.id() == transaction.id).cloned() {
