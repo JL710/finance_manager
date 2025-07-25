@@ -14,6 +14,8 @@ mod account_id;
 pub use account_id::AccountId;
 pub use iban_validate;
 
+pub use bigdecimal;
+
 mod currency;
 pub use currency::Currency;
 
