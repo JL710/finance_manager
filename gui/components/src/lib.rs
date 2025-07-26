@@ -13,10 +13,18 @@ mod validation_text_input;
 pub use validation_text_input::ValidationTextInput;
 mod three_split_row;
 pub use three_split_row::three_split_row;
-
 pub mod date_time;
-
+mod line_separated_column;
+pub use line_separated_column::LineSeparatedColumn;
 pub use transaction_table::TransactionTable;
+
+fn align_position(limit: f32, size: f32, alignment: impl Into<iced::Alignment>) -> f32 {
+    match alignment.into() {
+        iced::Alignment::Start => 0.0,
+        iced::Alignment::Center => (limit - size) / 2.0,
+        iced::Alignment::End => limit - size,
+    }
+}
 
 pub fn labeled_entry<'a, Message: 'a + Clone>(
     name: &'a str,

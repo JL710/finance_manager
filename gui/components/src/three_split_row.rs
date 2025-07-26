@@ -1,3 +1,5 @@
+use crate::align_position;
+
 pub fn three_split_row<'a, Message: 'a>(
     left: impl Into<iced::Element<'a, Message>>,
     middle: impl Into<iced::Element<'a, Message>>,
@@ -59,12 +61,4 @@ pub fn three_split_row<'a, Message: 'a>(
     )
     .width(iced::Fill)
     .into()
-}
-
-fn align_position(limit: f32, size: f32, alignment: impl Into<iced::Alignment>) -> f32 {
-    match alignment.into() {
-        iced::Alignment::Start => 0.0,
-        iced::Alignment::Center => (limit - size) / 2.0,
-        iced::Alignment::End => limit - size,
-    }
 }
