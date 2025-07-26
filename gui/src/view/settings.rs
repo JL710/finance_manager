@@ -1,4 +1,3 @@
-use crate::finance_managers::FinanceManagers;
 use components::ValidationTextInput;
 use iced::widget;
 use iced_aw::widget::LabeledFrame;
@@ -61,10 +60,10 @@ impl View {
         self.unsaved = true;
     }
 
-    pub fn update(
+    pub fn update<FM: fm_core::FinanceManager + 'static>(
         &mut self,
         message: Message,
-        finance_controller: fm_core::FMController<FinanceManagers>,
+        finance_controller: fm_core::FMController<FM>,
     ) -> Action {
         match message {
             Message::ChangeAPIUrl(url) => {

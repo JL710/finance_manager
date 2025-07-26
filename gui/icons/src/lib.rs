@@ -179,3 +179,10 @@ pub fn list() -> Svg<'static> {
 pub static FM_LOGO_WINDOW_ICON: LazyLock<iced::window::Icon> = LazyLock::new(|| {
     iced::window::icon::from_file_data(include_bytes!("../assets/FM_Logo.png"), None).unwrap()
 });
+
+pub static DOWNLOAD: LazyLock<Handle> =
+    LazyLock::new(|| Handle::from_memory(include_bytes!("../assets/download.svg")));
+
+pub fn download() -> Svg<'static> {
+    Svg::new(DOWNLOAD.clone()).width(iced::Shrink)
+}

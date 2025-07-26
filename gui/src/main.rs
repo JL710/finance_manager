@@ -7,7 +7,7 @@ mod view;
 use clap::Parser;
 use iced::widget;
 
-use fm_core::FinanceManager;
+use fm_core::{FMController, FinanceManager};
 
 macro_rules! message_match_action {
     ($view:expr, $v:path, $( $args:expr ),*) => {
@@ -21,11 +21,12 @@ macro_rules! message_match_action {
     };
 }
 
-type Fm = fm_core::FMController<finance_managers::FinanceManagers>;
+type Fm = finance_managers::FinanceManagers;
+type Fc = fm_core::FMController<Fm>;
 
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
-enum View {
+enum View<FM: FinanceManager + 'static> {
     Markdown(String, Vec<widget::markdown::Item>),
     License,
     BudgetOverview(view::budget_overview::View),
@@ -46,9 +47,11 @@ enum View {
     CreateBill(view::create_bill::View),
     BillOverview(view::bill_overview::View),
     Bill(view::bill::View),
+    #[cfg(feature = "native")]
+    Importer(view::importer::Importer<FM>),
 }
 
-impl std::fmt::Display for View {
+impl<FM: FinanceManager + 'static> std::fmt::Display for View<FM> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Markdown(title, _) => write!(f, "{title}"),
@@ -71,30 +74,46 @@ impl std::fmt::Display for View {
             Self::CreateBill(_) => write!(f, "Create Bill"),
             Self::BillOverview(_) => write!(f, "Bill Overview"),
             Self::Bill(_) => write!(f, "Bill"),
+            #[cfg(feature = "native")]
+            Self::Importer(_) => write!(f, "Importer"),
         }
     }
 }
 
-impl View {
-    fn account(&mut self, finance_controller: Fm, account: fm_core::Id) -> iced::Task<ViewMessage> {
+impl<FM: FinanceManager + 'static> View<FM> {
+    fn account(
+        &mut self,
+        finance_controller: FMController<FM>,
+        account: fm_core::Id,
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::account::View::fetch(finance_controller, account);
         *self = Self::Account(view);
         task.map(ViewMessage::Account)
     }
 
-    fn asset_account_overview(&mut self, finance_controller: Fm) -> iced::Task<ViewMessage> {
+    fn asset_account_overview(
+        &mut self,
+        finance_controller: FMController<FM>,
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::asset_accounts_overview::View::fetch(finance_controller);
         *self = Self::AssetAccounts(view);
         task.map(ViewMessage::AssetAccounts)
     }
 
-    fn bill_overview(&mut self, finance_controller: Fm) -> iced::Task<ViewMessage> {
+    fn bill_overview(
+        &mut self,
+        finance_controller: FMController<FM>,
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::bill_overview::View::fetch_unclosed(finance_controller);
         *self = Self::BillOverview(view);
         task.map(ViewMessage::BillOverview)
     }
 
-    fn bill(&mut self, finance_controller: Fm, bill: fm_core::Id) -> iced::Task<ViewMessage> {
+    fn bill(
+        &mut self,
+        finance_controller: FMController<FM>,
+        bill: fm_core::Id,
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::bill::View::fetch(bill, finance_controller);
         *self = Self::Bill(view);
         task.map(ViewMessage::Bill)
@@ -102,8 +121,8 @@ impl View {
 
     fn book_checking_account_overview(
         &mut self,
-        finance_controller: Fm,
-    ) -> iced::Task<ViewMessage> {
+        finance_controller: FMController<FM>,
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::book_checking_account_overview::View::fetch(finance_controller);
         *self = Self::BookCheckingAccountOverview(view);
         task.map(ViewMessage::BookCheckingAccountOverview)
@@ -111,9 +130,9 @@ impl View {
 
     fn budget_overview(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         utc_offset: time::UtcOffset,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::budget_overview::View::fetch(finance_controller, utc_offset);
         *self = Self::BudgetOverview(view);
         task.map(ViewMessage::BudgetOverview)
@@ -121,16 +140,19 @@ impl View {
 
     fn budget(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         budget: fm_core::Id,
         utc_offset: time::UtcOffset,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::budget::View::fetch(budget, 0, finance_controller, utc_offset);
         *self = Self::Budget(view);
         task.map(ViewMessage::Budget)
     }
 
-    fn category_overview(&mut self, finance_controller: Fm) -> iced::Task<ViewMessage> {
+    fn category_overview(
+        &mut self,
+        finance_controller: FMController<FM>,
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::category_overview::View::fetch(finance_controller);
         *self = View::CategoryOverview(view);
         task.map(ViewMessage::CategoryOverview)
@@ -138,9 +160,9 @@ impl View {
 
     fn category(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         category: fm_core::Id,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::category::View::fetch(finance_controller, category);
         *self = Self::Category(view);
         task.map(ViewMessage::Category)
@@ -148,9 +170,9 @@ impl View {
 
     fn create_bill(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         bill: Option<fm_core::Id>,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::create_bill::View::fetch(bill, finance_controller);
         *self = Self::CreateBill(view);
         task.map(ViewMessage::CreateBill)
@@ -158,9 +180,9 @@ impl View {
 
     fn budget_edit(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         budget: fm_core::Id,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::create_budget::View::fetch(budget, finance_controller);
         *self = Self::CreateBudget(view);
         task.map(ViewMessage::CreateBudget)
@@ -168,9 +190,9 @@ impl View {
 
     fn transaction_create(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         id: Option<fm_core::Id>,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = if let Some(id) = id {
             view::create_transaction::View::fetch(finance_controller, id)
         } else {
@@ -180,7 +202,10 @@ impl View {
         task.map(ViewMessage::CreateTransaction)
     }
 
-    fn transaction_filter(&mut self, finance_controller: Fm) -> iced::Task<ViewMessage> {
+    fn transaction_filter(
+        &mut self,
+        finance_controller: FMController<FM>,
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::filter_transactions::View::new(finance_controller);
         *self = Self::FilterTransaction(view);
         task.map(ViewMessage::FilterTransaction)
@@ -188,9 +213,9 @@ impl View {
 
     fn transaction(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         transaction: fm_core::Id,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::transaction::View::fetch(transaction, finance_controller);
         *self = Self::Transaction(view);
         task.map(ViewMessage::Transaction)
@@ -198,9 +223,9 @@ impl View {
 
     fn category_edit(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         category: fm_core::Id,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::create_category::View::fetch(category, finance_controller);
         *self = Self::CreateCategory(view);
         task.map(ViewMessage::CreateCategory)
@@ -208,9 +233,9 @@ impl View {
 
     fn asset_account_edit(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         id: fm_core::Id,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::create_asset_account::View::fetch(id, finance_controller);
         *self = Self::CreateAssetAccount(view);
         task.map(ViewMessage::CreateAssetAccount)
@@ -218,9 +243,9 @@ impl View {
 
     fn book_checking_account_edit(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         id: fm_core::Id,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) = view::create_book_checking_account::View::fetch(finance_controller, id);
         *self = Self::CreateBookCheckingAccount(view);
         task.map(ViewMessage::CreateBookCheckingAccount)
@@ -228,9 +253,9 @@ impl View {
 
     fn new_bill_with_transaction(
         &mut self,
-        finance_controller: Fm,
+        finance_controller: FMController<FM>,
         transaction: fm_core::Transaction,
-    ) -> iced::Task<ViewMessage> {
+    ) -> iced::Task<ViewMessage<FM>> {
         let (view, task) =
             view::create_bill::View::new_with_transaction(finance_controller, transaction);
         *self = Self::CreateBill(view);
@@ -238,12 +263,12 @@ impl View {
     }
 }
 
-fn view_update(
-    finance_controller: Fm,
+fn view_update<FM: FinanceManager + 'static>(
+    finance_controller: FMController<FM>,
     utc_offset: time::UtcOffset,
-    view: &mut View,
-    message: ViewMessage,
-) -> ViewAction {
+    view: &mut View<FM>,
+    message: ViewMessage<FM>,
+) -> ViewAction<FM> {
     match message {
         ViewMessage::None => ViewAction::None,
         ViewMessage::BudgetOverview(m) => {
@@ -614,11 +639,20 @@ fn view_update(
                 }
             }
         }
+        #[cfg(feature = "native")]
+        ViewMessage::Importer(m) => {
+            match message_match_action!(view, View::Importer, m, finance_controller.clone()) {
+                view::importer::Action::None => ViewAction::None,
+                view::importer::Action::Task(task) => {
+                    ViewAction::ViewTask(task.map(ViewMessage::Importer))
+                }
+            }
+        }
     }
 }
 
 #[derive(Debug, Clone)]
-enum ViewMessage {
+enum ViewMessage<FM: FinanceManager + 'static> {
     None,
     BudgetOverview(view::budget_overview::Message),
     CreateAssetAccount(view::create_asset_account::Message),
@@ -638,12 +672,17 @@ enum ViewMessage {
     CreateBill(view::create_bill::Message),
     BillOverview(view::bill_overview::Message),
     Bill(view::bill::MessageContainer),
+    #[cfg(feature = "native")]
+    Importer(view::importer::Message<FM>),
 }
 
 #[derive(Debug, Clone)]
 enum AppMessage {
     Ignore,
-    PaneViewMessage(widget::pane_grid::Pane, Box<ViewMessage>),
+    PaneViewMessage(
+        widget::pane_grid::Pane,
+        Box<ViewMessage<finance_managers::FinanceManagers>>,
+    ),
     PaneDragged(widget::pane_grid::DragEvent),
     PaneResize(widget::pane_grid::ResizeEvent),
     PaneSplit(widget::pane_grid::Axis, widget::pane_grid::Pane),
@@ -658,21 +697,21 @@ enum AppMessage {
 
 pub struct App {
     finance_controller: fm_core::FMController<finance_managers::FinanceManagers>,
-    pane_grid: widget::pane_grid::State<View>,
+    pane_grid: widget::pane_grid::State<View<Fm>>,
     focused_pane: widget::pane_grid::Pane,
     side_bar: sidebar::Sidebar,
     settings: settings::Settings,
 }
 
-enum ViewAction {
+enum ViewAction<FM: FinanceManager + 'static> {
     AppTask(iced::Task<AppMessage>),
-    ViewTask(iced::Task<ViewMessage>),
+    ViewTask(iced::Task<ViewMessage<FM>>),
     ApplySettings(settings::Settings),
     None,
 }
 
 impl App {
-    fn new(finance_controller: Fm, settings: settings::Settings) -> (Self, iced::Task<AppMessage>) {
+    fn new(finance_controller: Fc, settings: settings::Settings) -> (Self, iced::Task<AppMessage>) {
         let (sidebar_state, sidebar_task) = sidebar::Sidebar::new();
         let (pane_grid, focused_pane) = widget::pane_grid::State::new(View::Markdown(
             "Finance Manager".to_string(),
@@ -713,6 +752,11 @@ impl App {
             }
             AppMessage::SidebarMessage(m) => match self.side_bar.update(m) {
                 sidebar::Action::Task(task) => return task.map(AppMessage::SidebarMessage),
+                #[cfg(feature = "native")]
+                sidebar::Action::SwitchToImporter => {
+                    *self.pane_grid.get_mut(self.focused_pane).unwrap() =
+                        View::Importer(view::importer::Importer::default())
+                }
                 sidebar::Action::SwitchToBudgetOverview => {
                     let pane = self.focused_pane;
                     return self
@@ -828,7 +872,6 @@ impl App {
             AppMessage::PaneClicked(pane) => {
                 self.focused_pane = pane;
             }
-
             AppMessage::PaneViewMessage(pane, view_message) => match self.pane_grid.get_mut(pane) {
                 Some(current_view) => {
                     match view_update(
@@ -918,6 +961,8 @@ impl App {
                                         view.view().map(ViewMessage::BillOverview)
                                     }
                                     View::Bill(view) => view.view().map(ViewMessage::Bill),
+                                    #[cfg(feature = "native")]
+                                    View::Importer(view) => view.view().map(ViewMessage::Importer),
                                 }
                                 .map(move |m| AppMessage::PaneViewMessage(pane, m.into())),
                             )
@@ -1165,7 +1210,9 @@ fn main() {
         .unwrap();
 }
 
-fn markdown(items: &Vec<widget::markdown::Item>) -> iced::Element<'_, ViewMessage> {
+fn markdown<FM: FinanceManager + 'static>(
+    items: &Vec<widget::markdown::Item>,
+) -> iced::Element<'_, ViewMessage<FM>> {
     widget::container(widget::scrollable(widget::column![
         widget::markdown(
             items,

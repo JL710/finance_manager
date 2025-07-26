@@ -10,6 +10,8 @@ pub enum Action {
     SwitchToSettingsView,
     SwitchToLicense,
     SwitchToBillOverview,
+    #[cfg(feature = "native")]
+    SwitchToImporter,
     CreateTransaction,
     Task(iced::Task<Message>),
 }
@@ -26,6 +28,8 @@ pub enum Message {
     License,
     CreateTransaction,
     BillOverview,
+    #[cfg(feature = "native")]
+    Importer,
 }
 
 pub struct Sidebar {
@@ -55,10 +59,21 @@ impl Sidebar {
             Message::SettingsView => Action::SwitchToSettingsView,
             Message::BillOverview => Action::SwitchToBillOverview,
             Message::CreateTransaction => Action::CreateTransaction,
+            #[cfg(feature = "native")]
+            Message::Importer => Action::SwitchToImporter,
         }
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
+        #[cfg(feature = "native")]
+        let importer_item = icon_menu_item(
+            "Import CAMT-V2",
+            icons::DOWNLOAD.clone(),
+            Message::Importer,
+            self.collapsed,
+        );
+        #[cfg(not(feature = "native"))]
+        let importer_item = "";
         widget::container(
             components::spaced_column![
                 widget::button(
@@ -112,6 +127,7 @@ impl Sidebar {
                     Message::CreateTransaction,
                     self.collapsed
                 ),
+                importer_item,
                 widget::vertical_space(),
                 icon_menu_item(
                     "Settings",

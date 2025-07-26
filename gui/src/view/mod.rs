@@ -14,5 +14,7 @@ pub mod create_budget;
 pub mod create_category;
 pub mod create_transaction;
 pub mod filter_transactions;
+#[cfg(feature = "native")]
+pub mod importer;
 pub mod settings;
 pub mod transaction;
