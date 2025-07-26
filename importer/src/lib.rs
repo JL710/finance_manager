@@ -550,9 +550,9 @@ enum AccountExistsResult {
     PossibleAccounts(Vec<fm_core::account::Account>),
 }
 
-pub async fn csv_camt_v2_importer<FM: FinanceManager>(
-    data: Vec<u8>,
+pub async fn csv_camt_v2_importer<D: std::io::Read + Send, FM: FinanceManager>(
+    data: D,
     fm_controller: fm_core::FMController<FM>,
-) -> Result<Importer<FM, CSVParser>> {
+) -> Result<Importer<FM, CSVParser<D>>> {
     Importer::new(csv_parser::csv_camt_v2_parser(data)?, fm_controller).await
 }

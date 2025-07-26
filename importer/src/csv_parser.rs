@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use fm_core::bigdecimal::FromPrimitive;
-use std::io::{BufRead, Cursor};
+use std::collections::VecDeque;
+use std::io::{BufRead, BufReader, Read};
 
 enum IterOption {
     Ignored,
@@ -8,8 +9,8 @@ enum IterOption {
 }
 
 #[allow(clippy::type_complexity)]
-pub struct CSVParser {
-    data: Cursor<Vec<u8>>,
+pub struct CSVParser<D: Read> {
+    data: BufReader<D>,
     format_name: String,
     ignore_entry: Box<dyn Fn(&csv::StringRecord) -> bool + Send + Sync>,
     title: Box<dyn Fn(&csv::StringRecord) -> String + Send + Sync>,
@@ -25,16 +26,16 @@ pub struct CSVParser {
     delimiter: u8,
 }
 
-impl std::fmt::Debug for CSVParser {
+impl<D: Read> std::fmt::Debug for CSVParser<D> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "format_name: {}", self.format_name)
     }
 }
 
-impl CSVParser {
+impl<D: Read> CSVParser<D> {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        data: Cursor<Vec<u8>>,
+        data: BufReader<D>,
         format_name: String,
         delimiter: u8,
         ignore_entry: impl Fn(&csv::StringRecord) -> bool + Send + Sync + 'static,
@@ -155,7 +156,7 @@ impl CSVParser {
     }
 }
 
-impl super::Parser for CSVParser {
+impl<D: Read + Send> super::Parser for CSVParser<D> {
     async fn next_entry(&mut self) -> Result<Option<crate::TransactionEntry>> {
         loop {
             match self.next().await? {
@@ -171,13 +172,13 @@ impl super::Parser for CSVParser {
     }
 }
 
-pub fn csv_camt_v2_data(source_path: String) -> Vec<u8> {
+pub fn csv_camt_v2_data(source_path: String) -> VecDeque<u8> {
     let data = std::fs::read(&source_path).unwrap();
     let as_utf8 = encoding_rs::ISO_8859_15.decode(&data).0.into_owned();
-    as_utf8.into_bytes()
+    as_utf8.into_bytes().into()
 }
 
-pub fn csv_camt_v2_parser(utf8_data: Vec<u8>) -> Result<CSVParser> {
+pub fn csv_camt_v2_parser<D: Read>(utf8_data: D) -> Result<CSVParser<D>> {
     pub fn parse_to_datetime(date: &str) -> anyhow::Result<fm_core::DateTime> {
         let mut parsed = time::parsing::Parsed::new();
         parsed.parse_items(
@@ -199,7 +200,7 @@ pub fn csv_camt_v2_parser(utf8_data: Vec<u8>) -> Result<CSVParser> {
     }
 
     CSVParser::new(
-        Cursor::new(utf8_data),
+        BufReader::new(utf8_data),
         "CSV_CAMT_V2".to_string(),
         b';',
         |record| record.get(16).unwrap() != "Umsatz gebucht",
