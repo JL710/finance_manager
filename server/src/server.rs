@@ -199,6 +199,7 @@ pub async fn run_with_listener(
         .route("/get_bills", post(get_bills))
         .route("/get_bill", post(get_bill))
         .route("/delete_account", post(delete_account))
+        .route("/last_modified", post(last_modified))
         .layer(axum::middleware::from_fn_with_state(state.clone(), auth))
         .route("/status", get(status))
         .layer(tower_http::cors::CorsLayer::permissive())
@@ -215,6 +216,17 @@ pub async fn run_with_listener(
 
 async fn status() -> String {
     String::from("Online")
+}
+
+async fn last_modified(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {
+    let budgets = state
+        .finance_controller
+        .lock()
+        .await
+        .last_modified()
+        .await
+        .unwrap();
+    json!(budgets).into()
 }
 
 async fn get_budgets(axum::extract::State(state): axum::extract::State<State>) -> Json<Value> {

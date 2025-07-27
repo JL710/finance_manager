@@ -45,6 +45,10 @@ impl fm_core::FinanceManager for Client {
         })
     }
 
+    async fn last_modified(&self) -> Result<fm_core::DateTime> {
+        client_post_macro!(self.url, self.token.clone(), "last_modified", ())
+    }
+
     async fn create_asset_account(
         &mut self,
         name: String,

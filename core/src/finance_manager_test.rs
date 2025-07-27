@@ -700,11 +700,25 @@ pub async fn create_bill_test<T: FinanceManager>(mut fm: T) {
     assert_eq!(bill, fetched_bill)
 }
 
+pub async fn minimal_last_modified_test<T: FinanceManager>(mut fm: T) {
+    let previous = fm.last_modified().await.unwrap();
+    fm.create_asset_account("name".to_string(), None, None, None, Currency::default())
+        .await
+        .unwrap();
+    let after = fm.last_modified().await.unwrap();
+    assert!(previous < after)
+}
+
 #[macro_export]
 #[allow(unused_macros)]
 macro_rules! unit_tests {
     ($runner:expr) => {
         use $crate::finance_manager_test::*;
+
+        #[async_std::test]
+        async fn minimal_last_modified() {
+            ($runner)(minimal_last_modified_test).await;
+        }
 
         #[async_std::test]
         async fn create_asset_account() {

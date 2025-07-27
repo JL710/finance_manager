@@ -160,6 +160,7 @@ async fn migrate_db(connection: MutexGuard<'_, rusqlite::Connection>) -> Result<
 pub struct SqliteFinanceManager {
     path: String,
     connection: Arc<Mutex<rusqlite::Connection>>,
+    last_modified: crate::DateTime,
 }
 
 impl SqliteFinanceManager {
@@ -182,9 +183,14 @@ impl SqliteFinanceManager {
         let new = Self {
             connection: Arc::new(Mutex::new(rusqlite::Connection::open_in_memory()?)),
             path: String::new(),
+            last_modified: crate::DateTime::now_utc(),
         };
         async_std::task::block_on(async { new.init_db().await })?;
         Ok(new)
+    }
+
+    fn modified(&mut self) {
+        self.last_modified = crate::DateTime::now_utc();
     }
 }
 
@@ -195,9 +201,14 @@ impl FinanceManager for SqliteFinanceManager {
         let new = Self {
             connection: Arc::new(Mutex::new(rusqlite::Connection::open(&path)?)),
             path,
+            last_modified: crate::DateTime::now_utc(),
         };
         async_std::task::block_on(async { new.init_db().await })?;
         Ok(new)
+    }
+
+    async fn last_modified(&self) -> Result<crate::DateTime> {
+        Ok(self.last_modified)
     }
 
     async fn create_asset_account(
@@ -208,6 +219,7 @@ impl FinanceManager for SqliteFinanceManager {
         bic: Option<Bic>,
         offset: Currency,
     ) -> Result<account::AssetAccount> {
+        self.modified();
         let connection = self.connect().await;
         connection.execute(
             "INSERT INTO asset_account (name, notes, iban, bic, offset_value, offset_currency) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
@@ -231,6 +243,7 @@ impl FinanceManager for SqliteFinanceManager {
         &mut self,
         account: account::AssetAccount,
     ) -> Result<account::AssetAccount> {
+        self.modified();
         let connection = self.connect().await;
 
         let asset_account_id = get_asset_account_id(&connection, account.id)?;
@@ -251,6 +264,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn delete_account(&mut self, id: Id) -> Result<()> {
+        self.modified();
         let connection = self.connect().await;
 
         let account_result: (Option<Id>, Option<Id>) = connection
@@ -287,6 +301,7 @@ impl FinanceManager for SqliteFinanceManager {
         iban: Option<AccountId>,
         bic: Option<Bic>,
     ) -> Result<account::BookCheckingAccount> {
+        self.modified();
         let connection = self.connect().await;
         create_book_checking_account(&connection, name, notes, iban, bic)
     }
@@ -295,6 +310,7 @@ impl FinanceManager for SqliteFinanceManager {
         &mut self,
         account: account::BookCheckingAccount,
     ) -> Result<account::BookCheckingAccount> {
+        self.modified();
         let connection = self.connect().await;
         let account_id = get_book_checking_account_id(&connection, account.id)?;
         connection.execute(
@@ -319,6 +335,7 @@ impl FinanceManager for SqliteFinanceManager {
         due_date: Option<DateTime>,
         closed: bool,
     ) -> Result<Bill> {
+        self.modified();
         let connection = self.connect().await;
 
         connection.execute(
@@ -357,6 +374,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn update_bill(&mut self, bill: Bill) -> Result<()> {
+        self.modified();
         let connection = self.connect().await;
 
         connection.execute(
@@ -432,6 +450,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn delete_bill(&mut self, id: Id) -> Result<()> {
+        self.modified();
         let connection = self.connect().await;
 
         connection.execute("DELETE FROM bill_transaction WHERE bill_id=?1", (id,))?;
@@ -520,6 +539,7 @@ impl FinanceManager for SqliteFinanceManager {
         metadata: HashMap<String, String>,
         categories: HashMap<Id, Sign>,
     ) -> Result<Transaction> {
+        self.modified();
         let connection = self.connect().await;
 
         connection.execute(
@@ -580,6 +600,7 @@ impl FinanceManager for SqliteFinanceManager {
         total_value: Currency,
         timespan: budget::Recurring,
     ) -> Result<Budget> {
+        self.modified();
         let connection = self.connect().await;
 
         let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(timespan.clone());
@@ -622,6 +643,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn delete_budget(&mut self, id: Id) -> Result<()> {
+        self.modified();
         let connection = self.connect().await;
 
         connection.execute(
@@ -666,6 +688,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn update_transaction(&mut self, transaction: Transaction) -> Result<Transaction> {
+        self.modified();
         let connection = self.connect().await;
 
         connection.execute(
@@ -691,6 +714,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn delete_transaction(&mut self, id: Id) -> Result<()> {
+        self.modified();
         let connection = self.connect().await;
         connection.execute(
             "DELETE FROM transaction_category WHERE transaction_id=?1",
@@ -733,6 +757,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn update_budget(&mut self, budget: Budget) -> Result<Budget> {
+        self.modified();
         let connection = self.connect().await;
         let timespan_tuple = Into::<(i32, i64, Option<i64>)>::into(budget.timespan.clone());
 
@@ -815,12 +840,14 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn create_category(&mut self, name: String) -> Result<Category> {
+        self.modified();
         let connection = self.connect().await;
         connection.execute("INSERT INTO categories (name) VALUES (?1)", (&name,))?;
         Ok(Category::new(connection.last_insert_rowid() as Id, name))
     }
 
     async fn update_category(&mut self, category: Category) -> Result<Category> {
+        self.modified();
         let connection = self.connect().await;
         connection.execute(
             "UPDATE categories SET name=?1 WHERE id=?2",
@@ -835,6 +862,7 @@ impl FinanceManager for SqliteFinanceManager {
     }
 
     async fn delete_category(&mut self, id: Id) -> Result<()> {
+        self.modified();
         let connection = self.connect().await;
         connection.execute(
             "DELETE FROM transaction_category WHERE category_id=?1",

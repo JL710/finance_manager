@@ -33,6 +33,10 @@ where
         &self.finance_manager
     }
 
+    pub async fn last_modified(&self) -> Result<crate::DateTime> {
+        self.finance_manager.lock().await.last_modified().await
+    }
+
     pub fn get_bill_sum<'a>(
         &'a self,
         bill: &'a Bill,

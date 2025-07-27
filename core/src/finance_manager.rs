@@ -6,6 +6,8 @@ pub trait FinanceManager: Send + Clone + Sized + std::fmt::Debug {
 
     fn new(flags: Self::Flags) -> Result<Self>;
 
+    fn last_modified(&self) -> impl Future<Output = Result<crate::DateTime>> + MaybeSend;
+
     fn create_asset_account(
         &mut self,
         name: String,

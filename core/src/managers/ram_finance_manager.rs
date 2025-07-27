@@ -5,13 +5,33 @@ use crate::{
 use anyhow::Result;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct RamFinanceManager {
     accounts: HashMap<Id, account::Account>,
     transactions: Vec<Transaction>,
     budgets: HashMap<Id, Budget>,
     categories: Vec<Category>,
     bills: Vec<Bill>,
+    last_modified: crate::DateTime,
+}
+
+impl Default for RamFinanceManager {
+    fn default() -> Self {
+        Self {
+            accounts: HashMap::default(),
+            transactions: Vec::default(),
+            budgets: HashMap::default(),
+            categories: Vec::default(),
+            bills: Vec::default(),
+            last_modified: crate::DateTime::now_utc(),
+        }
+    }
+}
+
+impl RamFinanceManager {
+    fn modified(&mut self) {
+        self.last_modified = crate::DateTime::now_utc();
+    }
 }
 
 impl FinanceManager for RamFinanceManager {
@@ -21,12 +41,17 @@ impl FinanceManager for RamFinanceManager {
         Ok(Self::default())
     }
 
+    async fn last_modified(&self) -> Result<crate::DateTime> {
+        Ok(self.last_modified)
+    }
+
     async fn update_asset_account(
         &mut self,
         new_account: account::AssetAccount,
     ) -> Result<account::AssetAccount> {
         let account = self.accounts.get_mut(&new_account.id).unwrap();
         *account = new_account.clone().into();
+        self.modified();
         Ok(new_account)
     }
 
@@ -48,11 +73,14 @@ impl FinanceManager for RamFinanceManager {
 
         self.accounts.insert(id, new_account.clone().into());
 
+        self.modified();
+
         Ok(new_account)
     }
 
     async fn delete_account(&mut self, id: Id) -> Result<()> {
         self.accounts.remove(&id);
+        self.modified();
         Ok(())
     }
 
@@ -73,6 +101,8 @@ impl FinanceManager for RamFinanceManager {
 
         self.accounts.insert(id, new_account.clone().into());
 
+        self.modified();
+
         Ok(new_account)
     }
 
@@ -82,6 +112,7 @@ impl FinanceManager for RamFinanceManager {
     ) -> Result<account::BookCheckingAccount> {
         let account = self.accounts.get_mut(&new_account.id).unwrap();
         *account = new_account.clone().into();
+        self.modified();
         Ok(new_account)
     }
 
@@ -99,6 +130,9 @@ impl FinanceManager for RamFinanceManager {
         let new_bill = Bill::new(id, name, description, value, transactions, due_date, closed);
 
         self.bills.push(new_bill.clone());
+
+        self.modified();
+
         Ok(new_bill)
     }
 
@@ -106,6 +140,7 @@ impl FinanceManager for RamFinanceManager {
         for bill in &mut self.bills {
             if bill.id == new_bill.id {
                 *bill = new_bill;
+                self.modified();
                 return Ok(());
             }
         }
@@ -131,6 +166,7 @@ impl FinanceManager for RamFinanceManager {
 
     async fn delete_bill(&mut self, id: Id) -> Result<()> {
         self.bills.retain(|x| x.id != id);
+        self.modified();
         Ok(())
     }
 
@@ -209,6 +245,8 @@ impl FinanceManager for RamFinanceManager {
 
         self.budgets.insert(id, new_budget.clone());
 
+        self.modified();
+
         Ok(new_budget)
     }
 
@@ -217,6 +255,7 @@ impl FinanceManager for RamFinanceManager {
             transaction.budget = None;
         }
         self.budgets.remove(&id);
+        self.modified();
         Ok(())
     }
 
@@ -257,6 +296,8 @@ impl FinanceManager for RamFinanceManager {
 
         self.transactions.push(new_transaction.clone());
 
+        self.modified();
+
         Ok(new_transaction)
     }
 
@@ -271,6 +312,7 @@ impl FinanceManager for RamFinanceManager {
         for transaction in &mut self.transactions {
             if transaction.id == new_transaction.id {
                 *transaction = new_transaction.clone();
+                self.modified();
                 return Ok(new_transaction);
             }
         }
@@ -289,6 +331,7 @@ impl FinanceManager for RamFinanceManager {
             anyhow::bail!("Transaction does not exist");
         }
         self.transactions.remove(found_index as usize);
+        self.modified();
         Ok(())
     }
 
@@ -327,6 +370,7 @@ impl FinanceManager for RamFinanceManager {
     async fn update_budget(&mut self, budget: Budget) -> Result<Budget> {
         let old_budget = self.budgets.get_mut(&budget.id).unwrap();
         *old_budget = budget.clone();
+        self.modified();
         Ok(budget)
     }
 
@@ -351,6 +395,8 @@ impl FinanceManager for RamFinanceManager {
 
         self.categories.push(new_category.clone());
 
+        self.modified();
+
         Ok(new_category)
     }
 
@@ -358,6 +404,7 @@ impl FinanceManager for RamFinanceManager {
         for category in &mut self.categories {
             if category.id == new_category.id {
                 *category = new_category.clone();
+                self.modified();
                 return Ok(new_category);
             }
         }
@@ -390,6 +437,7 @@ impl FinanceManager for RamFinanceManager {
             anyhow::bail!("Category does not exist");
         }
         self.categories.remove(found_index as usize);
+        self.modified();
 
         // remove from transactions
         for transaction in &mut self.transactions {
