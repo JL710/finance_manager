@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 pub enum Action {
     None,
     ViewAccount(fm_core::Id),
@@ -9,6 +11,7 @@ pub enum Action {
 pub enum Message {
     ViewAccount(fm_core::Id),
     Initialize(Vec<(fm_core::account::BookCheckingAccount, fm_core::Currency)>),
+    Reload(Vec<(fm_core::account::BookCheckingAccount, fm_core::Currency)>),
     AccountTable(components::table_view::InnerMessage<Message>),
     New,
 }
@@ -34,31 +37,19 @@ impl View {
         }
     }
 
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<Message> {
+        error::failing_task(fetch_future(finance_controller)).map(Message::Reload)
+    }
+
     pub fn fetch(
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::new(Vec::new()),
-            error::failing_task(async move {
-                let accounts = finance_controller
-                    .get_accounts()
-                    .await?
-                    .iter()
-                    .filter_map(|x| match x {
-                        fm_core::account::Account::BookCheckingAccount(x) => Some(x.clone()),
-                        _ => None,
-                    })
-                    .collect::<Vec<fm_core::account::BookCheckingAccount>>();
-                let mut accounts_with_sums = Vec::new();
-                for account in accounts {
-                    let sum = finance_controller
-                        .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
-                        .await?;
-                    accounts_with_sums.push((account, sum));
-                }
-
-                Ok(Message::Initialize(accounts_with_sums))
-            }),
+            error::failing_task(fetch_future(finance_controller)).map(Message::Initialize),
         )
     }
 
@@ -71,6 +62,10 @@ impl View {
             Message::ViewAccount(id) => Action::ViewAccount(id),
             Message::Initialize(accounts) => {
                 self.accounts_table.set_items(accounts);
+                Action::None
+            }
+            Message::Reload(accounts) => {
+                self.accounts_table.edit_items(|items| *items = accounts);
                 Action::None
             }
             Message::New => Action::CreateNewAccount,
@@ -105,4 +100,27 @@ impl View {
         .width(iced::Fill)
         .into()
     }
+}
+
+async fn fetch_future(
+    finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+) -> Result<Vec<(fm_core::account::BookCheckingAccount, fm_core::Currency)>> {
+    let accounts = finance_controller
+        .get_accounts()
+        .await?
+        .iter()
+        .filter_map(|x| match x {
+            fm_core::account::Account::BookCheckingAccount(x) => Some(x.clone()),
+            _ => None,
+        })
+        .collect::<Vec<fm_core::account::BookCheckingAccount>>();
+    let mut accounts_with_sums = Vec::new();
+    for account in accounts {
+        let sum = finance_controller
+            .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
+            .await?;
+        accounts_with_sums.push((account, sum));
+    }
+
+    Ok(accounts_with_sums)
 }

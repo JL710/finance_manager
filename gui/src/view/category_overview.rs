@@ -10,6 +10,7 @@ pub enum Message {
     ViewCategory(fm_core::Id),
     NewCategory,
     Initialize(Vec<fm_core::Category>),
+    Reload(Vec<fm_core::Category>),
     CategoryTable(components::table_view::InnerMessage<Message>),
 }
 
@@ -25,6 +26,16 @@ impl View {
                 .sort_by(|a, b, _| a.name.cmp(&b.name))
                 .sortable_columns([0]),
         }
+    }
+
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<Message> {
+        error::failing_task(async move {
+            let categories = finance_controller.get_categories().await?;
+            Ok(Message::Reload(categories))
+        })
     }
 
     pub fn fetch(
@@ -45,6 +56,10 @@ impl View {
         _finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
+            Message::Reload(categories) => {
+                self.category_table.edit_items(|items| *items = categories);
+                Action::None
+            }
             Message::NewCategory => Action::NewCategory,
             Message::ViewCategory(category_id) => Action::ViewCategory(category_id),
             Message::Initialize(categories) => {

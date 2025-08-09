@@ -25,6 +25,18 @@ pub enum Message {
         bills: Vec<fm_core::Bill>,
         budgets: Vec<fm_core::Budget>,
     },
+    Reload {
+        transactions: Vec<(
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+        )>,
+        accounts: Vec<fm_core::account::Account>,
+        categories: Vec<fm_core::Category>,
+        bills: Vec<fm_core::Bill>,
+        budgets: Vec<fm_core::Budget>,
+        filter: TransactionFilter,
+    },
     TransactionTable(components::transaction_table::Message),
     CategoryDistribution,
 }
@@ -42,6 +54,76 @@ pub struct View {
 }
 
 impl View {
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<Message> {
+        let mut filter = self.filter.clone();
+        error::failing_task(async move {
+            let accounts = finance_controller.get_accounts().await?;
+            let categories = finance_controller.get_categories().await?;
+            let bills = finance_controller.get_bills(None).await?;
+            let budgets = finance_controller.get_budgets().await?;
+
+            filter.accounts.retain(|filter| {
+                if let Some(id) = filter.id {
+                    accounts.iter().any(|x| *x.id() == id)
+                } else {
+                    true
+                }
+            });
+            filter.bills.retain(|filter| {
+                if let Some(bill) = &filter.id {
+                    bills.iter().any(|x| x.id == bill.id)
+                } else {
+                    true
+                }
+            });
+            filter.budgets.retain(|filter| {
+                if let Some(id) = &filter.id {
+                    budgets.iter().any(|x| x.id == *id)
+                } else {
+                    true
+                }
+            });
+            filter.categories.retain(|filter| {
+                if let Some(id) = &filter.id {
+                    categories.iter().any(|x| x.id == *id)
+                } else {
+                    true
+                }
+            });
+            let transactions = finance_controller
+                .get_filtered_transactions(filter.clone())
+                .await?;
+            let mut transaction_tuples = Vec::new();
+            for transaction in transactions {
+                transaction_tuples.push((
+                    transaction.clone(),
+                    accounts
+                        .iter()
+                        .find(|acc| acc.id() == &transaction.source)
+                        .unwrap()
+                        .clone(),
+                    accounts
+                        .iter()
+                        .find(|acc| acc.id() == &transaction.destination)
+                        .unwrap()
+                        .clone(),
+                ));
+            }
+
+            Ok(Message::Reload {
+                accounts,
+                categories,
+                bills,
+                budgets,
+                transactions: transaction_tuples,
+                filter,
+            })
+        })
+    }
+
     pub fn new(
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
@@ -100,6 +182,33 @@ impl View {
                     |_| None,
                 );
             }
+            Message::Reload {
+                accounts,
+                categories,
+                bills,
+                budgets,
+                filter,
+                transactions,
+            } => {
+                self.accounts = accounts;
+                self.categories = categories;
+                self.bills = bills;
+                self.budgets = budgets;
+                self.transaction_table.reload(
+                    transactions,
+                    self.categories.clone(),
+                    self.budgets.clone(),
+                );
+                if let Some(filter_component) = &mut self.change_filter {
+                    filter_component.reload(
+                        self.accounts.clone(),
+                        self.categories.clone(),
+                        self.bills.clone(),
+                        self.budgets.clone(),
+                    );
+                }
+                return Action::Task(self.apply_filter(finance_controller, filter));
+            }
             Message::ToggleEditFilter => {
                 self.change_filter = if self.change_filter.is_some() {
                     None
@@ -140,36 +249,8 @@ impl View {
                 if let Some(component) = &mut self.change_filter {
                     match component.update(*m, utc_offset) {
                         components::filter_component::Action::Submit(new_filter) => {
-                            self.filter = new_filter.clone();
                             self.change_filter = None;
-                            return Action::Task(error::failing_task(async move {
-                                let transactions = finance_controller
-                                    .get_filtered_transactions(new_filter.clone())
-                                    .await?;
-                                let accounts = finance_controller.get_accounts().await?;
-
-                                let mut tuples = Vec::new();
-                                for transaction in transactions {
-                                    let source = accounts
-                                        .iter()
-                                        .find(|x| *x.id() == transaction.source)
-                                        .context(format!(
-                                            "Could not find account {}",
-                                            transaction.source
-                                        ))?
-                                        .clone();
-                                    let destination = accounts
-                                        .iter()
-                                        .find(|x| *x.id() == transaction.destination)
-                                        .context(format!(
-                                            "Could not find account {}",
-                                            transaction.destination
-                                        ))?
-                                        .clone();
-                                    tuples.push((transaction, source, destination));
-                                }
-                                Ok(Message::UpdateTransactions(tuples))
-                            }));
+                            return Action::Task(self.apply_filter(finance_controller, new_filter));
                         }
                         components::filter_component::Action::None => {}
                     }
@@ -189,6 +270,39 @@ impl View {
             }
         }
         Action::None
+    }
+
+    fn apply_filter(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        filter: TransactionFilter,
+    ) -> iced::Task<Message> {
+        self.filter = filter.clone();
+        error::failing_task(async move {
+            let transactions = finance_controller
+                .get_filtered_transactions(filter.clone())
+                .await?;
+            let accounts = finance_controller.get_accounts().await?;
+
+            let mut tuples = Vec::new();
+            for transaction in transactions {
+                let source = accounts
+                    .iter()
+                    .find(|x| *x.id() == transaction.source)
+                    .context(format!("Could not find account {}", transaction.source))?
+                    .clone();
+                let destination = accounts
+                    .iter()
+                    .find(|x| *x.id() == transaction.destination)
+                    .context(format!(
+                        "Could not find account {}",
+                        transaction.destination
+                    ))?
+                    .clone();
+                tuples.push((transaction, source, destination));
+            }
+            Ok(Message::UpdateTransactions(tuples))
+        })
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {

@@ -15,6 +15,7 @@ pub enum Message {
     CategoryCreated(fm_core::Id),
     Initialize(fm_core::Category),
     Cancel,
+    Reload { exists: bool },
 }
 
 #[derive(Debug)]
@@ -43,6 +44,21 @@ impl View {
         }
     }
 
+    pub fn reload(
+        &self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<Message> {
+        if let Some(id) = self.id {
+            error::failing_task(async move {
+                Ok(Message::Reload {
+                    exists: finance_controller.get_category(id).await?.is_some(),
+                })
+            })
+        } else {
+            iced::Task::none()
+        }
+    }
+
     pub fn fetch(
         id: fm_core::Id,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
@@ -65,6 +81,12 @@ impl View {
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
+            Message::Reload { exists } => {
+                if !exists {
+                    self.id = None;
+                }
+                Action::None
+            }
             Message::Cancel => {
                 if let Some(id) = self.id {
                     Action::CancelWithId(id)

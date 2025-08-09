@@ -83,18 +83,24 @@ impl<T, C> State<T, C> {
         self
     }
 
-    pub fn sort(&mut self, column: usize, reverse: bool) {
-        if let Some(sort_by_callback) = &self.sort_by_callback {
+    fn apply_sort(&mut self) {
+        if let Some(sort_by_callback) = &self.sort_by_callback
+            && let Some(sort_column) = self.sort_column
+        {
             self.items.sort_by(|a, b| {
-                let mut ordering = sort_by_callback(a, b, column);
-                if reverse {
+                let mut ordering = sort_by_callback(a, b, sort_column);
+                if self.sort_reverse {
                     ordering = ordering.reverse();
                 }
                 ordering
             });
-            self.sort_column = Some(column);
-            self.sort_reverse = reverse;
         }
+    }
+
+    pub fn sort(&mut self, column: usize, reverse: bool) {
+        self.sort_column = Some(column);
+        self.sort_reverse = reverse;
+        self.apply_sort();
     }
 
     pub fn page_size(mut self, page_size: usize) -> Self {
@@ -156,6 +162,7 @@ impl<T, C> State<T, C> {
         &self.items
     }
 
+    /// Will set items, relayout, reset page and reset sorting.
     pub fn set_items(&mut self, items: Vec<T>) {
         self.items = items;
         self.inner_layout_id = uuid::Uuid::new_v4().as_u128() as isize;
@@ -164,11 +171,11 @@ impl<T, C> State<T, C> {
         self.sort_reverse = false;
     }
 
-    pub fn edit_items(&mut self, update: impl Fn(&mut Vec<T>)) {
+    /// will edit items and resort
+    pub fn edit_items(&mut self, update: impl FnOnce(&mut Vec<T>)) {
         (update)(&mut self.items);
         self.inner_layout_id = uuid::Uuid::new_v4().as_u128() as isize;
-        self.sort_column = None;
-        self.sort_reverse = false;
+        self.apply_sort();
         if self.page > self.max_page() {
             self.page = self.max_page();
         }

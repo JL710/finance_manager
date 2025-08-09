@@ -74,6 +74,12 @@ enum Message {
             Vec<fm_core::Category>,
         )>,
     ),
+    Reload {
+        budgets: Vec<fm_core::Budget>,
+        accounts: Vec<fm_core::account::Account>,
+        categories: Vec<fm_core::Category>,
+        transaction_exists: bool,
+    },
     InitializeFromExisting(Box<InitExisting>),
     TransactionCreated(fm_core::Id),
     Cancel,
@@ -102,6 +108,33 @@ pub struct View {
 }
 
 impl View {
+    pub fn reload(
+        &self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<MessageContainer> {
+        if self.submitted {
+            return iced::Task::none();
+        }
+
+        let transaction_id = self.id;
+        error::failing_task(async move {
+            let budgets = finance_controller.get_budgets().await?;
+            let accounts = finance_controller.get_accounts().await?;
+            let categories = finance_controller.get_categories().await?;
+            let transaction_exists = if let Some(id) = transaction_id {
+                finance_controller.get_transaction(id).await?.is_some()
+            } else {
+                false
+            };
+            Ok(MessageContainer(Message::Reload {
+                budgets,
+                accounts,
+                categories,
+                transaction_exists,
+            }))
+        })
+    }
+
     pub fn new(
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<MessageContainer>) {
@@ -187,6 +220,82 @@ impl View {
         utc_offset: time::UtcOffset,
     ) -> Action {
         match message.0 {
+            Message::Reload {
+                budgets,
+                accounts,
+                categories,
+                transaction_exists,
+            } => {
+                self.available_categories = categories;
+                self.selected_categories.retain(|x| {
+                    self.available_categories
+                        .iter()
+                        .any(|category| category.id == x.0)
+                });
+
+                if !transaction_exists {
+                    self.id = None;
+                }
+
+                if let Some(SelectedAccount::Account(selected_account)) = &mut self.source_input {
+                    let mut found = false;
+                    for acc in &accounts {
+                        if selected_account.id() == acc.id() {
+                            *selected_account = acc.clone();
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        self.source_input = None;
+                    }
+                }
+                self.source_state = widget::combo_box::State::new(
+                    accounts
+                        .iter()
+                        .map(|x| SelectedAccount::Account(x.clone()))
+                        .collect(),
+                );
+
+                if let Some(SelectedAccount::Account(selected_account)) =
+                    &mut self.destination_input
+                {
+                    let mut found = false;
+                    for acc in &accounts {
+                        if selected_account.id() == acc.id() {
+                            *selected_account = acc.clone();
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        self.destination_input = None;
+                    }
+                }
+                self.destination_state = widget::combo_box::State::new(
+                    accounts
+                        .iter()
+                        .map(|x| SelectedAccount::Account(x.clone()))
+                        .collect(),
+                );
+
+                if let Some((old_budget, _)) = &mut self.budget_input {
+                    let mut found = false;
+                    for budget in &budgets {
+                        if budget.id == old_budget.id {
+                            *old_budget = budget.clone();
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        self.budget_input = None;
+                    }
+                }
+                self.budget_state = widget::combo_box::State::new(budgets);
+
+                todo!()
+            }
             Message::TransactionCreated(id) => return Action::TransactionCreated(id),
             Message::Submit => {
                 self.submitted = true;

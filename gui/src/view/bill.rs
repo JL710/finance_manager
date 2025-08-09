@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use iced::widget;
 use iced_aw::widget::LabeledFrame;
 
@@ -26,6 +26,7 @@ enum Message {
     ViewTransaction(fm_core::Id),
     Edit,
     Initialize(Box<Init>),
+    Reload(Option<Box<Init>>),
     Delete,
     Deleted,
     TransactionTable(components::table_view::InnerMessage<Message>),
@@ -47,6 +48,19 @@ pub enum View {
 }
 
 impl View {
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<MessageContainer> {
+        let mut task = iced::Task::none();
+        if let Self::Loaded { bill, .. } = self {
+            task = error::failing_task(init_future(bill.id, finance_controller))
+                .map(Message::Reload)
+                .map(MessageContainer);
+        }
+        task
+    }
+
     pub fn fetch(
         id: fm_core::Id,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
@@ -54,29 +68,11 @@ impl View {
         (
             Self::NotLoaded,
             error::failing_task(async move {
-                let bill = finance_controller
-                    .get_bill(&id)
+                init_future(id, finance_controller)
                     .await?
-                    .context(format!("Could not find bill {id}"))?;
-
-                let bill_sum = finance_controller.get_bill_sum(&bill).await?;
-
-                let mut transactions = Vec::new();
-                for (transaction_id, sign) in &bill.transactions {
-                    let transaction = finance_controller
-                        .get_transaction(*transaction_id)
-                        .await?
-                        .context(format!("Could not find transaction {transaction_id}"))?;
-                    transactions.push((transaction, *sign));
-                }
-                let accounts = finance_controller.get_accounts().await?;
-                Ok(Message::Initialize(Box::new(Init {
-                    bill,
-                    bill_sum,
-                    transactions,
-                    accounts,
-                })))
+                    .context("Could not find bill")
             })
+            .map(Message::Initialize)
             .map(MessageContainer),
         )
     }
@@ -94,6 +90,25 @@ impl View {
                 } else {
                     Action::None
                 }
+            }
+            Message::Reload(init) => {
+                if let Some(init) = init {
+                    let init = *init;
+                    if let Self::Loaded {
+                        bill,
+                        bill_sum,
+                        transaction_table,
+                    } = self
+                    {
+                        *bill = init.bill;
+                        *bill_sum = init.bill_sum;
+                        transaction_table.set_context(init.accounts);
+                        transaction_table.edit_items(|items| *items = init.transactions);
+                    }
+                } else {
+                    *self = Self::NotLoaded;
+                }
+                Action::None
             }
             Message::Initialize(init) => {
                 *self = Self::Loaded {
@@ -311,4 +326,33 @@ impl View {
             "Loading...".into()
         }
     }
+}
+
+async fn init_future(
+    id: fm_core::Id,
+    finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+) -> Result<Option<Box<Init>>> {
+    let bill = if let Some(bill) = finance_controller.get_bill(&id).await? {
+        bill
+    } else {
+        return Ok(None);
+    };
+
+    let bill_sum = finance_controller.get_bill_sum(&bill).await?;
+
+    let mut transactions = Vec::new();
+    for (transaction_id, sign) in &bill.transactions {
+        let transaction = finance_controller
+            .get_transaction(*transaction_id)
+            .await?
+            .context(format!("Could not find transaction {transaction_id}"))?;
+        transactions.push((transaction, *sign));
+    }
+    let accounts = finance_controller.get_accounts().await?;
+    Ok(Some(Box::new(Init {
+        bill,
+        bill_sum,
+        transactions,
+        accounts,
+    })))
 }

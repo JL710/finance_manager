@@ -33,6 +33,11 @@ pub enum Message {
     TransactionTable(components::table_view::InnerMessage<Message>),
     Cancel,
     ClosedInput(bool),
+    Reload {
+        exists: bool,
+        existing_transactions: Vec<fm_core::Transaction>,
+        accounts: Vec<fm_core::account::Account>,
+    },
 }
 
 #[derive(Debug)]
@@ -118,6 +123,35 @@ impl View {
         )
     }
 
+    pub fn reload(
+        &self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<Message> {
+        if self.submitted {
+            return iced::Task::none();
+        }
+
+        let id = self.id;
+        let transaction_ids = self.transactions.iter().map(|x| x.0.id).collect::<Vec<_>>();
+        error::failing_task(async move {
+            let mut existing_transactions = Vec::new();
+            for id in transaction_ids {
+                if let Some(transaction) = finance_controller.get_transaction(id).await? {
+                    existing_transactions.push(transaction);
+                }
+            }
+            Ok(Message::Reload {
+                exists: if let Some(id) = id {
+                    finance_controller.get_bill(&id).await?.is_some()
+                } else {
+                    false
+                },
+                existing_transactions,
+                accounts: finance_controller.get_accounts().await?,
+            })
+        })
+    }
+
     pub fn fetch(
         id: Option<fm_core::Id>,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
@@ -168,6 +202,37 @@ impl View {
         utc_offset: time::UtcOffset,
     ) -> Action {
         match message {
+            Message::Reload {
+                exists,
+                existing_transactions,
+                accounts,
+            } => {
+                if !exists {
+                    self.id = None;
+                }
+                self.transactions.retain(|x| {
+                    existing_transactions
+                        .iter()
+                        .any(|transaction| transaction.id == x.0.id)
+                });
+                for (old_transaction, _) in &mut self.transactions {
+                    for transaction in &existing_transactions {
+                        if old_transaction.id == transaction.id {
+                            *old_transaction = transaction.clone();
+                        }
+                    }
+                }
+                self.transaction_table
+                    .edit_items(|x| *x = self.transactions.clone());
+                self.transaction_table.set_context(accounts);
+                if let Some(add_transaction) = &self.add_transaction {
+                    return Action::Task(
+                        add_transaction
+                            .reload(finance_controller)
+                            .map(Message::AddTransaction),
+                    );
+                }
+            }
             Message::ClosedInput(new_value) => {
                 self.closed = new_value;
             }
@@ -436,7 +501,7 @@ impl View {
     }
 
     fn submittable(&self) -> bool {
-        !self.name_input.is_valid() && self.value.currency().is_some()
+        self.name_input.is_valid() && self.value.currency().is_some()
     }
 }
 
@@ -468,6 +533,13 @@ mod add_transaction {
         FetchedTransactions(Vec<fm_core::Transaction>),
         Table(components::table_view::InnerMessage<Message>),
         Init(Init),
+        Reload {
+            accounts: Vec<fm_core::account::Account>,
+            categories: Vec<fm_core::Category>,
+            budgets: Vec<fm_core::Budget>,
+            bills: Vec<fm_core::Bill>,
+            updated_transactions: Vec<fm_core::Transaction>,
+        },
         AddAllTransactions,
     }
 
@@ -503,6 +575,27 @@ mod add_transaction {
             }
         }
 
+        pub fn reload(
+            &self,
+            finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        ) -> iced::Task<Message> {
+            let ids = self.transactions.iter().map(|x| x.id).collect::<Vec<_>>();
+            error::failing_task(async move {
+                let accounts = finance_controller.get_accounts().await?;
+                let categories = finance_controller.get_categories().await?;
+                let bills = finance_controller.get_bills(None).await?;
+                let budgets = finance_controller.get_budgets().await?;
+                let updated_transactions = finance_controller.get_transactions(ids).await?;
+                Ok(Message::Reload {
+                    accounts,
+                    categories,
+                    bills,
+                    budgets,
+                    updated_transactions,
+                })
+            })
+        }
+
         pub fn fetch(
             finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
             ignored_transactions: Vec<fm_core::Id>,
@@ -533,6 +626,27 @@ mod add_transaction {
             utc_offset: time::UtcOffset,
         ) -> Action {
             match message {
+                Message::Reload {
+                    accounts,
+                    categories,
+                    budgets,
+                    bills,
+                    updated_transactions,
+                } => {
+                    self.transactions = updated_transactions.clone();
+                    if let Some(filter_component) = &mut self.filter {
+                        filter_component.reload(accounts.clone(), categories, bills, budgets);
+                    }
+                    self.ignored_transactions.retain(|id| {
+                        self.transactions
+                            .iter()
+                            .any(|transaction| transaction.id == *id)
+                    });
+                    self.table.set_context(accounts);
+                    self.table
+                        .edit_items(move |items| *items = updated_transactions);
+                    Action::None
+                }
                 Message::Back => Action::Escape,
                 Message::FilterComponent(m) => {
                     if let Some(filter) = &mut self.filter {

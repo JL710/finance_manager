@@ -21,6 +21,7 @@ pub enum Message {
     Submit,
     AssetAccountCreated(fm_core::Id),
     Initialize(fm_core::account::AssetAccount),
+    Reload { exists: bool },
     Cancel,
 }
 
@@ -50,6 +51,27 @@ impl std::default::Default for View {
 }
 
 impl View {
+    pub fn reload(
+        &self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<Message> {
+        if self.submitted {
+            return iced::Task::none();
+        }
+        if let Some(id) = self.id {
+            error::failing_task(async move {
+                Ok(Message::Reload {
+                    exists: matches!(
+                        finance_controller.get_account(id).await?,
+                        Some(fm_core::account::Account::AssetAccount(_))
+                    ),
+                })
+            })
+        } else {
+            iced::Task::none()
+        }
+    }
+
     pub fn fetch(
         account_id: fm_core::Id,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
@@ -78,6 +100,13 @@ impl View {
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
+            Message::Reload {
+                exists: account_exists,
+            } => {
+                if !account_exists {
+                    self.id = None;
+                }
+            }
             Message::Cancel => {
                 if let Some(id) = self.id {
                     return Action::CancelWithId(id);

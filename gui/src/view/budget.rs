@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use iced::widget;
+use iced::{Task, widget};
 use iced_aw::widget::LabeledFrame;
 
 pub enum Action {
@@ -33,6 +33,7 @@ enum Message {
     IncreaseOffset,
     DecreaseOffset,
     Initialize(Box<Init>),
+    Reload(Option<Box<Init>>),
     TransactionTable(Box<components::transaction_table::Message>),
     Delete,
     Deleted,
@@ -84,6 +85,25 @@ impl View {
         })
     }
 
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
+    ) -> iced::Task<MessageContainer> {
+        let mut task = Task::none();
+        if let Self::Loaded { budget, offset, .. } = self {
+            task = error::failing_task(Self::initial_future(
+                finance_controller,
+                budget.id,
+                *offset,
+                utc_offset,
+            ))
+            .map(|x| Message::Reload(x.map(Box::new)))
+            .map(MessageContainer);
+        }
+        task
+    }
+
     pub fn fetch(
         id: fm_core::Id,
         offset: i32,
@@ -109,6 +129,30 @@ impl View {
         utc_offset: time::UtcOffset,
     ) -> Action {
         match message.0 {
+            Message::Reload(init) => {
+                if let Some(init) = init {
+                    if let Self::Loaded {
+                        budget,
+                        current_value,
+                        transaction_table,
+                        offset,
+                        ..
+                    } = self
+                    {
+                        *budget = init.budget;
+                        *current_value = init.value;
+                        *offset = init.offset;
+                        transaction_table.reload(
+                            init.transactions,
+                            init.categories,
+                            vec![budget.clone()],
+                        );
+                    }
+                } else {
+                    *self = Self::NotLoaded;
+                }
+                Action::None
+            }
             Message::Initialize(init) => {
                 match Self::new(
                     init.budget,
@@ -320,10 +364,24 @@ impl View {
         offset: i32,
         utc_offset: time::UtcOffset,
     ) -> Result<Message> {
-        let budget = finance_controller
-            .get_budget(id)
-            .await?
-            .context(format!("Could not find budget {id}"))?;
+        Ok(Message::Initialize(Box::new(
+            Self::initial_future(finance_controller, id, offset, utc_offset)
+                .await?
+                .context("Budget not found")?,
+        )))
+    }
+
+    async fn initial_future(
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        id: fm_core::Id,
+        offset: i32,
+        utc_offset: time::UtcOffset,
+    ) -> Result<Option<Init>> {
+        let budget = if let Some(budget) = finance_controller.get_budget(id).await? {
+            budget
+        } else {
+            return Ok(None);
+        };
         let transactions = finance_controller
             .get_budget_transactions(&budget, offset, utc_offset)
             .await?;
@@ -352,12 +410,12 @@ impl View {
 
         let categories = finance_controller.get_categories().await?;
 
-        Ok(Message::Initialize(Box::new(Init {
+        Ok(Some(Init {
             budget,
             value: current_value,
             transactions: transaction_tuples,
             offset,
             categories,
-        })))
+        }))
     }
 }

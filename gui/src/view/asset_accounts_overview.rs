@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 pub enum Action {
     None,
     CreateAssetAccount,
@@ -11,6 +13,7 @@ pub enum Message {
     CreateAssetAccount,
     AccountView(fm_core::account::AssetAccount),
     Initialize(Vec<(fm_core::account::AssetAccount, fm_core::Currency)>),
+    Reload(Vec<(fm_core::account::AssetAccount, fm_core::Currency)>),
     TableView(components::table_view::InnerMessage<Message>),
 }
 
@@ -39,30 +42,19 @@ impl View {
         }
     }
 
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<Message> {
+        error::failing_task(init_future(finance_controller)).map(Message::Reload)
+    }
+
     pub fn fetch(
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> (Self, iced::Task<Message>) {
         (
             Self::default(),
-            error::failing_task(async move {
-                let accounts = finance_controller
-                    .get_accounts()
-                    .await?
-                    .iter()
-                    .filter_map(|x| match &x {
-                        fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>();
-                let mut tuples = Vec::new();
-                for account in accounts {
-                    let amount = finance_controller
-                        .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
-                        .await?;
-                    tuples.push((account, amount));
-                }
-                Ok(Message::Initialize(tuples))
-            }),
+            error::failing_task(init_future(finance_controller)).map(Message::Initialize),
         )
     }
 
@@ -72,6 +64,9 @@ impl View {
         _finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
+            Message::Reload(accounts) => {
+                self.account_table.edit_items(|items| *items = accounts);
+            }
             Message::Initialize(accounts) => {
                 self.account_table.set_items(accounts);
             }
@@ -110,4 +105,26 @@ impl View {
         .height(iced::Fill)
         .into()
     }
+}
+
+async fn init_future(
+    finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+) -> Result<Vec<(fm_core::account::AssetAccount, fm_core::Currency)>> {
+    let accounts = finance_controller
+        .get_accounts()
+        .await?
+        .iter()
+        .filter_map(|x| match &x {
+            fm_core::account::Account::AssetAccount(acc) => Some(acc.clone()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let mut tuples = Vec::new();
+    for account in accounts {
+        let amount = finance_controller
+            .get_account_sum(&account.clone().into(), time::OffsetDateTime::now_utc())
+            .await?;
+        tuples.push((account, amount));
+    }
+    Ok(tuples)
 }

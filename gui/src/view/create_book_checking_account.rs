@@ -22,6 +22,7 @@ pub enum Message {
     Initialize(fm_core::account::BookCheckingAccount),
     AccountCreated(fm_core::Id),
     Cancel,
+    Reload { exists: bool },
 }
 
 #[derive(Debug)]
@@ -48,6 +49,21 @@ impl Default for View {
 }
 
 impl View {
+    pub fn reload(
+        &self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<Message> {
+        if let Some(id) = self.id {
+            error::failing_task(async move {
+                Ok(Message::Reload {
+                    exists: finance_controller.get_account(id).await?.is_some(),
+                })
+            })
+        } else {
+            iced::Task::none()
+        }
+    }
+
     pub fn fetch(
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         account_id: fm_core::Id,
@@ -74,6 +90,11 @@ impl View {
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
+            Message::Reload { exists } => {
+                if !exists {
+                    self.id = None;
+                }
+            }
             Message::AccountCreated(id) => return Action::AccountCreated(id),
             Message::Initialize(account) => {
                 self.id = Some(account.id);

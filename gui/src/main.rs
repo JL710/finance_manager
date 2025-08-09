@@ -27,10 +27,12 @@ enum Message {
     PaneClose(widget::pane_grid::Pane),
     PaneRestore,
     SidebarMessage(sidebar::Message),
+    FCModified,
 }
 
 pub struct App {
     finance_controller: fm_core::FMController<finance_managers::FinanceManagers>,
+    finance_controller_switched: fm_core::DateTime,
     pane_grid: widget::pane_grid::State<view::View<Fm>>,
     focused_pane: widget::pane_grid::Pane,
     side_bar: sidebar::Sidebar,
@@ -47,6 +49,7 @@ impl App {
         (
             App {
                 finance_controller,
+                finance_controller_switched: time::OffsetDateTime::now_utc(),
                 settings,
                 side_bar: sidebar_state,
                 pane_grid,
@@ -59,6 +62,21 @@ impl App {
     fn update(&mut self, message: Message) -> iced::Task<Message> {
         match message {
             Message::Ignore => {}
+            Message::FCModified => {
+                let mut tasks = Vec::new();
+                for (pane, view) in self.pane_grid.panes.iter_mut() {
+                    let pane = *pane;
+                    tasks.push(
+                        view.reload_from_fc(
+                            self.finance_controller.clone(),
+                            time::UtcOffset::from_whole_seconds(self.settings.utc_seconds_offset)
+                                .unwrap(),
+                        )
+                        .map(move |x| Message::PaneViewMessage(pane, Box::new(x))),
+                    );
+                }
+                return iced::Task::batch(tasks);
+            }
             Message::SidebarMessage(m) => match self.side_bar.update(m) {
                 sidebar::Action::Task(task) => return task.map(Message::SidebarMessage),
                 #[cfg(feature = "native")]
@@ -221,6 +239,8 @@ impl App {
                                 iced::Element::from(current_view)
                                     .map(move |m| Message::PaneViewMessage(pane, m.into())),
                             )
+                            .width(iced::Fill)
+                            .height(iced::Fill)
                             .padding(style::PADDING)
                             .style(move |theme: &iced::Theme| {
                                 let mut style =
@@ -311,6 +331,7 @@ impl App {
                             fm_core::managers::RamFinanceManager::default(),
                         ),
                     );
+                    self.finance_controller_switched = time::OffsetDateTime::now_utc();
                 }
             }
             #[cfg(feature = "native")]
@@ -338,6 +359,7 @@ impl App {
                     self.finance_controller = fm_core::FMController::with_finance_manager(
                         finance_managers::FinanceManagers::Sqlite(manager),
                     );
+                    self.finance_controller_switched = time::OffsetDateTime::now_utc();
                 }
             }
             #[cfg(not(feature = "native"))]
@@ -352,6 +374,7 @@ impl App {
                         .unwrap(),
                     ),
                 );
+                self.finance_controller_switched = time::OffsetDateTime::now_utc();
             }
         }
         if valid_settings {
@@ -364,6 +387,25 @@ impl App {
         } else {
             iced::Task::none()
         }
+    }
+
+    fn subscription(&self) -> iced::Subscription<Message> {
+        let controller = self.finance_controller.clone();
+        iced::Subscription::run_with_id(
+            self.finance_controller_switched,
+            iced::stream::channel(100, |mut channel| async move {
+                let mut last_modified = controller.last_modified().await.unwrap();
+                use iced::futures::SinkExt;
+                loop {
+                    let new_last_modified = controller.last_modified().await.unwrap();
+                    if new_last_modified != last_modified {
+                        channel.send(Message::FCModified).await.unwrap();
+                        last_modified = new_last_modified;
+                    }
+                    async_std::task::yield_now().await;
+                }
+            }),
+        )
     }
 }
 
@@ -453,6 +495,7 @@ fn main() {
 
     // run the gui
     iced::application("Finance Manager", App::update, App::view)
+        .subscription(App::subscription)
         .theme(|_| iced::Theme::Nord)
         .window(iced::window::Settings {
             icon: Some(icons::FM_LOGO_WINDOW_ICON.clone()),

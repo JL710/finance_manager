@@ -33,6 +33,7 @@ enum Message {
     ViewBudget(fm_core::Id),
     ViewCategory(fm_core::Id),
     Initialize(Box<Init>),
+    Reload(Option<Box<Init>>),
     NewBill,
 }
 
@@ -50,6 +51,48 @@ pub enum View {
 }
 
 impl View {
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+    ) -> iced::Task<MessageContainer> {
+        let mut task = iced::Task::none();
+        if let Self::Loaded { transaction, .. } = self {
+            let id = transaction.id;
+            task = error::failing_task(async move {
+                let transaction =
+                    if let Some(transaction) = finance_controller.get_transaction(id).await? {
+                        transaction
+                    } else {
+                        return Ok(MessageContainer(Message::Reload(None)));
+                    };
+                let source = finance_controller
+                    .get_account(transaction.source)
+                    .await?
+                    .context(format!("Could not find account {}", transaction.source))?;
+                let destination = finance_controller
+                    .get_account(transaction.destination)
+                    .await?
+                    .context(format!(
+                        "Could not find account {}",
+                        transaction.destination
+                    ))?;
+                let budget = match transaction.budget {
+                    Some(budget_id) => finance_controller.get_budget(budget_id.0).await?,
+                    None => None,
+                };
+                let categories = finance_controller.get_categories().await?;
+                Ok(MessageContainer(Message::Reload(Some(Box::new(Init {
+                    transaction,
+                    source,
+                    destination,
+                    budget,
+                    categories,
+                })))))
+            });
+        }
+        task
+    }
+
     pub fn fetch(
         id: fm_core::Id,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
@@ -102,6 +145,27 @@ impl View {
                     budget: init.budget,
                     categories: init.categories,
                 };
+                Action::None
+            }
+            Message::Reload(init) => {
+                if let Some(init) = init {
+                    if let Self::Loaded {
+                        transaction,
+                        source,
+                        destination,
+                        budget,
+                        categories,
+                    } = self
+                    {
+                        *transaction = init.transaction;
+                        *source = init.source;
+                        *destination = init.destination;
+                        *budget = init.budget;
+                        *categories = init.categories;
+                    }
+                } else {
+                    *self = Self::NotLoaded;
+                }
                 Action::None
             }
             Message::NewBill => {

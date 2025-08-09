@@ -41,13 +41,13 @@ pub enum Message<FM: FinanceManager + 'static> {
     Budget(budget::MessageContainer),
     CreateCategory(create_category::Message),
     CategoryOverview(category_overview::Message),
-    Category(category::Message),
+    Category(category::MessageContainer),
     BookCheckingAccountOverview(book_checking_account_overview::Message),
     CreateBookCheckingAccount(create_book_checking_account::Message),
     Settings(settings::Message),
     FilterTransaction(filter_transactions::Message),
     CreateBill(create_bill::Message),
-    BillOverview(bill_overview::Message),
+    BillOverview(bill_overview::MessageContainer),
     Bill(bill::MessageContainer),
     #[cfg(feature = "native")]
     Importer(importer::Message<FM>),
@@ -146,6 +146,61 @@ impl<'a, FM: FinanceManager + 'static> From<&'a View<FM>> for iced::Element<'a, 
 }
 
 impl<FM: FinanceManager + 'static> View<FM> {
+    /// returns none if the view is "dead" and can not be rebuild
+    pub fn reload_from_fc(
+        &mut self,
+        finance_controller: fm_core::FMController<FM>,
+        utc_offset: time::UtcOffset,
+    ) -> iced::Task<Message<FM>> {
+        match self {
+            Self::License => iced::Task::none(),
+            Self::Markdown(_, _) => iced::Task::none(),
+            Self::Account(account_view) => account_view
+                .reload(finance_controller, utc_offset)
+                .map(Message::Account),
+            Self::AssetAccounts(view) => {
+                view.reload(finance_controller).map(Message::AssetAccounts)
+            }
+            Self::BillOverview(view) => view.reload(finance_controller).map(Message::BillOverview),
+            Self::Bill(view) => view.reload(finance_controller).map(Message::Bill),
+            Self::BookCheckingAccountOverview(view) => view
+                .reload(finance_controller)
+                .map(Message::BookCheckingAccountOverview),
+            Self::BudgetOverview(view) => view
+                .reload(finance_controller, utc_offset)
+                .map(Message::BudgetOverview),
+            Self::Budget(view) => view
+                .reload(finance_controller, utc_offset)
+                .map(Message::Budget),
+            Self::CategoryOverview(view) => view
+                .reload(finance_controller)
+                .map(Message::CategoryOverview),
+            Self::Category(view) => view
+                .reload(finance_controller, utc_offset)
+                .map(Message::Category),
+            Self::Settings(_) => iced::Task::none(),
+            Self::Transaction(view) => view.reload(finance_controller).map(Message::Transaction),
+            Self::FilterTransaction(view) => view
+                .reload(finance_controller)
+                .map(Message::FilterTransaction),
+            Self::CreateTransaction(view) => view
+                .reload(finance_controller)
+                .map(Message::CreateTransaction),
+            Self::CreateAssetAccount(view) => view
+                .reload(finance_controller)
+                .map(Message::CreateAssetAccount),
+            Self::CreateBookCheckingAccount(view) => view
+                .reload(finance_controller)
+                .map(Message::CreateBookCheckingAccount),
+            Self::CreateBudget(view) => view.reload(finance_controller).map(Message::CreateBudget),
+            Self::CreateCategory(view) => {
+                view.reload(finance_controller).map(Message::CreateCategory)
+            }
+            Self::CreateBill(view) => view.reload(finance_controller).map(Message::CreateBill),
+            _ => iced::Task::none(),
+        }
+    }
+
     pub fn account(
         &mut self,
         finance_controller: FMController<FM>,

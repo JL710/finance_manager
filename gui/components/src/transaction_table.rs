@@ -125,6 +125,29 @@ impl TransactionTable {
         }
     }
 
+    pub fn reload(
+        &mut self,
+        transactions: Vec<(
+            fm_core::Transaction,
+            fm_core::account::Account,
+            fm_core::account::Account,
+        )>,
+        categories: Vec<fm_core::Category>,
+        budgets: Vec<fm_core::Budget>,
+    ) {
+        self.categories = categories;
+        self.categories.sort();
+        self.transaction_table
+            .set_context((self.categories.clone(), budgets));
+        if let Some(id) = self.category_popup
+            && !transactions.iter().any(|pair| pair.0.id == id)
+        {
+            self.category_popup = None;
+        }
+        self.transaction_table
+            .edit_items(|items| *items = transactions);
+    }
+
     pub fn change_transactions(
         &mut self,
         transactions: Vec<(

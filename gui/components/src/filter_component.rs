@@ -40,6 +40,61 @@ pub struct FilterComponent {
 }
 
 impl FilterComponent {
+    pub fn reload(
+        &mut self,
+        accounts: Vec<fm_core::account::Account>,
+        categories: Vec<fm_core::Category>,
+        bills: Vec<fm_core::Bill>,
+        budgets: Vec<fm_core::Budget>,
+    ) {
+        self.accounts = accounts;
+        self.categories = categories;
+        self.bills = bills.into_iter().map(Arc::new).collect();
+        self.budgets = budgets;
+
+        self.bill_filter_entries.retain(|filter_entry| {
+            if let Some(entry_id) = &filter_entry.get_filter().id {
+                self.bills.iter().any(|x| entry_id.id == x.id)
+            } else {
+                true
+            }
+        });
+        self.account_filter_entries.retain(|filter_entry| {
+            if let Some(entry_id) = &filter_entry.get_filter().id {
+                self.accounts.iter().any(|x| entry_id == x.id())
+            } else {
+                true
+            }
+        });
+        self.category_filter_entries.retain(|filter_entry| {
+            if let Some(entry_id) = &filter_entry.get_filter().id {
+                self.categories.iter().any(|x| *entry_id == x.id)
+            } else {
+                true
+            }
+        });
+        self.budget_filter_entries.retain(|filter_entry| {
+            if let Some(entry_id) = &filter_entry.get_filter().id {
+                self.budgets.iter().any(|x| *entry_id == x.id)
+            } else {
+                true
+            }
+        });
+
+        for filter_entry in &mut self.bill_filter_entries {
+            filter_entry.reload(self.bills.clone());
+        }
+        for filter_entry in &mut self.category_filter_entries {
+            filter_entry.reload(self.categories.clone());
+        }
+        for filter_entry in &mut self.budget_filter_entries {
+            filter_entry.reload(self.budgets.clone());
+        }
+        for filter_entry in &mut self.account_filter_entries {
+            filter_entry.reload(self.accounts.clone());
+        }
+    }
+
     pub fn new(
         accounts: Vec<fm_core::account::Account>,
         categories: Vec<fm_core::Category>,
@@ -291,7 +346,7 @@ impl FilterComponent {
     }
 
     pub fn view(&self) -> iced::Element<'_, InnerMessage> {
-        widget::container(super::spaced_column![
+        widget::container(widget::scrollable(super::spaced_column![
             // default timespan
             super::spal_row![
                 "Default Timespan: ",
@@ -306,11 +361,10 @@ impl FilterComponent {
                 widget::horizontal_rule(3)
             ]
             .align_y(iced::Alignment::Center),
-            widget::container(widget::scrollable(generate_filter_column(
+            generate_filter_column(
                 &self.account_filter_entries,
                 InnerMessage::AccountEntryMessage
-            )))
-            .max_height(150),
+            ),
             // category filters
             super::spal_row![
                 "Categories",
@@ -318,11 +372,10 @@ impl FilterComponent {
                 widget::horizontal_rule(3)
             ]
             .align_y(iced::Alignment::Center),
-            widget::container(widget::scrollable(generate_filter_column(
+            generate_filter_column(
                 &self.category_filter_entries,
                 InnerMessage::CategoryEntryMessage
-            )))
-            .max_height(150),
+            ),
             // bill filters
             super::spal_row![
                 "Bills",
@@ -330,11 +383,7 @@ impl FilterComponent {
                 widget::horizontal_rule(3)
             ]
             .align_y(iced::Alignment::Center),
-            widget::container(widget::scrollable(generate_filter_column(
-                &self.bill_filter_entries,
-                InnerMessage::BillEntryMessage
-            )))
-            .max_height(150),
+            generate_filter_column(&self.bill_filter_entries, InnerMessage::BillEntryMessage),
             // budget filters
             super::spal_row![
                 "Budget",
@@ -342,15 +391,14 @@ impl FilterComponent {
                 widget::horizontal_rule(3)
             ]
             .align_y(iced::Alignment::Center),
-            widget::container(widget::scrollable(generate_filter_column(
+            generate_filter_column(
                 &self.budget_filter_entries,
                 InnerMessage::BudgetEntryMessage
-            )))
-            .max_height(150),
+            ),
             // submit footer
             widget::horizontal_rule(3),
             widget::button("Submit").on_press(InnerMessage::Submit)
-        ])
+        ]))
         .padding(style::PADDING)
         .style(style::container_style_background_weak)
         .into()
@@ -423,6 +471,28 @@ mod filter_entry {
     impl<T: Clone + std::fmt::Display + 'static, ID: Clone + std::fmt::Debug + PartialEq + Eq>
         FilterEntry<T, ID>
     {
+        pub fn reload(&mut self, options: Vec<T>) {
+            self.options = options;
+            if let Some(id) = &self.filter.id
+                && !self.options.iter().any(|x| &(self.t_to_id)(x) == id)
+            {
+                self.filter.id = None;
+            }
+            self.specific_combobox = widget::combo_box::State::with_selection(
+                self.options.clone(),
+                self.filter.id.as_ref().map(|x| {
+                    for t in &self.options {
+                        if &(self.t_to_id)(t) == x {
+                            return t;
+                        }
+                    }
+                    self.options
+                        .first()
+                        .expect("could not find option, but expected one")
+                }),
+            );
+        }
+
         pub fn new(
             filter: Filter<ID>,
             options: Vec<T>,

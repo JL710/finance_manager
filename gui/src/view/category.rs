@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{Context, Result};
 use components::date_time::date_span_input;
 use iced::widget;
 
@@ -6,27 +6,34 @@ pub enum Action {
     None,
     EditCategory(fm_core::Id),
     DeleteCategory(iced::Task<()>),
-    Task(iced::Task<Message>),
+    Task(iced::Task<MessageContainer>),
     ViewTransaction(fm_core::Id),
     ViewAccount(fm_core::Id),
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+struct Init {
+    category: fm_core::Category,
+    sums: Vec<(fm_core::DateTime, fm_core::Currency)>,
+    transactions: Vec<(
+        fm_core::Transaction,
+        fm_core::account::Account,
+        fm_core::account::Account,
+    )>,
+    categories: Vec<fm_core::Category>,
+    budgets: Vec<fm_core::Budget>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MessageContainer(Message);
+
+#[derive(Debug, Clone)]
+enum Message {
     Delete,
     Edit,
     ChangedTimespan(date_span_input::Action),
-    Set(
-        fm_core::Category,
-        Vec<(fm_core::DateTime, fm_core::Currency)>,
-        Vec<(
-            fm_core::Transaction,
-            fm_core::account::Account,
-            fm_core::account::Account,
-        )>,
-        Vec<fm_core::Category>,
-        Vec<fm_core::Budget>,
-    ),
+    Set(Init),
+    Reload(Option<Init>),
     TransactionTable(components::transaction_table::Message),
 }
 
@@ -42,60 +49,75 @@ pub enum View {
 }
 
 impl View {
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
+    ) -> iced::Task<MessageContainer> {
+        let mut task = iced::Task::none();
+        if let Self::Loaded {
+            category,
+            timespan_input,
+            ..
+        } = self
+        {
+            task = error::failing_task(Self::init_future(
+                finance_controller,
+                category.id,
+                components::date_time::date_span_to_time_span(
+                    timespan_input.timespan(),
+                    utc_offset,
+                ),
+            ))
+            .map(Message::Reload)
+            .map(MessageContainer);
+            *self = Self::NotLoaded;
+        }
+        task
+    }
+
     pub fn fetch(
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         category_id: fm_core::Id,
-    ) -> (Self, iced::Task<Message>) {
+    ) -> (Self, iced::Task<MessageContainer>) {
         (
             Self::NotLoaded,
             error::failing_task(async move {
-                let transactions = finance_controller
-                    .get_transactions_of_category(category_id, (None, None))
-                    .await?;
-                let accounts = finance_controller
-                    .get_accounts_hash_map()
-                    .await
-                    .context("Error while fetching accounts")?;
-                let mut transaction_tuples = Vec::new();
-                for transaction in transactions {
-                    let from_account = accounts
-                        .get(&transaction.source)
-                        .context("Could not find source account")?
-                        .clone();
-                    let to_account = accounts
-                        .get(&transaction.destination)
-                        .context("Could not find destination account")?
-                        .clone();
-                    transaction_tuples.push((transaction, from_account, to_account));
-                }
-                let values = finance_controller
-                    .get_relative_category_values(category_id, (None, None))
-                    .await?;
-                let category = finance_controller
-                    .get_category(category_id)
+                Self::init_future(finance_controller, category_id, (None, None))
                     .await?
-                    .context(format!("Category {category_id} not found"))?;
-
-                let categories = finance_controller.get_categories().await?;
-                let budgets = finance_controller.get_budgets().await?;
-                Ok(Message::Set(
-                    category,
-                    values,
-                    transaction_tuples,
-                    categories,
-                    budgets,
-                ))
-            }),
+                    .context("Could not find category")
+            })
+            .map(Message::Set)
+            .map(MessageContainer),
         )
     }
 
     pub fn update(
         &mut self,
-        message: Message,
+        message: MessageContainer,
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         utc_offset: time::UtcOffset,
     ) -> Action {
+        let message = message.0;
         match message {
+            Message::Reload(init) => {
+                if let Some(init) = init {
+                    if let Self::Loaded {
+                        category,
+                        transaction_table,
+                        values,
+                        ..
+                    } = self
+                    {
+                        *category = init.category;
+                        *values = init.sums;
+                        transaction_table.reload(init.transactions, init.categories, init.budgets);
+                    }
+                } else {
+                    *self = Self::NotLoaded;
+                }
+                Action::None
+            }
             Message::Delete => {
                 if let Self::Loaded { category, .. } = self {
                     if let rfd::MessageDialogResult::No = rfd::MessageDialog::new()
@@ -132,67 +154,34 @@ impl View {
                 {
                     timespan_input.perform(action);
 
-                    let cloned_category = category.clone();
-                    let id = category.id;
+                    let id: u64 = category.id;
                     let timespan = timespan_input.timespan();
 
-                    Action::Task(error::failing_task(async move {
-                        let transactions = finance_controller
-                            .get_transactions_of_category(
+                    Action::Task(
+                        error::failing_task(async move {
+                            Self::init_future(
+                                finance_controller,
                                 id,
                                 components::date_time::date_span_to_time_span(timespan, utc_offset),
                             )
-                            .await?;
-                        let accounts = finance_controller
-                            .get_accounts_hash_map()
-                            .await
-                            .context("Error while fetching accounts")?;
-                        let mut transaction_tuples = Vec::new();
-                        for transaction in transactions {
-                            let from_account = accounts
-                                .get(&transaction.source)
-                                .context(format!(
-                                    "Could not find source account of transaction {}",
-                                    transaction.source
-                                ))?
-                                .clone();
-                            let to_account = accounts
-                                .get(&transaction.destination)
-                                .context(format!(
-                                    "Could not find destination account of transaction {}",
-                                    transaction.destination
-                                ))?
-                                .clone();
-                            transaction_tuples.push((transaction, from_account, to_account));
-                        }
-                        let values = finance_controller
-                            .get_relative_category_values(
-                                id,
-                                components::date_time::date_span_to_time_span(timespan, utc_offset),
-                            )
-                            .await?;
-                        let categories = finance_controller.get_categories().await?;
-                        let budgets = finance_controller.get_budgets().await?;
-                        Ok(Message::Set(
-                            cloned_category,
-                            values,
-                            transaction_tuples,
-                            categories,
-                            budgets,
-                        ))
-                    }))
+                            .await?
+                            .context("category not found")
+                        })
+                        .map(Message::Set)
+                        .map(MessageContainer),
+                    )
                 } else {
                     Action::None
                 }
             }
-            Message::Set(category, values, transactions, categories, budgets) => {
-                let category_id = category.id;
+            Message::Set(init) => {
+                let category_id = init.category.id;
                 *self = Self::Loaded {
-                    category,
+                    category: init.category,
                     transaction_table: Box::new(components::TransactionTable::new(
-                        transactions,
-                        categories,
-                        budgets,
+                        init.transactions,
+                        init.categories,
+                        init.budgets,
                         move |transaction| {
                             transaction
                                 .categories
@@ -200,7 +189,7 @@ impl View {
                                 .map(|sign| *sign == fm_core::Sign::Positive)
                         },
                     )),
-                    values,
+                    values: init.sums,
                     timespan_input: if let Self::Loaded { timespan_input, .. } = &self {
                         timespan_input.clone()
                     } else {
@@ -223,7 +212,7 @@ impl View {
                             Action::ViewAccount(id)
                         }
                         components::transaction_table::Action::Task(task) => {
-                            Action::Task(task.map(Message::TransactionTable))
+                            Action::Task(task.map(Message::TransactionTable).map(MessageContainer))
                         }
                     }
                 } else {
@@ -233,7 +222,7 @@ impl View {
         }
     }
 
-    pub fn view(&self) -> iced::Element<'_, Message> {
+    pub fn view(&self) -> iced::Element<'_, MessageContainer> {
         if let Self::Loaded {
             category,
             transaction_table,
@@ -241,35 +230,81 @@ impl View {
             timespan_input,
         } = self
         {
-            components::spaced_column![
-                components::spaced_row![
-                    components::spaced_column![
-                        components::spal_row![
-                            "Total value",
-                            widget::text(if let Some(value) = values.last() {
-                                value.1.to_string()
-                            } else {
-                                "0€".to_string()
-                            }),
+            iced::Element::new(
+                components::spaced_column![
+                    components::spaced_row![
+                        components::spaced_column![
+                            components::spal_row![
+                                "Total value",
+                                widget::text(if let Some(value) = values.last() {
+                                    value.1.to_string()
+                                } else {
+                                    "0€".to_string()
+                                }),
+                            ],
+                            category.name.as_str(),
                         ],
-                        category.name.as_str(),
+                        widget::Space::with_width(iced::Length::Fill),
+                        components::spaced_column![
+                            components::button::edit(Some(Message::Edit)),
+                            components::button::delete(Some(Message::Delete))
+                        ]
                     ],
-                    widget::Space::with_width(iced::Length::Fill),
-                    components::spaced_column![
-                        components::button::edit(Some(Message::Edit)),
-                        components::button::delete(Some(Message::Delete))
-                    ]
-                ],
-                date_span_input::date_span_input(timespan_input)
-                    .view()
-                    .map(Message::ChangedTimespan),
-                transaction_table.view().map(Message::TransactionTable),
-            ]
-            .height(iced::Fill)
-            .width(iced::Fill)
-            .into()
+                    date_span_input::date_span_input(timespan_input)
+                        .view()
+                        .map(Message::ChangedTimespan),
+                    transaction_table.view().map(Message::TransactionTable),
+                ]
+                .height(iced::Fill)
+                .width(iced::Fill),
+            )
+            .map(MessageContainer)
         } else {
             widget::text("Loading...").into()
         }
+    }
+
+    async fn init_future(
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        category_id: fm_core::Id,
+        timespan: fm_core::Timespan,
+    ) -> Result<Option<Init>> {
+        let category = if let Some(category) = finance_controller.get_category(category_id).await? {
+            category
+        } else {
+            return Ok(None);
+        };
+        let transactions = finance_controller
+            .get_transactions_of_category(category_id, timespan)
+            .await?;
+        let accounts = finance_controller
+            .get_accounts_hash_map()
+            .await
+            .context("Error while fetching accounts")?;
+        let mut transaction_tuples = Vec::new();
+        for transaction in transactions {
+            let from_account = accounts
+                .get(&transaction.source)
+                .context("Could not find source account")?
+                .clone();
+            let to_account = accounts
+                .get(&transaction.destination)
+                .context("Could not find destination account")?
+                .clone();
+            transaction_tuples.push((transaction, from_account, to_account));
+        }
+        let values = finance_controller
+            .get_relative_category_values(category_id, timespan)
+            .await?;
+
+        let categories = finance_controller.get_categories().await?;
+        let budgets = finance_controller.get_budgets().await?;
+        Ok(Some(Init {
+            category,
+            sums: values,
+            transactions: transaction_tuples,
+            categories,
+            budgets,
+        }))
     }
 }

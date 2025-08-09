@@ -12,6 +12,7 @@ pub enum Message {
     CreateBudget,
     ViewBudget(fm_core::Id),
     Initialize(Vec<(fm_core::Budget, fm_core::Currency)>),
+    Reload(Vec<(fm_core::Budget, fm_core::Currency)>),
     BudgetTable(components::table_view::InnerMessage<Message>),
 }
 
@@ -34,6 +35,26 @@ impl View {
                 })
                 .sortable_columns([0, 1, 2]),
         }
+    }
+
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
+    ) -> iced::Task<Message> {
+        error::failing_task(async move {
+            let budgets = finance_controller.get_budgets().await?;
+            let mut tuples = Vec::new();
+
+            for budget in budgets {
+                let current_value = finance_controller
+                    .get_budget_value(&budget, 0, utc_offset)
+                    .await?;
+                tuples.push((budget, current_value));
+            }
+
+            Ok(Message::Reload(tuples))
+        })
     }
 
     pub fn fetch(
@@ -64,6 +85,11 @@ impl View {
         _finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
     ) -> Action {
         match message {
+            Message::Reload(budgets) => {
+                self.budgets = budgets.clone();
+                self.budget_table.edit_items(|items| *items = budgets);
+                Action::None
+            }
             Message::CreateBudget => Action::CreateBudget,
             Message::ViewBudget(id) => Action::ViewBudget(id),
             Message::Initialize(budgets) => {

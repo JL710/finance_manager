@@ -47,6 +47,7 @@ enum Message {
         )>,
     ),
     Initialize(Box<Init>),
+    Reload(Option<Box<Init>>),
     Delete,
     Deleted(Arc<std::result::Result<(), fm_core::DeleteAccountError>>),
     TransactionTable(components::transaction_table::Message),
@@ -65,6 +66,66 @@ pub enum View {
 }
 
 impl View {
+    pub fn reload(
+        &mut self,
+        finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
+        utc_offset: time::UtcOffset,
+    ) -> iced::Task<MessageContainer> {
+        let mut task = iced::Task::none();
+        if let Self::Loaded {
+            account,
+            timespan_input,
+            ..
+        } = self
+        {
+            let account_id = *account.id();
+            let timespan = components::date_time::date_span_to_time_span(
+                timespan_input.timespan(),
+                utc_offset,
+            );
+            task = error::failing_task(async move {
+                let account = if let Some(acc) = finance_controller.get_account(account_id).await? {
+                    acc
+                } else {
+                    return Ok(Message::Reload(None));
+                };
+                let account_sum = finance_controller
+                    .get_account_sum(&account, time::OffsetDateTime::now_utc())
+                    .await?;
+                let transactions = finance_controller
+                    .get_transactions_of_account(*account.id(), timespan)
+                    .await?;
+                let accounts = finance_controller.get_accounts_hash_map().await?;
+                let mut transaction_tuples = Vec::with_capacity(transactions.len());
+                for transaction in transactions {
+                    let source = accounts
+                        .get(&transaction.source)
+                        .context(format!("Could not find account {}", transaction.source))?
+                        .clone();
+                    let destination = accounts
+                        .get(&transaction.destination)
+                        .context(format!(
+                            "Could not find account {}",
+                            transaction.destination
+                        ))?
+                        .clone();
+                    transaction_tuples.push((transaction, source, destination));
+                }
+                let categories = finance_controller.get_categories().await?;
+                let budgets = finance_controller.get_budgets().await?;
+                Ok(Message::Reload(Some(Box::new(Init {
+                    account,
+                    value: account_sum,
+                    transactions: transaction_tuples,
+                    categories,
+                    budgets,
+                }))))
+            })
+            .map(MessageContainer);
+        }
+        task
+    }
+
     pub fn fetch(
         finance_controller: fm_core::FMController<impl fm_core::FinanceManager>,
         account_id: fm_core::Id,
@@ -119,6 +180,24 @@ impl View {
         utc_offset: time::UtcOffset,
     ) -> Action {
         match message.0 {
+            Message::Reload(init) => {
+                if let Some(init) = init {
+                    if let Self::Loaded {
+                        account,
+                        current_value,
+                        transaction_table,
+                        ..
+                    } = self
+                    {
+                        *account = init.account;
+                        *current_value = init.value;
+                        transaction_table.reload(init.transactions, init.categories, init.budgets);
+                    }
+                } else {
+                    *self = Self::NotLoaded;
+                }
+                Action::None
+            }
             Message::Initialize(init) => {
                 let account_id = *init.account.id();
                 *self = Self::Loaded {
